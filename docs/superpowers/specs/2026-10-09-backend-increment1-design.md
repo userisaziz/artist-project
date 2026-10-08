@@ -28,7 +28,7 @@
 | Decision | Choice | Why |
 |---|---|---|
 | ORM stack | SQLAlchemy 2.0 **async** + `asyncpg` | FastAPI is natively async; fits api→service layering; scales under I/O load. Alembic uses the standard async `env.py` pattern. |
-| Database | Local Homebrew PostgreSQL 16 | User preference; `artist_marketplace` + `artist_marketplace_test` databases. |
+| Database | Local Homebrew PostgreSQL 16 (16.14, `postgres@127.0.0.1:5432`) | User preference; `art_circle` (exists) + `art_circle_test` databases. |
 | Auth day one | Phone + OTP, **dev-mode console provider** | OTP is the product's real flow, but no SMS account is needed to build/test it now. `SMSProvider` interface keeps Twilio a drop-in later. |
 | Registration | Just-in-time on first OTP verify | Phone-OTP worlds have no separate register step; role is set when a customer/artist profile is completed, not at signup. |
 | OTP/refresh storage | PostgreSQL tables, values **hashed** | Survives restarts, works with multiple workers, allows revocation. Plaintext OTPs/tokens are never stored. |
@@ -176,7 +176,7 @@ Route bodies stay ~5 lines: parse input schema → call `ArtistService(session)`
 ## 9. Testing
 
 - `pytest` + `pytest-asyncio` + `httpx.AsyncClient(transport=ASGITransport(app))`.
-- Real Postgres test DB `artist_marketplace_test` (SQLite would diverge on UUID/`text[]` behavior).
+- Real Postgres test DB `art_circle_test` (SQLite would diverge on UUID/`text[]` behavior).
 - `conftest.py`: run `alembic upgrade head` on test DB once per session; truncate tables between tests; override `get_db`.
 - Console OTP provider writes the code into a test-visible capture (or the test calls `auth_service` to read the stored hash target) — no HTTP mocking needed.
 - Coverage this increment: `test_auth.py` (request → verify → refresh → reuse-revoked fails; rate limit; wrong code; expiry) and `test_artists.py` (browse filters, pagination, me/get, auth required).
@@ -184,14 +184,14 @@ Route bodies stay ~5 lines: parse input schema → call `ArtistService(session)`
 ## 10. Local environment
 
 ```bash
-brew services start postgresql@16
-createuser artist_marketplace_owner --superuser   # or use your own role
-createdb artist_marketplace
-createdb artist_marketplace_test
-cp .env.example .env        # fill DATABASE_URL etc.
+brew services start postgresql@16   # already running on this machine
+createdb art_circle_test            # art_circle already exists; postgres role needs no password locally
+cp .env.example .env                # fill DATABASE_URL etc.
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+Connection URL spelling for SQLAlchemy: `postgresql+asyncpg://postgres@127.0.0.1:5432/art_circle` — the `+asyncpg` suffix is the driver; the plain `postgresql://` form points at the same server.
 
 `requirements.txt` (pinned): `fastapi`, `uvicorn[standard]`, `sqlalchemy[asyncio]~=2.0`, `asyncpg`, `alembic`, `pydantic~=2`, `pydantic-settings`, `pyjwt`, `python-dotenv`, `httpx`, `pytest`, `pytest-asyncio`, `ruff`.
 
