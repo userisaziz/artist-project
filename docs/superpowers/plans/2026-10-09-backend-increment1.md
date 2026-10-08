@@ -77,10 +77,11 @@ OTP_TTL_MINUTES=5
 OTP_MAX_ATTEMPTS=5
 OTP_RESEND_COOLDOWN_SECONDS=60
 DEBUG=true
-SMS_PROVIDER=console
+SMS_PROVIDER=fast2sms
+FAST2SMS_API_KEY=
 ```
 
-`cp .env.example .env` (`.env` is gitignored at repo root).
+`cp .env.example .env` (`.env` is gitignored at repo root). Set `FAST2SMS_API_KEY` to your key from fast2sms.com → Dev API section. Tests always force the console provider (see `conftest.py`), so `SMS_PROVIDER=fast2sms` in `.env` never sends real SMS during `pytest`.
 
 - [ ] **Step 4: Write `app/core/config.py`**
 
@@ -105,6 +106,7 @@ class Settings(BaseSettings):
     otp_resend_cooldown_seconds: int = 60
     debug: bool = True
     sms_provider: str = "console"
+    fast2sms_api_key: str = ""
 
 
 @lru_cache
@@ -154,6 +156,12 @@ filterwarnings =
 `tests/conftest.py` (grows in Task 2; this version proves DB connectivity):
 
 ```python
+import os
+
+# Tests never touch a real SMS gateway, whatever .env says.
+os.environ["SMS_PROVIDER"] = "console"
+os.environ["FAST2SMS_API_KEY"] = ""
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -843,11 +851,12 @@ def decode_token(token: str) -> dict:
 
 - [ ] **Step 3: Write `app/utils/sms_provider.py`**
 
-Why: the seam we agreed on — console now, Twilio later is one new class + one new settings value.
+Why: the seam we agreed on — console for tests, Fast2SMS (OTP route, `bulkV2`) for real delivery. Another gateway later is one new class + one new settings value.
 
 ```python
 import logging
 from abc import ABC, abstractmethod
+import httpx
 from app.core.config import get_settings
 
 logger = logging.getLogger("art_circle.sms")
@@ -855,24 +864,54 @@ logger = logging.getLogger("art_circle.sms")
 
 class SMSProvider(ABC):
     @abstractmethod
-    async def send(self, phone: str, message: str) -> None: ...
+    async def send_otp(self, phone: str, code: str) -> None: ...
 
 
 class ConsoleSMSProvider(SMSProvider):
-    """Dev-mode provider: logs the OTP and records it so tests can read it."""
+    """Test/dev-mode provider: logs the OTP and records it so tests can read it."""
 
     sent: list[tuple[str, str]] = []
 
-    async def send(self, phone: str, message: str) -> None:
+    async def send_otp(self, phone: str, code: str) -> None:
+        message = f"Your Art Circle code is {code}"
         logger.info("[console-sms] to=%s | %s", phone, message)
         ConsoleSMSProvider.sent.append((phone, message))
+
+
+class Fast2SMSProvider(SMSProvider):
+    """Real delivery via Fast2SMS OTP route.
+
+    The OTP template is fixed server-side ("Your OTP: {var}"), so we send the
+    numeric code only — never a custom message. Fast2SMS wants 10-digit Indian
+    mobiles, so the +91 country code is stripped before posting.
+    """
+
+    URL = "https://www.fast2sms.com/dev/bulkV2"
+
+    async def send_otp(self, phone: str, code: str) -> None:
+        api_key = get_settings().fast2sms_api_key
+        if not api_key:
+            raise RuntimeError("SMS_PROVIDER=fast2sms but FAST2SMS_API_KEY is empty")
+        digits = "".join(c for c in phone if c.isdigit())
+        number = digits[2:] if len(digits) == 12 and digits.startswith("91") else digits
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                self.URL,
+                headers={"authorization": api_key},
+                json={"route": "otp", "variables_values": code, "numbers": number},
+            )
+        payload = response.json() if response.content else {}
+        if response.status_code != 200 or not payload.get("success"):
+            raise RuntimeError(f"Fast2SMS send failed ({response.status_code}): {payload}")
 
 
 def get_sms_provider() -> SMSProvider:
     name = get_settings().sms_provider
     if name == "console":
         return ConsoleSMSProvider()
-    raise ValueError(f"Unknown SMS_PROVIDER: {name!r} (twilio arrives in a later milestone)")
+    if name == "fast2sms":
+        return Fast2SMSProvider()
+    raise ValueError(f"Unknown SMS_PROVIDER: {name!r} (supported: console, fast2sms)")
 ```
 
 - [ ] **Step 4: Run tests**
@@ -1114,7 +1153,7 @@ class AuthService:
                 expires_at=now + timedelta(minutes=self.settings.otp_ttl_minutes),
             )
         )
-        await self.sms.send(phone, f"Your Art Circle code is {code}")
+        await self.sms.send_otp(phone, code)
 
     async def verify_otp(self, phone: str, code: str) -> tuple[User, str, str]:
         otp = await self._latest_active_otp(phone)

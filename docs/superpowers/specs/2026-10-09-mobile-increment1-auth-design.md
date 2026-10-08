@@ -206,5 +206,5 @@ Divergence rule: if the real backend returns anything outside this table, we fix
 
 1. Mobile increment proceeds end-to-end on `MockTransport` (no backend needed).
 2. Backend Tasks 3–4 (auth domain) land independently.
-3. Integration: set `EXPO_PUBLIC_USE_MOCKS=false`, run against `uvicorn` on :8000, walk the full flow incl. cooldown/rotation against real 429/401s; OTP read from server console (dev SMS provider).
+3. Integration: set `EXPO_PUBLIC_USE_MOCKS=false`, run against `uvicorn` on :8000, walk the full flow incl. cooldown/rotation against real 429/401s; OTP arrives as a real SMS (backend `SMS_PROVIDER=fast2sms`) or read it from the server console (`SMS_PROVIDER=console`).
 4. Any contract drift discovered is fixed on whichever side deviated from §3's table.

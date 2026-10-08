@@ -19,7 +19,7 @@
 **Non-goals (later milestones, in planned order)**
 
 - Services/catalog (stage 4–5), availability (6), bookings (7), payments (8), reviews (9), messages (10), notifications (11), admin (12).
-- Real SMS gateway (Twilio) — interface is built now, provider added later.
+- Real SMS gateway: Fast2SMS is wired up now (`SMS_PROVIDER=fast2sms`); other gateways stay a one-class drop-in via the `SMSProvider` seam.
 - `repositories/` layer — introduced when booking/payment query complexity arrives (~stage 7); services take `AsyncSession` directly until then.
 - Email/password auth — the identity model is phone-only for this product.
 
@@ -30,7 +30,7 @@
 | **Schema source of truth** | The hand-built PostgreSQL schema in `art_circle` (8 tables, verified via `pg_dump`) — models MIRROR it; migration #1 only ADDS missing pieces | The hand-built schema is wireframe-driven and richer than the original spec (geo search, booking_type request/instant_book, policies, availability). Fighting it wastes work. |
 | ORM stack | SQLAlchemy 2.0 **async** + `asyncpg` | FastAPI is natively async; fits api→service layering; scales under I/O load. Alembic uses the standard async `env.py` pattern. |
 | Database | Local Homebrew PostgreSQL 16 (16.14, `postgres@127.0.0.1:5432`) | User preference; `art_circle` (exists) + `art_circle_test` databases. |
-| Auth day one | Phone + OTP, **dev-mode console provider** | OTP is the product's real flow, but no SMS account is needed to build/test it now. `SMSProvider` interface keeps Twilio a drop-in later. |
+| Auth day one | Phone + OTP, **dev-mode console provider** | OTP is the product's real flow, but no SMS account is needed to build/test it now. `SMSProvider` interface keeps any other gateway a drop-in later. Fast2SMS is the current real-delivery provider. |
 | Registration | Just-in-time on first OTP verify | Phone-OTP worlds have no separate register step; role is set when a customer/artist profile is completed, not at signup. |
 | OTP/refresh storage | PostgreSQL tables, values **hashed** | Survives restarts, works with multiple workers, allows revocation. Plaintext OTPs/tokens are never stored. |
 | Layering | `api/v1` (thin routes) → `services` (business logic, own the session) → models | Keeps routes free of logic; services testable by injecting a session. |
@@ -74,7 +74,7 @@ backend/
 │   │   ├── auth_service.py
 │   │   └── artist_service.py
 │   └── utils/
-│       ├── sms_provider.py     # SMSProvider ABC + ConsoleSMSProvider (+ TwilioSMSProvider later)
+│       ├── sms_provider.py     # SMSProvider ABC + ConsoleSMSProvider + Fast2SMSProvider
 │       └── enums.py            # UserRole, etc.
 ├── alembic/                    # async env.py + versions/
 ├── tests/
@@ -91,7 +91,7 @@ backend/
 
 ## 4. Core wiring
 
-- **`config.py`** — single `Settings` (pydantic-settings): `DATABASE_URL`, `TEST_DATABASE_URL`, `JWT_SECRET`, `JWT_ALGORITHM=HS256`, `ACCESS_TOKEN_TTL=15min`, `REFRESH_TOKEN_TTL=7d`, `DEBUG`, `SMS_PROVIDER=console|twilio`. Missing required var → startup error, not first-request error.
+- **`config.py`** — single `Settings` (pydantic-settings): `DATABASE_URL`, `TEST_DATABASE_URL`, `JWT_SECRET`, `JWT_ALGORITHM=HS256`, `ACCESS_TOKEN_TTL=15min`, `REFRESH_TOKEN_TTL=7d`, `DEBUG`, `SMS_PROVIDER=console|fast2sms`, `FAST2SMS_API_KEY`. Missing required var → startup error, not first-request error.
 - **`database.py`** — module-level `create_async_engine` (shared pool) + `async_sessionmaker`. `get_db()` dependency yields a session and **commits on success, rolls back on exception**. Services never create their own sessions.
 - **`main.py`** — `create_app()` factory; CORS for the React Native dev client; global exception handler mapping domain errors (`NotFoundError`, `AuthError`, `ConflictError`) to JSON `{"code", "message"}` with correct status codes; includes `api/v1/router.py` under `/api/v1`.
 
@@ -160,9 +160,9 @@ The role column is set explicitly when a profile is created (first `PATCH /artis
 POST /api/v1/auth/otp/request   {phone}
   1. rate-limit: reject if a code was sent to this phone < 60s ago (429)
   2. generate 6-digit code; store sha256 hash, 5-min expiry; invalidate prior codes
-  3. SMSProvider.send(phone, code)
-       DEBUG/console → logged to server console
-       twilio (later) → real SMS, same interface
+  3. SMSProvider.send_otp(phone, code)
+       console (forced in tests) → logged to server console
+       fast2sms (current .env default) → real OTP SMS via Fast2SMS, same interface
   → 204 always (no user-enumeration signal in response)
 
 POST /api/v1/auth/otp/verify    {phone, code}
