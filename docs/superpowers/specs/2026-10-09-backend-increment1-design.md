@@ -27,6 +27,7 @@
 
 | Decision | Choice | Why |
 |---|---|---|
+| **Schema source of truth** | The hand-built PostgreSQL schema in `art_circle` (8 tables, verified via `pg_dump`) — models MIRROR it; migration #1 only ADDS missing pieces | The hand-built schema is wireframe-driven and richer than the original spec (geo search, booking_type request/instant_book, policies, availability). Fighting it wastes work. |
 | ORM stack | SQLAlchemy 2.0 **async** + `asyncpg` | FastAPI is natively async; fits api→service layering; scales under I/O load. Alembic uses the standard async `env.py` pattern. |
 | Database | Local Homebrew PostgreSQL 16 (16.14, `postgres@127.0.0.1:5432`) | User preference; `art_circle` (exists) + `art_circle_test` databases. |
 | Auth day one | Phone + OTP, **dev-mode console provider** | OTP is the product's real flow, but no SMS account is needed to build/test it now. `SMSProvider` interface keeps Twilio a drop-in later. |
@@ -47,11 +48,16 @@ backend/
 │   │   ├── database.py         # async engine, async_sessionmaker, get_db (commit/rollback)
 │   │   ├── security.py         # OTP hashing, JWT create/verify helpers
 │   │   └── dependencies.py     # get_current_user, pagination params
-│   ├── models/
+│   ├── models/                 # mirrors ALL existing tables + 2 new (see §5)
 │   │   ├── base.py             # DeclarativeBase, timestamp mixin
 │   │   ├── user.py
 │   │   ├── customer_profile.py
 │   │   ├── artist_profile.py
+│   │   ├── service.py            # table artist_services (class Service)
+│   │   ├── service_inclusion.py
+│   │   ├── service_addon.py
+│   │   ├── artist_availability.py
+│   │   ├── artist_policy.py
 │   │   ├── otp_code.py
 │   │   └── refresh_token.py
 │   ├── schemas/
@@ -89,47 +95,64 @@ backend/
 - **`database.py`** — module-level `create_async_engine` (shared pool) + `async_sessionmaker`. `get_db()` dependency yields a session and **commits on success, rolls back on exception**. Services never create their own sessions.
 - **`main.py`** — `create_app()` factory; CORS for the React Native dev client; global exception handler mapping domain errors (`NotFoundError`, `AuthError`, `ConflictError`) to JSON `{"code", "message"}` with correct status codes; includes `api/v1/router.py` under `/api/v1`.
 
-## 5. Data model (Alembic migration #1)
+## 5. Data model
+
+### 5.1 Existing tables — mirrored 1:1 by models (created by hand in `art_circle`, verified via `pg_dump`)
 
 ```text
-users
-├─ id uuid pk (gen_random_uuid())
-├─ phone varchar unique, E.164 format — the login identity
-├─ is_phone_verified bool default false
-├─ is_active bool default true
-├─ role user_role default 'customer'  (Postgres ENUM: customer|artist|admin)
-├─ first_name / last_name nullable (collected during profile setup)
-├─ email nullable, avatar_url nullable
-├─ created_at / updated_at
+users                          id uuid pk gen_random_uuid()
+├─ phone varchar(20) NOT NULL UNIQUE      ← login identity (OTP flow)
+├─ email varchar(255) NULL UNIQUE
+├─ password_hash text NULL                (unused by OTP; reserved for future email+password login)
+├─ first_name / last_name varchar(100) NULL, avatar_url text NULL
+├─ is_email_verified / is_phone_verified bool NOT NULL default false
+├─ is_active bool NOT NULL default true
+├─ whatsapp_booking_updates bool NOT NULL default true   (notifications stage)
+├─ created_at / updated_at timestamptz NOT NULL default now()
+│
+└─ NOTE: `role` does NOT exist yet → added by migration #1 (see 5.2)
 
-customer_profiles                 (1-1 with users; presence implies customer role)
-├─ user_id pk/fk → users.id
-├─ bio, city, timezone
-├─ profile_completed bool
+customer_profiles              id uuid pk; user_id uuid NOT NULL UNIQUE FK→users ON DELETE CASCADE
+├─ display_name varchar(150), bio text, location_name varchar(255)
+├─ latitude numeric(10,8), longitude numeric(11,8)
 
-artist_profiles                   (1-1 with users; presence implies artist role)
-├─ user_id pk/fk → users.id
-├─ display_name, bio, city
-├─ categories text[]              (e.g. ["makeup", "photography"])
-├─ experience_years int
-├─ is_approved bool default false (admin gate, wired at stage 12)
-├─ avg_rating numeric default 0, total_reviews int default 0
-│                                 (denormalized; updated by review stage)
-├─ profile_completed bool
+artist_profiles                id uuid pk; user_id uuid NOT NULL UNIQUE FK→users ON DELETE CASCADE
+├─ artist_name varchar(150) NOT NULL, bio text
+├─ cover_image_url text, profile_image_url text
+├─ location_name varchar(255), latitude numeric(10,8), longitude numeric(11,8)
+├─ service_radius_km numeric(6,2)
+├─ is_verified bool default false, is_active bool default true
 
-otp_codes
-├─ id uuid pk
-├─ phone varchar, code_hash varchar
-├─ expires_at (now + 5 min), attempts int default 0 (max 5)
-├─ consumed_at nullable
+artist_services                id uuid pk; artist_id FK→artist_profiles ON DELETE CASCADE
+├─ service_name varchar(150) NOT NULL, description text, category varchar(100)
+├─ starting_price numeric(10,2) default 0, duration_minutes int (>0 check)
+├─ booking_type varchar(20) CHECK IN ('request','instant_book'), is_active bool
 
-refresh_tokens
-├─ id uuid pk
-├─ user_id fk, token_hash varchar unique
-├─ expires_at, revoked_at nullable
+service_inclusions             id uuid pk; service_id FK→artist_services; inclusion_name varchar(200)
+service_addons                 id uuid pk; service_id FK→artist_services; addon_name, price, duration
+
+artist_availability            id uuid pk; artist_id FK→artist_profiles
+├─ day_of_week smallint CHECK 0–6, start_time/end_time time CHECK end>start, is_available bool
+
+artist_policies                id uuid pk; artist_id FK→artist_profiles UNIQUE
+├─ advance_payment_percentage smallint CHECK IN (10,30,50,100) default 30
+├─ free_cancellation_hours int >=0 default 24, refund_percentage 0–100 default 50
+├─ travel_policy text, additional_rules text
 ```
 
-Enums: `UserRole {customer, artist, admin}` as a Postgres ENUM created in migration #1. The column is set explicitly when a profile is created (completing an artist profile sets `role=artist`); profile-table presence and the role column are kept in sync by the service layer, and the column exists for cheap authorization checks and admin-stage filtering.
+### 5.2 Migration #1 — ADDS only, never drops existing objects
+
+```text
+users.role            new column: Postgres ENUM user_role {customer|artist|admin}, default 'customer', NOT NULL
+otp_codes             id uuid pk; phone varchar(20) indexed; code_hash varchar(64)
+                      expires_at timestamptz; attempts int default 0; consumed_at timestamptz NULL
+refresh_tokens        id uuid pk; user_id FK→users CASCADE; token_hash varchar(64) UNIQUE
+                      expires_at timestamptz; revoked_at timestamptz NULL
+```
+
+Why OTP/refresh live in the DB, not memory: a code must survive server restarts and (later) multiple workers; revocable refresh tokens are a security requirement. OTPs and tokens are stored **hashed**, never plaintext.
+
+The role column is set explicitly when a profile is created (first `PATCH /artists/me` sets `role=artist`); profile-table presence and the role column are kept in sync by the service layer, and the column exists for cheap authorization checks and admin-stage filtering.
 
 ## 6. Auth flow
 
@@ -159,13 +182,17 @@ POST /api/v1/auth/refresh       {refresh_token}
 ## 7. Artists API
 
 ```text
-GET  /api/v1/artists?city=&category=&page=1&page_size=20   public, paginated summaries
-GET  /api/v1/artists/{id}                                   public detail (404 if absent/unapproved later)
-GET  /api/v1/artists/me                                     authed artist
-PATCH /api/v1/artists/me                                    authed artist updates profile fields
+GET  /api/v1/artists?location=&page=1&page_size=20   public, paginated summaries (is_verified, then newest first)
+GET  /api/v1/artists/{id}                             public detail: profile + active services
+GET  /api/v1/artists/me                               authed artist
+PATCH /api/v1/artists/me                              upsert artist profile (artist onboarding entry-point)
 ```
 
-Route bodies stay ~5 lines: parse input schema → call `ArtistService(session)` → return output schema. `PATCH /api/v1/artists/me` is an **upsert**: if the caller has no `artist_profiles` row, one is created and the user's `role` is set to `artist` (this doubles as artist onboarding entry-point until the fuller flow arrives at stage 3).
+Fields follow `artist_profiles`: `artist_name`, `bio`, `cover_image_url`, `profile_image_url`, `location_name`, `latitude`, `longitude`, `service_radius_km`, `is_verified`.
+
+**Deferred to stage 4 (services):** `category` and `booking_type` search filters require a join with `artist_services`; increment 1 browses by location only. `avg_rating`/`total_reviews` arrive with the reviews stage (they are not in your schema — good: no premature denormalization).
+
+Route bodies stay ~5 lines: parse input schema → call `ArtistService(session)` → return output schema. `PATCH /api/v1/artists/me` is an **upsert**: if the caller has no `artist_profiles` row, one is created and the user's `role` is set to `artist`.
 
 ## 8. Error handling
 
@@ -177,7 +204,7 @@ Route bodies stay ~5 lines: parse input schema → call `ArtistService(session)`
 
 - `pytest` + `pytest-asyncio` + `httpx.AsyncClient(transport=ASGITransport(app))`.
 - Real Postgres test DB `art_circle_test` (SQLite would diverge on UUID/`text[]` behavior).
-- `conftest.py`: run `alembic upgrade head` on test DB once per session; truncate tables between tests; override `get_db`.
+- `conftest.py`: run `alembic upgrade head` on test DB once per session; truncate **all 10 tables** between tests; override `get_db`.
 - Console OTP provider writes the code into a test-visible capture (or the test calls `auth_service` to read the stored hash target) — no HTTP mocking needed.
 - Coverage this increment: `test_auth.py` (request → verify → refresh → reuse-revoked fails; rate limit; wrong code; expiry) and `test_artists.py` (browse filters, pagination, me/get, auth required).
 
@@ -198,9 +225,10 @@ Connection URL spelling for SQLAlchemy: `postgresql+asyncpg://postgres@127.0.0.1
 ## 11. Growth path (from the agreed sequence)
 
 ```text
-1 users ✔  2 customer_profiles ✔  3 artist_profiles ✔
-4 artist_services → 5 inclusions/addons → 6 availability → 7 bookings (+ repositories/ layer)
-8 payments → 9 reviews → 10 messages → 11 notifications → 12 admin
+stages 1–6 tables ALREADY EXIST in art_circle (users, customer_profiles, artist_profiles,
+             artist_services, service_inclusions, service_addons, availability, policies)
+→ this increment: mirror them as models + add role/otp_codes/refresh_tokens + AUTH APIs + artist browse
+7 bookings (+ repositories/ layer) → 8 payments → 9 reviews → 10 notifications → 11 admin
 ```
 
 Each stage adds: Postgres table + SQLAlchemy model + FastAPI API, delivered as its own spec → plan → build cycle.

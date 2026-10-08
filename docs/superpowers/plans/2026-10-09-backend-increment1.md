@@ -21,7 +21,7 @@ backend/
 ├── app/
 │   ├── __init__.py  main.py
 │   ├── core/{__init__.py, config.py, database.py, security.py, dependencies.py, exceptions.py}
-│   ├── models/{__init__.py, base.py, user.py, customer_profile.py, artist_profile.py, otp_code.py, refresh_token.py}
+│   ├── models/{__init__.py, base.py, user.py, customer_profile.py, artist_profile.py, service.py, service_inclusion.py, service_addon.py, artist_availability.py, artist_policy.py, otp_code.py, refresh_token.py}
 │   ├── schemas/{__init__.py, common.py, user.py, auth.py, artist.py}
 │   ├── api/{__init__.py, v1/{__init__.py, router.py, auth.py, artists.py}}
 │   ├── services/{__init__.py, auth_service.py, artist_service.py}
@@ -282,13 +282,15 @@ class TimestampMixin:
     )
 ```
 
-- [ ] **Step 2: Write the five model files**
+- [ ] **Step 2: Write the model files — mirrors of the 8 existing tables + 2 new**
+
+The models must describe your hand-built schema EXACTLY (verified via `pg_dump`), so Alembic's diff only ever ADDS. Why the class `Service` (file `models/service.py`)? The table is `artist_services`, but `services/artist_service.py` already owns the name `ArtistService` — `Service` avoids the collision.
 
 ```python
-# app/models/user.py
+# app/models/user.py — mirrors users table; `role` is the ONLY new column (added by migration #1)
 import uuid
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Enum, String
+from sqlalchemy import Boolean, Enum, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
@@ -302,26 +304,32 @@ class User(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     phone: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True)
+    password_hash: Mapped[str | None] = mapped_column(Text)
+    first_name: Mapped[str | None] = mapped_column(String(100))
+    last_name: Mapped[str | None] = mapped_column(String(100))
+    avatar_url: Mapped[str | None] = mapped_column(Text)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    whatsapp_booking_updates: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
         default=UserRole.customer,
+        server_default=sa.text("'customer'"),
         nullable=False,
     )
-    first_name: Mapped[str | None] = mapped_column(String(80))
-    last_name: Mapped[str | None] = mapped_column(String(80))
-    email: Mapped[str | None] = mapped_column(String(255))
-    avatar_url: Mapped[str | None] = mapped_column(String(500))
 
     customer_profile = relationship("CustomerProfile", back_populates="user", uselist=False)
     artist_profile = relationship("ArtistProfile", back_populates="user", uselist=False)
 ```
 
 ```python
-# app/models/customer_profile.py
+# app/models/customer_profile.py — mirrors customer_profiles (surrogate id PK, user_id UNIQUE FK)
 import uuid
-from sqlalchemy import Boolean, ForeignKey, String, Text
+from decimal import Decimal
+import sqlalchemy as sa
+from sqlalchemy import ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
@@ -330,24 +338,28 @@ from app.models.base import Base, TimestampMixin
 class CustomerProfile(Base, TimestampMixin):
     __tablename__ = "customer_profiles"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    display_name: Mapped[str | None] = mapped_column(String(150))
     bio: Mapped[str | None] = mapped_column(Text)
-    city: Mapped[str | None] = mapped_column(String(120), index=True)
-    timezone: Mapped[str | None] = mapped_column(String(60))
-    profile_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    location_name: Mapped[str | None] = mapped_column(String(255))
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(10, 8))
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(11, 8))
 
     user = relationship("User", back_populates="customer_profile")
 ```
 
 ```python
-# app/models/artist_profile.py
+# app/models/artist_profile.py — mirrors artist_profiles
 import uuid
 from decimal import Decimal
 import sqlalchemy as sa
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy import Boolean, ForeignKey, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
@@ -355,20 +367,171 @@ from app.models.base import Base, TimestampMixin
 class ArtistProfile(Base, TimestampMixin):
     __tablename__ = "artist_profiles"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
-    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    artist_name: Mapped[str] = mapped_column(String(150), nullable=False)
     bio: Mapped[str | None] = mapped_column(Text)
-    city: Mapped[str | None] = mapped_column(String(120), index=True)
-    categories: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
-    experience_years: Mapped[int | None] = mapped_column(Integer)
-    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    avg_rating: Mapped[Decimal] = mapped_column(Numeric(3, 2), default=Decimal("0.00"), nullable=False)
-    total_reviews: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    profile_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cover_image_url: Mapped[str | None] = mapped_column(Text)
+    profile_image_url: Mapped[str | None] = mapped_column(Text)
+    location_name: Mapped[str | None] = mapped_column(String(255))
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(10, 8))
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(11, 8))
+    service_radius_km: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     user = relationship("User", back_populates="artist_profile")
+    services = relationship("Service", back_populates="artist", cascade="all, delete-orphan")
+    availability = relationship("ArtistAvailability", back_populates="artist", cascade="all, delete-orphan")
+    policy = relationship("ArtistPolicy", back_populates="artist", uselist=False)
+```
+
+```python
+# app/models/service.py — table artist_services, class Service (name collision avoidance, see Step 2 note)
+import uuid
+from decimal import Decimal
+import sqlalchemy as sa
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base, TimestampMixin
+
+
+class Service(Base, TimestampMixin):
+    __tablename__ = "artist_services"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    service_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(100))
+    starting_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    booking_type: Mapped[str] = mapped_column(String(20), default="request", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    artist = relationship("ArtistProfile", back_populates="services")
+    inclusions = relationship("ServiceInclusion", back_populates="service", cascade="all, delete-orphan")
+    addons = relationship("ServiceAddon", back_populates="service", cascade="all, delete-orphan")
+```
+
+```python
+# app/models/service_inclusion.py — table has created_at ONLY, so no TimestampMixin here
+import uuid
+from datetime import datetime
+import sqlalchemy as sa
+from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base
+
+
+class ServiceInclusion(Base):
+    __tablename__ = "service_inclusions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    service_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_services.id", ondelete="CASCADE"), nullable=False
+    )
+    inclusion_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    service = relationship("Service", back_populates="inclusions")
+```
+
+```python
+# app/models/service_addon.py
+import uuid
+from decimal import Decimal
+import sqlalchemy as sa
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base, TimestampMixin
+
+
+class ServiceAddon(Base, TimestampMixin):
+    __tablename__ = "service_addons"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    service_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_services.id", ondelete="CASCADE"), nullable=False
+    )
+    addon_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"), nullable=False)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    service = relationship("Service", back_populates="addons")
+```
+
+```python
+# app/models/artist_availability.py
+import uuid
+from datetime import time
+import sqlalchemy as sa
+from sqlalchemy import Boolean, ForeignKey, SmallInteger, Time
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base, TimestampMixin
+
+
+class ArtistAvailability(Base, TimestampMixin):
+    __tablename__ = "artist_availability"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    day_of_week: Mapped[int] = mapped_column(SmallInteger, nullable=False)  # DB CHECK 0-6
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)          # DB CHECK end>start
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    artist = relationship("ArtistProfile", back_populates="availability")
+```
+
+```python
+# app/models/artist_policy.py
+import uuid
+import sqlalchemy as sa
+from sqlalchemy import ForeignKey, Integer, SmallInteger, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base, TimestampMixin
+
+
+class ArtistPolicy(Base, TimestampMixin):
+    __tablename__ = "artist_policies"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    advance_payment_percentage: Mapped[int] = mapped_column(SmallInteger, default=30, nullable=False)  # DB CHECK IN (10,30,50,100)
+    free_cancellation_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    refund_percentage: Mapped[int] = mapped_column(SmallInteger, default=50, nullable=False)
+    travel_policy: Mapped[str | None] = mapped_column(Text)
+    additional_rules: Mapped[str | None] = mapped_column(Text)
+
+    artist = relationship("ArtistProfile", back_populates="policy")
 ```
 
 ```python
@@ -426,6 +589,11 @@ from app.models.base import Base  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.customer_profile import CustomerProfile  # noqa: F401
 from app.models.artist_profile import ArtistProfile  # noqa: F401
+from app.models.service import Service  # noqa: F401
+from app.models.service_inclusion import ServiceInclusion  # noqa: F401
+from app.models.service_addon import ServiceAddon  # noqa: F401
+from app.models.artist_availability import ArtistAvailability  # noqa: F401
+from app.models.artist_policy import ArtistPolicy  # noqa: F401
 from app.models.otp_code import OtpCode  # noqa: F401
 from app.models.refresh_token import RefreshToken  # noqa: F401
 ```
@@ -494,9 +662,13 @@ alembic revision --autogenerate -m "initial schema"
 alembic upgrade head
 ```
 
-Expected in the generated file: `create_table` for all 5 tables + `sa.Enum(..., name='user_role')` (CREATE TYPE user_role) + `postgresql.ARRAY(sa.Text())` for `categories`. If `server_default=sa.text('gen_random_uuid()')` is missing on any id column, add it manually — autogenerate sometimes drops server defaults.
+Expected in the generated file — ADDITIONS ONLY: `op.create_table("otp_codes", ...)`, `op.create_table("refresh_tokens", ...)`, `sa.Enum(..., name="user_role")` (CREATE TYPE), and `op.add_column("users", ... role ...)`. Because the models mirror your live schema, everything else should show as "no changes".
 
-Verify: `psql -h 127.0.0.1 -U postgres art_circle -c '\dt'` → 5 tables + `alembic_version`.
+**SAFETY RULE: your hand-built tables must never be dropped.** Open the generated file and delete ANY `op.drop_table` / `op.drop_column` / `op.drop_constraint` targeting your 8 original tables. Your hand-written CHECK constraints stay untouched (Alembic doesn't manage them by default).
+
+If `server_default=sa.text('gen_random_uuid()')` is missing on the new tables' id columns, add it manually — autogenerate sometimes drops server defaults.
+
+Verify: `psql -h 127.0.0.1 -U postgres art_circle -P pager=off -c '\dt'` → 10 tables + `alembic_version`.
 
 - [ ] **Step 5: Write failing `tests/test_migrations.py`**
 
@@ -507,7 +679,11 @@ from alembic.config import Config
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_TABLES = {"users", "customer_profiles", "artist_profiles", "otp_codes", "refresh_tokens", "alembic_version"}
+EXPECTED_TABLES = {
+    "users", "customer_profiles", "artist_profiles", "artist_services", "service_inclusions",
+    "service_addons", "artist_availability", "artist_policies", "otp_codes", "refresh_tokens",
+    "alembic_version",
+}
 
 
 def apply_migrations(url: str) -> None:
@@ -532,7 +708,10 @@ Replace `@pytest_asyncio.fixture` with `@pytest_asyncio.fixture(scope="session")
 ```python
 from sqlalchemy import text
 
-TABLES = "users, customer_profiles, artist_profiles, otp_codes, refresh_tokens"
+TABLES = (
+    "users, customer_profiles, artist_profiles, artist_services, service_inclusions, "
+    "service_addons, artist_availability, artist_policies, otp_codes, refresh_tokens"
+)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -1108,7 +1287,7 @@ git commit -m "feat: add phone OTP auth flow with JWT access/refresh rotation"
 - Create: `app/schemas/artist.py`, `app/services/artist_service.py`, `app/api/v1/artists.py`, `tests/test_artists.py`
 - Modify: `app/api/v1/router.py`
 
-- [ ] **Step 1: Write `app/schemas/artist.py`**
+- [ ] **Step 1: Write `app/schemas/artist.py`** — fields follow the real `artist_profiles` / `artist_services` columns
 
 ```python
 import uuid
@@ -1116,30 +1295,49 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ServiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    service_name: str
+    description: str | None = None
+    category: str | None = None
+    starting_price: Decimal
+    duration_minutes: int | None = None
+    booking_type: str  # 'request' | 'instant_book'
+    is_active: bool
+
+
 class ArtistSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: uuid.UUID
     user_id: uuid.UUID
-    display_name: str
+    artist_name: str
     bio: str | None = None
-    city: str | None = None
-    categories: list[str] = []
-    experience_years: int | None = None
-    avg_rating: Decimal
-    total_reviews: int
+    profile_image_url: str | None = None
+    cover_image_url: str | None = None
+    location_name: str | None = None
+    service_radius_km: Decimal | None = None
+    is_verified: bool
 
 
 class ArtistDetail(ArtistSummary):
-    profile_completed: bool
-    is_approved: bool
+    latitude: Decimal | None = None
+    longitude: Decimal | None = None
+    is_active: bool
+    services: list[ServiceOut] = []
 
 
 class ArtistUpdate(BaseModel):
-    display_name: str | None = Field(default=None, max_length=120)
+    artist_name: str | None = Field(default=None, max_length=150)
     bio: str | None = None
-    city: str | None = Field(default=None, max_length=120)
-    categories: list[str] | None = None
-    experience_years: int | None = Field(default=None, ge=0, le=70)
+    cover_image_url: str | None = None
+    profile_image_url: str | None = None
+    location_name: str | None = Field(default=None, max_length=255)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    service_radius_km: float | None = Field(default=None, gt=0, le=200)
 
 
 class ArtistPage(BaseModel):
@@ -1155,7 +1353,7 @@ class ArtistPage(BaseModel):
 PHONE = "+15550009999"
 
 
-async def make_artist(client, phone=PHONE, *, name="Priya", city="Chennai", categories=("makeup",)):
+async def make_artist(client, phone=PHONE, *, name="Priya", location="Chennai"):
     r = await client.post("/api/v1/auth/otp/request", json={"phone": phone})
     assert r.status_code == 204
     from app.utils.sms_provider import ConsoleSMSProvider
@@ -1164,37 +1362,37 @@ async def make_artist(client, phone=PHONE, *, name="Priya", city="Chennai", cate
     headers = {"Authorization": f"Bearer {tokens['access_token']}"}
     r = await client.patch(
         "/api/v1/artists/me",
-        json={"display_name": name, "city": city, "categories": list(categories), "experience_years": 5},
+        json={"artist_name": name, "location_name": location, "service_radius_km": 25},
         headers=headers,
     )
     assert r.status_code == 200
     return headers, r.json()
 
 
-async def test_patch_me_creates_profile_and_upgrades_role(client):
+async def test_patch_me_creates_profile(client):
     headers, detail = await make_artist(client)
+    assert detail["artist_name"] == "Priya"
+    assert detail["services"] == []  # service CRUD arrives with the stage-4 API
     me = await client.get("/api/v1/artists/me", headers=headers)
     assert me.status_code == 200
-    assert me.json()["user_id"] == detail["user_id"]
-    # role flipped to artist is verified via the tokens' user payload:
-    assert detail["user_id"]  # PATCH /me returned the newly created profile
+    assert me.json()["id"] == detail["id"]
 
 
-async def test_list_artists_filters_by_city_and_category(client):
-    await make_artist(client, phone="+15550001111", city="Chennai", categories=("makeup",))
-    await make_artist(client, phone="+15550002222", city="Mumbai", categories=("photography",))
+async def test_list_artists_filters_by_location(client):
+    await make_artist(client, phone="+15550001111", location="Chennai")
+    await make_artist(client, phone="+15550002222", location="Mumbai")
 
-    r = await client.get("/api/v1/artists", params={"city": "Chennai"})
+    r = await client.get("/api/v1/artists", params={"location": "Chennai"})
     assert r.json()["total"] == 1
-    r = await client.get("/api/v1/artists", params={"category": "photography"})
-    assert r.json()["items"][0]["city"] == "Mumbai"
-    r = await client.get("/api/v1/artists", params={"city": "Nowhere"})
+    r = await client.get("/api/v1/artists", params={"location": "Nowhere"})
     assert r.json()["total"] == 0
+    r = await client.get("/api/v1/artists")
+    assert r.json()["total"] == 2
 
 
 async def test_get_artist_detail_and_404(client):
     _, detail = await make_artist(client)
-    r = await client.get(f"/api/v1/artists/{detail['user_id']}")
+    r = await client.get(f"/api/v1/artists/{detail['id']}")
     assert r.status_code == 200
     r = await client.get("/api/v1/artists/00000000-0000-0000-0000-000000000000")
     assert r.status_code == 404
@@ -1208,10 +1406,10 @@ async def test_me_requires_authentication(client):
 
 async def test_patch_me_upserts_existing_profile(client):
     headers, first = await make_artist(client)
-    r = await client.patch("/api/v1/artists/me", json={"city": "Bangalore"}, headers=headers)
+    r = await client.patch("/api/v1/artists/me", json={"location_name": "Bangalore"}, headers=headers)
     assert r.status_code == 200
-    assert r.json()["city"] == "Bangalore"
-    assert r.json()["display_name"] == first["display_name"]  # unset fields untouched
+    assert r.json()["location_name"] == "Bangalore"
+    assert r.json()["artist_name"] == first["artist_name"]  # unset fields untouched
 
 
 async def test_access_token_authorizes_and_role_flips(client):
@@ -1223,7 +1421,7 @@ async def test_access_token_authorizes_and_role_flips(client):
     headers = {"Authorization": f"Bearer {tokens['access_token']}"}
     # before onboarding: no profile yet
     assert (await client.get("/api/v1/artists/me", headers=headers)).status_code == 404
-    r = await client.patch("/api/v1/artists/me", json={"display_name": "Lee"}, headers=headers)
+    r = await client.patch("/api/v1/artists/me", json={"artist_name": "Lee"}, headers=headers)
     assert r.status_code == 200
     refresh = (await client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]})).json()
     assert refresh["user"]["role"] == "artist"
@@ -1237,6 +1435,7 @@ Run: `pytest tests/test_artists.py -v` → FAIL.
 import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.core.exceptions import NotFoundError
 from app.models.artist_profile import ArtistProfile
 from app.models.user import User
@@ -1248,49 +1447,51 @@ class ArtistService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_artists(self, city, category, page: int, page_size: int) -> tuple[list[ArtistProfile], int]:
+    async def list_artists(self, location, page: int, page_size: int) -> tuple[list[ArtistProfile], int]:
         conditions = []
-        if city:
-            conditions.append(ArtistProfile.city.ilike(f"%{city}%"))
-        if category:
-            conditions.append(ArtistProfile.categories.any_(category))
+        if location:
+            conditions.append(ArtistProfile.location_name.ilike(f"%{location}%"))
         total = (
             await self.session.scalar(select(func.count()).select_from(ArtistProfile).where(*conditions))
             or 0
         )
         rows = await self.session.scalars(
             select(ArtistProfile)
-            .where(*conditions)
-            .order_by(ArtistProfile.avg_rating.desc(), ArtistProfile.total_reviews.desc())
+            .where(*conditions, ArtistProfile.is_active.is_(True))
+            .order_by(ArtistProfile.is_verified.desc(), ArtistProfile.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
         return list(rows), total
 
-    async def get_artist(self, user_id: uuid.UUID) -> ArtistProfile:
-        profile = await self.session.get(ArtistProfile, user_id)
+    async def _with_services(self, stmt):
+        # selectinload eagerly loads services — required in async: lazy loads would raise MissingGreenlet
+        return await self.session.scalar(stmt.options(selectinload(ArtistProfile.services)))
+
+    async def get_artist(self, artist_id: uuid.UUID) -> ArtistProfile:
+        profile = await self._with_services(select(ArtistProfile).where(ArtistProfile.id == artist_id))
         if profile is None:
             raise NotFoundError("Artist not found")
         return profile
 
     async def get_by_user(self, user: User) -> ArtistProfile:
-        profile = await self.session.get(ArtistProfile, user.id)
+        profile = await self._with_services(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
         if profile is None:
             raise NotFoundError("Artist profile not found — create one via PATCH /artists/me")
         return profile
 
     async def upsert_me(self, user: User, data: ArtistUpdate) -> ArtistProfile:
-        profile = await self.session.get(ArtistProfile, user.id)
+        profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
         if profile is None:  # first PATCH = artist onboarding entry-point
             profile = ArtistProfile(
-                user_id=user.id, display_name=data.display_name or user.first_name or "Artist"
+                user_id=user.id, artist_name=data.artist_name or user.first_name or "Artist"
             )
             self.session.add(profile)
             user.role = UserRole.artist
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(profile, field, value)
         await self.session.flush()
-        return profile
+        return await self.get_artist(profile.id)  # reload with services eagerly (async-safe)
 ```
 
 - [ ] **Step 4: Write thin routes `app/api/v1/artists.py`**
@@ -1316,13 +1517,12 @@ def get_artist_service(session: AsyncSession = Depends(get_db)) -> ArtistService
 
 @router.get("", response_model=ArtistPage)
 async def list_artists(
-    city: str | None = Query(default=None, max_length=120),
-    category: str | None = Query(default=None, max_length=60),
+    location: str | None = Query(default=None, max_length=255),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     service: ArtistService = Depends(get_artist_service),
 ):
-    rows, total = await service.list_artists(city, category, page, page_size)
+    rows, total = await service.list_artists(location, page, page_size)
     return ArtistPage(
         items=[ArtistSummary.model_validate(r) for r in rows], page=page, page_size=page_size, total=total
     )
