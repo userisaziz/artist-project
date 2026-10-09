@@ -1770,6 +1770,8 @@ Dispatch the `silent-failure-hunter` review over the diff `git log --oneline` ra
 
 ### Task 9: Re-theme to the nude / cocoa palette (added 2026-10-10)
 
+> **Superseded — do not execute.** Replaced by the Atelier pink theme (Increment 2, `docs/design/atelier/`).
+
 The product owner picked a new visual reference: peach-nude backgrounds, a cocoa-brown primary, tan chips and serif headings. The fonts already changed in `1744ab9` (Cormorant Garamond + Plus Jakarta Sans). This task swaps the colours. Because of the three-layer rule, only Layer 1 and Layer 2 files change, and no component is touched.
 
 **Spec:** §1 Layer 1 palette v2 and Layer 2 mapping. §8 (Home / Categories / Booking direction) is reference only and is **not** built here.

@@ -7,9 +7,16 @@ it('assigns every semantic color role', () => {
   for (const role of roles) expect(lightTheme.colors[role as keyof typeof lightTheme.colors]).toMatch(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/); // 8-digit = with alpha
 });
 
-it('maps brand to plum and background to blush (feminine identity)', () => {
-  expect(lightTheme.colors.brand).toBe(palette.plum500);
-  expect(lightTheme.colors.background).toBe(palette.blush100);
+it('maps brand to Atelier rose and text to plum-brown ink (Coquette identity)', () => {
+  expect(lightTheme.colors.brand).toBe(palette.rose500);
+  expect(lightTheme.colors.brand).toBe('#B64D75');
+  expect(lightTheme.colors.textPrimary).toBe(palette.ink900);
+  expect(lightTheme.colors.brandSoft).toBe(palette.blush200);
+});
+
+it('has a serif italic accent face for emphasised words', () => {
+  expect(lightTheme.typography.accent.fontFamily).toBe('CormorantGaramond_600SemiBold_Italic');
+  expect(lightTheme.typography.hero.fontSize).toBeGreaterThan(lightTheme.typography.display.fontSize);
 });
 
 it('exposes all six typography roles with serif display and sans body', () => {

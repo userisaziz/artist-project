@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#FBEAF1;font-family:'Plus Jakarta Sans',sans-serif;color:#49313B;-webkit-font-smoothing:antialiased}
+a{color:#B64D75;text-decoration:none}a:hover{color:#49313B}
+[data-v2-scroll]::-webkit-scrollbar{display:none}
+.hs::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="--hd:{{ hdFont }};--hds:{{ hdScale }};--hdls:{{ hdLs }};display:flex;height:100vh;width:100vw;overflow:hidden;background:radial-gradient(1200px 700px at 70% 10%,#FFF3F8 0%,#FBEAF1 55%,#F7DCE8 100%)">
+  <aside style="width:250px;flex:none;border-right:1px solid #F0CFDD;background:rgba(255,255,255,.6);display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:20px 18px 14px;border-bottom:1px solid #F0CFDD">
+      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(28px * var(--hds));font-weight:600;line-height:1">Atelier</div>
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#896F7D;margin-top:6px">Hi-fi prototype · Coquette</div>
+    </div>
+    <div class="hs" style="flex:1;overflow-y:auto;padding:10px 10px 20px">
+      <sc-for list="{{ rail }}" as="g" hint-placeholder-count="5">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#B64D75;padding:14px 8px 6px">{{ g.name }}</div>
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+          <div onClick="{{ it.onClick }}" style="display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;background:{{ it.bg }};color:{{ it.color }}"><span style="font-size:10.5px;width:20px;color:#B293A3;font-weight:600">{{ it.num }}</span><span>{{ it.label }}</span></div>
+        </sc-for>
+      </sc-for>
+    </div>
+    <div style="padding:12px;border-top:1px solid #F0CFDD;display:flex;gap:8px">
+      <div onClick="{{ prev }}" style="flex:1;height:38px;border-radius:999px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;background:#fff">‹ Back</div>
+      <div onClick="{{ next }}" style="flex:1;height:38px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer">Next ›</div>
+    </div>
+  </aside>
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative">
+    <div style="position:absolute;top:14px;left:24px;right:24px;display:flex;justify-content:space-between;font-size:12px;color:#896F7D"><span>{{ curGroup }} · <b style="color:#49313B">{{ curLabel }}</b></span><span>Tap inside the screen · ← → to step</span></div>
+
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ true }}">
+    <div style="width:{{ phoneW }}px;height:{{ phoneH }}px;position:relative">
+    <div style="position:absolute;top:0;left:0;width:393px;height:852px;transform-origin:0 0;transform:scale({{ phoneScale }});border-radius:56px;background:#fff;box-shadow:0 0 0 10px #2A1C22,0 0 0 11px #4a3540,0 40px 80px rgba(182,77,117,.25);overflow:hidden">
+      <div style="position:absolute;top:0;left:0;right:0;height:54px;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 36px;font-size:15px;font-weight:600;pointer-events:none;color:{{ sbColor }}"><span>9:41</span><span style="position:absolute;left:50%;top:11px;transform:translateX(-50%);width:124px;height:36px;border-radius:20px;background:#000"></span><span style="font-size:12px;letter-spacing:1px">▮▮▮ ◠ ▭</span></div>
+      <div data-v2-scroll="1" class="hs" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden">
+
+<!-- AUTH -->
+<sc-if value="{{ show.welcome }}" hint-placeholder-val="{{ true }}">
+<div style="height:852px;position:relative;background:#FFE4EE">
+  <div style="position:absolute;inset:0 0 300px 0"><image-slot id="v2-welcome-hero" shape="rect" placeholder="Hero portrait — bride with mehendi"></image-slot></div>
+  <div style="position:absolute;left:0;right:0;top:330px;height:240px;background:linear-gradient(180deg,rgba(255,228,238,0) 0%,#FFE4EE 85%);pointer-events:none"></div>
+  <div style="position:absolute;right:24px;top:300px;text-align:right;pointer-events:none">
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(50px * var(--hds));line-height:.98;font-weight:600;color:#49313B">Discover<br>your <i style="color:#B64D75">artist</i></div>
+  </div>
+  <div style="position:absolute;left:24px;right:24px;bottom:40px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px"><svg width="28" height="18" viewBox="0 0 28 18" fill="none" stroke="#C76B93" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg></div>
+    <p style="margin:0 0 6px;text-align:center;font-size:14px;line-height:1.5;color:#6E5262;text-wrap:pretty">Mehendi, makeup, photography and more — book verified artists in Bangalore, Mumbai, Delhi and beyond.</p>
+    <div onClick="{{ go.login }}" style="height:52px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(182,77,117,.3)">Get started</div>
+    <div onClick="{{ go.login }}" style="height:52px;border-radius:999px;background:#fff;color:#49313B;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;border:1px solid #F0CFDD">I already have an account</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.login }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;padding:62px 24px 40px;box-sizing:border-box;background:linear-gradient(180deg,#FFE4EE 0%,#fff 38%);display:flex;flex-direction:column">
+  <div onClick="{{ go.welcome }}" style="width:44px;height:44px;border-radius:22px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:1px solid #F0CFDD">‹</div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(42px * var(--hds));font-weight:600;line-height:1;margin-top:28px">Welcome <i style="color:#B64D75">back</i></div>
+  <div style="font-size:14px;color:#896F7D;margin-top:10px">Enter your mobile number to log in or sign up. No passwords.</div>
+  <div style="margin-top:32px;font-size:12px;font-weight:600;color:#6E5262">Mobile number</div>
+  <div style="margin-top:8px;height:54px;border-radius:12px;border:1.5px solid #C76B93;background:#fff;display:flex;align-items:center;gap:12px;padding:0 16px;font-size:16px"><span style="font-weight:600">+91</span><span style="width:1px;height:22px;background:#F0CFDD"></span><span>98450 67890</span></div>
+  <div style="font-size:12px;color:#896F7D;margin-top:8px">We'll send a 6-digit code by SMS.</div>
+  <div onClick="{{ go.role }}" style="margin-top:24px;height:52px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Send code</div>
+  <div style="flex:1"></div>
+  <div style="text-align:center;font-size:12px;color:#896F7D;line-height:1.5">By continuing you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.role }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;padding:62px 24px 40px;box-sizing:border-box;background:#fff;display:flex;flex-direction:column">
+  <div style="display:flex;gap:6px"><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#FFE4EE"></span></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(38px * var(--hds));font-weight:600;line-height:1.02;margin-top:26px">How will you use <i style="color:#B64D75">Atelier</i>?</div>
+  <div style="font-size:14px;color:#896F7D;margin-top:10px">You can switch any time from your profile.</div>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:26px">
+    <div onClick="{{ go.home }}" style="border-radius:20px;border:2px solid #C76B93;overflow:hidden;cursor:pointer;background:#FFF5F9">
+      <div style="height:150px"><image-slot id="v2-role-book" shape="rect" placeholder="Customer — bride getting ready"></image-slot></div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-size:16px;font-weight:700">I want to book artists</div><div style="font-size:13px;color:#896F7D;margin-top:2px">Find, compare and book for your occasion</div></div><span style="width:24px;height:24px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px">✓</span></div>
+    </div>
+    <div onClick="{{ go.onbIntro }}" style="border-radius:20px;border:1px solid #F0CFDD;overflow:hidden;cursor:pointer">
+      <div style="height:150px"><image-slot id="v2-role-offer" shape="rect" placeholder="Artist — hands applying henna"></image-slot></div>
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-size:16px;font-weight:700">I want to offer my services</div><div style="font-size:13px;color:#896F7D;margin-top:2px">Get discovered and booked by local clients</div></div><span style="width:24px;height:24px;border-radius:12px;border:1.5px solid #EBC3D5"></span></div>
+    </div>
+  </div>
+  <div style="flex:1;min-height:20px"></div>
+  <div onClick="{{ go.home }}" style="height:52px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Continue</div>
+</div>
+</sc-if>
+
+<!-- CUSTOMER -->
+<sc-if value="{{ show.home }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 0 110px;background:linear-gradient(180deg,#FFE4EE 0%,#FFF6FA 300px,#fff 520px)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 16px 0">
+    <div><div style="font-size:12px;color:#896F7D">Good evening, Ananya</div><div style="font-size:14px;font-weight:700;margin-top:2px">⌖ Koramangala, Bangalore <span style="color:#B64D75">▾</span></div></div>
+    <div style="display:flex;gap:8px;align-items:center"><div onClick="{{ go.chat }}" style="width:44px;height:44px;border-radius:22px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#49313B;position:relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg><span style="position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:5px;background:#C76B93;border:2px solid #fff"></span></div><div onClick="{{ go.profile }}" style="width:44px;height:44px;cursor:pointer"><image-slot id="v2-me-avatar" shape="circle" placeholder="You"></image-slot></div></div>
+  </div>
+  <div style="margin-top:14px;position:relative">
+    <div style="height:250px;position:relative;overflow:hidden;background:#FCEEF3"><img src="assets/hero/hero-mehendi.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 50%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o0 }};transform:scale({{ hero.s0 }})"><img src="assets/hero/hero-makeup.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 28%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o1 }};transform:scale({{ hero.s1 }})"></div>
+    <div onClick="{{ go.explore }}" style="position:relative;margin:-36px 16px 0;padding:12px 12px 12px 16px;border-radius:18px;background:#FFFFFF;box-shadow:0 8px 24px rgba(182,77,117,.16);display:flex;align-items:center;gap:12px;cursor:pointer">
+      <div style="flex:1;min-width:0"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#B64D75">{{ hero.tag }}</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(22px * var(--hds));line-height:1.1;margin-top:2px">{{ hero.title }}</div></div>
+      <div style="display:flex;gap:4px;align-items:center"><span onClick="{{ hero.go0 }}" style="height:6px;border-radius:3px;cursor:pointer;transition:all .3s;width:{{ hero.w0 }}px;background:{{ hero.c0 }}"></span><span onClick="{{ hero.go1 }}" style="height:6px;border-radius:3px;cursor:pointer;transition:all .3s;width:{{ hero.w1 }}px;background:{{ hero.c1 }}"></span></div>
+      <span style="width:40px;height:40px;border-radius:20px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none">›</span>
+    </div>
+  </div>
+  <div onClick="{{ go.explore }}" style="margin:14px 16px 0;position:relative;height:50px;border-radius:14px;background:#fff;border:1px solid #F0DCE5;box-shadow:0 6px 24px rgba(182,77,117,.08);display:flex;align-items:center;gap:10px;padding:0 16px;font-size:14px;color:#9C8591;cursor:pointer"><span style="font-size:17px;color:#B64D75">⌕</span>Search artists, services or styles</div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:26px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600">Services</span></div>
+  <div class="hs" style="display:flex;gap:14px;overflow-x:auto;padding:0 16px">
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#B64D75;color:#FFFFFF;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(182,77,117,.28)"><span style="width:34px;height:34px;display:block;background:currentColor;-webkit-mask:url(assets/icons/mehendi-hand.svg) center/contain no-repeat;mask:url(assets/icons/mehendi-hand.svg) center/contain no-repeat"></span></div><span style="font-size:11.5px;font-weight:700;color:#B64D75">Mehendi</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;display:block;background:currentColor;-webkit-mask:url(assets/icons/photography-camera.svg) center/contain no-repeat;mask:url(assets/icons/photography-camera.svg) center/contain no-repeat"></span></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Photography</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><span style="width:38px;height:38px;display:block;background:currentColor;-webkit-mask:url(assets/icons/makeup-face.svg) center/contain no-repeat;mask:url(assets/icons/makeup-face.svg) center/contain no-repeat"></span></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Makeup</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><span style="width:36px;height:36px;display:block;background:currentColor;-webkit-mask:url(assets/icons/hair.png) center/contain no-repeat;mask:url(assets/icons/hair.png) center/contain no-repeat"></span></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Hair</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="2.2"></circle><path d="M12 7.8C10.5 4.5 13.5 4.5 12 7.8zM14.2 10c3.3-1.5 3.3 1.5 0 0zM12 12.2c1.5 3.3-1.5 3.3 0 0zM9.8 10c-3.3 1.5-3.3-1.5 0 0z" stroke-width="2.6"></path><path d="M12 12.5V21M12 17c2-2.5 4-2.5 5-2M12 18.5c-1.8-2-3.5-2-4.5-1.6"></path></svg></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Decor</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2"></rect><path d="M15.5 10.5l6-3.5v10l-6-3.5z"></path></svg></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Videography</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L10 19H5v-5z"></path><path d="M12.5 6.5l5 5M5 19l-2 2"></path></svg></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Tattoo</span></div>
+    <div onClick="{{ go.explore }}" style="flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5.5l11-2V16"></path><circle cx="6.5" cy="18" r="2.6"></circle><circle cx="17.5" cy="16" r="2.6"></circle></svg></div><span style="font-size:11.5px;font-weight:500;color:#49313B">Music</span></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600">Discover artists near you</span><span onClick="{{ go.explore }}" style="font-size:13px;font-weight:600;color:#B64D75;cursor:pointer">See all</span></div>
+  <div class="hs" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+    <div onClick="{{ go.artist }}" style="flex:none;width:172px;cursor:pointer">
+      <div style="height:214px;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-h-a1" shape="rect" placeholder="Ayesha — bridal mehendi"></image-slot><span style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;color:#B64D75;font-size:15px">♥</span><span style="position:absolute;left:10px;bottom:10px;padding:4px 9px;border-radius:999px;background:#fff;font-size:11px;font-weight:600;color:#3D7A55">● Available today</span></div>
+      <div style="margin-top:9px;font-size:14px;font-weight:700">Ayesha Mehendi Art <span style="color:#B64D75">✓</span></div>
+      <div style="font-size:12px;margin-top:3px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(128) · Mehendi</span></div>
+      <div style="font-size:12px;color:#896F7D;margin-top:2px">Koramangala · 2.1 km</div>
+      <div style="font-size:12px;margin-top:3px;color:#6E5262">From <b style="color:#49313B">₹1,500</b></div>
+    </div>
+    <div onClick="{{ go.artist }}" style="flex:none;width:172px;cursor:pointer">
+      <div style="height:214px;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-h-a2" shape="rect" placeholder="Meher — bridal makeup"></image-slot><span style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;color:#49313B;font-size:15px">♡</span></div>
+      <div style="margin-top:9px;font-size:14px;font-weight:700">Meher by Riya <span style="color:#B64D75">✓</span></div>
+      <div style="font-size:12px;margin-top:3px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(1,240) · Makeup</span></div>
+      <div style="font-size:12px;color:#896F7D;margin-top:2px">HSR Layout · 1.6 km</div>
+      <div style="font-size:12px;margin-top:3px;color:#6E5262">From <b style="color:#49313B">₹12,000</b></div>
+    </div>
+    <div onClick="{{ go.artist }}" style="flex:none;width:172px;cursor:pointer">
+      <div style="height:214px;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-h-a3" shape="rect" placeholder="Arjun — candid wedding photo"></image-slot><span style="position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;font-size:15px">♡</span></div>
+      <div style="margin-top:9px;font-size:14px;font-weight:700">Arjun Rao Photography <span style="color:#B64D75">✓</span></div>
+      <div style="font-size:12px;margin-top:3px"><b style="color:#B64D75">★ 4.8</b> <span style="color:#896F7D">(348) · Photo</span></div>
+      <div style="font-size:12px;color:#896F7D;margin-top:2px">Indiranagar · 3.4 km</div>
+      <div style="font-size:12px;margin-top:3px;color:#6E5262">From <b style="color:#49313B">₹18,000</b></div>
+    </div>
+  </div>
+  <div onClick="{{ go.shop }}" style="margin:28px 16px 0;border-radius:20px;overflow:hidden;position:relative;height:150px;cursor:pointer"><image-slot id="v2-home-shop" shape="rect" placeholder="Shop banner — henna cones, lip kits"></image-slot><div style="position:absolute;inset:0;background:linear-gradient(90deg,#FFE4EE 0%,rgba(255,228,238,.85) 45%,rgba(255,228,238,0) 80%);pointer-events:none"></div><div style="position:absolute;left:16px;top:18px;max-width:200px;pointer-events:none"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#B64D75">New · Atelier Shop</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(24px * var(--hds));line-height:1.05;margin-top:4px">Henna, lip kits &amp; presets from your artists</div><div style="margin-top:10px;display:inline-flex;height:32px;padding:0 12px;border-radius:10px;background:#49313B;color:#fff;font-size:12px;font-weight:600;align-items:center">Shop now ›</div></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600">Trending this week <span style="color:#C76B93;font-size:16px">✦</span></span></div>
+  <div onClick="{{ go.artist }}" style="margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid #F0DCE5;cursor:pointer;background:#fff">
+    <div style="display:grid;grid-template-columns:2fr 1fr;grid-template-rows:96px 96px;gap:3px"><div style="grid-row:span 2"><image-slot id="v2-tr-1" shape="rect" placeholder="Portrait mehendi"></image-slot></div><div><image-slot id="v2-tr-2" shape="rect" placeholder="Detail"></image-slot></div><div><image-slot id="v2-tr-3" shape="rect" placeholder="Detail"></image-slot></div></div>
+    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:15px;font-weight:700">Henna by Noor <span style="color:#B64D75">✓</span></div><div style="font-size:12px;color:#896F7D;margin-top:2px"><b style="color:#B64D75">★ 4.9</b> (870) · Jayanagar · Portrait mehendi</div></div><span style="font-size:12px;font-weight:700">From ₹3,000</span></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600">Top rated</span><span onClick="{{ go.explore }}" style="font-size:13px;font-weight:600;color:#B64D75;cursor:pointer">See all</span></div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px">
+    <div onClick="{{ go.artist }}" style="display:flex;gap:12px;padding:10px;border-radius:16px;background:#fff;border:1px solid #F0DCE5;cursor:pointer"><div style="width:68px;height:68px;flex:none;border-radius:12px;overflow:hidden"><image-slot id="v2-tp-1" shape="rect" placeholder="Hair"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">Kavya Hair Atelier <span style="color:#B64D75">✓</span></div><div style="font-size:12px;color:#896F7D;margin-top:3px"><b style="color:#B64D75">★ 5.0</b> (412) · Hair · Whitefield</div><div style="font-size:12px;margin-top:3px">From <b>₹4,500</b> · <span style="color:#3D7A55;font-weight:600">Open slots Sat</span></div></div></div>
+    <div onClick="{{ go.artist }}" style="display:flex;gap:12px;padding:10px;border-radius:16px;background:#fff;border:1px solid #F0DCE5;cursor:pointer"><div style="width:68px;height:68px;flex:none;border-radius:12px;overflow:hidden"><image-slot id="v2-tp-2" shape="rect" placeholder="Music"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">The Raga Collective <span style="color:#B64D75">✓</span></div><div style="font-size:12px;color:#896F7D;margin-top:3px"><b style="color:#B64D75">★ 4.9</b> (96) · Sangeet band · Mumbai</div><div style="font-size:12px;margin-top:3px">From <b>₹35,000</b> · <span style="color:#B57A1E;font-weight:600">2 dates left in Nov</span></div></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.feed }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 0 110px;background:#fff;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px 0"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(36px * var(--hds));line-height:1">Feed <span style="color:#C76B93;font-size:20px">✦</span></span><div style="display:flex;gap:8px"><div onClick="{{ go.profile }}" style="width:44px;height:44px;cursor:pointer;order:2"><image-slot id="v2-me-avatar-f" shape="circle" placeholder="You"></image-slot></div><div onClick="{{ go.chat }}" style="width:44px;height:44px;border-radius:22px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#49313B;position:relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg><span style="position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:5px;background:#C76B93;border:2px solid #fff"></span></div></div></div>
+  <div class="hs" style="display:flex;gap:8px;overflow-x:auto;padding:12px 16px 0"><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;background:#49313B;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center">For you</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Following</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Videos</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Stories &amp; guides</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Bridal</span></div>
+  <div class="hs" style="display:flex;gap:10px;overflow-x:auto;padding:16px 16px 4px"><div onClick="{{ go.artist }}" style="flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-st-1" shape="circle" placeholder="A"></image-slot></div></div><span style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">Ayesha</span></div><div onClick="{{ go.artist }}" style="flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-st-2" shape="circle" placeholder="M"></image-slot></div></div><span style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">Meher</span></div><div onClick="{{ go.artist }}" style="flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-st-3" shape="circle" placeholder="A"></image-slot></div></div><span style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">Arjun Rao</span></div><div onClick="{{ go.artist }}" style="flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;padding:2.5px;background:#EBC3D5;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-st-4" shape="circle" placeholder="N"></image-slot></div></div><span style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">Noor</span></div><div onClick="{{ go.artist }}" style="flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer"><div style="width:62px;height:62px;border-radius:31px;padding:2.5px;background:#EBC3D5;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-st-5" shape="circle" placeholder="K"></image-slot></div></div><span style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px">Kavya</span></div></div>
+  <div style="height:1px;background:#F7E3EC;margin:12px 0 16px"></div>
+  <div style="display:flex;align-items:center;gap:10px;padding:0 16px 10px"><div onClick="{{ go.artist }}" style="width:38px;height:38px;cursor:pointer"><image-slot id="v2-fd-a1" shape="circle" placeholder="A"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">Ayesha Mehendi Art <span style="color:#B64D75">✓</span></div><div style="font-size:11.5px;color:#896F7D">Mehendi · Koramangala · 2h</div></div><span style="height:30px;padding:0 12px;border-radius:999px;border:1px solid #EBC3D5;font-size:12px;font-weight:700;display:flex;align-items:center;color:#B64D75">Follow</span></div>
+  <div style="height:440px;position:relative"><image-slot id="v2-fd-p1" shape="rect" placeholder="Post photo — bridal hands (4:5)"></image-slot><span style="position:absolute;top:12px;right:12px;padding:3px 9px;border-radius:999px;background:rgba(73,49,59,.7);color:#fff;font-size:11px;font-weight:600;pointer-events:none">1 / 4</span><div onClick="{{ go.service }}" style="position:absolute;left:12px;bottom:12px;height:34px;padding:0 12px;border-radius:12px;background:rgba(255,255,255,.95);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer">✦ Bridal Mehendi · from ₹3,500 ›</div></div>
+  <div style="display:flex;align-items:center;gap:16px;padding:12px 16px 0;font-size:13px;font-weight:600"><span style="color:#B64D75;font-size:20px">♥</span><span style="margin-left:-10px">1.2k</span><span style="font-size:18px">◌</span><span style="margin-left:-10px">86</span><span style="font-size:17px">↗</span><span style="flex:1"></span><span style="font-size:17px">⌑</span></div>
+  <p style="margin:8px 16px 0;font-size:13px;line-height:1.5"><b>Ayesha Mehendi Art</b> Priya's bridal set: hidden initials, a peacock on the palm and their wedding date on the wrist 💗 <span style="color:#896F7D">#bridalmehendi</span></p>
+  <div style="height:1px;background:#F7E3EC;margin:18px 0 16px"></div>
+  <div style="display:flex;align-items:center;gap:10px;padding:0 16px 10px"><div onClick="{{ go.artist }}" style="width:38px;height:38px;cursor:pointer"><image-slot id="v2-fd-a2" shape="circle" placeholder="M"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">Meher by Riya <span style="color:#B64D75">✓</span></div><div style="font-size:11.5px;color:#896F7D">Makeup · HSR Layout · 5h</div></div><span style="height:30px;padding:0 12px;border-radius:999px;border:1px solid #EBC3D5;font-size:12px;font-weight:700;display:flex;align-items:center;color:#B64D75">Follow</span></div>
+  <div style="height:400px;position:relative;background:#49313B"><image-slot id="v2-fd-v1" shape="rect" placeholder="Video post — pastel bridal look reel"></image-slot><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><span style="width:64px;height:64px;border-radius:32px;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:22px;color:#B64D75;padding-left:4px;box-sizing:border-box">▶</span></div><span style="position:absolute;right:12px;bottom:12px;padding:3px 9px;border-radius:999px;background:rgba(73,49,59,.75);color:#fff;font-size:11px;font-weight:600;pointer-events:none">0:48</span><span style="position:absolute;left:12px;top:12px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.95);font-size:11px;font-weight:700;pointer-events:none">● Video</span></div>
+  <div style="display:flex;align-items:center;gap:16px;padding:12px 16px 0;font-size:13px;font-weight:600"><span style="color:#B64D75;font-size:20px">♥</span><span style="margin-left:-10px">3.4k</span><span style="font-size:18px">◌</span><span style="margin-left:-10px">212</span><span style="font-size:17px">↗</span><span style="flex:1"></span><span style="font-size:17px">⌑</span></div>
+  <p style="margin:8px 16px 0;font-size:13px;line-height:1.5"><b>Meher by Riya</b> 60-second pastel bridal look for a day wedding, step by step.</p>
+  <div style="height:1px;background:#F7E3EC;margin:18px 0 16px"></div>
+  <div onClick="{{ go.post }}" style="margin:0 16px;border-radius:20px;overflow:hidden;border:1px solid #F0DCE5;cursor:pointer;background:#FFF8FB">
+    <div style="height:190px"><image-slot id="v2-fd-b1" shape="rect" placeholder="Article cover — fresh henna paste"></image-slot></div>
+    <div style="padding:14px 16px 16px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#B64D75">Guide · 6 min read</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds));line-height:1.05;margin-top:6px">How to get the darkest bridal mehendi stain</div><p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#6E5262">Timing, aftercare and the lemon-sugar myth, from an artist who's done 600+ brides.</p><div style="display:flex;align-items:center;gap:8px;margin-top:12px"><div style="width:26px;height:26px"><image-slot id="v2-fd-b1a" shape="circle" placeholder="A"></image-slot></div><span style="font-size:12px;font-weight:600">Ayesha Mehendi Art</span><span style="font-size:12px;color:#896F7D">· 2 days ago</span></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.post }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;min-height:852px;position:relative;padding-bottom:110px">
+  <div style="height:340px;position:relative"><image-slot id="v2-po-hero" shape="rect" placeholder="Article hero image"></image-slot><div style="position:absolute;top:56px;left:16px;right:16px;display:flex;justify-content:space-between"><span onClick="{{ go.feed }}" style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">‹</span><div style="display:flex;gap:8px"><span style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:15px">↗</span><span style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:15px">⌑</span></div></div></div>
+  <div style="margin-top:-26px;position:relative;border-radius:26px 26px 0 0;background:#fff;padding:24px 20px 0">
+    <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#B64D75">Guide · Mehendi · 6 min read</div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(34px * var(--hds));line-height:1.02;margin-top:8px">How to get the darkest bridal mehendi stain</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px;padding-bottom:16px;border-bottom:1px solid #F7E3EC"><div onClick="{{ go.artist }}" style="width:40px;height:40px;cursor:pointer"><image-slot id="v2-po-av" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-size:13.5px;font-weight:700">Ayesha Mehendi Art <span style="color:#B64D75">✓</span></div><div style="font-size:11.5px;color:#896F7D">6 Oct 2026 · 2.4k reads</div></div><span style="height:32px;padding:0 14px;border-radius:999px;background:#B64D75;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center">Follow</span></div>
+    <p style="font-size:15px;line-height:1.7;color:#4E3341;margin:18px 0 0;text-wrap:pretty">The colour of your mehendi is decided long before the paste comes off. After 600+ brides, these are the three things I tell every client the week before.</p>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(22px * var(--hds));margin-top:20px">1. Book it 48 hours early</div>
+    <p style="font-size:15px;line-height:1.7;color:#4E3341;margin:8px 0 0">Henna keeps darkening for two days. If your mehendi is the night before the wedding, it will still be orange at the pheras.</p>
+    <div style="height:220px;border-radius:18px;overflow:hidden;margin-top:16px"><image-slot id="v2-po-inline" shape="rect" placeholder="Day 1 vs day 2 stain"></image-slot></div>
+    <div style="font-size:12px;color:#896F7D;margin-top:6px;text-align:center">Day 1 (left) and day 2 (right), same bride</div>
+    <div style="margin:22px 0;padding:4px 0 4px 16px;border-left:2px solid #F5B6D0;font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-style:italic;font-size:calc(24px * var(--hds));line-height:1.2;color:#B64D75">"Keep the paste on for at least six hours. Overnight is even better."</div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(22px * var(--hds))">2. Skip water for 12 hours</div>
+    <p style="font-size:15px;line-height:1.7;color:#4E3341;margin:8px 0 0">Scrape the dried paste off rather than washing it. A little mustard oil or balm protects the stain while it oxidises.</p>
+    <div onClick="{{ go.artist }}" style="margin-top:24px;display:flex;gap:12px;align-items:center;padding:12px;border-radius:18px;background:#FFF5F9;border:1px solid #F7E0EA;cursor:pointer"><div style="width:56px;height:56px;border-radius:14px;overflow:hidden;flex:none"><image-slot id="v2-po-art" shape="rect" placeholder="Ayesha"></image-slot></div><div style="flex:1"><div style="font-size:11px;font-weight:700;color:#B64D75;letter-spacing:.08em">WRITTEN BY</div><div style="font-size:14px;font-weight:700">Ayesha Mehendi Art</div><div style="font-size:12px;color:#896F7D">★ 4.9 (128) · Koramangala</div></div><span style="font-size:18px">›</span></div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:24px;padding:12px 16px 30px;background:rgba(255,255,255,.96);border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:14px"><span style="font-size:13px;font-weight:600"><span style="color:#B64D75;font-size:18px">♥</span> 412</span><span style="font-size:13px;font-weight:600">◌ 38</span><span style="flex:1"></span><div onClick="{{ go.service }}" style="height:48px;padding:0 20px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:600;cursor:pointer">Book Ayesha</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.shop }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 0 110px;background:#fff;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px 0"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(36px * var(--hds));line-height:1">Shop</span><div onClick="{{ go.cart }}" style="width:44px;height:44px;border-radius:22px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;color:#49313B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg><span style="position:absolute;top:2px;right:0;min-width:18px;height:18px;border-radius:9px;background:#B64D75;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff">2</span></div></div>
+  <div style="margin:14px 16px 0;height:46px;border-radius:12px;background:#FCEEF3;border:1px solid #F0DCE5;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:14px;color:#9C8591"><span style="color:#B64D75;font-size:17px">⌕</span>Search henna, presets, accessories</div>
+  <div class="hs" style="display:flex;gap:8px;overflow-x:auto;padding:12px 16px 0"><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;background:#49313B;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center">All</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Henna &amp; aftercare</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Makeup</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Hair accessories</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Presets &amp; digital</span><span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Prints &amp; decor</span></div>
+  <div style="margin:16px 16px 0;height:190px;border-radius:22px;overflow:hidden;position:relative"><image-slot id="v2-shop-hero" shape="rect" placeholder="Shop banner — henna cones flat-lay"></image-slot><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,228,238,.96) 0%,rgba(255,228,238,.75) 45%,rgba(255,228,238,0) 75%);pointer-events:none"></div><div style="position:absolute;left:18px;top:22px;max-width:190px;pointer-events:none"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#B64D75">Wedding season ✦</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(28px * var(--hds));line-height:1.05;margin-top:6px">Bridal essentials, made by artists</div></div><div style="position:absolute;left:18px;bottom:18px;height:36px;padding:0 14px;border-radius:999px;background:#49313B;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center">Up to 25% off</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:24px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(24px * var(--hds))">Bestsellers</span><span style="font-size:13px;font-weight:600;color:#B64D75">See all</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:0 16px">
+    <div onClick="{{ go.product }}" style="cursor:pointer;min-width:0"><div style="aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;background:#FCEEF3"><image-slot id="v2-pr-1" shape="rect" placeholder="Organic henna cones · 12 pack"></image-slot><span style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:14px;pointer-events:none">♡</span><span style="position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:999px;background:#fff;font-size:10.5px;font-weight:700;color:#B64D75;pointer-events:none">Bestseller</span><span style="position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:10px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;pointer-events:none">+</span></div><div style="font-size:13px;font-weight:700;margin-top:8px;line-height:1.3">Organic henna cones · 12 pack</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Ayesha Mehendi Art <span style="color:#B64D75">✓</span> · <b style="color:#B64D75">★ 4.9</b></div><div style="font-size:13.5px;font-weight:700;margin-top:4px">₹480 <s style="font-size:11.5px;color:#9C8591;font-weight:500">₹600</s></div></div>
+    <div onClick="{{ go.product }}" style="cursor:pointer;min-width:0"><div style="aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;background:#FCEEF3"><image-slot id="v2-pr-2" shape="rect" placeholder="Pastel bridal lip kit"></image-slot><span style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:14px;pointer-events:none">♡</span><span style="position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:10px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;pointer-events:none">+</span></div><div style="font-size:13px;font-weight:700;margin-top:8px;line-height:1.3">Pastel bridal lip kit</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Meher by Riya <span style="color:#B64D75">✓</span> · <b style="color:#B64D75">★ 4.8</b></div><div style="font-size:13.5px;font-weight:700;margin-top:4px">₹1,150</div></div>
+    <div onClick="{{ go.product }}" style="cursor:pointer;min-width:0"><div style="aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;background:#FCEEF3"><image-slot id="v2-pr-3" shape="rect" placeholder="Mehendi aftercare balm"></image-slot><span style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:14px;pointer-events:none">♡</span><span style="position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:10px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;pointer-events:none">+</span></div><div style="font-size:13px;font-weight:700;margin-top:8px;line-height:1.3">Mehendi aftercare balm</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Henna by Noor <span style="color:#B64D75">✓</span> · <b style="color:#B64D75">★ 4.9</b></div><div style="font-size:13.5px;font-weight:700;margin-top:4px">₹350</div></div>
+    <div onClick="{{ go.product }}" style="cursor:pointer;min-width:0"><div style="aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;background:#FCEEF3"><image-slot id="v2-pr-4" shape="rect" placeholder="Gold gajra hair pins · set of 6"></image-slot><span style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:14px;pointer-events:none">♡</span><span style="position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:10px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;pointer-events:none">+</span></div><div style="font-size:13px;font-weight:700;margin-top:8px;line-height:1.3">Gold gajra hair pins · set of 6</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Kavya Hair Atelier <span style="color:#B64D75">✓</span> · <b style="color:#B64D75">★ 4.7</b></div><div style="font-size:13.5px;font-weight:700;margin-top:4px">₹650 <s style="font-size:11.5px;color:#9C8591;font-weight:500">₹790</s></div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(24px * var(--hds))">Digital downloads</span><span style="font-size:13px;font-weight:600;color:#B64D75">See all</span></div>
+  <div class="hs" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+    <div onClick="{{ go.product }}" style="flex:none;width:230px;display:flex;gap:10px;padding:10px;border-radius:16px;border:1px solid #F0DCE5;cursor:pointer"><div style="width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-dg-1" shape="rect" placeholder="Presets"></image-slot></div><div style="min-width:0"><div style="font-size:13px;font-weight:700">Wedding Lightroom presets</div><div style="font-size:11.5px;color:#896F7D">Arjun Rao · 18 presets</div><div style="font-size:13px;font-weight:700;margin-top:4px">₹1,299</div></div></div>
+    <div onClick="{{ go.product }}" style="flex:none;width:230px;display:flex;gap:10px;padding:10px;border-radius:16px;border:1px solid #F0DCE5;cursor:pointer"><div style="width:64px;height:64px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-dg-2" shape="rect" placeholder="Course"></image-slot></div><div style="min-width:0"><div style="font-size:13px;font-weight:700">Arabic mehendi for beginners</div><div style="font-size:11.5px;color:#896F7D">Video course · 12 lessons</div><div style="font-size:13px;font-weight:700;margin-top:4px">₹799</div></div></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(24px * var(--hds));padding:28px 16px 12px">Shop by artist</div>
+  <div class="hs" style="display:flex;gap:14px;overflow-x:auto;padding:0 16px">
+    <div style="flex:none;width:68px;text-align:center"><div style="width:64px;height:64px"><image-slot id="v2-sba-1" shape="circle" placeholder="A"></image-slot></div><div style="font-size:11px;font-weight:600;margin-top:6px">Ayesha</div></div>
+    <div style="flex:none;width:68px;text-align:center"><div style="width:64px;height:64px"><image-slot id="v2-sba-2" shape="circle" placeholder="M"></image-slot></div><div style="font-size:11px;font-weight:600;margin-top:6px">Meher</div></div>
+    <div style="flex:none;width:68px;text-align:center"><div style="width:64px;height:64px"><image-slot id="v2-sba-3" shape="circle" placeholder="A"></image-slot></div><div style="font-size:11px;font-weight:600;margin-top:6px">Arjun</div></div>
+    <div style="flex:none;width:68px;text-align:center"><div style="width:64px;height:64px"><image-slot id="v2-sba-4" shape="circle" placeholder="K"></image-slot></div><div style="font-size:11px;font-weight:600;margin-top:6px">Kavya</div></div>
+    <div style="flex:none;width:68px;text-align:center"><div style="width:64px;height:64px"><image-slot id="v2-sba-5" shape="circle" placeholder="N"></image-slot></div><div style="font-size:11px;font-weight:600;margin-top:6px">Noor</div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.product }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;min-height:852px;position:relative;padding-bottom:120px">
+  <div style="height:400px;position:relative;background:#FCEEF3"><image-slot id="v2-pd-hero" shape="rect" placeholder="Product photo — henna cones"></image-slot>
+    <div style="position:absolute;top:56px;left:16px;right:16px;display:flex;justify-content:space-between"><span onClick="{{ go.shop }}" style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">‹</span><div style="display:flex;gap:8px"><span style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:15px">♡</span><div onClick="{{ go.cart }}" style="width:44px;height:44px;border-radius:22px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;color:#49313B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg><span style="position:absolute;top:2px;right:0;min-width:18px;height:18px;border-radius:9px;background:#B64D75;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff">2</span></div></div></div>
+    <div style="position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none"><span style="width:18px;height:6px;border-radius:3px;background:#B64D75"></span><span style="width:6px;height:6px;border-radius:3px;background:#fff"></span><span style="width:6px;height:6px;border-radius:3px;background:#fff"></span><span style="width:6px;height:6px;border-radius:3px;background:#fff"></span></div>
+  </div>
+  <div style="padding:18px 16px 0">
+    <div onClick="{{ go.artist }}" style="display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:999px;background:#FCEEF3;cursor:pointer"><span style="width:24px;height:24px;display:block"><image-slot id="v2-pd-av" shape="circle" placeholder="A"></image-slot></span><span style="font-size:12px;font-weight:700">Ayesha Mehendi Art <span style="color:#B64D75">✓</span></span></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds));line-height:1.05;margin-top:10px">Organic henna cones · 12 pack</div>
+    <div style="font-size:13px;margin-top:6px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(342 reviews) · 2.1k sold</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px"><span style="font-size:26px;font-weight:700">₹480</span><s style="font-size:14px;color:#9C8591">₹600</s><span style="padding:3px 8px;border-radius:999px;background:#E3F1E7;color:#2F6B47;font-size:11.5px;font-weight:700">20% off</span></div>
+    <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:18px">Pack size</div>
+    <div style="display:flex;gap:8px;margin-top:8px"><span style="flex:1;height:44px;border-radius:999px;border:1px solid #EBC3D5;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:600">6 cones<span style="font-size:11px;color:#896F7D;font-weight:500">₹260</span></span><span style="flex:1;height:44px;border-radius:12px;border:2px solid #B64D75;background:#FFF5F9;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#B64D75">12 cones<span style="font-size:11px;font-weight:600">₹480</span></span><span style="flex:1;height:44px;border-radius:999px;border:1px solid #EBC3D5;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:600">24 cones<span style="font-size:11px;color:#896F7D;font-weight:500">₹890</span></span></div>
+    <div style="margin-top:14px;padding:12px 14px;border-radius:14px;background:#FFF5F9;display:flex;gap:10px;align-items:center;font-size:12.5px"><span style="font-size:16px">🚚</span><div style="flex:1"><b>Deliver to 560034</b> · by Tue, 13 Oct<br><span style="color:#6E5262">Free delivery over ₹999 · Ships from Bangalore</span></div><span style="color:#B64D75;font-weight:700">Change</span></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(20px * var(--hds));margin-top:20px">Details</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;font-size:13px;color:#4E3341"><span>✦ Hand-rolled, 100% natural Rajasthani henna</span><span>✦ Dark maroon stain in 24–48 hrs</span><span>✦ No PPD or chemicals · 25 g per cone</span><span>✦ Freshly made · keep frozen up to 3 months</span></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(20px * var(--hds));margin-top:20px">Reviews</div>
+    <div style="margin-top:8px;padding:12px 14px;border-radius:16px;border:1px solid #F0DCE5;font-size:13px;line-height:1.5"><div style="display:flex;justify-content:space-between"><b>Shreya M.</b><span style="color:#B64D75;font-size:11.5px">★★★★★</span></div><span style="color:#4E3341">Darkest stain I've had from a store cone. Arrived frozen and well packed.</span></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:10px"><div onClick="{{ go.cart }}" style="flex:1;height:50px;border-radius:999px;border:1px solid #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Add to cart</div><div onClick="{{ go.checkout }}" style="flex:1.3;height:50px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Buy now · ₹480</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.cart }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFF8FB;min-height:852px;position:relative;padding:54px 16px 130px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;padding-top:6px"><span onClick="{{ go.shop }}" style="width:40px;height:40px;border-radius:20px;background:#FFF0F5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex:none">‹</span><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds))">Cart</span><span style="font-size:13px;color:#896F7D;margin-left:auto">2 items</span></div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+    <div style="display:flex;gap:12px;padding:12px;border-radius:18px;background:#fff;border:1px solid #F0DCE5"><div style="width:76px;height:76px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-ct-1" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font-size:13.5px;font-weight:700">Organic henna cones · 12 pack</div><div style="font-size:11.5px;color:#896F7D">Ayesha Mehendi Art · Ships in 1 day</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto"><span style="font-size:14px;font-weight:700">₹480</span><div style="display:flex;align-items:center;border:1px solid #EBC3D5;border-radius:10px;height:32px"><span style="width:30px;text-align:center;font-size:16px">−</span><span style="width:22px;text-align:center;font-size:13px;font-weight:700">1</span><span style="width:30px;text-align:center;font-size:16px;color:#B64D75">+</span></div></div></div></div>
+    <div style="display:flex;gap:12px;padding:12px;border-radius:18px;background:#fff;border:1px solid #F0DCE5"><div style="width:76px;height:76px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-ct-2" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font-size:13.5px;font-weight:700">Pastel bridal lip kit</div><div style="font-size:11.5px;color:#896F7D">Meher by Riya · Shade: Rose petal</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto"><span style="font-size:14px;font-weight:700">₹1,150</span><div style="display:flex;align-items:center;border:1px solid #EBC3D5;border-radius:10px;height:32px"><span style="width:30px;text-align:center;font-size:16px">−</span><span style="width:22px;text-align:center;font-size:13px;font-weight:700">1</span><span style="width:30px;text-align:center;font-size:16px;color:#B64D75">+</span></div></div></div></div>
+  </div>
+  <div style="margin-top:12px;padding:12px 14px;border-radius:14px;background:#E3F1E7;color:#2F6B47;font-size:12.5px;font-weight:600">✓ You've unlocked free delivery</div>
+  <div style="margin-top:12px;height:48px;border-radius:14px;border:1.5px dashed #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:13.5px"><span>🏷 Apply coupon</span><span style="color:#B64D75;font-weight:700">BRIDE10 ›</span></div>
+  <div style="margin-top:12px;padding:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;font-size:13.5px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span>₹1,630</span></div><div style="display:flex;justify-content:space-between;"><span>Delivery</span><span><span style="color:#2F6B47">Free</span></span></div><div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px dashed #EBC3D5;font-weight:700;font-size:15px"><span>Total</span><span>₹1,630</span></div></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:11.5px;color:#896F7D">Total</div><div style="font-size:18px;font-weight:700">₹1,630</div></div><div onClick="{{ go.checkout }}" style="flex:1.4;height:50px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Checkout</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.checkout }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFF8FB;min-height:852px;position:relative;padding:54px 16px 130px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;padding-top:6px"><span onClick="{{ go.cart }}" style="width:40px;height:40px;border-radius:20px;background:#FFF0F5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex:none">‹</span><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds))">Checkout</span></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(20px * var(--hds));margin-top:18px">Deliver to</div>
+  <div style="margin-top:8px;padding:14px;border-radius:18px;background:#fff;border:2px solid #C76B93;display:flex;gap:12px"><span style="width:20px;height:20px;border-radius:10px;border:6px solid #B64D75;box-sizing:border-box;flex:none;margin-top:2px"></span><div style="flex:1;font-size:13px;line-height:1.5"><b>Home · Ananya Rao</b><br><span style="color:#6E5262">Flat 1204, Prestige Acropolis, Koramangala 1st Block, Bangalore 560034</span></div><span style="font-size:13px;font-weight:700;color:#B64D75">Edit</span></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(20px * var(--hds));margin-top:18px">Delivery</div>
+  <div style="margin-top:8px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid #F7E3EC"><span style="width:20px;height:20px;border-radius:10px;border:6px solid #B64D75;box-sizing:border-box"></span><div style="flex:1;font-size:13.5px"><b>Standard</b><br><span style="font-size:12px;color:#896F7D">Tue, 13 Oct</span></div><b style="font-size:13px;color:#2F6B47">Free</b></div>
+    <div style="display:flex;gap:12px;align-items:center;padding:13px 0"><span style="width:20px;height:20px;border-radius:10px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span><div style="flex:1;font-size:13.5px"><b>Express</b><br><span style="font-size:12px;color:#896F7D">Tomorrow, 11 Oct</span></div><b style="font-size:13px">₹99</b></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(20px * var(--hds));margin-top:18px">Pay with</div>
+  <div style="margin-top:8px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #F7E3EC"><span style="width:34px;height:24px;border-radius:6px;background:#FFE4EE;color:#B64D75;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">UPI</span><span style="flex:1;font-size:13.5px;font-weight:600">ananya.r@okhdfcbank</span><span style="width:20px;height:20px;border-radius:10px;border:6px solid #B64D75;box-sizing:border-box"></span></div>
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 0"><span style="width:34px;height:24px;border-radius:6px;background:#F4ECEF;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">COD</span><span style="flex:1;font-size:13.5px;font-weight:600">Cash on delivery</span><span style="width:20px;height:20px;border-radius:10px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span></div>
+  </div>
+  <div style="margin-top:12px;padding:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;font-size:13.5px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;"><span>2 items</span><span>₹1,630</span></div><div style="display:flex;justify-content:space-between;"><span>Coupon BRIDE10</span><span><span style="color:#2F6B47">−₹163</span></span></div><div style="display:flex;justify-content:space-between;"><span>Delivery</span><span>Free</span></div><div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px dashed #EBC3D5;font-weight:700;font-size:15px"><span>To pay</span><span>₹1,467</span></div></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:10px"><div onClick="{{ go.orderDone }}" style="flex:1;height:50px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Place order · ₹1,467</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.orderDone }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:linear-gradient(180deg,#FFE4EE 0%,#fff 55%);padding:110px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <div style="width:96px;height:96px;border-radius:48px;background:#fff;box-shadow:0 12px 30px rgba(199,107,147,.3);display:flex;align-items:center;justify-content:center;color:#B64D75"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(38px * var(--hds));margin-top:22px;line-height:1">Order <i style="color:#B64D75">placed</i></div>
+  <p style="font-size:14px;color:#6E5262;line-height:1.55;margin:12px 0 0;max-width:290px">Order #AT-48213 · Arriving Tue, 13 Oct. Each artist packs and ships their own items.</p>
+  <div style="width:100%;margin-top:24px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:16px;text-align:left;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;gap:12px;align-items:center"><span style="width:24px;height:24px;border-radius:999px;background:#B64D75;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center">✓</span><span style="font-size:13.5px;font-weight:700;flex:1">Order confirmed</span><span style="font-size:12px;color:#896F7D">Now</span></div>
+    <div style="display:flex;gap:12px;align-items:center;opacity:.6"><span style="width:24px;height:24px;border-radius:12px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span><span style="font-size:13.5px;font-weight:600;flex:1">Packed by artists</span><span style="font-size:12px;color:#896F7D">Sun</span></div>
+    <div style="display:flex;gap:12px;align-items:center;opacity:.6"><span style="width:24px;height:24px;border-radius:12px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span><span style="font-size:13.5px;font-weight:600;flex:1">Delivered</span><span style="font-size:12px;color:#896F7D">Tue</span></div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px"><div onClick="{{ go.orders }}" style="flex:1;height:50px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Track order</div><div onClick="{{ go.shop }}" style="flex:1;height:50px;border-radius:999px;border:1px solid #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Keep shopping</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.orders }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#FFF8FB;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;padding-top:6px"><span onClick="{{ go.profile }}" style="width:40px;height:40px;border-radius:20px;background:#FFF0F5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex:none">‹</span><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds))">My orders</span></div>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:#896F7D">#AT-48213 · 10 Oct</span><span style="padding:4px 10px;border-radius:999px;background:#FDF0DC;color:#9A6514;font-size:11.5px;font-weight:700">Shipped</span></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><div style="width:56px;height:56px;border-radius:12px;overflow:hidden"><image-slot id="v2-or-1" shape="rect" placeholder="Item"></image-slot></div><div style="width:56px;height:56px;border-radius:12px;overflow:hidden"><image-slot id="v2-or-2" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;padding-left:4px"><div style="font-size:13.5px;font-weight:700">2 items · ₹1,467</div><div style="font-size:12px;color:#896F7D;margin-top:2px">Arriving Tue, 13 Oct</div></div></div>
+      <div style="display:flex;gap:4px;margin-top:14px"><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#FFE4EE"></span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#896F7D;margin-top:6px"><span>Confirmed</span><span style="color:#B64D75;font-weight:700">Shipped</span><span>Delivered</span></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><div style="flex:1;height:40px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">Track package</div><div style="flex:1;height:40px;border-radius:999px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">Get help</div></div>
+    </div>
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;border-radius:999px;overflow:hidden;flex:none"><image-slot id="v2-or-3" shape="rect" placeholder="Presets"></image-slot></div><div style="flex:1"><div style="font-size:13.5px;font-weight:700">Wedding Lightroom presets</div><div style="font-size:12px;color:#896F7D">Digital · bought 2 Sep</div></div><span style="padding:8px 12px;border-radius:12px;background:#FFE4EE;color:#B64D75;font-size:12px;font-weight:700">↓ Download</span></div>
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;border-radius:999px;overflow:hidden;flex:none"><image-slot id="v2-or-4" shape="rect" placeholder="Balm"></image-slot></div><div style="flex:1"><div style="font-size:13.5px;font-weight:700">Mehendi aftercare balm</div><div style="font-size:12px;color:#2F6B47;font-weight:600">Delivered 18 Aug</div></div><span style="padding:8px 12px;border-radius:999px;border:1px solid #EBC3D5;font-size:12px;font-weight:700">Rate</span></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.explore }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 0 110px;background:#fff;min-height:852px;box-sizing:border-box">
+  <div style="padding:8px 16px 0"><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(36px * var(--hds));font-weight:600;line-height:1">Explore</div></div>
+  <div style="margin:14px 16px 0;height:46px;border-radius:12px;background:#FCEEF3;border:1px solid #F0DCE5;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:14px;color:#49313B"><span style="color:#B64D75;font-size:17px">⌕</span>Bridal mehendi</div>
+  <div class="hs" style="display:flex;gap:8px;overflow-x:auto;padding:12px 16px 0">
+    <span style="flex:none;height:34px;padding:0 14px;border-radius:999px;background:#49313B;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center">⌖ Near me</span>
+    <span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Date ▾</span>
+    <span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Price ▾</span>
+    <span style="flex:none;height:34px;padding:0 14px;border-radius:999px;background:#FFE4EE;color:#B64D75;font-size:12.5px;font-weight:700;display:flex;align-items:center">★ 4.8+</span>
+    <span style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Home visit</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:18px 16px 10px"><span style="font-size:13px;color:#896F7D"><b style="color:#49313B">86 artists</b> in Bangalore</span><span style="font-size:13px;font-weight:600;color:#B64D75">Recommended ▾</span></div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:0 16px">
+    <div onClick="{{ go.artist }}" style="border-radius:18px;border:1px solid #F0DCE5;overflow:hidden;cursor:pointer;background:#fff">
+      <div style="display:grid;grid-template-columns:2fr 1fr;grid-template-rows:80px 80px;gap:2px"><div style="grid-row:span 2;position:relative"><image-slot id="v2-ex-1a" shape="rect" placeholder="Bridal hands"></image-slot></div><div><image-slot id="v2-ex-1b" shape="rect" placeholder="Detail"></image-slot></div><div><image-slot id="v2-ex-1c" shape="rect" placeholder="+214"></image-slot></div></div>
+      <div style="padding:12px 14px"><div style="display:flex;justify-content:space-between"><span style="font-size:15px;font-weight:700">Ayesha Mehendi Art <span style="color:#B64D75">✓</span></span><span style="color:#B64D75">♥</span></div><div style="font-size:12.5px;margin-top:3px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(128) · Bridal &amp; Arabic · Koramangala · 2.1 km</span></div><div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12.5px"><span>From <b>₹1,500</b></span><span style="color:#3D7A55;font-weight:600">● Available tomorrow</span></div></div>
+    </div>
+    <div onClick="{{ go.artist }}" style="display:flex;gap:12px;padding:10px;border-radius:18px;border:1px solid #F0DCE5;cursor:pointer"><div style="width:96px;height:112px;flex:none;border-radius:12px;overflow:hidden"><image-slot id="v2-ex-2" shape="rect" placeholder="Arabic mehendi"></image-slot></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font-size:14px;font-weight:700">Henna by Noor <span style="color:#B64D75">✓</span></div><div style="font-size:12px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(870)</span></div><div style="font-size:12px;color:#896F7D">Mehendi · Jayanagar · 4.5 km</div><div style="font-size:12px">From <b>₹3,000</b></div><div style="font-size:12px;color:#3D7A55;font-weight:600">● 2 slots this week</div></div></div>
+    <div onClick="{{ go.artist }}" style="display:flex;gap:12px;padding:10px;border-radius:18px;border:1px solid #F0DCE5;cursor:pointer"><div style="width:96px;height:112px;flex:none;border-radius:12px;overflow:hidden"><image-slot id="v2-ex-3" shape="rect" placeholder="Minimal mehendi"></image-slot></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font-size:14px;font-weight:700">Zoya Mehendi Studio <span style="color:#B64D75">✓</span></div><div style="font-size:12px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(612)</span></div><div style="font-size:12px;color:#896F7D">Mehendi · Indiranagar · 3.2 km</div><div style="font-size:12px">From <b>₹3,500</b></div><div style="font-size:12px;color:#B57A1E;font-weight:600">● Few dates left</div></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.artist }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFF8FB;padding-bottom:20px;position:relative">
+  <div style="height:440px;position:relative"><image-slot id="v2-sf-hero" shape="rect" placeholder="Signature work — full-bleed hero"></image-slot>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:230px;background:linear-gradient(180deg,rgba(73,49,59,0) 0%,rgba(73,49,59,.82) 100%);pointer-events:none"></div>
+    <div style="position:absolute;top:56px;left:16px;right:16px;display:flex;justify-content:space-between"><span onClick="{{ go.explore }}" style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">‹</span><div style="display:flex;gap:8px"><span style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:15px">↗</span><span style="width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:16px;color:#B64D75">♥</span></div></div>
+    <div style="position:absolute;left:20px;right:20px;bottom:58px;color:#fff;pointer-events:none">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:22px;border:2px solid #fff;overflow:hidden;pointer-events:auto"><image-slot id="v2-sf-av" shape="circle" placeholder="A"></image-slot></div><span style="padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.95);color:#B64D75;font-size:11.5px;font-weight:700">✓ Verified artist</span></div>
+      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(40px * var(--hds));line-height:.98;margin-top:10px">Ayesha <i>Mehendi Art</i></div>
+      <div style="font-size:13px;margin-top:6px">Bridal &amp; Arabic mehendi · Koramangala, Bangalore</div>
+    </div>
+  </div>
+  <div style="margin:-34px 16px 0;position:relative;border-radius:20px;background:#fff;box-shadow:0 12px 30px rgba(182,77,117,.12);display:grid;grid-template-columns:repeat(4,1fr);padding:14px 0">
+    <div style="text-align:center;border-right:1px solid #F7E3EC"><div style="font-size:17px;font-weight:700;color:#B64D75">★ 4.9</div><div style="font-size:11px;color:#896F7D">128 reviews</div></div>
+    <div style="text-align:center;border-right:1px solid #F7E3EC"><div style="font-size:17px;font-weight:700">640+</div><div style="font-size:11px;color:#896F7D">Bookings</div></div>
+    <div style="text-align:center;border-right:1px solid #F7E3EC"><div style="font-size:17px;font-weight:700">8 yrs</div><div style="font-size:11px;color:#896F7D">Experience</div></div>
+    <div style="text-align:center"><div style="font-size:17px;font-weight:700">10m</div><div style="font-size:11px;color:#896F7D">Replies in</div></div>
+  </div>
+  <div style="display:flex;gap:8px;padding:14px 16px 0"><div onClick="{{ go.service }}" style="flex:1.4;height:48px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;cursor:pointer">Book now</div><div onClick="{{ go.chat }}" style="flex:1;height:48px;border-radius:999px;border:1px solid #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;cursor:pointer">Message</div><div style="width:48px;height:48px;border-radius:999px;border:1px solid #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;color:#B64D75">+</div></div>
+  <div style="display:flex;gap:6px;padding:12px 16px 0;font-size:12px;color:#6E5262;flex-wrap:wrap"><span style="padding:5px 10px;border-radius:999px;background:#E3F1E7;color:#2F6B47;font-weight:700">● Next free: Fri, 9 Oct</span><span style="padding:5px 10px;border-radius:999px;background:#fff;border:1px solid #F0DCE5">⌖ Travels 15 km</span><span style="padding:5px 10px;border-radius:999px;background:#fff;border:1px solid #F0DCE5">Hindi · English · Kannada</span></div>
+  <div class="hs" style="display:flex;gap:12px;overflow-x:auto;padding:18px 16px 0"><div style="flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:64px;height:64px;border-radius:32px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-sf-h1" shape="circle" placeholder="Bridal"></image-slot></div></div><span style="font-size:11.5px;font-weight:600">Bridal</span></div><div style="flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:64px;height:64px;border-radius:32px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-sf-h2" shape="circle" placeholder="Arabic"></image-slot></div></div><span style="font-size:11.5px;font-weight:600">Arabic</span></div><div style="flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:64px;height:64px;border-radius:32px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-sf-h3" shape="circle" placeholder="Guests"></image-slot></div></div><span style="font-size:11.5px;font-weight:600">Guests</span></div><div style="flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:64px;height:64px;border-radius:32px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-sf-h4" shape="circle" placeholder="Sangeet"></image-slot></div></div><span style="font-size:11.5px;font-weight:600">Sangeet</span></div><div style="flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:64px;height:64px;border-radius:32px;padding:2.5px;background:linear-gradient(135deg,#C76B93,#F5B6D0);box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;border:2px solid #fff;box-sizing:border-box;overflow:hidden"><image-slot id="v2-sf-h5" shape="circle" placeholder="Studio"></image-slot></div></div><span style="font-size:11.5px;font-weight:600">Studio</span></div></div>
+  <div style="position:sticky;top:54px;z-index:5;margin-top:18px;background:rgba(255,248,251,.97);border-bottom:1px solid #F0DCE5;display:flex;padding:0 8px"><span style="flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:#B64D75;border-bottom:2px solid #B64D75">Work</span><span style="flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:600;color:#896F7D">Packages</span><span style="flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:600;color:#896F7D">Posts</span><span style="flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:600;color:#896F7D">Reviews</span><span style="flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:600;color:#896F7D">About</span></div>
+  <div style="display:flex;gap:6px;padding:14px 16px 0">
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="height:230px;border-radius:16px;overflow:hidden"><image-slot id="v2-pf-1" shape="rect" placeholder="Bridal full hand"></image-slot></div><div style="height:150px;border-radius:16px;overflow:hidden"><image-slot id="v2-pf-3" shape="rect" placeholder="Arabic"></image-slot></div><div style="height:190px;border-radius:16px;overflow:hidden"><image-slot id="v2-pf-5" shape="rect" placeholder="Portrait"></image-slot></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="height:160px;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-pf-2" shape="rect" placeholder="Reel"></image-slot><span style="position:absolute;right:8px;top:8px;padding:2px 8px;border-radius:999px;background:rgba(73,49,59,.75);color:#fff;font-size:10.5px;font-weight:700;pointer-events:none">▶ 0:32</span></div><div style="height:220px;border-radius:16px;overflow:hidden"><image-slot id="v2-pf-4" shape="rect" placeholder="Feet"></image-slot></div><div style="height:190px;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-pf-6" shape="rect" placeholder="Guest"></image-slot><span style="position:absolute;inset:auto 8px 8px auto;padding:5px 10px;border-radius:12px;background:rgba(255,255,255,.95);font-size:11.5px;font-weight:700;pointer-events:none">See all 214</span></div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds))">Packages</span><span style="font-size:12.5px;color:#896F7D">Prices include travel within 5 km</span></div>
+  <div class="hs" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px"><div onClick="{{ go.service }}" style="flex:none;width:200px;border-radius:18px;overflow:hidden;cursor:pointer;background:#fff;border:2px solid #C76B93"><div style="height:110px;position:relative"><image-slot id="v2-sv-1" shape="rect" placeholder="Bridal Signature"></image-slot><span style="position:absolute;left:8px;top:8px;padding:3px 9px;border-radius:999px;background:#B64D75;color:#fff;font-size:10.5px;font-weight:700;pointer-events:none">Most booked</span></div><div style="padding:10px 12px 12px"><div style="font-size:14px;font-weight:700">Bridal Signature</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Hands to elbow, feet · 5 hrs</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span style="font-size:15px;font-weight:700">₹6,500</span><span style="font-size:12px;font-weight:700;color:#B64D75">Select ›</span></div></div></div><div onClick="{{ go.service }}" style="flex:none;width:200px;border-radius:18px;overflow:hidden;cursor:pointer;background:#fff;border:1px solid #F0DCE5"><div style="height:110px;position:relative"><image-slot id="v2-sv-2" shape="rect" placeholder="Bridal Classic"></image-slot></div><div style="padding:10px 12px 12px"><div style="font-size:14px;font-weight:700">Bridal Classic</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Hands &amp; feet · 3–4 hrs</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span style="font-size:15px;font-weight:700">₹3,500</span><span style="font-size:12px;font-weight:700;color:#B64D75">Select ›</span></div></div></div><div onClick="{{ go.service }}" style="flex:none;width:200px;border-radius:18px;overflow:hidden;cursor:pointer;background:#fff;border:1px solid #F0DCE5"><div style="height:110px;position:relative"><image-slot id="v2-sv-3" shape="rect" placeholder="Guest Mehendi"></image-slot></div><div style="padding:10px 12px 12px"><div style="font-size:14px;font-weight:700">Guest Mehendi</div><div style="font-size:11.5px;color:#896F7D;margin-top:2px">Min. 5 guests · Arabic</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span style="font-size:15px;font-weight:700">₹500/person</span><span style="font-size:12px;font-weight:700;color:#B64D75">Select ›</span></div></div></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:28px 16px 12px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds))">From the studio</span><span onClick="{{ go.feed }}" style="font-size:13px;font-weight:600;color:#B64D75;cursor:pointer">All posts</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px">
+    <div onClick="{{ go.post }}" style="cursor:pointer"><div style="height:120px;border-radius:14px;overflow:hidden"><image-slot id="v2-sf-p1" shape="rect" placeholder="Article"></image-slot></div><div style="font-size:10px;letter-spacing:.1em;font-weight:700;color:#B64D75;margin-top:8px">GUIDE</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(17px * var(--hds));line-height:1.1;margin-top:2px">How to get the darkest stain</div></div>
+    <div onClick="{{ go.feed }}" style="cursor:pointer"><div style="height:120px;border-radius:14px;overflow:hidden;position:relative"><image-slot id="v2-sf-p2" shape="rect" placeholder="Video"></image-slot><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none"><span style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.9);color:#B64D75;display:flex;align-items:center;justify-content:center;font-size:13px">▶</span></span></div><div style="font-size:10px;letter-spacing:.1em;font-weight:700;color:#B64D75;margin-top:8px">VIDEO</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(17px * var(--hds));line-height:1.1;margin-top:2px">A 5-hour bridal set in 60 seconds</div></div>
+  </div>
+  <div style="padding:28px 16px 0"><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds))">Reviews</div>
+    <div style="display:flex;gap:16px;align-items:center;margin-top:10px"><div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(52px * var(--hds));line-height:1">4.9</div><div style="font-size:12px;color:#B64D75;letter-spacing:1px">★★★★★</div></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:6px;border-radius:3px;background:#FFE4EE"><div style="width:88%;height:6px;border-radius:3px;background:#C76B93"></div></div><div style="height:6px;border-radius:3px;background:#FFE4EE"><div style="width:9%;height:6px;border-radius:3px;background:#C76B93"></div></div><div style="height:6px;border-radius:3px;background:#FFE4EE"><div style="width:3%;height:6px;border-radius:3px;background:#C76B93"></div></div></div></div>
+    <div style="margin-top:14px;padding:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5">
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:36px;height:36px"><image-slot id="v2-rv-1" shape="circle" placeholder="P"></image-slot></div><div style="flex:1"><div style="font-size:13.5px;font-weight:700">Priya Srinivasan</div><div style="font-size:11.5px;color:#896F7D">Bridal Signature · Sep 2026</div></div><span style="color:#B64D75;font-size:12px;letter-spacing:1px">★★★★★</span></div>
+      <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:#4E3341;text-wrap:pretty">She hid our initials in the design and the colour came out a deep maroon by day two. Calm, on time and so detailed.</p>
+      <div style="display:flex;gap:6px;margin-top:10px"><div style="width:56px;height:56px;border-radius:10px;overflow:hidden"><image-slot id="v2-rv-ph1" shape="rect" placeholder="+"></image-slot></div><div style="width:56px;height:56px;border-radius:10px;overflow:hidden"><image-slot id="v2-rv-ph2" shape="rect" placeholder="+"></image-slot></div></div>
+    </div>
+  </div>
+  <div style="position:sticky;bottom:0;margin-top:24px;padding:12px 16px 30px;background:rgba(255,255,255,.97);border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-size:11.5px;color:#896F7D">Bridal Classic</div><div style="font-size:18px;font-weight:700">from ₹3,500</div></div><div onClick="{{ go.book }}" style="height:50px;padding:0 22px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer">Check availability</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.service }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;min-height:852px;position:relative">
+  <div style="height:280px;position:relative"><image-slot id="v2-sd-hero" shape="rect" placeholder="Bridal mehendi close-up"></image-slot><span onClick="{{ go.artist }}" style="position:absolute;top:56px;left:16px;width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">‹</span></div>
+  <div style="margin-top:-24px;position:relative;border-radius:24px 24px 0 0;background:#fff;padding:22px 16px 140px">
+    <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#B64D75">Mehendi · Bridal</div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;margin-top:4px;line-height:1">Bridal Mehendi</div>
+    <div style="font-size:13px;margin-top:8px"><b style="color:#B64D75">★ 4.9</b> <span style="color:#896F7D">(86) · by Ayesha Mehendi Art ✓</span></div>
+    <div style="display:flex;margin-top:16px;border-radius:16px;background:#FCEEF3;padding:14px 0"><div style="flex:1;padding:0 16px;border-right:1px solid #F3D3E0"><div style="font-size:11.5px;color:#896F7D">Starting at</div><div style="font-size:18px;font-weight:700;margin-top:2px">₹3,500</div></div><div style="flex:1;padding:0 16px"><div style="font-size:11.5px;color:#896F7D">Duration</div><div style="font-size:18px;font-weight:700;margin-top:2px">3–4 hours</div></div></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;margin-top:22px">What's included</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;font-size:13px"><span>✓ Bridal hands</span><span>✓ Bridal feet</span><span>✓ Custom design</span><span>✓ Consultation call</span></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;margin-top:22px">Add-ons</div>
+    <div style="display:flex;flex-direction:column;margin-top:6px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F7E3EC"><span style="width:22px;height:22px;border-radius:7px;background:#B64D75;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center">✓</span><span style="flex:1;font-size:14px">Guest mehendi</span><span style="font-size:13px;font-weight:600">+₹500 / person</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F7E3EC"><span style="width:22px;height:22px;border-radius:7px;border:1.5px solid #EBC3D5"></span><span style="flex:1;font-size:14px">Hidden initials &amp; portrait</span><span style="font-size:13px;font-weight:600">+₹1,000</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0"><span style="width:22px;height:22px;border-radius:7px;border:1.5px solid #EBC3D5"></span><span style="flex:1;font-size:14px">Organic henna upgrade</span><span style="font-size:13px;font-weight:600">+₹400</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-size:11.5px;color:#896F7D">Estimate · bride + 4 guests</div><div style="font-size:18px;font-weight:700">₹5,500</div></div><div onClick="{{ go.book }}" style="height:50px;padding:0 22px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer">Check availability</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.book }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;min-height:852px;position:relative;padding:54px 0 120px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 16px"><span onClick="{{ go.service }}" style="width:40px;height:40px;border-radius:20px;background:#FFF0F5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer">‹</span><div style="text-align:center"><div style="font-size:15px;font-weight:700">Book appointment</div><div style="font-size:11.5px;color:#896F7D">Step 1 of 3</div></div><span style="width:40px"></span></div>
+  <div style="display:flex;gap:6px;padding:8px 16px 0"><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#FFE4EE"></span><span style="flex:1;height:4px;border-radius:2px;background:#FFE4EE"></span></div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;padding:22px 16px 10px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(26px * var(--hds));font-weight:600">October 2026</span><span style="font-size:15px;color:#B64D75;letter-spacing:6px">‹ ›</span></div>
+  <div style="display:flex;gap:6px;padding:0 16px">
+    <sc-for list="{{ dates }}" as="d" hint-placeholder-count="7">
+      <div onClick="{{ d.onClick }}" style="flex:1;height:72px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;background:{{ d.bg }};color:{{ d.color }};opacity:{{ d.op }}"><span style="font-size:11px;font-weight:600">{{ d.w }}</span><span style="font-size:19px;font-weight:700">{{ d.n }}</span><span style="width:4px;height:4px;border-radius:2px;background:{{ d.dot }}"></span></div>
+    </sc-for>
+  </div>
+  <div style="margin:22px 16px 0;padding:16px;border-radius:18px;border:1px solid #F0DCE5;display:flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,#FFF5F9,#fff)">
+    <div style="width:76px;height:76px"><image-slot id="v2-bk-artist" shape="circle" placeholder="Ayesha"></image-slot></div>
+    <div style="font-size:15px;font-weight:700;margin-top:8px">Ayesha Mehendi Art</div>
+    <div style="font-size:12px;color:#896F7D;margin-top:2px">Bridal Mehendi · <b style="color:#B64D75">★ 4.9</b></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;padding:22px 16px 10px">Available time</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px">
+    <sc-for list="{{ times }}" as="t" hint-placeholder-count="9">
+      <div onClick="{{ t.onClick }}" style="height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.color }};text-decoration:{{ t.deco }}">{{ t.label }}</div>
+    </sc-for>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;padding:22px 16px 10px">Appointment for</div>
+  <div style="display:flex;gap:8px;padding:0 16px"><span style="height:38px;padding:0 18px;border-radius:999px;background:#B64D75;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center">Myself</span><span style="height:38px;padding:0 18px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Someone else</span></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-size:11.5px;color:#896F7D">{{ bookSummary }}</div><div style="font-size:18px;font-weight:700">₹5,500</div></div><div onClick="{{ go.review }}" style="height:50px;padding:0 30px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer">Continue</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.review }}" hint-placeholder-val="{{ false }}">
+<div style="background:#FFF8FB;min-height:852px;position:relative;padding:54px 0 130px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 16px"><span onClick="{{ go.book }}" style="width:40px;height:40px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:1px solid #F0DCE5">‹</span><div style="text-align:center"><div style="font-size:15px;font-weight:700">Review &amp; pay</div><div style="font-size:11.5px;color:#896F7D">Step 3 of 3</div></div><span style="width:40px"></span></div>
+  <div style="display:flex;gap:6px;padding:8px 16px 0"><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span><span style="flex:1;height:4px;border-radius:2px;background:#C76B93"></span></div>
+  <div style="margin:18px 16px 0;padding:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5">
+    <div style="display:flex;gap:12px;align-items:center"><div style="width:52px;height:52px;border-radius:999px;overflow:hidden;flex:none"><image-slot id="v2-rp-svc" shape="rect" placeholder="Bridal"></image-slot></div><div><div style="font-size:15px;font-weight:700">Bridal Mehendi</div><div style="font-size:12px;color:#896F7D">Ayesha Mehendi Art ✓</div></div></div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;font-size:13px">
+      <div style="display:flex;padding:9px 0;border-top:1px solid #F7E3EC"><span style="width:72px;color:#896F7D">When</span><span style="flex:1;font-weight:600">{{ bookSummary }}</span><span style="color:#B64D75;font-weight:600">Edit</span></div>
+      <div style="display:flex;padding:9px 0;border-top:1px solid #F7E3EC"><span style="width:72px;color:#896F7D">Where</span><span style="flex:1;font-weight:600">Home · Koramangala 1st Block</span><span style="color:#B64D75;font-weight:600">Edit</span></div>
+      <div style="display:flex;padding:9px 0;border-top:1px solid #F7E3EC"><span style="width:72px;color:#896F7D">Guests</span><span style="flex:1;font-weight:600">4 guests · Wedding</span><span style="color:#B64D75;font-weight:600">Edit</span></div>
+    </div>
+  </div>
+  <div style="margin:12px 16px 0;padding:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;font-size:13.5px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between"><span>Bridal Mehendi</span><span>₹3,500</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Guest mehendi × 4</span><span>₹2,000</span></div>
+    <div style="display:flex;justify-content:space-between;color:#896F7D"><span>Travel</span><span>Free</span></div>
+    <div style="display:flex;justify-content:space-between;color:#896F7D"><span>Platform fee</span><span>₹99</span></div>
+    <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px dashed #EBC3D5;font-weight:700;font-size:15px"><span>Total</span><span>₹5,599</span></div>
+    <div style="margin-top:4px;padding:10px 12px;border-radius:12px;background:#FFE4EE;display:flex;justify-content:space-between;font-size:13px"><span><b>Deposit today (30%)</b><br><span style="color:#6E5262">Balance ₹3,919 after the service</span></span><b style="color:#B64D75;font-size:15px">₹1,680</b></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;padding:18px 16px 8px">Pay with</div>
+  <div style="margin:0 16px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #F7E3EC"><span style="width:34px;height:24px;border-radius:6px;background:#FFE4EE;color:#B64D75;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">UPI</span><span style="flex:1;font-size:13.5px;font-weight:600">ananya.r@okhdfcbank</span><span style="width:20px;height:20px;border-radius:10px;border:6px solid #B64D75;box-sizing:border-box"></span></div>
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 0"><span style="width:34px;height:24px;border-radius:6px;background:#F4ECEF;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">VISA</span><span style="flex:1;font-size:13.5px;font-weight:600">•••• 4821</span><span style="width:20px;height:20px;border-radius:10px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span></div>
+  </div>
+  <div style="font-size:12px;color:#6E5262;padding:12px 16px 0;line-height:1.5">Payment is held securely and released to Ayesha after your booking. Free cancellation until Tue, 6 Oct.</div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5"><div onClick="{{ go.done }}" style="height:52px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Pay deposit · ₹1,680</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.done }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:linear-gradient(180deg,#FFE4EE 0%,#fff 55%);padding:110px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <svg width="56" height="36" viewBox="0 0 28 18" fill="none" stroke="#C76B93" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg>
+  <div style="width:96px;height:96px;border-radius:48px;background:#fff;box-shadow:0 12px 30px rgba(199,107,147,.3);display:flex;align-items:center;justify-content:center;font-size:40px;color:#B64D75;margin-top:14px">✓</div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(38px * var(--hds));font-weight:600;margin-top:22px;line-height:1">Booking <i style="color:#B64D75">requested</i></div>
+  <p style="font-size:14px;color:#6E5262;line-height:1.55;margin:12px 0 0;max-width:290px;text-wrap:pretty">Ayesha usually confirms within 10 minutes. We'll let you know as soon as she does.</p>
+  <div style="width:100%;margin-top:26px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:6px 16px;text-align:left;font-size:13.5px">
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F7E3EC"><span style="color:#896F7D">Service</span><b>Bridal Mehendi</b></div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F7E3EC"><span style="color:#896F7D">When</span><b>{{ bookSummary }}</b></div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:#896F7D">Paid</span><b>₹1,680</b></div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px"><div onClick="{{ go.bookings }}" style="height:52px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">View booking</div><div onClick="{{ go.chat }}" style="height:52px;border-radius:999px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;background:#fff">Message Ayesha</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.bookings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#FFF8FB;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;padding-top:6px"><span onClick="{{ go.profile }}" style="width:40px;height:40px;border-radius:20px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex:none">‹</span><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(30px * var(--hds));font-weight:600">My bookings</span></div>
+  <div style="display:flex;padding:3px;border-radius:12px;background:#FFE4EE;margin-top:12px"><span style="flex:1;height:34px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 1px 4px rgba(182,77,117,.12)">Upcoming</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Past</span></div>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px">
+      <span style="display:inline-flex;padding:4px 10px;border-radius:999px;background:#FDF0DC;color:#9A6514;font-size:11.5px;font-weight:700">Awaiting confirmation</span>
+      <div style="display:flex;gap:12px;margin-top:12px;align-items:center"><div style="width:56px;height:56px;border-radius:14px;overflow:hidden;flex:none"><image-slot id="v2-bkl-1" shape="rect" placeholder="Ayesha"></image-slot></div><div style="flex:1"><div style="font-size:15px;font-weight:700">Ayesha Mehendi Art</div><div style="font-size:12.5px;color:#896F7D;margin-top:2px">Bridal Mehendi · {{ bookSummary }}</div></div></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><div onClick="{{ go.chat }}" style="flex:1;height:40px;border-radius:999px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer">Message</div><div style="flex:1;height:40px;border-radius:12px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">Details</div></div>
+    </div>
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px">
+      <span style="display:inline-flex;padding:4px 10px;border-radius:999px;background:#E3F1E7;color:#2F6B47;font-size:11.5px;font-weight:700">Confirmed</span>
+      <div style="display:flex;gap:12px;margin-top:12px;align-items:center"><div style="width:56px;height:56px;border-radius:14px;overflow:hidden;flex:none"><image-slot id="v2-bkl-2" shape="rect" placeholder="Kavya"></image-slot></div><div style="flex:1"><div style="font-size:15px;font-weight:700">Kavya Hair Atelier</div><div style="font-size:12.5px;color:#896F7D;margin-top:2px">Bridal bun · Fri, 9 Oct · 1:00 PM</div></div></div>
+    </div>
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#B64D75;margin-top:8px">Past</div>
+    <div style="display:flex;gap:12px;align-items:center;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="width:44px;height:44px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-bkl-3" shape="rect" placeholder="Arjun"></image-slot></div><div style="flex:1"><div style="font-size:14px;font-weight:700">Arjun Rao Photography</div><div style="font-size:12px;color:#896F7D">Engagement shoot · 14 Aug</div></div><span style="padding:7px 12px;border-radius:999px;background:#B64D75;color:#fff;font-size:12px;font-weight:600">Review</span></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.chat }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#FFF8FB;display:flex;flex-direction:column;position:relative">
+  <div style="padding:54px 16px 10px;background:#fff;border-bottom:1px solid #F0DCE5;display:flex;align-items:center;gap:10px"><span onClick="{{ go.chatBack }}" style="font-size:24px;cursor:pointer;width:32px">‹</span><div style="width:38px;height:38px"><image-slot id="v2-ch-av" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-size:15px;font-weight:700">Ayesha Mehendi Art</div><div style="font-size:11.5px;color:#3D7A55;font-weight:600">● Online · replies in ~10 min</div></div></div>
+  <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="align-self:center;font-size:11px;color:#9C8591">Today</div>
+    <div style="align-self:flex-end;max-width:76%;background:#B64D75;color:#fff;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:13.5px;line-height:1.45">Hi! Can you hide our initials in the design? It's me plus 4 guests.</div>
+    <div style="align-self:flex-start;max-width:76%;background:#fff;border:1px solid #F0DCE5;border-radius:18px 18px 18px 4px;padding:10px 14px;font-size:13.5px;line-height:1.45">Of course 💗 Here's a quote for everything.</div>
+    <div style="align-self:flex-start;width:78%;border-radius:18px;background:#fff;border:1px solid #EBC3D5;overflow:hidden">
+      <div style="padding:10px 14px;background:#FFE4EE;font-size:11px;letter-spacing:.1em;font-weight:700;color:#B64D75">QUOTE FROM AYESHA</div>
+      <div style="padding:12px 14px;font-size:13px"><div style="font-weight:700">Bridal + 4 guests · Sat, 10 Oct</div><div style="color:#896F7D;margin-top:2px">Includes hidden initials</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(28px * var(--hds));font-weight:700;margin-top:6px">₹5,500</div><div onClick="{{ go.review }}" style="margin-top:8px;height:40px;border-radius:999px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;cursor:pointer">Book now</div></div>
+    </div>
+  </div>
+  <div style="padding:10px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:19px;background:#FFE4EE;color:#B64D75;display:flex;align-items:center;justify-content:center;font-size:20px">+</span><div style="flex:1;height:40px;border-radius:20px;background:#FCEEF3;border:1px solid #F0DCE5;display:flex;align-items:center;padding:0 14px;font-size:13.5px;color:#9C8591">Message</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.profile }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:linear-gradient(180deg,#FFE4EE 0%,#FFF8FB 240px);min-height:852px;box-sizing:border-box">
+  <div style="display:flex;flex-direction:column;align-items:center;padding-top:0"><div style="width:88px;height:88px;border-radius:44px;padding:3px;background:#fff;box-shadow:0 8px 24px rgba(199,107,147,.25)"><image-slot id="v2-me-avatar-lg" shape="circle" placeholder="You"></image-slot></div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(30px * var(--hds));font-weight:600;margin-top:12px">Ananya Rao</div><div style="font-size:12.5px;color:#896F7D">+91 98450 67890 · Bangalore</div></div>
+  <div style="margin-top:20px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+    <div onClick="{{ go.bookings }}" style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500;cursor:pointer"><span>My bookings</span><span style="color:#B64D75;font-weight:600">2 upcoming ›</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span><span style="color:#B64D75">♥</span>  Saved artists</span><span style="color:#9C8591">12 ›</span></div>
+    <div onClick="{{ go.orders }}" style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500;cursor:pointer"><span>My orders</span><span style="color:#9C8591">1 shipping ›</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Payment methods</span><span style="color:#9C8591">›</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Saved addresses</span><span style="color:#9C8591">›</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Notifications</span><span style="color:#9C8591">›</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0;font-size:14px;font-weight:500"><span>Help &amp; support</span><span style="color:#9C8591">›</span></div>
+  </div>
+  <div onClick="{{ go.onbIntro }}" style="margin-top:14px;border-radius:18px;padding:16px;background:linear-gradient(120deg,#F5B6D0,#FFE4EE);display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="34" height="22" viewBox="0 0 28 18" fill="none" stroke="#B64D75" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg><div style="flex:1"><div style="font-size:15px;font-weight:700">Become an artist</div><div style="font-size:12.5px;color:#6E5262">Offer your services and get booked</div></div><span style="font-size:18px">›</span></div>
+  <div onClick="{{ go.welcome }}" style="text-align:center;margin-top:22px;font-size:14px;font-weight:600;color:#B64D75;cursor:pointer">Log out</div>
+</div>
+</sc-if>
+
+<!-- ARTIST ONBOARDING -->
+<sc-if value="{{ show.onbIntro }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#FFE4EE;padding:62px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column">
+  <span onClick="{{ go.role }}" style="width:40px;height:40px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✕</span>
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:150px 150px;gap:8px;margin-top:18px"><div style="grid-row:span 2;border-radius:22px;overflow:hidden"><image-slot id="v2-ob-1" shape="rect" placeholder="Artist at work"></image-slot></div><div style="border-radius:22px;overflow:hidden"><image-slot id="v2-ob-2" shape="rect" placeholder="Portfolio"></image-slot></div><div style="border-radius:22px;overflow:hidden"><image-slot id="v2-ob-3" shape="rect" placeholder="Happy client"></image-slot></div></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(40px * var(--hds));font-weight:600;line-height:1;margin-top:26px">Turn your craft<br>into <i style="color:#B64D75">bookings</i></div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px;font-size:14px;color:#4E3341">
+    <div style="display:flex;gap:10px"><span style="color:#B64D75">✦</span>Show your work to clients near you</div>
+    <div style="display:flex;gap:10px"><span style="color:#B64D75">✦</span>Set your own prices, dates and travel area</div>
+    <div style="display:flex;gap:10px"><span style="color:#B64D75">✦</span>Get paid securely, every Monday</div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="font-size:12px;color:#6E5262;text-align:center;margin-bottom:10px">9 short steps · about 12 minutes</div>
+  <div onClick="{{ go.onbProfile }}" style="height:52px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Let's get started</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.onbProfile }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#fff;padding:54px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px"><span onClick="{{ go.onbIntro }}" style="font-size:24px;cursor:pointer">‹</span><span style="font-size:12px;font-weight:600;color:#896F7D">Step 1 of 9</span><span style="font-size:13px;font-weight:600;color:#B64D75">Save</span></div>
+  <div style="height:4px;border-radius:2px;background:#FFE4EE;margin-top:10px"><div style="width:11%;height:4px;border-radius:2px;background:#C76B93"></div></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;line-height:1.02;margin-top:22px">Tell clients <i style="color:#B64D75">who you are</i></div>
+  <div style="display:flex;align-items:center;gap:14px;margin-top:20px"><div style="width:84px;height:84px;border-radius:42px;border:2px dashed #EBC3D5;padding:3px;box-sizing:border-box"><image-slot id="v2-ob-avatar" shape="circle" placeholder="Add photo"></image-slot></div><div><div style="font-size:14px;font-weight:700">Profile photo</div><div style="font-size:12px;color:#896F7D;margin-top:2px">A clear, smiling photo builds trust</div></div></div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:20px">Business name</div>
+  <div style="margin-top:6px;height:50px;border-radius:12px;border:1.5px solid #C76B93;display:flex;align-items:center;padding:0 14px;font-size:15px">Ayesha Mehendi Art</div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:16px">What do you offer?</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+    <span style="height:36px;padding:0 14px;border-radius:999px;background:#B64D75;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center">✓ Mehendi</span>
+    <span style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Makeup</span>
+    <span style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Hair</span>
+    <span style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Photography</span>
+    <span style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Decor</span>
+    <span style="height:36px;padding:0 14px;border-radius:999px;border:1px solid #EBC3D5;font-size:13px;font-weight:600;display:flex;align-items:center">Tattoo</span>
+  </div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:16px">City</div>
+  <div style="margin-top:6px;height:50px;border-radius:12px;border:1px solid #F0CFDD;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px"><span>Bangalore</span><span style="color:#B64D75">▾</span></div>
+  <div style="flex:1;min-height:20px"></div>
+  <div onClick="{{ go.onbPortfolio }}" style="height:52px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Continue</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.onbPortfolio }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#fff;padding:54px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px"><span onClick="{{ go.onbProfile }}" style="font-size:24px;cursor:pointer">‹</span><span style="font-size:12px;font-weight:600;color:#896F7D">Step 5 of 9</span><span style="font-size:13px;font-weight:600;color:#B64D75">Save</span></div>
+  <div style="height:4px;border-radius:2px;background:#FFE4EE;margin-top:10px"><div style="width:55%;height:4px;border-radius:2px;background:#C76B93"></div></div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;line-height:1.02;margin-top:22px">Show your <i style="color:#B64D75">best work</i></div>
+  <div style="font-size:13.5px;color:#896F7D;margin-top:8px">Add at least 6 photos. Your first photo becomes your cover.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:104px;gap:8px;margin-top:18px">
+    <div style="grid-column:span 2;grid-row:span 2;border-radius:16px;overflow:hidden;position:relative"><image-slot id="v2-obp-1" shape="rect" placeholder="Cover photo"></image-slot><span style="position:absolute;left:8px;top:8px;padding:3px 8px;border-radius:999px;background:#fff;font-size:10.5px;font-weight:700;color:#B64D75;pointer-events:none">Cover</span></div>
+    <div style="border-radius:16px;overflow:hidden"><image-slot id="v2-obp-2" shape="rect" placeholder="Photo"></image-slot></div><div style="border-radius:16px;overflow:hidden"><image-slot id="v2-obp-3" shape="rect" placeholder="Photo"></image-slot></div><div style="border-radius:16px;overflow:hidden"><image-slot id="v2-obp-4" shape="rect" placeholder="Photo"></image-slot></div><div style="border-radius:16px;overflow:hidden"><image-slot id="v2-obp-5" shape="rect" placeholder="Photo"></image-slot></div>
+    <div style="border-radius:16px;border:1.5px dashed #EBC3D5;background:#FFF5F9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#B64D75;font-size:12px;font-weight:600"><span style="font-size:22px">+</span>Add</div>
+  </div>
+  <div style="margin-top:16px;padding:12px 14px;border-radius:14px;background:#FFF5F9;font-size:12.5px;color:#6E5262;line-height:1.5"><b style="color:#B64D75">✦ Tip:</b> Daylight photos of finished work get 3× more bookings than studio shots.</div>
+  <div style="flex:1;min-height:20px"></div>
+  <div onClick="{{ go.onbDone }}" style="height:52px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Continue · 5 of 6 photos</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.onbDone }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:linear-gradient(180deg,#FFE4EE,#fff 60%);padding:100px 24px 40px;box-sizing:border-box;display:flex;flex-direction:column">
+  <svg width="56" height="36" viewBox="0 0 28 18" fill="none" stroke="#C76B93" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="align-self:center"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(38px * var(--hds));font-weight:600;line-height:1.02;margin-top:18px;text-align:center">Your profile is<br><i style="color:#B64D75">in review</i></div>
+  <p style="font-size:14px;color:#6E5262;text-align:center;line-height:1.55;margin:12px 0 0">We check every artist so clients can book with confidence. This usually takes 24–48 hours.</p>
+  <div style="margin-top:26px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:16px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;gap:12px"><span style="width:26px;height:26px;border-radius:13px;background:#B64D75;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none">✓</span><div><div style="font-size:14px;font-weight:700">Profile submitted</div><div style="font-size:12px;color:#896F7D">Today, 9:41 AM</div></div></div>
+    <div style="display:flex;gap:12px"><span style="width:26px;height:26px;border-radius:13px;border:2px solid #C76B93;box-sizing:border-box;flex:none;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:4px;background:#C76B93"></span></span><div><div style="font-size:14px;font-weight:700">ID &amp; portfolio check</div><div style="font-size:12px;color:#896F7D">In progress · usually 24–48 hrs</div></div></div>
+    <div style="display:flex;gap:12px;opacity:.55"><span style="width:26px;height:26px;border-radius:13px;border:1.5px solid #EBC3D5;box-sizing:border-box;flex:none"></span><div><div style="font-size:14px;font-weight:700">Go live</div><div style="font-size:12px;color:#896F7D">Clients can find and book you</div></div></div>
+  </div>
+  <div style="flex:1"></div>
+  <div onClick="{{ go.aDash }}" style="height:52px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Go to dashboard</div>
+</div>
+</sc-if>
+
+<!-- ARTIST APP -->
+<sc-if value="{{ show.aPost }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#fff;padding:54px 0 40px;box-sizing:border-box;display:flex;flex-direction:column">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px 12px;border-bottom:1px solid #F0DCE5"><span onClick="{{ go.aMe }}" style="font-size:14px;font-weight:600;cursor:pointer">Cancel</span><span style="font-size:15px;font-weight:700">New post</span><span onClick="{{ go.feed }}" style="height:32px;padding:0 14px;border-radius:10px;background:#B64D75;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;cursor:pointer">Post</span></div>
+  <div style="padding:14px 16px 0"><div style="display:flex;padding:3px;border-radius:12px;background:#FFE4EE"><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Photos</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Video</span><span style="flex:1;height:34px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 1px 4px rgba(182,77,117,.12)">Article</span></div></div>
+  <div style="margin:14px 16px 0;height:180px;border-radius:18px;overflow:hidden;border:1.5px dashed #EBC3D5"><image-slot id="v2-cp-cover" shape="rect" placeholder="Add a cover photo or video"></image-slot></div>
+  <div style="padding:16px 16px 0;font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(28px * var(--hds));line-height:1.05">How to get the darkest bridal mehendi stain<span style="color:#C76B93">|</span></div>
+  <div style="padding:10px 16px 0;font-size:14.5px;line-height:1.65;color:#6E5262">The colour of your mehendi is decided long before the paste comes off. After 600+ brides, these are the three things I tell every client…</div>
+  <div style="display:flex;gap:6px;padding:12px 16px 0"><span style="width:36px;height:36px;border-radius:10px;background:#FCEEF3;display:flex;align-items:center;justify-content:center;font-weight:700">B</span><span style="width:36px;height:36px;border-radius:10px;background:#FCEEF3;display:flex;align-items:center;justify-content:center;font-style:italic;font-family:serif">I</span><span style="width:36px;height:36px;border-radius:10px;background:#FCEEF3;display:flex;align-items:center;justify-content:center">H</span><span style="width:36px;height:36px;border-radius:10px;background:#FCEEF3;display:flex;align-items:center;justify-content:center">❝</span><span style="width:36px;height:36px;border-radius:10px;background:#FCEEF3;display:flex;align-items:center;justify-content:center">▣</span></div>
+  <div style="margin:18px 16px 0;border-radius:18px;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px"><span>Link a service</span><span style="padding:4px 10px;border-radius:999px;background:#FFE4EE;color:#B64D75;font-size:12px;font-weight:700">Bridal Classic ✕</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px"><span>Topic</span><span style="color:#896F7D">Guide ›</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;font-size:14px"><span>Also show on my profile</span><span style="width:46px;height:28px;border-radius:14px;background:#B64D75;position:relative"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:11px;background:#fff"></span></span></span></div>
+  </div>
+  <div style="padding:12px 16px 0;font-size:12px;color:#896F7D">Posts with a linked service show a "Book this look" button.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aShop }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#FFFFFF;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:10px;padding-top:6px"><span onClick="{{ go.aMe }}" style="width:40px;height:40px;border-radius:20px;background:#FFF0F5;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex:none">‹</span><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds))">My shop</span><div onClick="{{ go.aProduct }}" style="margin-left:auto;height:38px;padding:0 14px;border-radius:12px;background:#B64D75;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;cursor:pointer">+ Add product</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px">
+    <div style="border-radius:16px;background:linear-gradient(135deg,#B64D75,#C76B93);color:#fff;padding:12px;grid-column:span 2"><div style="font-size:11.5px;opacity:.75">Shop sales · October</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(30px * var(--hds));margin-top:2px">₹18,420</div><div style="font-size:11.5px;color:#fff;font-weight:700">▲ 32% vs Sep</div></div>
+    <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="font-size:20px;font-weight:700">64</div><div style="font-size:11.5px;color:#896F7D">Orders</div></div>
+  </div>
+  <div style="margin-top:12px;padding:12px 14px;border-radius:16px;background:#FDF0DC;display:flex;align-items:center;gap:10px"><span style="font-size:16px">📦</span><div style="flex:1;font-size:13px"><b>3 orders to pack</b><br><span style="color:#6E5262">Ship by Sat, 11 Oct to keep your rating</span></div><span style="font-size:13px;font-weight:700;color:#9A6514">View ›</span></div>
+  <div style="display:flex;padding:3px;border-radius:12px;background:#FFE4EE;margin-top:16px"><span style="flex:1;height:34px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">Products · 6</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Orders</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Payouts</span></div>
+  <div style="margin-top:8px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #F7E3EC"><div style="width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-as-1" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">Organic henna cones · 12 pack</div><div style="font-size:12px;color:#896F7D">Physical · 214 sold</div><div style="font-size:12px;margin-top:2px"><b>₹480</b> · <span style="color:#2F6B47;font-weight:600">86 in stock</span></div></div><span style="width:42px;height:26px;border-radius:13px;background:#B64D75;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#fff"></span></span></div>
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #F7E3EC"><div style="width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-as-2" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">Mehendi aftercare balm</div><div style="font-size:12px;color:#896F7D">Physical · 98 sold</div><div style="font-size:12px;margin-top:2px"><b>₹350</b> · <span style="color:#9A6514;font-weight:600">4 left</span></div></div><span style="width:42px;height:26px;border-radius:13px;background:#B64D75;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#fff"></span></span></div>
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #F7E3EC"><div style="width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none"><image-slot id="v2-as-3" shape="rect" placeholder="Item"></image-slot></div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">Arabic mehendi for beginners</div><div style="font-size:12px;color:#896F7D">Digital course · 41 sold</div><div style="font-size:12px;margin-top:2px"><b>₹799</b> · <span style="color:#2F6B47;font-weight:600">Unlimited</span></div></div><span style="width:42px;height:26px;border-radius:13px;background:#B64D75;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:10px;background:#fff"></span></span></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aProduct }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:852px;background:#fff;padding:54px 16px 120px;box-sizing:border-box;position:relative">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 12px;border-bottom:1px solid #F0DCE5;margin:0 -16px;padding-left:16px;padding-right:16px"><span onClick="{{ go.aShop }}" style="font-size:14px;font-weight:600;cursor:pointer">Cancel</span><span style="font-size:15px;font-weight:700">New product</span><span style="font-size:13px;font-weight:600;color:#B64D75">Save draft</span></div>
+  <div style="display:flex;gap:8px;margin-top:16px"><div style="width:110px;height:110px;border-radius:16px;overflow:hidden;flex:none"><image-slot id="v2-ap-1" shape="rect" placeholder="Main photo"></image-slot></div><div style="width:110px;height:110px;border-radius:16px;overflow:hidden;flex:none"><image-slot id="v2-ap-2" shape="rect" placeholder="Photo"></image-slot></div><div style="flex:1;height:110px;border-radius:16px;border:1.5px dashed #EBC3D5;background:#FFF5F9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#B64D75;font-size:12px;font-weight:600"><span style="font-size:22px">+</span>Add</div></div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:18px">Product type</div>
+  <div style="display:flex;padding:3px;border-radius:12px;background:#FFE4EE;margin-top:8px"><span style="flex:1;height:34px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">Physical</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Digital download</span></div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:16px">Name</div>
+  <div style="margin-top:6px;height:50px;border-radius:12px;border:1.5px solid #C76B93;display:flex;align-items:center;padding:0 14px;font-size:15px">Bridal mehendi starter kit</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+    <div><div style="font-size:12px;font-weight:600;color:#6E5262">Price</div><div style="margin-top:6px;height:50px;border-radius:12px;border:1px solid #F0CFDD;display:flex;align-items:center;padding:0 14px;font-size:15px">₹ 1,200</div></div>
+    <div><div style="font-size:12px;font-weight:600;color:#6E5262">MRP (optional)</div><div style="margin-top:6px;height:50px;border-radius:12px;border:1px solid #F0CFDD;display:flex;align-items:center;padding:0 14px;font-size:15px;color:#9C8591">₹ 1,500</div></div>
+    <div><div style="font-size:12px;font-weight:600;color:#6E5262">Stock</div><div style="margin-top:6px;height:50px;border-radius:12px;border:1px solid #F0CFDD;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px"><span>−</span><b>40</b><span style="color:#B64D75">+</span></div></div>
+    <div><div style="font-size:12px;font-weight:600;color:#6E5262">Category</div><div style="margin-top:6px;height:50px;border-radius:12px;border:1px solid #F0CFDD;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:14px">Henna <span style="color:#B64D75">▾</span></div></div>
+  </div>
+  <div style="font-size:12px;font-weight:600;color:#6E5262;margin-top:16px">Shipping</div>
+  <div style="margin-top:8px;border-radius:16px;border:1px solid #F0DCE5;padding:0 14px">
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #F7E3EC"><span style="width:20px;height:20px;border-radius:10px;border:6px solid #B64D75;box-sizing:border-box"></span><div style="flex:1;font-size:13.5px"><b>Atelier pickup</b><br><span style="font-size:12px;color:#896F7D">We collect from your studio · ₹40/order</span></div></div>
+    <div style="display:flex;gap:12px;align-items:center;padding:12px 0"><span style="width:20px;height:20px;border-radius:10px;border:1.5px solid #EBC3D5;box-sizing:border-box"></span><div style="flex:1;font-size:13.5px"><b>I'll ship it myself</b><br><span style="font-size:12px;color:#896F7D">Add tracking when you ship</span></div></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 32px;background:#fff;border-top:1px solid #F0DCE5;display:flex;align-items:center;gap:10px"><div onClick="{{ go.aShop }}" style="flex:1;height:50px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer">Publish product</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aDash }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#FFFFFF;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px"><div><div style="font-size:12.5px;color:#896F7D">Thursday, 8 October</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(32px * var(--hds));font-weight:600;line-height:1.1">Good morning,<br><i style="color:#B64D75">Ayesha</i></div></div><div onClick="{{ go.aMe }}" style="width:48px;height:48px;cursor:pointer"><image-slot id="v2-a-avatar" shape="circle" placeholder="Ayesha"></image-slot></div></div>
+  <div style="margin-top:22px;border-radius:20px;padding:18px;background:linear-gradient(135deg,#B64D75,#C76B93);color:#fff;box-shadow:0 10px 28px rgba(182,77,117,.22);position:relative;overflow:hidden">
+    <div style="position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:70px;background:radial-gradient(circle,#F5B6D0 0%,rgba(245,182,208,0) 70%);opacity:.5"></div>
+    <div style="font-size:12px;opacity:.75">Earnings this month</div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(44px * var(--hds));font-weight:600;line-height:1.05;margin-top:4px">₹48,200</div>
+    <div style="font-size:12px;margin-top:2px"><span style="color:#fff;font-weight:700">▲ 18%</span> <span style="opacity:.75">vs September · ₹12,400 next payout Mon</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
+    <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="font-size:20px;font-weight:700">14</div><div style="font-size:11.5px;color:#896F7D">Bookings</div></div>
+    <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="font-size:20px;font-weight:700">2.1k</div><div style="font-size:11.5px;color:#896F7D">Profile views</div></div>
+    <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="font-size:20px;font-weight:700;color:#B64D75">★ 4.9</div><div style="font-size:11.5px;color:#896F7D">128 reviews</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:24px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600">New requests <span style="display:inline-flex;min-width:22px;height:22px;border-radius:11px;background:#B64D75;color:#fff;font-family:'Plus Jakarta Sans';font-size:12px;align-items:center;justify-content:center;vertical-align:middle">2</span></span><span onClick="{{ go.aBookings }}" style="font-size:13px;font-weight:600;color:#B64D75;cursor:pointer">See all</span></div>
+  <div style="margin-top:10px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px">
+    <div style="display:flex;gap:12px;align-items:center"><div style="width:44px;height:44px"><image-slot id="v2-a-req1" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-size:14.5px;font-weight:700">Ananya Rao</div><div style="font-size:12px;color:#896F7D">Bridal Mehendi + 4 guests</div></div><div style="text-align:right"><div style="font-size:15px;font-weight:700">₹5,599</div><div style="font-size:11px;color:#B57A1E;font-weight:600">Expires in 3h</div></div></div>
+    <div style="font-size:12.5px;color:#6E5262;margin-top:10px">📅 Fri, 9 Oct · 11:00 AM · Koramangala (1.2 km)</div>
+    <div style="display:flex;gap:8px;margin-top:12px"><div style="flex:1;height:42px;border-radius:12px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600">Decline</div><div onClick="{{ go.aBookings }}" style="flex:1;height:42px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer">Accept</div></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(24px * var(--hds));font-weight:600;margin-top:24px">Today</div>
+  <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;gap:12px;align-items:center;border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:12px"><div style="width:52px;text-align:center"><div style="font-size:15px;font-weight:700">2:00</div><div style="font-size:11px;color:#896F7D">PM</div></div><span style="width:3px;height:36px;border-radius:2px;background:#C76B93"></span><div style="flex:1"><div style="font-size:14px;font-weight:700">Arabic Mehendi · Sneha K.</div><div style="font-size:12px;color:#896F7D">HSR Layout · 1.5 hrs · ₹1,800</div></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aBookings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#FFFFFF;min-height:852px;box-sizing:border-box">
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(36px * var(--hds));font-weight:600;padding-top:8px">Bookings</div>
+  <div style="display:flex;padding:3px;border-radius:12px;background:#FFE4EE;margin-top:12px"><span style="flex:1;height:34px;border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 1px 4px rgba(182,77,117,.12)">Requests · 2</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Upcoming</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#896F7D">Past</span></div>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;overflow:hidden">
+      <div style="padding:14px;display:flex;gap:12px;align-items:center"><div style="width:46px;height:46px"><image-slot id="v2-ab-1" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-size:15px;font-weight:700">Ananya Rao</div><div style="font-size:12px;color:#896F7D">★ 4.8 as a client · 6 bookings</div></div><span style="padding:4px 10px;border-radius:999px;background:#FDF0DC;color:#9A6514;font-size:11px;font-weight:700">3h left</span></div>
+      <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12.5px">
+        <div><div style="color:#896F7D">Service</div><div style="font-weight:600">Bridal + 4 guests</div></div><div><div style="color:#896F7D">When</div><div style="font-weight:600">Fri, 9 Oct · 11 AM</div></div>
+        <div><div style="color:#896F7D">Where</div><div style="font-weight:600">Koramangala · 1.2 km</div></div><div><div style="color:#896F7D">You earn</div><div style="font-weight:700;color:#B64D75">₹4,950</div></div>
+      </div>
+      <div style="padding:10px 14px;background:#FFF5F9;font-size:12.5px;color:#6E5262">"Keep palms lighter, add our date on the wrist" · 1 reference photo</div>
+      <div style="display:flex;gap:8px;padding:12px 14px"><div style="flex:1;height:42px;border-radius:12px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600">Decline</div><div onClick="{{ go.aMsgs }}" style="flex:1;height:42px;border-radius:12px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer">Message</div><div onClick="{{ go.aCal }}" style="flex:1.2;height:42px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer">Accept</div></div>
+    </div>
+    <div style="border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;gap:12px;align-items:center"><div style="width:46px;height:46px"><image-slot id="v2-ab-2" shape="circle" placeholder="R"></image-slot></div><div style="flex:1"><div style="font-size:14.5px;font-weight:700">Rhea Kulkarni</div><div style="font-size:12px;color:#896F7D">Guest Mehendi × 22 · Sat, 17 Oct</div></div><div style="text-align:right"><div style="font-size:14px;font-weight:700">₹11,000</div><div style="font-size:11px;color:#896F7D">22h left</div></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aCal }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#fff;min-height:852px;box-sizing:border-box">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(36px * var(--hds));font-weight:600">Calendar</span><span style="height:36px;padding:0 14px;border-radius:12px;background:#FFE4EE;color:#B64D75;font-size:13px;font-weight:700;display:flex;align-items:center">Block dates</span></div>
+  <div style="margin-top:12px;border-radius:20px;border:1px solid #F0DCE5;padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:700">October 2026</span><span style="color:#B64D75;letter-spacing:8px">‹ ›</span></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);row-gap:6px;margin-top:10px;text-align:center;font-size:13px">
+      <span style="font-size:11px;color:#9C8591;font-weight:600">S</span><span style="font-size:11px;color:#9C8591;font-weight:600">M</span><span style="font-size:11px;color:#9C8591;font-weight:600">T</span><span style="font-size:11px;color:#9C8591;font-weight:600">W</span><span style="font-size:11px;color:#9C8591;font-weight:600">T</span><span style="font-size:11px;color:#9C8591;font-weight:600">F</span><span style="font-size:11px;color:#9C8591;font-weight:600">S</span>
+      <sc-for list="{{ calDays }}" as="c" hint-placeholder-count="35">
+        <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><span style="width:32px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:600;background:{{ c.bg }};color:{{ c.color }};text-decoration:{{ c.deco }}">{{ c.n }}</span><span style="width:4px;height:4px;border-radius:2px;margin-top:-6px;background:{{ c.dot }}"></span></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:8px;font-size:11.5px;color:#896F7D"><span><span style="color:#C76B93">●</span> Booked</span><span><span style="color:#D9A04A">●</span> Pending</span><span style="text-decoration:line-through">12</span><span>Blocked</span></div>
+  </div>
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(22px * var(--hds));font-weight:600;margin-top:20px">Friday, 9 October</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+    <div style="display:flex;gap:12px;align-items:center;border-radius:16px;background:#FFF5F9;padding:12px"><div style="width:52px;text-align:center"><div style="font-size:15px;font-weight:700">11:00</div><div style="font-size:11px;color:#896F7D">AM</div></div><span style="width:3px;height:36px;border-radius:2px;background:#C76B93"></span><div style="flex:1"><div style="font-size:14px;font-weight:700">Bridal + 4 guests · Ananya R.</div><div style="font-size:12px;color:#896F7D">Koramangala · until 2:30 PM</div></div></div>
+    <div style="display:flex;gap:12px;align-items:center;border-radius:16px;border:1px dashed #EBC3D5;padding:12px;color:#896F7D;font-size:13px"><div style="width:52px;text-align:center;font-weight:600">4:00</div><span>Free from 4 PM · tap to block</span></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aMsgs }}" hint-placeholder-val="{{ false }}">
+<div style="padding:54px 16px 110px;background:#fff;min-height:852px;box-sizing:border-box">
+  <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(36px * var(--hds));font-weight:600;padding-top:8px">Messages</div>
+  <div style="margin-top:12px;height:42px;border-radius:12px;background:#FCEEF3;border:1px solid #F0DCE5;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:13.5px;color:#9C8591"><span style="color:#B64D75">⌕</span>Search clients</div>
+  <div style="display:flex;flex-direction:column;margin-top:8px">
+    <div onClick="{{ go.chat }}" style="display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid #F7E3EC;cursor:pointer"><div style="width:48px;height:48px;flex:none"><image-slot id="v2-am-1" shape="circle" placeholder="A"></image-slot></div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between"><span style="font-size:14.5px;font-weight:700">Ananya Rao</span><span style="font-size:11.5px;color:#B64D75;font-weight:600">2m</span></div><div style="font-size:13px;font-weight:600;margin-top:2px">Can you hide our initials in the design?</div><span style="display:inline-flex;margin-top:4px;padding:2px 8px;border-radius:999px;background:#FFE4EE;color:#B64D75;font-size:10.5px;font-weight:700">Request · Fri, 9 Oct</span></div></div>
+    <div onClick="{{ go.chat }}" style="display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid #F7E3EC;cursor:pointer"><div style="width:48px;height:48px;flex:none"><image-slot id="v2-am-2" shape="circle" placeholder="R"></image-slot></div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between"><span style="font-size:14.5px;font-weight:700">Rhea Kulkarni</span><span style="font-size:11.5px;color:#9C8591">1h</span></div><div style="font-size:13px;color:#896F7D;margin-top:2px">22 guests, starting at 5 PM 🌸</div></div></div>
+    <div onClick="{{ go.chat }}" style="display:flex;gap:12px;align-items:center;padding:14px 0;cursor:pointer"><div style="width:48px;height:48px;flex:none"><image-slot id="v2-am-3" shape="circle" placeholder="S"></image-slot></div><div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between"><span style="font-size:14.5px;font-weight:700">Sneha Kapoor</span><span style="font-size:11.5px;color:#9C8591">Yesterday</span></div><div style="font-size:13px;color:#896F7D;margin-top:2px">See you at 2! Address pinned.</div></div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ show.aMe }}" hint-placeholder-val="{{ false }}">
+<div style="padding-bottom:110px;background:#FFFFFF;min-height:852px;box-sizing:border-box">
+  <div style="height:170px;position:relative"><image-slot id="v2-ame-cover" shape="rect" placeholder="Cover — signature work"></image-slot></div>
+  <div style="padding:0 16px;margin-top:-40px;position:relative">
+    <div style="width:84px;height:84px;border-radius:42px;padding:3px;background:#fff;box-shadow:0 6px 18px rgba(182,77,117,.2)"><image-slot id="v2-ame-av" shape="circle" placeholder="Ayesha"></image-slot></div>
+    <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(30px * var(--hds));font-weight:600;margin-top:8px">Ayesha Mehendi Art</div>
+    <div style="font-size:12.5px;color:#896F7D">✓ Verified · ★ 4.9 (128) · Koramangala</div>
+    <div onClick="{{ go.artist }}" style="margin-top:12px;height:42px;border-radius:12px;border:1px solid #EBC3D5;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer">View public profile</div>
+    <div style="margin-top:14px;border-radius:18px;background:#fff;border:1px solid #F0DCE5;padding:0 14px">
+      <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Services</span><span style="color:#9C8591">4 ›</span></div>
+      <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Portfolio</span><span style="color:#9C8591">214 ›</span></div>
+      <div onClick="{{ go.aShop }}" style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500;cursor:pointer"><span>My shop</span><span style="color:#9C8591">6 products · 3 to pack ›</span></div>
+      <div onClick="{{ go.aPost }}" style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500;cursor:pointer"><span>Posts &amp; articles</span><span style="color:#B64D75;font-weight:600">+ New post ›</span></div>
+      <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Reviews</span><span style="color:#9C8591">128 ›</span></div>
+      <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Earnings &amp; payouts</span><span style="color:#9C8591">›</span></div>
+      <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F7E3EC;font-size:14px;font-weight:500"><span>Service area &amp; availability</span><span style="color:#9C8591">›</span></div>
+      <div style="display:flex;justify-content:space-between;padding:13px 0;font-size:14px;font-weight:500"><span>Settings</span><span style="color:#9C8591">›</span></div>
+    </div>
+    <div onClick="{{ go.home }}" style="margin-top:12px;border-radius:18px;padding:14px 16px;background:linear-gradient(120deg,#F5B6D0,#FFE4EE);display:flex;align-items:center;gap:12px;cursor:pointer"><div style="flex:1"><div style="font-size:14.5px;font-weight:700">Switch to customer</div><div style="font-size:12px;color:#6E5262">Book other artists with the same account</div></div><span>⇄</span></div>
+  </div>
+</div>
+</sc-if>
+
+      </div>
+      <sc-if value="{{ ctab }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20;background:rgba(255,255,255,.96);border-top:1px solid #F0DCE5;display:flex;padding:8px 6px 0;box-sizing:border-box">
+        <div onClick="{{ go.home }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.home }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span style="font-size:10.5px;font-weight:600">Home</span></div>
+        <div onClick="{{ go.explore }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.explore }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><span style="font-size:10.5px;font-weight:600">Explore</span></div>
+        <div onClick="{{ go.feed }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.feed }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"></rect><path d="M10 8.5v7l6-3.5z"></path></svg><span style="font-size:10.5px;font-weight:600">Feed</span></div>
+        <div onClick="{{ go.shop }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.shop }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg><span style="font-size:10.5px;font-weight:600">Shop</span></div>
+        <div onClick="{{ go.profile }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.profile }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span style="font-size:10.5px;font-weight:600">Profile</span></div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ atab }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20;background:rgba(255,255,255,.96);border-top:1px solid #F0DCE5;display:flex;padding:8px 6px 0;box-sizing:border-box">
+        <div onClick="{{ go.aDash }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.aDash }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span style="font-size:10.5px;font-weight:600">Home</span></div>
+        <div onClick="{{ go.aBookings }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.aBookings }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path></svg><span style="font-size:10.5px;font-weight:600">Bookings</span></div>
+        <div onClick="{{ go.aCal }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.aCal }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg><span style="font-size:10.5px;font-weight:600">Calendar</span></div>
+        <div onClick="{{ go.aMsgs }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.aMsgs }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg><span style="font-size:10.5px;font-weight:600">Messages</span></div>
+        <div onClick="{{ go.aMe }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tc.aMe }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span style="font-size:10.5px;font-weight:600">Me</span></div>
+      </div>
+      </sc-if>
+      <div style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#49313B;z-index:40;pointer-events:none"></div>
+    </div>
+    </div>
+    </sc-if>
+
+<!-- ADMIN -->
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+    <div style="width:{{ adminW }}px;height:{{ adminH }}px;position:relative">
+    <div style="position:absolute;top:0;left:0;width:1280px;height:800px;transform-origin:0 0;transform:scale({{ adminScale }});border-radius:14px;background:#FAF8F9;box-shadow:0 0 0 1px #EBC3D5,0 30px 70px rgba(182,77,117,.2);overflow:hidden;display:flex">
+      <div style="width:232px;flex:none;background:#FFFFFF;color:#49313B;border-right:1px solid #F0DCE5;display:flex;flex-direction:column;padding:22px 14px">
+        <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(26px * var(--hds));font-weight:600;padding:0 8px">Atelier <i style="color:#B64D75">admin</i></div>
+        <div style="display:flex;flex-direction:column;gap:2px;margin-top:24px;font-size:13.5px">
+          <div onClick="{{ go.adOverview }}" style="padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ adNav.ov }}">Overview</div>
+          <div onClick="{{ go.adKyc }}" style="padding:9px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;background:{{ adNav.kyc }}"><span>Verification</span><span style="padding:0 8px;border-radius:999px;background:#B64D75;color:#fff;font-size:11.5px;font-weight:700">23</span></div>
+          <div style="padding:9px 12px;border-radius:10px;opacity:.8">Artists</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Customers</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Bookings</div>
+          <div style="padding:9px 12px;border-radius:10px;opacity:.8;display:flex;justify-content:space-between"><span>Disputes</span><span style="opacity:.8">12</span></div>
+          <div style="padding:9px 12px;border-radius:10px;opacity:.8">Payouts</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Reviews</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Catalog</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Support</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Reports</div><div style="padding:9px 12px;border-radius:10px;opacity:.8">Settings</div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:10px 8px;border-top:1px solid #F0DCE5"><span style="width:32px;height:32px;border-radius:16px;background:#FFE4EE;color:#B64D75;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">NM</span><div><div style="font-size:12.5px;font-weight:600">Neha Menon</div><div style="font-size:11px;opacity:.7">Super admin</div></div></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div style="height:64px;flex:none;border-bottom:1px solid #F0DCE5;background:#fff;display:flex;align-items:center;gap:14px;padding:0 28px"><div style="width:360px;height:38px;border-radius:12px;background:#FCEEF3;border:1px solid #F0DCE5;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:13px;color:#9C8591"><span style="color:#B64D75">⌕</span>Search artists, customers, booking IDs</div><div style="flex:1"></div><span style="height:34px;padding:0 12px;border-radius:10px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">All cities ▾</span><span style="height:34px;padding:0 12px;border-radius:10px;border:1px solid #EBC3D5;font-size:12.5px;font-weight:600;display:flex;align-items:center">Last 30 days ▾</span></div>
+
+<sc-if value="{{ show.adOverview }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:hidden;padding:24px 28px">
+          <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;line-height:1">Good morning, <i style="color:#B64D75">Neha</i></div>
+          <div style="font-size:13px;color:#896F7D;margin-top:6px">23 artists are waiting for verification and 4 disputes are close to their SLA.</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px">
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:16px"><div style="font-size:12px;color:#896F7D">Gross bookings</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;margin-top:4px">₹42.6L</div><div style="font-size:12px;color:#2F6B47;font-weight:600">▲ 12.4%</div></div>
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:16px"><div style="font-size:12px;color:#896F7D">Bookings</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;margin-top:4px">1,284</div><div style="font-size:12px;color:#2F6B47;font-weight:600">▲ 8.1%</div></div>
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:16px"><div style="font-size:12px;color:#896F7D">New artists</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;margin-top:4px">86</div><div style="font-size:12px;color:#9A6514;font-weight:600">23 pending review</div></div>
+            <div style="border-radius:16px;background:#FFE4EE;border:1px solid #F5B6D0;padding:16px"><div style="font-size:12px;color:#6E5262">Open disputes</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(34px * var(--hds));font-weight:600;margin-top:4px;color:#B64D75">12</div><div style="font-size:12px;color:#B64D75;font-weight:600">4 near SLA</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-top:14px">
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:16px">
+              <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700">Bookings by week</span><span style="font-size:12px;color:#896F7D">Mehendi leads with 38%</span></div>
+              <div style="display:flex;align-items:flex-end;gap:10px;height:190px;margin-top:14px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="12"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;border-radius:6px 6px 2px 2px;height:{{ b.h }}px;background:{{ b.c }}"></div><span style="font-size:10.5px;color:#9C8591">{{ b.l }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:16px">
+              <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700">Verification queue</span><span onClick="{{ go.adKyc }}" style="font-size:12.5px;font-weight:600;color:#B64D75;cursor:pointer">Open queue</span></div>
+              <div style="display:flex;flex-direction:column;margin-top:8px">
+                <div onClick="{{ go.adKyc }}" style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #F7E3EC;cursor:pointer"><div style="width:34px;height:34px"><image-slot id="v2-ad-q1" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-size:13px;font-weight:700">Ayesha Mehendi Art</div><div style="font-size:11.5px;color:#896F7D">Mehendi · Bangalore · 2h ago</div></div><span style="padding:3px 9px;border-radius:999px;background:#FFE4EE;color:#B64D75;font-size:11px;font-weight:700">Review</span></div>
+                <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #F7E3EC"><div style="width:34px;height:34px"><image-slot id="v2-ad-q2" shape="circle" placeholder="I"></image-slot></div><div style="flex:1"><div style="font-size:13px;font-weight:700">Ink &amp; Om Tattoo</div><div style="font-size:11.5px;color:#896F7D">Tattoo · Pune · 5h ago</div></div><span style="padding:3px 9px;border-radius:999px;background:#FDF0DC;color:#9A6514;font-size:11px;font-weight:700">Info requested</span></div>
+                <div style="display:flex;gap:10px;align-items:center;padding:10px 0"><div style="width:34px;height:34px"><image-slot id="v2-ad-q3" shape="circle" placeholder="F"></image-slot></div><div style="flex:1"><div style="font-size:13px;font-weight:700">Frames by Farhan</div><div style="font-size:11.5px;color:#896F7D">Photography · Hyderabad · 1d ago</div></div><span style="padding:3px 9px;border-radius:999px;background:#FFE4EE;color:#B64D75;font-size:11px;font-weight:700">Review</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+</sc-if>
+
+<sc-if value="{{ show.adKyc }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:hidden;padding:20px 28px;display:flex;flex-direction:column">
+          <div style="font-size:12.5px;color:#896F7D"><span onClick="{{ go.adOverview }}" style="color:#B64D75;cursor:pointer;font-weight:600">Verification</span> › Ayesha Mehendi Art</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:12px"><div style="width:56px;height:56px"><image-slot id="v2-ad-kav" shape="circle" placeholder="A"></image-slot></div><div style="flex:1"><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-size:calc(30px * var(--hds));font-weight:600;line-height:1">Ayesha Mehendi Art</div><div style="font-size:12.5px;color:#896F7D;margin-top:4px">Ayesha Khan · Mehendi · Koramangala, Bangalore · Submitted 2h ago</div></div><span style="padding:5px 12px;border-radius:999px;background:#FDF0DC;color:#9A6514;font-size:12px;font-weight:700">SLA 22h left</span></div>
+          <div style="display:grid;grid-template-columns:250px 1fr 280px;gap:14px;margin-top:16px;flex:1;min-height:0">
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:6px">KYC checklist</div>
+              <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F7E3EC;font-size:13px"><span style="color:#2F6B47">✓</span><span style="flex:1">Phone verified</span></div>
+              <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F7E3EC;font-size:13px"><span style="color:#2F6B47">✓</span><span style="flex:1">Government ID · name match</span></div>
+              <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F7E3EC;font-size:13px;background:#FFF5F9;margin:0 -14px;padding-left:14px;padding-right:14px"><span style="color:#B64D75">●</span><span style="flex:1;font-weight:600">Selfie liveness</span><span style="font-size:11.5px;color:#B64D75">Reviewing</span></div>
+              <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F7E3EC;font-size:13px"><span style="color:#2F6B47">✓</span><span style="flex:1">Bank account · penny drop</span></div>
+              <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F7E3EC;font-size:13px"><span style="color:#9C8591">○</span><span style="flex:1">Portfolio originality</span></div>
+              <div style="display:flex;gap:10px;padding:9px 0;font-size:13px"><span style="color:#9C8591">○</span><span style="flex:1">Pricing within category range</span></div>
+            </div>
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;flex-direction:column">
+              <div style="display:flex;gap:6px;padding:3px;border-radius:10px;background:#FFF0F5;align-self:flex-start"><span style="padding:6px 12px;border-radius:8px;background:#fff;font-size:12px;font-weight:700;white-space:nowrap">ID vs selfie</span><span style="padding:6px 12px;font-size:12px;font-weight:600;color:#896F7D;white-space:nowrap">Portfolio (24)</span><span style="padding:6px 12px;font-size:12px;font-weight:600;color:#896F7D;white-space:nowrap">Bank</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;flex:1">
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="flex:1;border-radius:12px;overflow:hidden"><image-slot id="v2-ad-id" shape="rect" placeholder="Government ID (front)"></image-slot></div><span style="font-size:11.5px;color:#896F7D">Aadhaar ••••4412 · Ayesha Khan</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="flex:1;border-radius:12px;overflow:hidden"><image-slot id="v2-ad-selfie" shape="rect" placeholder="Live selfie"></image-slot></div><span style="font-size:11.5px;color:#896F7D">Face match 96% · liveness passed</span></div>
+              </div>
+            </div>
+            <div style="border-radius:16px;background:#fff;border:1px solid #F0DCE5;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:13px;font-weight:700">Internal notes</div>
+              <div style="border-radius:12px;background:#FFF5F9;padding:10px;font-size:12.5px;line-height:1.5"><b>Rahul (Ops)</b> · 1h<br>Portfolio looks original. Reverse image search is clean.</div>
+              <div style="height:90px;border-radius:12px;border:1px solid #F0CFDD;padding:10px;font-size:12.5px;color:#9C8591">Add a note for the team…</div>
+              <div style="flex:1"></div>
+              <div style="height:44px;border-radius:12px;background:#B64D75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Approve &amp; publish</div>
+              <div style="display:flex;gap:8px"><div style="flex:1;height:40px;border-radius:12px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">Request info</div><div style="flex:1;height:40px;border-radius:12px;border:1px solid #EBC3D5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#A33A3A">Reject</div></div>
+            </div>
+          </div>
+        </div>
+</sc-if>
+      </div>
+    </div>
+    </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;headingFont&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cormorant Garamond&quot;,&quot;Plus Jakarta Sans&quot;],&quot;default&quot;:&quot;Cormorant Garamond&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Typography&quot;}}">
+const GROUPS = [
+  ['Sign in', [['welcome', 'Welcome'], ['login', 'Log in'], ['role', 'Choose role']]],
+  ['Customer', [['home', 'Home'], ['feed', 'Feed'], ['post', 'Article'], ['explore', 'Explore'], ['artist', 'Artist storefront'], ['service', 'Service detail'], ['book', 'Date & time'], ['review', 'Review & pay'], ['done', 'Booking requested'], ['bookings', 'My bookings'], ['chat', 'Chat with artist'], ['profile', 'Profile']]],
+  ['Shop', [['shop', 'Shop home'], ['product', 'Product'], ['cart', 'Cart'], ['checkout', 'Checkout'], ['orderDone', 'Order placed'], ['orders', 'My orders']]],
+  ['Artist onboarding', [['onbIntro', 'Intro'], ['onbProfile', 'Profile step'], ['onbPortfolio', 'Portfolio step'], ['onbDone', 'In review']]],
+  ['Artist app', [['aDash', 'Dashboard'], ['aBookings', 'Requests'], ['aCal', 'Calendar'], ['aMsgs', 'Messages'], ['aMe', 'Me'], ['aPost', 'New post'], ['aShop', 'My shop'], ['aProduct', 'Add product']]],
+  ['Admin console', [['adOverview', 'Overview'], ['adKyc', 'KYC review']]],
+];
+const ALL = GROUPS.flatMap(g => g[1].map(s => s[0]));
+const KEY = 'atelier-v2-proto';
+const DAYS = [['Sun', 4, 0], ['Mon', 5, 1], ['Tue', 6, 1], ['Wed', 7, 1], ['Thu', 8, 2], ['Fri', 9, 1], ['Sat', 10, 2]];
+const TIMES = ['9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+const OFF = ['9:00 AM', '1:00 PM', '2:00 PM'];
+
+class Component extends DCLogic {
+  state = (() => { let s = {}; try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {} return { cur: ALL.includes(s.cur) ? s.cur : 'welcome', date: s.date ?? 5, time: s.time || '11:00 AM', from: 'home', w: window.innerWidth, h: window.innerHeight }; })();
+  componentDidMount() {
+    this.heroT = setInterval(() => this.setState(s => ({ heroI: ((s.heroI || 0) + 1) % 2 })), 3800);
+    this.onR = () => this.setState({ w: window.innerWidth, h: window.innerHeight });
+    this.onK = e => { const t = e.target.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return; if (e.key === 'ArrowRight') this.step(1); if (e.key === 'ArrowLeft') this.step(-1); };
+    window.addEventListener('resize', this.onR); window.addEventListener('keydown', this.onK);
+  }
+  componentWillUnmount() { clearInterval(this.heroT); window.removeEventListener('resize', this.onR); window.removeEventListener('keydown', this.onK); }
+  persist(p) { const s = { ...this.state, ...p }; try { localStorage.setItem(KEY, JSON.stringify({ cur: s.cur, date: s.date, time: s.time })); } catch (e) {} }
+  go(id) {
+    const from = id === 'chat' ? this.state.cur : this.state.from;
+    this.persist({ cur: id }); this.setState({ cur: id, from });
+    const sc = document.querySelector('[data-v2-scroll]'); if (sc) sc.scrollTop = 0;
+  }
+  step(d) { const i = ALL.indexOf(this.state.cur); this.go(ALL[Math.max(0, Math.min(ALL.length - 1, i + d))]); }
+  renderVals() {
+    const { cur, date, time, w, h } = this.state;
+    const jak = (this.props.headingFont ?? 'Cormorant Garamond') === 'Plus Jakarta Sans';
+    const hdFont = jak ? "'Plus Jakarta Sans', sans-serif" : "'Cormorant Garamond', serif";
+    const hdScale = jak ? 0.78 : 1, hdLs = jak ? '-0.025em' : '0';
+
+    const show = {}, go = {};
+    ALL.forEach(k => { show[k] = k === cur; go[k] = () => this.go(k); });
+    const fromC = this.state.from;
+    go.chatBack = () => this.go(['aMsgs', 'aBookings', 'aDash'].includes(fromC) ? fromC : (ALL.includes(fromC) && fromC !== 'chat' ? fromC : 'bookings'));
+    const isAdmin = cur.startsWith('ad');
+    const on = '#B64D75', off = '#A08A96';
+    const tcKey = ['bookings', 'orders'].includes(cur) ? 'profile' : cur;
+    const tc = {}; ['home', 'feed', 'explore', 'shop', 'bookings', 'chat', 'profile', 'aDash', 'aBookings', 'aCal', 'aMsgs', 'aMe'].forEach(k => tc[k] = k === tcKey ? on : off);
+    const availW = w - 250 - 64, availH = h - 90;
+    const ps = Math.max(0.3, Math.min(1, availH / 872, availW / 413));
+    const as = Math.max(0.2, Math.min(1, availW / 1280, availH / 800));
+    let g = '', l = '', n = 0;
+    const rail = GROUPS.map(([name, items]) => ({ name, items: items.map(([k, lab]) => { n++; if (k === cur) { g = name; l = lab; } return { label: lab, num: String(n).padStart(2, '0'), onClick: () => this.go(k), bg: k === cur ? '#FFE4EE' : 'transparent', color: k === cur ? '#B64D75' : '#49313B' }; }) }));
+    const d = DAYS[date];
+    const dates = DAYS.map(([wd, num, st], i) => ({ w: wd, n: num, op: st === 0 ? .35 : 1, bg: i === date ? '#B64D75' : '#FCEEF3', color: i === date ? '#fff' : '#49313B', dot: st === 0 ? 'transparent' : i === date ? '#fff' : st === 2 ? '#D9A04A' : '#C76B93', onClick: st === 0 ? () => {} : () => { this.persist({ date: i }); this.setState({ date: i }); } }));
+    const times = TIMES.map(t => { const dis = OFF.includes(t), sel = t === time; return { label: t, bg: sel ? '#B64D75' : dis ? '#F7F0F3' : '#FFE4EE', color: sel ? '#fff' : dis ? '#C2B0B9' : '#49313B', deco: dis ? 'line-through' : 'none', onClick: dis ? () => {} : () => { this.persist({ time: t }); this.setState({ time: t }); } }; });
+    const calDays = [];
+    for (let i = 0; i < 4; i++) calDays.push({ n: '', bg: 'transparent', color: '#49313B', deco: 'none', dot: 'transparent' });
+    const booked = [3, 9, 10, 17, 24, 31], pend = [14, 23], blocked = [12, 13];
+    for (let i = 1; i <= 31; i++) calDays.push({ n: i, bg: i === 9 ? '#B64D75' : 'transparent', color: i === 9 ? '#fff' : blocked.includes(i) ? '#C2B0B9' : '#49313B', deco: blocked.includes(i) ? 'line-through' : 'none', dot: booked.includes(i) && i !== 9 ? '#C76B93' : pend.includes(i) ? '#D9A04A' : 'transparent' });
+    const bars = [62, 74, 70, 88, 96, 84, 110, 128, 120, 146, 160, 172].map((v, i) => ({ h: v, c: i === 11 ? '#B64D75' : i > 8 ? '#F5B6D0' : '#FFE4EE', l: 'W' + (i + 29) }));
+    return {
+      hdFont, hdScale, hdLs,
+      hero: (() => { const i = this.state.heroI || 0, o = {}; [0, 1].forEach(k => { o['o' + k] = k === i ? 1 : 0; o['s' + k] = k === i ? 1.06 : 1; o['w' + k] = k === i ? 18 : 6; o['c' + k] = k === i ? '#B64D75' : '#F5B6D0'; o['go' + k] = () => { clearInterval(this.heroT); this.setState({ heroI: k }); this.heroT = setInterval(() => this.setState(s => ({ heroI: ((s.heroI || 0) + 1) % 2 })), 3800); }; }); o.tag = ['Mehendi · from ₹1,500', 'Makeup & hair · from ₹4,500'][i]; o.title = ['Bridal mehendi artists', 'Glam for your big day'][i]; return o; })(),
+      show, go, tc, rail, dates, times, calDays, bars,
+      isPhone: !isAdmin, isAdmin,
+      ctab: ['home', 'feed', 'explore', 'bookings', 'profile', 'shop', 'orders'].includes(cur),
+      atab: ['aDash', 'aBookings', 'aCal', 'aMsgs', 'aMe'].includes(cur),
+      sbColor: '#49313B',
+      phoneScale: ps, phoneW: Math.round(393 * ps), phoneH: Math.round(852 * ps),
+      adminScale: as, adminW: Math.round(1280 * as), adminH: Math.round(800 * as),
+      adNav: { ov: cur === 'adOverview' ? '#FCEEF3' : 'transparent', kyc: cur === 'adKyc' ? '#FCEEF3' : 'transparent' },
+      curGroup: g, curLabel: l,
+      bookSummary: `${d[0]}, ${d[1]} Oct · ${time}`,
+      prev: () => this.step(-1), next: () => this.step(1),
+    };
+  }
+}
+</script>
+</body>
+</html>

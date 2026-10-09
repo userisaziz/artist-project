@@ -26,7 +26,9 @@ afterEach(() => {
 it('login → OTP (mock code) → home → sign out, against the real app routes', async () => {
   await renderRouter('./app');
 
-  // (a) unauthenticated start lands on login
+  // (a) unauthenticated start lands on welcome; Get started opens login
+  expect(await screen.findByText('Get started')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Get started'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
   // (b) valid number + Continue → OTP screen with the mock banner
@@ -43,14 +45,21 @@ it('login → OTP (mock code) → home → sign out, against the real app routes
   expect(screen.getByText('Customer')).toBeTruthy();
   expect(screen.queryByText('Enter the code')).toBeNull();
 
-  // (d) sign out returns to login and clears the stored session
+  // (d) sign out returns to welcome and clears the stored session
   await fireEvent.press(screen.getByText('Sign out'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(await screen.findByText('Get started')).toBeTruthy();
   await waitFor(() => expect(store.size).toBe(0));
+});
+
+it('"I already have an account" also opens login', async () => {
+  await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('I already have an account'));
+  expect(await screen.findByText('Welcome back')).toBeTruthy();
 });
 
 it('wrong code shows "That code is incorrect." and stays on the OTP screen', async () => {
   await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('Get started'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845099999'); // own phone: mock cooldown is per-number
@@ -67,6 +76,7 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
 
 it('non-auth verify failure shows the generic message and keeps the digits (no shake/clear)', async () => {
   await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('Get started'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845088888');

@@ -1,10 +1,11 @@
+// Atelier "Coquette" palette, from the hi-fi prototype (Claude Design, 2026-10-10).
 export const palette = {
-  blush100: '#FDF6F4', blush300: '#F7E1DA', blush500: '#EFCBC1',
-  rose300: '#E8A2B4', rose500: '#D27B98', rose700: '#B85C7B',
-  plum500: '#6E3657', plum700: '#4A2038',
-  terra500: '#C97B5D', gold400: '#D9A56C', sage500: '#A8BFA5',
-  cream: '#FFFBF8', white: '#FFFFFF',
-  ink900: '#3A2530', ink600: '#7A6672', ink400: '#A99AA4',
+  blush50: '#FFF8FB', blush100: '#FCEEF3', blush200: '#FFE4EE', blush300: '#F5B6D0',
+  line100: '#F0DCE5', line200: '#F0CFDD', line300: '#EBC3D5',
+  rose400: '#C76B93', rose500: '#B64D75', rose700: '#9A3D62',
+  ink900: '#49313B', ink700: '#6E5262', ink500: '#896F7D', ink300: '#C2B0B9',
+  sage600: '#2F6B47', amber500: '#D9A04A',
+  white: '#FFFFFF',
   error500: '#C24A4A', error100: '#F9E3E3',
-  scrim: '#3A253088', // ink900 at ~53% alpha, for modal backdrops
+  scrim: '#49313B88', // ink900 at ~53% alpha, for modal backdrops
 } as const;

@@ -39,6 +39,8 @@ Components may **only** reference Layer-2 semantic roles (via `useTheme()`), nev
 
 ### Layer 1 — primitive tokens (`src/theme/tokens/`)
 
+> **Superseded 2026-10-10:** the app now uses the Atelier "Coquette" palette from the hi-fi prototype (`docs/design/atelier/`; rose `#B64D75`, ink `#49313B`, blush `#FFE4EE`). The nude/cocoa v2 below and §8 are kept for history only.
+
 `palette.ts` — raw palette. **v2 (2026-10-10): nude / cocoa**, from the product owner's reference (warm peach-nude backgrounds, cocoa-brown primary, tan chips, serif headings). Replaces the v1 blush/plum palette; applied by plan Task 9.
 
 ```

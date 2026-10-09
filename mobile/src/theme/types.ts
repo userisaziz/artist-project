@@ -16,7 +16,7 @@ export interface ThemeColors {
 export interface Theme {
   name: 'light';
   colors: ThemeColors;
-  typography: { display: FontVariant; title: FontVariant; subtitle: FontVariant; body: FontVariant; caption: FontVariant; button: FontVariant };
+  typography: { hero: FontVariant; display: FontVariant; accent: FontVariant; title: FontVariant; subtitle: FontVariant; body: FontVariant; caption: FontVariant; button: FontVariant };
   spacing: { xs: number; sm: number; md: number; lg: number; xl: number; xxl: number };
   radii: { sm: number; md: number; card: number; pill: number };
   shadows: { sm: ShadowStyle; md: ShadowStyle; lg: ShadowStyle };
