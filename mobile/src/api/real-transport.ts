@@ -2,20 +2,33 @@ import type { Transport, TransportRequest, TransportResponse } from './transport
 import { ApiError } from './types';
 
 const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+export const REQUEST_TIMEOUT_MS = 15_000; // a hung request becomes a network_error instead of an endless spinner
 
 export class RealTransport implements Transport {
   async request({ method, path, body, headers }: TransportRequest): Promise<TransportResponse> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let res: Response;
     try {
-      const res = await fetch(`${BASE_URL}/api/v1${path}`, {
+      res = await fetch(`${BASE_URL}/api/v1${path}`, {
         method,
         headers: { 'Content-Type': 'application/json', ...headers },
         body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
       });
-      const json = res.status === 204 ? null : await res.json().catch(() => null);
-      return { status: res.status, json };
     } catch {
-      // Network errors become typed ApiErrors so screens can show the retry banner — never a silent reject.
+      // Network errors and timeouts become typed ApiErrors so screens can show the retry banner — never a silent reject.
       throw new ApiError('network_error', 'Network unreachable. Check your connection.', 0);
+    } finally {
+      clearTimeout(timer);
     }
+    if (res.status === 204) return { status: 204, json: null };
+    const ok = res.status >= 200 && res.status < 300;
+    const json = await res.json().catch(() => {
+      // 2xx with a broken body is a server bug, not success; non-2xx stays null and the client maps it to server_error.
+      if (ok) throw new ApiError('server_error', 'Something went wrong. Please try again.', res.status);
+      return null;
+    });
+    return { status: res.status, json };
   }
 }
