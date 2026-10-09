@@ -678,15 +678,24 @@ If `server_default=sa.text('gen_random_uuid()')` is missing on the new tables' i
 
 Verify: `psql -h 127.0.0.1 -U postgres art_circle -P pager=off -c '\dt'` → 10 tables + `alembic_version`.
 
+- [ ] **Step 4b: Seed the test database (schema copy + Alembic stamp)**
+
+Migration #1 is a DELTA against your hand-built schema, so `art_circle_test` needs that starting point. `--schema-only` copies DDL but NOT `alembic_version` contents — without the stamp, Alembic replays #1 onto existing tables and dies with "relation already exists":
+
+```bash
+pg_dump -h 127.0.0.1 -U postgres --schema-only art_circle | psql -q -h 127.0.0.1 -U postgres art_circle_test
+psql -h 127.0.0.1 -U postgres art_circle_test -c "TRUNCATE alembic_version; INSERT INTO alembic_version VALUES ('<rev id of #1>');"
+```
+
+Thereafter conftest keeps the test DB current: every `pytest` session runs `alembic upgrade head` against it, so future migrations are applied step-by-step exactly as in dev.
+
 - [ ] **Step 5: Write failing `tests/test_migrations.py`**
+
+`upgrade()` cannot run inside an async test (env.py calls `asyncio.run` → nested loop error). Migrations are applied by a SYNC session fixture in conftest; the test only asserts the schema contract:
 
 ```python
 import sqlalchemy as sa
-from alembic.command import upgrade
-from alembic.config import Config
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_TABLES = {
     "users", "customer_profiles", "artist_profiles", "artist_services", "service_inclusions",
     "service_addons", "artist_availability", "artist_policies", "otp_codes", "refresh_tokens",
@@ -694,14 +703,7 @@ EXPECTED_TABLES = {
 }
 
 
-def apply_migrations(url: str) -> None:
-    cfg = Config(str(ROOT / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", url)
-    upgrade(cfg, "head")
-
-
 async def test_migrations_create_all_tables(engine):
-    apply_migrations(engine.url.render_as_string(hide_password=False))
     async with engine.connect() as conn:
         rows = (await conn.execute(sa.text(
             "SELECT tablename FROM pg_tables WHERE schemaname='public'"
@@ -709,22 +711,39 @@ async def test_migrations_create_all_tables(engine):
     assert EXPECTED_TABLES <= set(rows)
 ```
 
-- [ ] **Step 6: Update `tests/conftest.py` for session-scoped client + truncation**
+- [ ] **Step 6: Update `tests/conftest.py` for session-scoped client + migrations + truncation**
 
-Replace `@pytest_asyncio.fixture` with `@pytest_asyncio.fixture(scope="session")` on `client` (routes commit; session-per-test would lose data between calls in one test), and add autouse truncation:
+Add the sync `migrated` fixture — `upgrade()` calls `asyncio.run` (via env.py), so it must run BEFORE pytest-asyncio opens an event loop; hence a plain `@pytest.fixture`, with `engine` depending on it. Keep `client` session-scoped (routes commit; per-test sessions would lose data between calls in one test), and add autouse truncation:
 
 ```python
+import pytest
+from alembic.command import upgrade
+from alembic.config import Config
 from sqlalchemy import text
+
+
+def apply_migrations(url: str) -> None:
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", url)
+    upgrade(cfg, "head")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated():
+    apply_migrations(settings.test_database_url)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def engine(migrated):
+    ... unchanged body ...
+
+# client fixture unchanged, just keeps depending on engine
 
 TABLES = (
     "users, customer_profiles, artist_profiles, artist_services, service_inclusions, "
     "service_addons, artist_availability, artist_policies, otp_codes, refresh_tokens"
 )
 
-
-@pytest_asyncio.fixture(scope="session")
-async def client(engine):
-    ... unchanged body ...
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_db(engine):
