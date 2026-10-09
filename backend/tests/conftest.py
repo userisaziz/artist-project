@@ -75,5 +75,8 @@ TABLES = (
 @pytest_asyncio.fixture(autouse=True)
 async def clean_db(engine):
     yield
+    from app.utils.sms_provider import ConsoleSMSProvider
+
+    ConsoleSMSProvider.sent.clear()
     async with engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {TABLES} RESTART IDENTITY CASCADE"))

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     otp_resend_cooldown_seconds: int = 60
     debug: bool = True
     sms_provider: str = "console"
+    fast2sms_api_key: str = ""
 
 
 @lru_cache
