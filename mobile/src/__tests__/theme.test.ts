@@ -13,7 +13,7 @@ it('maps brand to plum and background to blush (feminine identity)', () => {
 });
 
 it('exposes all six typography roles with serif display and sans body', () => {
-  expect(lightTheme.typography.display.fontFamily).toBe('PlayfairDisplay_700Bold');
-  expect(lightTheme.typography.body.fontFamily).toBe('Inter_400Regular');
+  expect(lightTheme.typography.display.fontFamily).toBe('CormorantGaramond_600SemiBold');
+  expect(lightTheme.typography.body.fontFamily).toBe('PlusJakartaSans_400Regular');
   expect(lightTheme.typography.caption.fontSize).toBeLessThan(lightTheme.typography.body.fontSize);
 });

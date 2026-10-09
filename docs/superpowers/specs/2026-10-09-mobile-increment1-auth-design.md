@@ -54,7 +54,7 @@ error500 #C24A4A  error100 #F9E3E3
 ```
 
 `typography.ts` — roles over raw sizes:
-`display` 32/700 serif · `title` 22/700 serif · `subtitle` 16/600 sans · `body` 15/400 sans · `caption` 12/500 sans · `button` 16/600 sans. Font families: `"PlayfairDisplay"` (display/title), `"Inter"` (everything else), bundled in `assets/fonts/` via `expo-font` — no runtime fetch.
+`display` 32/600 serif · `title` 22/600 serif · `subtitle` 16/600 sans · `body` 15/400 sans · `caption` 12/500 sans · `button` 16/600 sans. Font families: `"Cormorant Garamond"` (display/title), `"Plus Jakarta Sans"` (everything else), bundled in `assets/fonts/` via `expo-font` — no runtime fetch.
 
 `spacing.ts` — 4px base: `xs 4, sm 8, md 16, lg 24, xl 32, xxl 48`.
 `radii.ts` — `sm 8, md 14, pill 999, card 20`.
@@ -94,7 +94,7 @@ typography, spacing, radii, shadows  (pass-through of layer 1)
 | `AppTextField` | `label, value, onChange, error?, focusRing` | border→borderFocus on focus; inline red caption on error |
 | `PhoneInput` | country-code chip `+91 ▾` (Picker modal, top-12 countries), digits field | Formats as you type; emits E.164 |
 | `OtpInput` | `length=6, onComplete(digits)` | 6 boxed fields (feminine rounded squares), auto-advance, backspace steps back, paste distributes, `textContentType="oneTimeCode"` + autoFocus for iOS SMS autofill |
-| `Logo` | wordmark "Art Circle" in Playfair | Used on login + splash |
+| `Logo` | wordmark "Art Circle" in Cormorant Garamond | Used on login + splash |
 
 ---
 
