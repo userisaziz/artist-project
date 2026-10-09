@@ -19,13 +19,14 @@ export class MockTransport implements Transport {
   /** Most recent generated code, so the OTP screen can replay it in dev. */
   lastOtp?: { phone: string; code: string };
 
-  private now = Date.now();
+  private offset = 0; // test-only skew added to the wall clock
+  private get now() { return Date.now() + this.offset; }
   private otps: MockOtp[] = [];
   private refreshes: MockRefresh[] = [];
   private users = new Map<string, User>();
   private seq = 0;
 
-  advanceTime(ms: number) { this.now += ms; }
+  advanceTime(ms: number) { this.offset += ms; }
 
   private fakeToken(kind: string) { return `mock-${kind}-${++this.seq}-${Math.random().toString(36).slice(2)}`; }
 

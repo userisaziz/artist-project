@@ -41,6 +41,19 @@ it('resend within 60s is rate limited (429 rate_limited)', async () => {
   expect((res.json as { code: string }).code).toBe('rate_limited');
 });
 
+it('follows the wall clock: cooldown elapses with real time, no advanceTime', async () => {
+  const t0 = 1_700_000_000_000;
+  const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(t0);
+  try {
+    const t = new MockTransport();
+    expect((await requestOtp(t)).status).toBe(204);
+    nowSpy.mockReturnValue(t0 + 60_001);
+    expect((await requestOtp(t)).status).toBe(204);
+  } finally {
+    nowSpy.mockRestore();
+  }
+});
+
 it('rejects non E.164 phone with 422', async () => {
   const t = new MockTransport();
   const res = await requestOtp(t, '15550001111');
