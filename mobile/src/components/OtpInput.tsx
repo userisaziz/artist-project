@@ -11,6 +11,7 @@ interface Props {
 }
 
 export function OtpInput({ length = 6, onComplete, onChange, error = false, busy = false }: Props) {
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const theme = useTheme();
   const [digits, setDigits] = useState<string[]>(Array(length).fill(''));
   const inputs = useRef<(TextInput | null)[]>([]);
@@ -87,7 +88,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
 
   return (
     <Animated.View
-      style={{ transform: [{ translateX: shake }], gap: theme.spacing.sm, flexDirection: 'row', justifyContent: 'center' }}
+      style={{ transform: [{ translateX: shake }], gap: theme.spacing.sm, flexDirection: 'row' }}
     >
       {digits.map((d, i) => (
         <TextInput
@@ -97,6 +98,8 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
           value={d}
           onChangeText={(v) => setDigit(i, v)}
           onKeyPress={(e) => { if (e.nativeEvent.key === 'Backspace') onBackspace(i); }}
+          onFocus={() => setFocusedIndex(i)}
+          onBlur={() => setFocusedIndex((f) => (f === i ? null : f))}
           keyboardType="number-pad"
           textContentType="oneTimeCode"
           autoComplete="sms-otp"
@@ -104,11 +107,11 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
           editable={!busy}
           maxLength={length - i} // first box accepts a paste; later boxes accept the remainder
           style={{
-            width: 48,
-            height: 58,
+            flex: 1, minWidth: 0, // boxes share the row and span the same width as the button below
+            height: 57, // same height as the phone field
             borderRadius: theme.radii.md,
-            borderWidth: error ? 2 : 1.5,
-            borderColor: error ? theme.colors.error : theme.colors.border,
+            borderWidth: 1.5,
+            borderColor: error ? theme.colors.error : focusedIndex === i ? theme.colors.borderFocus : theme.colors.border,
             backgroundColor: theme.colors.inputBackground,
             textAlign: 'center',
             fontSize: 22,

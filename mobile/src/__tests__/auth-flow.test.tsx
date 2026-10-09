@@ -77,6 +77,10 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
   expect(await screen.findByText('That code is incorrect.')).toBeTruthy();
   expect(screen.getByText('Enter the code')).toBeTruthy();
   expect(screen.queryByText(/^Welcome, /)).toBeNull();
+
+  // typing the next attempt clears the stale error
+  await fireEvent.changeText(screen.getByTestId('otp-box-0'), '1');
+  await waitFor(() => expect(screen.queryByText('That code is incorrect.')).toBeNull());
 });
 
 it('non-auth verify failure shows the generic message and keeps the digits (no shake/clear)', async () => {
@@ -97,4 +101,15 @@ it('non-auth verify failure shows the generic message and keeps the digits (no s
   expect(screen.queryByText('That code is incorrect.')).toBeNull();
   expect(screen.getByTestId('otp-box-5').props.value).toBe(code[5]); // digits kept for a retry via Verify
   spy.mockRestore();
+});
+
+it('OTP shows the resend countdown, and Edit returns to the number screen', async () => {
+  await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('Get started'));
+  await fireEvent.changeText(await screen.findByTestId('phone-national'), '9845077777');
+  await fireEvent.press(screen.getByText('Send code'));
+  expect(await screen.findByText('Enter the code')).toBeTruthy();
+  expect(screen.getByText(/^Resend code in 0:\d\d$/)).toBeTruthy();
+  await fireEvent.press(screen.getByText('Edit'));
+  expect(await screen.findByText('Welcome back')).toBeTruthy();
 });
