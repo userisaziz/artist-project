@@ -67,3 +67,43 @@ it('onChange receives the partial joined code', async () => {
   await fireEvent.changeText(screen.getByTestId('otp-box-1'), '2');
   expect(onChange).toHaveBeenLastCalledWith('12');
 });
+
+it('re-fires onComplete with the same code after backspace and retype', async () => {
+  const onComplete = jest.fn();
+  await wrap(onComplete);
+  const boxes = screen.getAllByTestId(/otp-box-\d/);
+  for (const [i, d] of '123456'.split('').entries()) {
+    await fireEvent.changeText(boxes[i], d);
+  }
+  expect(onComplete).toHaveBeenCalledTimes(1);
+  await fireEvent(screen.getByTestId('otp-box-5'), 'keyPress', { nativeEvent: { key: 'Backspace' } });
+  await fireEvent.changeText(screen.getByTestId('otp-box-5'), '6');
+  expect(onComplete).toHaveBeenCalledTimes(2);
+  expect(onComplete).toHaveBeenLastCalledWith('123456');
+});
+
+it('overtyping a filled box replaces that digit without wiping the others', async () => {
+  await wrap(jest.fn());
+  const boxes = screen.getAllByTestId(/otp-box-\d/);
+  for (const [i, d] of '123'.split('').entries()) {
+    await fireEvent.changeText(boxes[i], d);
+  }
+  await fireEvent.changeText(screen.getByTestId('otp-box-1'), '25');
+  expect(screen.getAllByTestId(/otp-box-\d/).map((b) => b.props.value)).toEqual(['1', '5', '3', '', '', '']);
+});
+
+it('error reset emits an empty code via onChange', async () => {
+  const onChange = jest.fn();
+  const { rerender } = await render(
+    <ThemeProvider>
+      <OtpInput onComplete={jest.fn()} onChange={onChange} />
+    </ThemeProvider>,
+  );
+  await fireEvent.changeText(screen.getByTestId('otp-box-0'), '1');
+  await rerender(
+    <ThemeProvider>
+      <OtpInput onComplete={jest.fn()} onChange={onChange} error />
+    </ThemeProvider>,
+  );
+  expect(onChange).toHaveBeenLastCalledWith('');
+});

@@ -35,6 +35,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
   }, [error, length, shake]);
 
   const update = (next: string[]) => {
+    if (next.some((d) => d === '')) completedFor.current = null; // incomplete -> re-arm onComplete
     setDigits(next);
     onChange?.(next.join(''));
   };
@@ -49,6 +50,15 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
 
   const setDigit = (i: number, raw: string) => {
     const clean = raw.replace(/\D/g, '');
+    const old = digits[i];
+    if (old && clean.length === 2 && clean.includes(old)) {  // overtype into a filled box: keep the new char only
+      const next = [...digits];
+      next[i] = clean.startsWith(old) ? clean[1] : clean[0];
+      update(next);
+      if (i < length - 1) inputs.current[i + 1]?.focus();
+      tryComplete(next);
+      return;
+    }
     if (clean.length > 1) {  // autofill/paste lands as one string in the focused box — distribute it
       const next = Array(length).fill('');
       clean.slice(0, length).split('').forEach((c, idx) => { next[idx] = c; });
