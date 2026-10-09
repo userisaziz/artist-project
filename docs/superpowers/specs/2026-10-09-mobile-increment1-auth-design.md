@@ -39,39 +39,41 @@ Components may **only** reference Layer-2 semantic roles (via `useTheme()`), nev
 
 ### Layer 1 — primitive tokens (`src/theme/tokens/`)
 
-`palette.ts` — raw feminine palette:
+`palette.ts` — raw palette. **v2 (2026-10-10): nude / cocoa**, from the product owner's reference (warm peach-nude backgrounds, cocoa-brown primary, tan chips, serif headings). Replaces the v1 blush/plum palette; applied by plan Task 9.
 
 ```
-blush100 #FDF6F4  blush300 #F7E1DA  blush500 #EFCBC1        (warm backgrounds)
-rose300  #E8A2B4  rose500  #D27B98  rose700 #B85C7B         (brand pinks)
-plum500  #6E3657  plum700  #4A2038                          (primary action / headings)
-terra500 #C97B5D                                           (accent, links, highlights)
-gold400  #D9A56C                                           (ratings, badges — future)
+nude100  #FBF3EE  nude300  #F3DFD1  nude500  #E6C9B4        (warm backgrounds, soft fills, borders)
+tan400   #D2AC8E  tan600   #B8876A                          (chips, category circles, accent)
+cocoa500 #7A5444  cocoa700 #5A3B2F                          (primary action / selected state)
+gold400  #D9A56C                                           (ratings, badges)
 sage500  #A8BFA5                                           (success)
-cream    #FFFBF8                                           (card surface)
-ink900   #3A2530  ink600 #7A6672  ink400 #A99AA4           (text warm-gray family)
+cream    #FFFBF8  white #FFFFFF                             (card surface)
+ink900   #3B2A23  ink600 #7D6A60  ink400 #AE9D93           (text, warm-brown family)
 error500 #C24A4A  error100 #F9E3E3
+scrim    #3B2A2388                                         (ink900 at ~53% alpha, modal backdrops)
 ```
+
+Contrast rules: white text is allowed only on `cocoa500`/`cocoa700` (≥ 6:1). On `tan400` and `nude300` fills, text and icons use `ink900` or `cocoa700`, never white (white on tan400 is ~2:1).
 
 `typography.ts` — roles over raw sizes:
 `display` 32/600 serif · `title` 22/600 serif · `subtitle` 16/600 sans · `body` 15/400 sans · `caption` 12/500 sans · `button` 16/600 sans. Font families: `"Cormorant Garamond"` (display/title), `"Plus Jakarta Sans"` (everything else), bundled in `assets/fonts/` via `expo-font` — no runtime fetch.
 
 `spacing.ts` — 4px base: `xs 4, sm 8, md 16, lg 24, xl 32, xxl 48`.
 `radii.ts` — `sm 8, md 14, pill 999, card 20`.
-`shadows.ts` — soft rose-tinted (`color: ink with 8–12% alpha`, blur 16–24, y 6–10); iOS `shadow*` + Android `elevation` mapped per level.
+`shadows.ts` — soft warm-tinted (`color: ink with 8–12% alpha`, blur 16–24, y 6–10); iOS `shadow*` + Android `elevation` mapped per level.
 
 ### Layer 2 — semantic theme (`src/theme/themes/light.ts`)
 
 Typed object `Theme` assigning roles:
 
 ```
-colors: background (blush100), surface (cream),
+colors: background (nude100), surface (cream),
         textPrimary (ink900), textSecondary (ink600), textMuted (ink400),
         textOnBrand (#FFFFFF),
-        brand (plum500), brandPressed (plum700), brandSoft (blush300),
-        accent (terra500), separator (blush500),
-        inputBackground (cream), border (blush500), borderFocus (rose500),
-        error, errorBackground, success
+        brand (cocoa500), brandPressed (cocoa700), brandSoft (nude300),
+        accent (tan600), separator (nude500),
+        inputBackground (cream), border (nude500), borderFocus (tan600),
+        error, errorBackground, success, overlay (scrim)
 typography, spacing, radii, shadows  (pass-through of layer 1)
 ```
 
@@ -188,7 +190,7 @@ Divergence rule: if the real backend returns anything outside this table, we fix
 ## 5. Testing
 
 - **Runner:** `jest-expo` (`npm test`). No E2E this increment (Detox/MAESTRO-style tooling out of scope, YAGNI).
-- `theme.test.ts` — light theme satisfies `Theme` interface; every role non-undefined; spot mapping assertions (brand = plum500).
+- `theme.test.ts` — light theme satisfies `Theme` interface; every role non-undefined; spot mapping assertions (brand = cocoa500).
 - `otp-input.test.ts` — auto-advance, backspace, paste-6, onComplete fires once.
 - `mock-transport.test.ts` — cooldown 429, expiry, attempt limit, rotation-reuse 401, JIT user creation (the mock is trustworthy *because* it's tested against the same rules as the backend plan's tests).
 - `auth-provider.test.tsx` — restore→(refresh ok/fail), request→verify happy path, signOut clears storage (mocked SecureStore).
@@ -208,3 +210,24 @@ Divergence rule: if the real backend returns anything outside this table, we fix
 2. Backend Tasks 3–4 (auth domain) land independently.
 3. Integration: set `EXPO_PUBLIC_USE_MOCKS=false`, run against `uvicorn` on :8000, walk the full flow incl. cooldown/rotation against real 429/401s; OTP arrives as a real SMS (backend `SMS_PROVIDER=fast2sms`) or read it from the server console (`SMS_PROVIDER=console`).
 4. Any contract drift discovered is fixed on whichever side deviated from §3's table.
+
+
+---
+
+## 8. Visual direction for Home, Categories and Booking (Increment 2+, reference 2026-10-10)
+
+Not built in this increment. This records the look the product owner chose, so Increment 2 screens are planned against it. Every value maps to a token above; screens add semantic roles only when they first need them.
+
+| Pattern | Look | Theme mapping |
+|---|---|---|
+| **Home hero** | Full-bleed portrait photo fading into the background at the bottom; large right-aligned serif headline over the image ("Discover Your Beauty"); search and grid-menu icons top-right | headline `display` in `textPrimary`; fade `background` gradient; icons `cocoa700` |
+| **Categories row** | Horizontal scroll of ~64 px circles with a centred glyph and a `caption` label below (e.g. Mehendi, Bridal, Arabic, Party, Kids); selected circle filled dark | idle fill `tan400` + `cocoa700` glyph; selected fill `cocoa700` + white glyph; label `textSecondary` |
+| **Section header** | Sans `subtitle` label ("Services", "Artists near you") left-aligned above each row | `subtitle`, `textPrimary` |
+| **Service list row** | Name left, price right, hairline separator, no card chrome | `body` / `textSecondary`, separator `separator` |
+| **Booking header** | Rounded top bar in a soft fill with back chevron and centred title | `brandSoft` bar, `title` |
+| **Date strip** | Month label with arrows; row of weekday + date pairs; selected date underlined | `caption` weekday, `subtitle` date, underline `cocoa500` |
+| **Artist card** | Bordered card, circular avatar, name, rating with a gold star | `surface`, `border`, radius `card`; star `gold400` |
+| **Time-slot chips** | Grid of small pill chips; unavailable chips greyed | available `tan400` + `ink900` text; selected `cocoa500` + white; disabled `nude300` + `textMuted` |
+| **Primary CTA** | Full-width cocoa pill ("Book Now") pinned at the bottom | existing `AppButton` primary |
+
+Imagery: warm, natural-light photos of hands and mehendi work; botanical accents allowed. No stock-beauty clichés unrelated to mehendi.

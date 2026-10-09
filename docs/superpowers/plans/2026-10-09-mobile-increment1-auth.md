@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A running Expo React Native app in `mobile/` with a feminine, token-based design system and a complete phone+OTP auth flow (login → OTP → placeholder home), working fully against an in-memory mock transport that mirrors the backend's auth contract, switchable to the real FastAPI via one env flag.
+**Goal:** A running Expo React Native app in `mobile/` with a token-based design system (v2 nude/cocoa theme, Task 9) and a complete phone+OTP auth flow (login → OTP → placeholder home), working fully against an in-memory mock transport that mirrors the backend's auth contract, switchable to the real FastAPI via one env flag.
 
 **Architecture:** Three-layer design system (primitive tokens → semantic `Theme` object → components via `useTheme()`). expo-router with a root auth gate driven by a four-state `AuthProvider`. All network I/O behind a single `Transport` interface; `client.ts` owns error typing and 401→refresh→replay. `MockTransport` implements the same rules as `auth_service.py` (60 s cooldown, 5-min expiry, 5 attempts, JIT user, refresh rotation).
 
@@ -1765,3 +1765,93 @@ git commit -m "docs(mobile): add README with run/config/theme guide; green full 
 - [ ] **Step 4: Silent-failure sweep (code review gate)**
 
 Dispatch the `silent-failure-hunter` review over the diff `git log --oneline` range of Tasks 1–8. Checklist to verify by hand too: every `catch` in `src/` maps to UI state or re-throws — allowed catches are exactly `client.ts` (never catches — it throws typed `ApiError`), `real-transport.ts` (network → `ApiError`), `auth-provider.ts` doRefresh catch (→ signed-out), screens' submit catches (→ inline errors). Anything else is a plan violation; fix it.
+
+---
+
+### Task 9: Re-theme to the nude / cocoa palette (added 2026-10-10)
+
+The product owner picked a new visual reference: peach-nude backgrounds, a cocoa-brown primary, tan chips and serif headings. The fonts already changed in `1744ab9` (Cormorant Garamond + Plus Jakarta Sans). This task swaps the colours. Because of the three-layer rule, only Layer 1 and Layer 2 files change, and no component is touched.
+
+**Spec:** §1 Layer 1 palette v2 and Layer 2 mapping. §8 (Home / Categories / Booking direction) is reference only and is **not** built here.
+
+**Files:**
+- Modify: `mobile/src/theme/tokens/palette.ts`
+- Modify: `mobile/src/theme/themes/light.ts`
+- Modify: `mobile/src/theme/tokens/shadows.ts` (shadow colour follows the new ink900)
+- Modify: `mobile/src/__tests__/theme.test.ts`
+- Modify: `mobile/README.md` (theme-guide example only, if it names plum/terracotta)
+
+- [ ] **Step 1: Update the theme test first (it should fail)**
+
+Replace the identity test in `src/__tests__/theme.test.ts`:
+
+```ts
+it('maps brand to cocoa and background to nude (v2 identity)', () => {
+  expect(lightTheme.colors.brand).toBe(palette.cocoa500);
+  expect(lightTheme.colors.brandPressed).toBe(palette.cocoa700);
+  expect(lightTheme.colors.background).toBe(palette.nude100);
+  expect(lightTheme.colors.accent).toBe(palette.tan600);
+});
+```
+
+Run: `npx jest src/__tests__/theme.test.ts`. Expected: FAIL, because `palette.cocoa500` is undefined.
+
+- [ ] **Step 2: Replace the palette**
+
+`src/theme/tokens/palette.ts`:
+
+```ts
+// v2 nude / cocoa palette (reference 2026-10-10). White text only on cocoa*; on tan/nude fills use ink900 or cocoa700.
+export const palette = {
+  nude100: '#FBF3EE', nude300: '#F3DFD1', nude500: '#E6C9B4',
+  tan400: '#D2AC8E', tan600: '#B8876A',
+  cocoa500: '#7A5444', cocoa700: '#5A3B2F',
+  gold400: '#D9A56C', sage500: '#A8BFA5',
+  cream: '#FFFBF8', white: '#FFFFFF',
+  ink900: '#3B2A23', ink600: '#7D6A60', ink400: '#AE9D93',
+  error500: '#C24A4A', error100: '#F9E3E3',
+  scrim: '#3B2A2388', // ink900 at ~53% alpha, for modal backdrops
+} as const;
+```
+
+- [ ] **Step 3: Remap the semantic roles**
+
+In `src/theme/themes/light.ts`, change only these lines:
+
+```ts
+    background: palette.nude100,
+    brand: palette.cocoa500,
+    brandPressed: palette.cocoa700,
+    brandSoft: palette.nude300,
+    accent: palette.tan600,
+    separator: palette.nude500,
+    border: palette.nude500,
+    borderFocus: palette.tan600,
+```
+
+All other roles keep the same keys and resolve to the new values automatically: surface, the three text colours, textOnBrand, inputBackground, error, errorBackground, success and overlay.
+
+- [ ] **Step 4: Shadow colour**
+
+In `src/theme/tokens/shadows.ts`, replace `'#3A2530'` with `'#3B2A23'` (all three levels). Change the comment to: `// Warm-tinted soft shadows: low-alpha brown ink (gray shadows read cold).`
+
+- [ ] **Step 5: Verify**
+
+```bash
+cd mobile
+grep -rn "blush\|plum\|rose\|terra" src app   # expect: no matches
+npx jest && npx tsc --noEmit && npx expo lint
+```
+
+Expected: all suites pass, tsc and lint clean.
+
+Then do a manual check in Expo Go. On Login, the Continue button is cocoa with white text, the background is nude, and the focused input ring is tan. On OTP, the boxes have nude borders, and the wrong-code state is still red.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add mobile/src/theme mobile/src/__tests__/theme.test.ts mobile/README.md
+git commit -m "feat(mobile): re-theme to nude/cocoa palette (v2 reference)"
+```
+
+**Not in this task (Increment 2):** the home hero, the categories row, booking screens, and any new semantic roles they need. Examples are `chip`, `chipSelected` and `rating`. Add each role in the increment whose screen first uses it, following spec §8.
