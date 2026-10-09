@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import type { ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, CormorantGaramond_600SemiBold, CormorantGaramond_600SemiBold_Italic } from '@expo-google-fonts/cormorant-garamond';
-import { PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans';
+import { PlusJakartaSans_700Bold, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider, useTheme } from '../src/theme/theme-provider';
 import { AuthProvider, useAuth } from '../src/auth/auth-provider';
 import { AppText } from '../src/components/AppText';
@@ -13,7 +13,7 @@ import { AppButton } from '../src/components/AppButton';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ CormorantGaramond_600SemiBold, CormorantGaramond_600SemiBold_Italic, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold });
+  const [fontsLoaded, fontError] = useFonts({ CormorantGaramond_600SemiBold, CormorantGaramond_600SemiBold_Italic, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold });
   if (!fontsLoaded && !fontError) return null; // a font failure falls back to system fonts rather than a stuck splash
   return (
     <ThemeProvider>

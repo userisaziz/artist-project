@@ -11,12 +11,13 @@ export interface ThemeColors {
   inputBackground: string; border: string; borderFocus: string;
   error: string; errorBackground: string; success: string;
   overlay: string;
+  brandOnImage: string; brandInk: string; imageFallback: string; // deeper roses that stay legible over photos
 }
 
 export interface Theme {
   name: 'light';
   colors: ThemeColors;
-  typography: { hero: FontVariant; display: FontVariant; accent: FontVariant; title: FontVariant; subtitle: FontVariant; body: FontVariant; caption: FontVariant; button: FontVariant };
+  typography: { hero: FontVariant; eyebrow: FontVariant; display: FontVariant; accent: FontVariant; title: FontVariant; subtitle: FontVariant; body: FontVariant; caption: FontVariant; button: FontVariant };
   spacing: { xs: number; sm: number; md: number; lg: number; xl: number; xxl: number };
   radii: { sm: number; md: number; card: number; pill: number };
   shadows: { sm: ShadowStyle; md: ShadowStyle; lg: ShadowStyle };

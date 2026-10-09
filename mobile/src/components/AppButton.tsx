@@ -26,7 +26,7 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: isPrimary ? theme.colors.brand : isSecondary ? theme.colors.surface : 'transparent',
-          borderColor: isPrimary ? 'transparent' : isSecondary ? theme.colors.border : theme.colors.brand,
+          borderColor: isPrimary ? 'transparent' : isSecondary ? theme.colors.separator : theme.colors.brand,
           borderWidth: isPrimary ? 0 : 1,
           opacity: inactive ? 0.4 : pressed && isPrimary ? 0.85 : 1,
           ...(pressed && !inactive && isPrimary ? { backgroundColor: theme.colors.brandPressed } : {}),
