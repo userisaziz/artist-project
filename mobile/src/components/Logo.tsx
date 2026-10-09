@@ -9,7 +9,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       <AppText variant="display" style={{ color: theme.colors.brand }}>Art Circle</AppText>
       {!compact && (
         <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
-          mehnadi · makeup · artists near you
+          mehendi · makeup · artists near you
         </AppText>
       )}
     </View>

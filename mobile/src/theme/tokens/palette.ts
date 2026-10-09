@@ -6,4 +6,5 @@ export const palette = {
   cream: '#FFFBF8', white: '#FFFFFF',
   ink900: '#3A2530', ink600: '#7A6672', ink400: '#A99AA4',
   error500: '#C24A4A', error100: '#F9E3E3',
+  scrim: '#3A253088', // ink900 at ~53% alpha, for modal backdrops
 } as const;

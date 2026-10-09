@@ -13,9 +13,8 @@ import { AppButton } from '../src/components/AppButton';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ PlayfairDisplay_700Bold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
-  useEffect(() => { if (fontsLoaded) SplashScreen.hideAsync(); }, [fontsLoaded]);
-  if (!fontsLoaded) return null;
+  const [fontsLoaded, fontError] = useFonts({ PlayfairDisplay_700Bold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  if (!fontsLoaded && !fontError) return null; // a font failure falls back to system fonts rather than a stuck splash
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -28,6 +27,8 @@ export default function RootLayout() {
 function Gate() {
   const { status } = useAuth();
   const theme = useTheme();
+  // Gate only mounts once fonts are settled, so this hides the native splash when both fonts and restore are done.
+  useEffect(() => { if (status !== 'restoring') SplashScreen.hideAsync(); }, [status]);
   if (status === 'restoring') {
     return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
   }

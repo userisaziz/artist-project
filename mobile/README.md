@@ -25,6 +25,8 @@ In mock mode the OTP screen shows "Mock mode: your code is ...", and `+155500099
 
 Backend integration walkthrough: start `uvicorn app.main:app --reload` in `backend/`, read OTPs from the server console (dev SMS provider), set `EXPO_PUBLIC_USE_MOCKS=false`, restart Metro with `-c` (env is baked at bundle time).
 
+Testing against the backend on a physical phone: `localhost` is the phone itself, so set `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8000` and bind the server to all interfaces with `uvicorn app.main:app --reload --host 0.0.0.0`.
+
 ## Test and lint
 ```bash
 npm test

@@ -25,6 +25,7 @@ export const lightTheme: Theme = {
     error: palette.error500,
     errorBackground: palette.error100,
     success: palette.sage500,
+    overlay: palette.scrim,
   },
   typography: typographyTokens,
   spacing,

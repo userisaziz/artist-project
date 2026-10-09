@@ -3,8 +3,8 @@ import { palette } from '../theme/tokens/palette';
 
 it('assigns every semantic color role', () => {
   const roles = Object.keys(lightTheme.colors);
-  expect(roles.length).toBeGreaterThanOrEqual(17);
-  for (const role of roles) expect(lightTheme.colors[role as keyof typeof lightTheme.colors]).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  expect(roles.length).toBeGreaterThanOrEqual(18);
+  for (const role of roles) expect(lightTheme.colors[role as keyof typeof lightTheme.colors]).toMatch(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/); // 8-digit = with alpha
 });
 
 it('maps brand to plum and background to blush (feminine identity)', () => {

@@ -10,6 +10,7 @@ export interface ThemeColors {
   accent: string; separator: string;
   inputBackground: string; border: string; borderFocus: string;
   error: string; errorBackground: string; success: string;
+  overlay: string;
 }
 
 export interface Theme {
