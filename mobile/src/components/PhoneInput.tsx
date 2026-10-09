@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTheme } from '../theme/theme-provider';
 import { AppText } from './AppText';
 
-const COUNTRIES = [
+export const COUNTRIES = [
   { code: '+91', name: 'India' }, { code: '+1', name: 'USA / Canada' }, { code: '+44', name: 'UK' },
   { code: '+971', name: 'UAE' }, { code: '+966', name: 'Saudi Arabia' }, { code: '+62', name: 'Indonesia' },
   { code: '+60', name: 'Malaysia' }, { code: '+880', name: 'Bangladesh' }, { code: '+92', name: 'Pakistan' },
