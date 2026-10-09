@@ -1,5 +1,4 @@
 import { ActivityIndicator, Pressable } from 'react-native';
-import type { ReactNode } from 'react';
 import { useTheme } from '../theme/theme-provider';
 import { AppText } from './AppText';
 
