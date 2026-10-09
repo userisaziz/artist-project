@@ -25,16 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pendingRefresh = useRef<Promise<TokenPair | null> | null>(null);
 
   const applyPair = useCallback(async (pair: TokenPair) => {
+    await sessionStore.save(pair); // persist first: a failed save rejects without leaving an unpersisted session
     accessTokenRef.current = pair.access_token;
     setUser(pair.user);
     setStatus('authenticated');
-    await sessionStore.save(pair);
   }, []);
 
   const doRefresh = useCallback(async (): Promise<TokenPair | null> => {
-    const stored = await sessionStore.getRefreshToken();
-    if (!stored) return null;
     try {
+      const stored = await sessionStore.getRefreshToken();
+      if (!stored) return null;
       const pair = await authApi.refreshSession(stored);
       await applyPair(pair);
       return pair;
@@ -43,7 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessTokenRef.current = null;
       setUser(null);
       setStatus('unauthenticated');
-      await sessionStore.clear();
+      // Deliberate swallow: storage may be what just failed; state is already unauthenticated, so a failed clear changes nothing.
+      await sessionStore.clear().catch(() => {});
       return null;
     }
   }, [applyPair]);
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = await sessionStore.getRefreshToken();
       if (!stored) { setStatus('unauthenticated'); return; }
       await refreshSession(); // success → authenticated (via applyPair); failure → unauthenticated (via catch)
-    })();
+    })().catch(() => setStatus('unauthenticated')); // SecureStore read failed on cold start → login, never stuck on splash
     return () => configureSessionBridge(null);
   }, [refreshSession]);
 
@@ -87,12 +88,12 @@ export function useAuth(): AuthContextValue {
 }
 
 /**
- * OTP screen helper: surface the generated code in mock mode (mirrors backend console-SMS). No-op against real transport.
+ * OTP screen helper: surface the generated code in mock mode (mirrors backend console-SMS). No-op against real transport or outside __DEV__.
  * Replays the latest code first: the first OTP is generated on the Login screen, before this screen mounts.
  */
 export function useMockOtpListener(cb: (phone: string, code: string) => void) {
   useEffect(() => {
-    if (transport instanceof MockTransport) {
+    if (__DEV__ && transport instanceof MockTransport) {
       const mock = transport; // narrowing doesn't survive into the cleanup closure
       if (mock.lastOtp) cb(mock.lastOtp.phone, mock.lastOtp.code);
       mock.onOtpGenerated = cb;

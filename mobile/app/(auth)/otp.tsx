@@ -9,6 +9,7 @@ import { COUNTRIES } from '../../src/components/PhoneInput';
 import { useTheme } from '../../src/theme/theme-provider';
 import { useAuth, useMockOtpListener } from '../../src/auth/auth-provider';
 import { ApiError } from '../../src/api/types';
+import { errorMessage } from '../../src/api/error-message';
 
 const RESEND_SECONDS = 60;
 
@@ -32,6 +33,7 @@ export default function OtpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [mockCode, setMockCode] = useState<string | null>(null);
 
@@ -51,23 +53,28 @@ export default function OtpScreen() {
     try {
       await verifyOtp(phone, value); // success → gate flips to (app); nothing to navigate here
     } catch (e) {
-      const api = e as ApiError;
-      setError(api.code === 'network_error' ? api.message : 'That code is incorrect.');
-      setShaking(true); // clears + shakes OtpInput; reset below so a repeat failure re-triggers it
-      setTimeout(() => setShaking(false), 350);
+      if (e instanceof ApiError && e.code === 'auth_error') {
+        setError('That code is incorrect.');
+        setShaking(true); // clears + shakes OtpInput; reset below so a repeat failure re-triggers it
+        setTimeout(() => setShaking(false), 350);
+      } else {
+        setError(errorMessage(e)); // network/server trouble: keep the digits so Verify can retry as-is
+      }
     } finally {
       setBusy(false);
     }
   };
 
   const resend = async () => {
+    setResending(true);
     try {
       await requestOtp(phone);
       setSecondsLeft(RESEND_SECONDS);
       setError(null);
     } catch (e) {
-      const api = e as ApiError;
-      setError(api.code === 'rate_limited' ? 'Please wait before requesting another code' : api.message);
+      setError(errorMessage(e, { rate_limited: 'Please wait before requesting another code' }));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -98,6 +105,7 @@ export default function OtpScreen() {
           label={secondsLeft > 0 ? `Resend code in 0:${String(secondsLeft).padStart(2, '0')}` : 'Resend code'}
           onPress={resend}
           variant="ghost"
+          loading={resending}
           disabled={secondsLeft > 0}
         />
       </View>

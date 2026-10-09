@@ -8,7 +8,7 @@ import { AppButton } from '../../src/components/AppButton';
 import { PhoneInput } from '../../src/components/PhoneInput';
 import { useTheme } from '../../src/theme/theme-provider';
 import { useAuth } from '../../src/auth/auth-provider';
-import { ApiError } from '../../src/api/types';
+import { errorMessage } from '../../src/api/error-message';
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/; // same rule the backend enforces
 
@@ -27,9 +27,7 @@ export default function LoginScreen() {
       await requestOtp(phone);
       router.push({ pathname: '/otp', params: { phone } });
     } catch (e) {
-      const api = e as ApiError;
-      // network_error and everything else carry a user-facing message already.
-      setError(api.code === 'rate_limited' ? 'Please wait before requesting another code' : api.message);
+      setError(errorMessage(e, { rate_limited: 'Please wait before requesting another code' }));
     } finally {
       setLoading(false);
     }

@@ -96,3 +96,9 @@ it('useMockOtpListener replays the latest generated code on mount', async () => 
   expect(cb).toHaveBeenCalledWith('+15550006666', mock.lastOtp?.code);
   expect(cb.mock.calls[0][1]).toMatch(/^\d+$/);
 });
+
+it('settles unauthenticated (not stuck restoring) when SecureStore fails on cold start', async () => {
+  jest.spyOn(SecureStore, 'getItemAsync').mockRejectedValueOnce(new Error('keystore unavailable'));
+  await render(<AuthProvider><Probe phone="+15550007777" /></AuthProvider>);
+  await waitFor(statusIs('unauthenticated'));
+});
