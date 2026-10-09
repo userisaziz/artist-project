@@ -14,11 +14,19 @@ interface Props {
   /** Full E.164 value, e.g. '+919876543210' */
   value: string;
   onChange: (e164: string) => void;
+  /** Red border when the last submit failed */
+  error?: boolean;
 }
 
-export function PhoneInput({ value, onChange }: Props) {
+/** Indian numbers read as "98450 67890"; other countries stay as typed digits. */
+function formatNational(code: string, digits: string) {
+  return code === '+91' && digits.length > 5 ? `${digits.slice(0, 5)} ${digits.slice(5)}` : digits;
+}
+
+export function PhoneInput({ value, onChange, error = false }: Props) {
   const theme = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const country = COUNTRIES.find((c) => value.startsWith(c.code)) ?? COUNTRIES[0];
   const national = value.slice(country.code.length).replace(/\D/g, '');
 
@@ -26,30 +34,30 @@ export function PhoneInput({ value, onChange }: Props) {
 
   return (
     <View>
-      <View style={{ flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'center' }}>
-        <Pressable
-          testID="country-code-chip"
-          onPress={() => setPickerOpen(true)}
-          style={{
-            height: 52, paddingHorizontal: theme.spacing.md, borderRadius: theme.radii.md,
-            borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground,
-            alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: theme.spacing.xs,
-          }}
-        >
-          <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{country.code} ▾</AppText>
+      <View
+        style={{
+          height: 57, borderRadius: theme.radii.md, borderWidth: 1.5,
+          borderColor: error ? theme.colors.error : focused ? theme.colors.borderFocus : theme.colors.border,
+          backgroundColor: theme.colors.inputBackground,
+          flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md - theme.spacing.xs, paddingHorizontal: theme.spacing.md,
+        }}
+      >
+        <Pressable testID="country-code-chip" accessibilityLabel={`Country code ${country.code}`} onPress={() => setPickerOpen(true)} hitSlop={theme.spacing.sm}>
+          <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{country.code}</AppText>
         </Pressable>
+        <View style={{ width: 1, height: 22, backgroundColor: theme.colors.separator }} />
         <TextInput
           testID="phone-national"
-          value={national}
+          value={formatNational(country.code, national)}
           onChangeText={(t) => emit(country.code, t.replace(/\D/g, ''))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           keyboardType="phone-pad"
-          placeholder="98765 43210"
+          placeholder={country.code === '+91' ? '98450 67890' : 'Phone number'}
           placeholderTextColor={theme.colors.textMuted}
           style={{
-            flex: 1, height: 52, borderRadius: theme.radii.md, borderWidth: 1,
-            borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground,
-            color: theme.colors.textPrimary, paddingHorizontal: theme.spacing.md,
-            fontSize: theme.typography.body.fontSize, fontFamily: theme.typography.body.fontFamily,
+            flex: 1, height: '100%', color: theme.colors.textPrimary,
+            fontSize: theme.typography.subtitle.fontSize, fontFamily: theme.typography.body.fontFamily,
           }}
         />
       </View>

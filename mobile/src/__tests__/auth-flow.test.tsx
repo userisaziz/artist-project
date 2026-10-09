@@ -34,7 +34,7 @@ it('login → OTP (mock code) → home → sign out, against the real app routes
 
   // (b) valid number + Continue → OTP screen with the mock banner
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845012345');
-  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(screen.getByText('Send code'));
   expect(await screen.findByText('Enter the code')).toBeTruthy();
   expect(screen.getByText(/\+91 98450 12345/)).toBeTruthy();
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
@@ -52,10 +52,14 @@ it('login → OTP (mock code) → home → sign out, against the real app routes
   await waitFor(() => expect(store.size).toBe(0));
 });
 
-it('"I already have an account" also opens login', async () => {
+it('"I already have an account" also opens login, and its back button returns to welcome', async () => {
   await renderRouter('./app');
   await fireEvent.press(await screen.findByText('I already have an account'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(screen.getByText('Mobile number')).toBeTruthy();
+  expect(screen.getByText("We'll send a 6-digit code by SMS.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Back'));
+  expect(await screen.findByText('Get started')).toBeTruthy();
 });
 
 it('wrong code shows "That code is incorrect." and stays on the OTP screen', async () => {
@@ -64,7 +68,7 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845099999'); // own phone: mock cooldown is per-number
-  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(screen.getByText('Send code'));
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
   const code = String(banner.props.children).match(/\d{6}/)![0];
   const wrong = code === '000000' ? '111111' : '000000';
@@ -81,7 +85,7 @@ it('non-auth verify failure shows the generic message and keeps the digits (no s
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845088888');
-  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(screen.getByText('Send code'));
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
   const code = String(banner.props.children).match(/\d{6}/)![0];
 

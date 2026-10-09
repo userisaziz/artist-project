@@ -18,6 +18,7 @@ export const typographyTokens = {
   title:    { fontFamily: fontFamilies.serifSemiBold, fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },
   subtitle: { fontFamily: fontFamilies.sansSemiBold,  fontSize: 16, lineHeight: 24, letterSpacing: 0 },
   body:     { fontFamily: fontFamilies.sansRegular,   fontSize: 14, lineHeight: 21, letterSpacing: 0 },
-  caption:  { fontFamily: fontFamilies.sansMedium,    fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
+  label:    { fontFamily: fontFamilies.sansSemiBold,  fontSize: 12, lineHeight: 16, letterSpacing: 0 },
+  caption:  { fontFamily: fontFamilies.sansRegular,   fontSize: 12, lineHeight: 16, letterSpacing: 0 },
   button:   { fontFamily: fontFamilies.sansSemiBold,  fontSize: 15, lineHeight: 20, letterSpacing: 0 },
 } as const;
