@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,8 +6,9 @@ import { AppText, Accent } from '../../src/components/AppText';
 import { AppButton } from '../../src/components/AppButton';
 import { useTheme } from '../../src/theme/theme-provider';
 
-// Atelier hi-fi "Welcome" (v2). The full-bleed photo (assets/hero/welcome.jpg in the design project)
-// is pending a compressed export; imageFallback is the prototype's own background behind it.
+// Atelier hi-fi "Welcome" (v2). Full-bleed photo with a white fade under the buttons;
+// imageFallback shows while the image decodes. welcome.webp is the 10 MB original resized to 1200px tall.
+const HERO = require('../../assets/hero/welcome.webp');
 export default function WelcomeScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.imageFallback, overflow: 'hidden' }}>
+      <Image source={HERO} resizeMode="cover" style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors testID="welcome-hero" />
       <LinearGradient
         colors={[`${fade}00`, `${fade}D9`, fade]}
         locations={[0, 0.45, 0.7]}

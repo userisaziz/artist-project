@@ -28,6 +28,7 @@ it('login → OTP (mock code) → home → sign out, against the real app routes
 
   // (a) unauthenticated start lands on welcome; Get started opens login
   expect(await screen.findByText('Get started')).toBeTruthy();
+  expect(screen.getByTestId('welcome-hero')).toBeTruthy();
   await fireEvent.press(screen.getByText('Get started'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
 
