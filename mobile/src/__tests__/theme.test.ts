@@ -14,13 +14,13 @@ it('maps brand to Atelier rose and text to plum-brown ink (Coquette identity)', 
   expect(lightTheme.colors.brandSoft).toBe(palette.blush200);
 });
 
-it('has a serif italic accent face for emphasised words', () => {
-  expect(lightTheme.typography.accent.fontFamily).toBe('CormorantGaramond_600SemiBold_Italic');
+it('has an italic accent face for emphasised words', () => {
+  expect(lightTheme.typography.accent.fontFamily).toBe('PlusJakartaSans_600SemiBold_Italic');
   expect(lightTheme.typography.hero.fontSize).toBeGreaterThan(lightTheme.typography.display.fontSize);
 });
 
-it('exposes all six typography roles with serif display and sans body', () => {
-  expect(lightTheme.typography.display.fontFamily).toBe('CormorantGaramond_600SemiBold');
+it('exposes all six typography roles with Jakarta headings and body', () => {
+  expect(lightTheme.typography.display.fontFamily).toBe('PlusJakartaSans_600SemiBold');
   expect(lightTheme.typography.body.fontFamily).toBe('PlusJakartaSans_400Regular');
   expect(lightTheme.typography.caption.fontSize).toBeLessThan(lightTheme.typography.body.fontSize);
 });

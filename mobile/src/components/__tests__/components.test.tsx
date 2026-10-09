@@ -8,7 +8,7 @@ const wrap = (ui: ReactElement) => render(<ThemeProvider>{ui}</ThemeProvider>);
 
 it('AppText maps variants to theme typography', async () => {
   await wrap(<AppText variant="title">Welcome back</AppText>);
-  expect(screen.getByText('Welcome back')).toHaveProperty('props.style.0.fontFamily', 'CormorantGaramond_600SemiBold');
+  expect(screen.getByText('Welcome back')).toHaveProperty('props.style.0.fontFamily', 'PlusJakartaSans_600SemiBold');
 });
 
 it('AppButton shows spinner instead of label while loading and blocks presses', async () => {

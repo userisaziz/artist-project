@@ -58,7 +58,7 @@ scrim    #3B2A2388                                         (ink900 at ~53% alpha
 Contrast rules: white text is allowed only on `cocoa500`/`cocoa700` (≥ 6:1). On `tan400` and `nude300` fills, text and icons use `ink900` or `cocoa700`, never white (white on tan400 is ~2:1).
 
 `typography.ts` — roles over raw sizes:
-`display` 32/600 serif · `title` 22/600 serif · `subtitle` 16/600 sans · `body` 15/400 sans · `caption` 12/500 sans · `button` 16/600 sans. Font families: `"Cormorant Garamond"` (display/title), `"Plus Jakarta Sans"` (everything else), bundled in `assets/fonts/` via `expo-font` — no runtime fetch.
+`display` 32/600 serif · `title` 22/600 serif · `subtitle` 16/600 sans · `body` 15/400 sans · `caption` 12/500 sans · `button` 16/600 sans. Font family: `"Plus Jakarta Sans"` throughout (2026-10-10: headings use the Atelier prototype's Jakarta heading option — sizes ×0.78, tracking −0.025em, italic accents), bundled in `assets/fonts/` via `expo-font` — no runtime fetch.
 
 `spacing.ts` — 4px base: `xs 4, sm 8, md 16, lg 24, xl 32, xxl 48`.
 `radii.ts` — `sm 8, md 14, pill 999, card 20`.

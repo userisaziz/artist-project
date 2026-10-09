@@ -36,7 +36,7 @@ export default function LoginScreen() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/welcome'));
 
-  // Atelier hi-fi "Log in": blush wash fading to white, round back button, serif headline with italic accent.
+  // Atelier hi-fi "Log in": blush wash fading to white, round back button, headline with italic accent.
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
       <LinearGradient colors={[theme.colors.brandSoft, theme.colors.surface]} locations={[0, 0.38]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />

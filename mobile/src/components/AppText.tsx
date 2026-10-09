@@ -11,7 +11,7 @@ export function AppText({ variant = 'body', style, ...rest }: TextProps & { vari
   return <Text {...rest} style={[variantStyle, style]} />;
 }
 
-/** Italic rose emphasis inside a serif headline, e.g. "Discover your <Accent>artist</Accent>". Inherits size from the parent text. */
+/** Italic rose emphasis inside a headline, e.g. "Discover your <Accent>artist</Accent>". Inherits size from the parent text. */
 export function Accent({ children, color, light = false }: { children: string; color?: string; light?: boolean }) {
   const theme = useTheme();
   const family = (light ? theme.typography.accentLight : theme.typography.accent).fontFamily;
