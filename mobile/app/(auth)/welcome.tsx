@@ -7,7 +7,8 @@ import { AppButton } from '../../src/components/AppButton';
 import { useTheme } from '../../src/theme/theme-provider';
 
 // Atelier hi-fi "Welcome" (v2). Full-bleed photo with a white fade under the buttons;
-// imageFallback shows while the image decodes. welcome.webp is the 10 MB original resized to 1200px tall.
+// imageFallback shows while the image decodes. welcome.webp is the 10 MB original at 2560px tall (3x a ~850pt screen). Bundled images default to
+// their pixel size, so width/height 100% is required for the photo to fill the screen.
 const HERO = require('../../assets/hero/welcome.webp');
 export default function WelcomeScreen() {
   const theme = useTheme();
@@ -18,7 +19,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.imageFallback, overflow: 'hidden' }}>
-      <Image source={HERO} resizeMode="cover" style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors testID="welcome-hero" />
+      <Image source={HERO} resizeMode="cover" style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} accessibilityIgnoresInvertColors testID="welcome-hero" />
       <LinearGradient
         colors={[`${fade}00`, `${fade}D9`, fade]}
         locations={[0, 0.45, 0.7]}
@@ -28,14 +29,15 @@ export default function WelcomeScreen() {
       <View style={{ paddingTop: insets.top + theme.spacing.xl + theme.spacing.sm, paddingHorizontal: theme.spacing.lg }}>
         <AppText variant="eyebrow" style={{ color: theme.colors.brandInk }}>ATELIER</AppText>
         <AppText variant="hero" style={{ color: theme.colors.textPrimary, marginTop: theme.spacing.md - theme.spacing.xs }}>
-          {'Discover\nyour '}<Accent color={theme.colors.brandOnImage}>artist.</Accent>
+          {'Discover\nyour '}<Accent light color={theme.colors.brandOnImage}>artist.</Accent>
         </AppText>
         <AppText variant="body" style={{ color: theme.colors.textPrimary, marginTop: theme.spacing.md - theme.spacing.xs, maxWidth: 250 }}>
           Mehendi, makeup, photography and more, booked in minutes.
         </AppText>
       </View>
       <View style={{ flex: 1 }} />
-      <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: insets.bottom + theme.spacing.xl, gap: theme.spacing.sm + 2 }}>
+      {/* bottom: inset + 8 = ~40pt from the screen edge on notched iPhones, as designed */}
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: insets.bottom + theme.spacing.sm, gap: theme.spacing.sm + 2 }}>
         <AppButton label="Get started" onPress={toLogin} />
         <AppButton label="I already have an account" variant="secondary" onPress={toLogin} />
       </View>
