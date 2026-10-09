@@ -14,13 +14,17 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
   const theme = useTheme();
   const [digits, setDigits] = useState<string[]>(Array(length).fill(''));
   const inputs = useRef<(TextInput | null)[]>([]);
-  const shake = useRef(new Animated.Value(0)).current;
+  const [shake] = useState(() => new Animated.Value(0));
   const completedFor = useRef<string | null>(null); // onComplete fires once per code, not per keystroke
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (!error) return;
+    // Intentional: the parent's error flag is the trigger that clears the boxes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDigits(Array(length).fill(''));
     onChangeRef.current?.('');
     completedFor.current = null;
