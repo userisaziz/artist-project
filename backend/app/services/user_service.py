@@ -1,4 +1,4 @@
-"""Account rules for the signed-in user: sign-up details, then the one-time role choice."""
+"""Account rules for the signed-in user: sign-up details, then picking (or switching) the app role."""
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,10 +26,9 @@ class UserService:
         return user
 
     async def choose_role(self, user: User, choice: RoleChoice) -> User:
-        # One-time: switching role later is a separate, deliberate feature.
-        if user.is_onboarded:
-            raise ConflictError("Role already chosen")
-        user.role = UserRole(choice.role)
-        user.is_onboarded = True
+        """Choose role and later "Switch to artist/customer": grant the role if new, then show that side."""
+        role = UserRole(choice.role)
+        user.grant(role)
+        user.active_role = role
         await self.session.flush()
         return user

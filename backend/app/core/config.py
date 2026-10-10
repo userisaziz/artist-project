@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     debug: bool = True
     sms_provider: str = "console"
     fast2sms_api_key: str = ""
+    # Image storage: "fake" (tests/dev without keys) or "cloudinary".
+    storage_provider: str = "fake"
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+    # Cities an artist can pick; a table replaces this once admins edit it.
+    cities: list[str] = ["Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune"]
+    # CORS origins when DEBUG=false (the admin web app).
+    admin_origins: list[str] = ["http://localhost:5173"]
 
 
 @lru_cache

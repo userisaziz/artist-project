@@ -10,8 +10,9 @@ class AppError(Exception):
     code = "internal_error"
     message = "Internal server error"
 
-    def __init__(self, message: str | None = None):
+    def __init__(self, message: str | None = None, **details):
         self.message = message or self.__class__.message
+        self.details = details  # extra body fields, e.g. submit's `missing` list
         super().__init__(self.message)
 
 
@@ -29,3 +30,11 @@ class ConflictError(AppError):
 
 class RateLimitError(AppError):
     status_code, code, message = 429, "rate_limited", "Too many requests"
+
+
+class ForbiddenError(AppError):
+    status_code, code, message = 403, "forbidden", "Not allowed for this account"
+
+
+class ValidationError(AppError):
+    status_code, code, message = 422, "validation_error", "Invalid request"

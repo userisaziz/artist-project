@@ -71,7 +71,7 @@ class AuthService:
 
         user = await self.session.scalar(select(User).where(User.phone == phone))
         if user is None:  # just-in-time registration
-            user = User(phone=phone, is_phone_verified=True)
+            user = User(phone=phone, is_phone_verified=True, role_grants=[])
             self.session.add(user)
             await self.session.flush()
         user.is_phone_verified = True

@@ -1,4 +1,4 @@
-"""Contract test: the test database must carry the full 3-table schema.
+"""Contract test: the test database must carry the full schema.
 
 Migrations are applied session-start in conftest (sync, because alembic's env.py
 uses asyncio.run). Here we only verify the result: every table the models and
@@ -7,7 +7,10 @@ services rely on exists in the test DB.
 
 import sqlalchemy as sa
 
-EXPECTED_TABLES = {"users", "otp_codes", "refresh_tokens", "alembic_version"}
+EXPECTED_TABLES = {
+    "users", "otp_codes", "refresh_tokens", "alembic_version",
+    "categories", "artist_profiles", "artist_categories", "artist_services", "portfolio_photos",
+}
 
 
 async def test_migrations_create_all_tables(engine):

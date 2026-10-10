@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.utils.enums import UserRole
 
@@ -11,14 +11,21 @@ class UserOut(BaseModel):
 
     id: uuid.UUID
     phone: str
-    role: UserRole
+    roles: list[UserRole]  # every role the account holds, e.g. ["customer", "artist", "admin"]
+    active_role: Literal["customer", "artist"] | None  # the mobile side being shown; None until Choose role
     is_phone_verified: bool
-    is_onboarded: bool
+    is_onboarded: bool  # = active_role is not None
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
     avatar_url: str | None = None
     whatsapp_booking_updates: bool
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def ordered(cls, roles):
+        order = list(UserRole)
+        return sorted(roles, key=order.index)
 
 
 class AccountDetails(BaseModel):
@@ -31,6 +38,6 @@ class AccountDetails(BaseModel):
 
 
 class RoleChoice(BaseModel):
-    """Choose role step; admin is never self-assigned."""
+    """Choose role / switch side: adds the role if new, then makes it active. Admin is never self-assigned."""
 
     role: Literal["customer", "artist"]

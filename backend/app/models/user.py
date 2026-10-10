@@ -1,13 +1,16 @@
-# app/models/user.py — mirrors users table; `role` and `is_onboarded` are our columns (migrations #1, #2)
+# app/models/user.py — mirrors users table; roles live in user_roles (migration #4)
 import uuid
+from datetime import datetime
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Enum, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 from app.utils.enums import UserRole
+
+user_role_enum = Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e])
 
 
 class User(Base, TimestampMixin):
@@ -26,13 +29,35 @@ class User(Base, TimestampMixin):
     is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     whatsapp_booking_updates: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
-        default=UserRole.customer,
-        server_default=sa.text("'customer'"),
-        nullable=False,
+    # Which side of the mobile app is showing (customer or artist; never admin). NULL until
+    # Choose role, so "onboarded" is simply `active_role is not None`.
+    active_role: Mapped[UserRole | None] = mapped_column(user_role_enum)
+
+    # Every role the account holds; selectin because async sessions can't lazy-load.
+    role_grants: Mapped[list["UserRoleGrant"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+
+    __table_args__ = (sa.CheckConstraint("active_role <> 'admin'", name="ck_users_active_role_not_admin"),)
+
+    @property
+    def roles(self) -> set[UserRole]:
+        return {g.role for g in self.role_grants}
+
+    @property
+    def is_onboarded(self) -> bool:
+        return self.active_role is not None
+
+    def grant(self, role: UserRole) -> None:
+        if role not in self.roles:
+            self.role_grants.append(UserRoleGrant(role=role))
+
+
+class UserRoleGrant(Base):
+    """One role an account holds. A user can be customer, artist and admin at once."""
+
+    __tablename__ = "user_roles"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    # Set once the user picks customer/artist on Choose role (migration #2).
-    is_onboarded: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default=sa.false(), nullable=False
-    )
+    role: Mapped[UserRole] = mapped_column(user_role_enum, primary_key=True)
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

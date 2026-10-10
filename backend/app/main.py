@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Art Circle API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.debug else [],
+        allow_origins=["*"] if settings.debug else settings.admin_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(AppError)
     async def app_error_handler(request, exc: AppError):
         # Domain errors become the stable {code, message} contract the client branches on.
-        return JSONResponse(status_code=exc.status_code, content={"code": exc.code, "message": exc.message})
+        return JSONResponse(status_code=exc.status_code, content={"code": exc.code, "message": exc.message, **exc.details})
 
     @app.get("/health")
     async def health(session: AsyncSession = Depends(get_db)):
