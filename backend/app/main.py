@@ -4,6 +4,8 @@ Routes stay thin; this file only wires middleware, routers, and (later) the
 global exception handler.
 """
 
+import logging
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -18,6 +20,8 @@ from app.core.exceptions import AppError
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    # Our loggers (e.g. art_circle.sms) have no handler otherwise; console-mode OTPs would vanish.
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s | %(message)s")
     app = FastAPI(title="Art Circle API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,

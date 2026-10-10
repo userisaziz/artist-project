@@ -1,10 +1,10 @@
-# app/models/user.py — mirrors users table; `role` is the ONLY new column (added by migration #1)
+# app/models/user.py — mirrors users table; `role` and `is_onboarded` are our columns (migrations #1, #2)
 import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Enum, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
 from app.utils.enums import UserRole
@@ -32,6 +32,7 @@ class User(Base, TimestampMixin):
         server_default=sa.text("'customer'"),
         nullable=False,
     )
-
-    customer_profile = relationship("CustomerProfile", back_populates="user", uselist=False)
-    artist_profile = relationship("ArtistProfile", back_populates="user", uselist=False)
+    # Set once the user picks customer/artist on Choose role (migration #2).
+    is_onboarded: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa.false(), nullable=False
+    )

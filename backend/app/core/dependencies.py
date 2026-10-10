@@ -12,12 +12,17 @@ from app.core.exceptions import AuthError
 from app.core.security import decode_token
 from app.models.user import User
 from app.services.auth_service import AuthService
+from app.services.user_service import UserService
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
 def get_auth_service(session: AsyncSession = Depends(get_db)) -> AuthService:
     return AuthService(session)
+
+
+def get_user_service(session: AsyncSession = Depends(get_db)) -> UserService:
+    return UserService(session)
 
 
 async def get_current_user(
