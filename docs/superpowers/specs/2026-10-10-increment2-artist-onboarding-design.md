@@ -21,7 +21,7 @@ ID/KYC documents, payout/bank details, travel area, weekly availability, the art
 
 ## 1. Data model (backend, Alembic migration #3)
 
-- **`categories`**: `id`, `slug` (unique), `name`, `sort_order`, `is_active`. The migration seeds the design's six: Mehendi, Makeup, Hair, Photography, Decor, Tattoo.
+- **`categories`**: `id`, `slug` (unique), `name`, `sort_order`, `is_active`. Admins create them in the admin app (changed 2026-10-10; there is no migration seed). A category in use can be deactivated but not deleted.
 - **`artist_profiles`**: `id`, `user_id` (unique FK → users), `business_name`, `city`, `bio` (nullable), `photo_key` (nullable), `status` enum `draft | pending | approved | rejected` (default `draft`), `rejection_reason` (nullable), `submitted_at`, `reviewed_at`, `reviewed_by` (FK → users, nullable), timestamps.
 - **`artist_categories`**: (`artist_id`, `category_id`) primary key.
 - **`artist_services`**: `id`, `artist_id`, `category_id`, `name`, `price_paise` (int, > 0), `duration_minutes` (int, > 0), `description` (nullable), `sort_order`, timestamps.
@@ -69,6 +69,8 @@ Admin endpoints require `role = admin`:
 
 | Method | Path | Notes |
 |---|---|---|
+| GET / POST | `/admin/categories` | All categories with artist and service counts / create one (slug derived from the name when omitted) |
+| PATCH / DELETE | `/admin/categories/{id}` | Edit or deactivate; delete returns `409` while any artist or service uses it |
 | GET | `/admin/artists?status=pending` | Paginated (`limit`, `cursor`), oldest submission first |
 | GET | `/admin/artists/{id}` | Full profile, with the user's name and phone |
 | POST | `/admin/artists/{id}/approve` | `pending` → `approved`; sets `reviewed_at`/`reviewed_by` |
@@ -96,10 +98,11 @@ New dependencies: `@tanstack/react-query` (planned since Increment 1), `expo-ima
 
 ## 5. Admin web app (`admin/`)
 
-React + Vite + TypeScript, with TanStack Query and React Router. The look follows the design's admin console: a sidebar, then the "Verification" queue.
+React + Vite + TypeScript, with shadcn/ui (Base UI + Tailwind v4, themed with the Atelier palette), TanStack Query, React Router, react-hook-form + zod and sonner toasts. The look follows the design's admin console: a sidebar with Verification and Catalog. Built first, per the product owner (2026-10-10), so categories exist before artists onboard.
 
 - **Sign in**: phone, then OTP (the same `/auth` endpoints), then `GET /users/me`. A non-admin sees "This account isn't an admin" and is signed out.
 - **Queue** (`/artists?status=pending`): a table with photo, business name, city, categories and submitted time, plus tabs for Pending, Approved and Rejected.
+- **Catalog** (`/categories`): a table of categories with artist and service counts, an active toggle, create and edit in a dialog, and delete when unused.
 - **Review** (`/artists/:id`): profile header, services table, portfolio grid (click to enlarge), and **Approve** and **Reject** (the dialog requires a reason).
 - **Tokens**: the access token is kept in memory and the refresh token in `localStorage`. That's acceptable for an internal tool; it moves to an httpOnly cookie before the app is exposed publicly.
 
