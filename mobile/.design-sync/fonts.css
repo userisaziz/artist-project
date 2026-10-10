@@ -1,0 +1,8 @@
+/* Plus Jakarta Sans, registered under the exact family names the RN theme uses
+   (src/theme/tokens/typography.ts fontFamilies), so react-native-web text resolves. */
+@font-face { font-family: 'PlusJakartaSans_400Regular'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/400Regular/PlusJakartaSans_400Regular.ttf') format('truetype'); }
+@font-face { font-family: 'PlusJakartaSans_500Medium'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/500Medium/PlusJakartaSans_500Medium.ttf') format('truetype'); }
+@font-face { font-family: 'PlusJakartaSans_600SemiBold'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/600SemiBold/PlusJakartaSans_600SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'PlusJakartaSans_700Bold'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/700Bold/PlusJakartaSans_700Bold.ttf') format('truetype'); }
+@font-face { font-family: 'PlusJakartaSans_500Medium_Italic'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/500Medium_Italic/PlusJakartaSans_500Medium_Italic.ttf') format('truetype'); }
+@font-face { font-family: 'PlusJakartaSans_600SemiBold_Italic'; src: url('../node_modules/@expo-google-fonts/plus-jakarta-sans/600SemiBold_Italic/PlusJakartaSans_600SemiBold_Italic.ttf') format('truetype'); }

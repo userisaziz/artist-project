@@ -1,0 +1,70 @@
+{
+  "projectId": "4089fac3-51e7-4c9b-9e89-7820c017c617",
+  "shape": "package",
+  "pkg": "@art-circle/atelier-mobile",
+  "globalName": "Atelier",
+  "buildCmd": "node .design-sync/web-build.mjs",
+  "entry": ".design-sync/.cache/web-pkg/dist/index.js",
+  "srcDir": "../../../src",
+  "extraFonts": [
+    "../../fonts.css"
+  ],
+  "componentSrcMap": {
+    "Accent": "../../../src/components/AppText.tsx",
+    "ThemeProvider": null,
+    "SafeAreaProvider": null,
+    "View": null,
+    "ScrollView": null,
+    "Pressable": null,
+    "Image": null,
+    "LinearGradient": null
+  },
+  "provider": {
+    "component": "SafeAreaProvider",
+    "props": {
+      "initialMetrics": {
+        "frame": {
+          "x": 0,
+          "y": 0,
+          "width": 393,
+          "height": 852
+        },
+        "insets": {
+          "top": 0,
+          "left": 0,
+          "right": 0,
+          "bottom": 0
+        }
+      }
+    },
+    "inner": {
+      "component": "ThemeProvider"
+    }
+  },
+  "docsDir": "../../docs",
+  "overrides": {
+    "Screen": {
+      "cardMode": "column"
+    },
+    "FormScreen": {
+      "cardMode": "column"
+    },
+    "AppTextField": {
+      "cardMode": "column"
+    },
+    "OtpInput": {
+      "cardMode": "column"
+    },
+    "PhoneInput": {
+      "cardMode": "column"
+    },
+    "Accent": {
+      "cardMode": "column"
+    },
+    "AppText": {
+      "cardMode": "column"
+    }
+  },
+  "cssEntry": "web.css",
+  "readmeHeader": ".design-sync/conventions.md"
+}
