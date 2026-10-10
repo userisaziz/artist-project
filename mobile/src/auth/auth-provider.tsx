@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { TokenPair, User } from '../api/types';
+import type { AccountDetails, ChosenRole, TokenPair, User } from '../api/types';
 import { configureSessionBridge, transport } from '../api/client';
 import * as authApi from '../api/endpoints/auth';
+import * as accountApi from '../api/endpoints/account';
 import { sessionStore } from './session-store';
 import { MockTransport } from '../api/mock/transport';
 
@@ -14,6 +15,9 @@ interface AuthContextValue {
   requestOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Sign-up and Choose role: each saves server-side, then swaps in the returned user so the gate re-routes. */
+  completeSignup: (details: AccountDetails) => Promise<void>;
+  chooseRole: (role: ChosenRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -76,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('unauthenticated');
       await sessionStore.clear();
     },
+    completeSignup: async (details) => { setUser(await accountApi.updateMe(details)); },
+    chooseRole: async (role) => { setUser(await accountApi.chooseRole(role)); },
   }), [status, user, applyPair]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

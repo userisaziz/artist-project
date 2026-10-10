@@ -18,6 +18,17 @@ interface Props {
   error?: boolean;
 }
 
+/** "+919845012345" → "+91 98450 12345"; other countries → "{code} {national}". */
+export function formatPhone(phone: string): string {
+  const code = COUNTRIES.map((c) => c.code)
+    .filter((c) => phone.startsWith(c))
+    .sort((a, b) => b.length - a.length)[0];
+  if (!code) return phone;
+  const national = phone.slice(code.length);
+  if (code === '+91' && national.length === 10) return `+91 ${national.slice(0, 5)} ${national.slice(5)}`;
+  return `${code} ${national}`;
+}
+
 /** Indian numbers read as "98450 67890"; other countries stay as typed digits. */
 function formatNational(code: string, digits: string) {
   return code === '+91' && digits.length > 5 ? `${digits.slice(0, 5)} ${digits.slice(5)}` : digits;

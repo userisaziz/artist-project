@@ -9,6 +9,19 @@ export interface User {
   last_name?: string | null;
   email?: string | null;
   avatar_url?: string | null;
+  whatsapp_booking_updates: boolean;
+  /** True once Choose role is done; the gate routes on this and `role`. */
+  is_onboarded: boolean;
+}
+
+/** What Choose role may set; admin is never self-assigned. */
+export type ChosenRole = 'customer' | 'artist';
+
+export interface AccountDetails {
+  first_name: string;
+  last_name: string | null;
+  email: string | null;
+  whatsapp_booking_updates: boolean;
 }
 
 export interface TokenPair {

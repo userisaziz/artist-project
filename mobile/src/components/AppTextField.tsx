@@ -9,35 +9,38 @@ interface Props extends TextInputProps {
   error?: string | null;
 }
 
+/** Labelled input in the Atelier field style (same box as the phone field). The label doubles as the accessibility label. */
 export function AppTextField({ label, error, style, ...rest }: Props) {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
   return (
-    <View style={{ marginBottom: theme.spacing.md }}>
-      <AppText variant="caption" style={{ color: theme.colors.textSecondary, marginBottom: theme.spacing.xs }}>
+    <View>
+      <AppText variant="label" style={{ color: theme.colors.textSecondary, marginBottom: theme.spacing.sm }}>
         {label}
       </AppText>
       <TextInput
+        accessibilityLabel={label}
+        placeholderTextColor={theme.colors.textMuted}
         {...rest}
         onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
         onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
         style={[
           {
-            height: 52,
+            height: 57,
             borderRadius: theme.radii.md,
-            borderWidth: focused ? 2 : 1,
+            borderWidth: 1.5,
             borderColor: error ? theme.colors.error : focused ? theme.colors.borderFocus : theme.colors.border,
             backgroundColor: theme.colors.inputBackground,
             color: theme.colors.textPrimary,
             paddingHorizontal: theme.spacing.md,
-            fontSize: theme.typography.body.fontSize,
+            fontSize: theme.typography.subtitle.fontSize,
             fontFamily: theme.typography.body.fontFamily,
           },
           style,
         ]}
       />
       {error ? (
-        <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.xs }}>
+        <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm }}>
           {error}
         </AppText>
       ) : null}

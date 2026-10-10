@@ -15,10 +15,10 @@ export interface SessionBridge {
 let bridge: SessionBridge | null = null;
 export function configureSessionBridge(b: SessionBridge | null) { bridge = b; }
 
-export async function request<T>(path: string, body?: unknown, opts: { auth?: boolean } = {}): Promise<T> {
+export async function request<T>(path: string, body?: unknown, opts: { auth?: boolean; method?: 'POST' | 'PATCH' | 'PUT' } = {}): Promise<T> {
   const call = () =>
     transport.request({
-      method: 'POST',
+      method: opts.method ?? 'POST',
       path,
       body,
       headers: opts.auth && bridge?.getAccessToken() ? { Authorization: `Bearer ${bridge.getAccessToken()}` } : undefined,

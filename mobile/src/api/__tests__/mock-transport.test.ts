@@ -117,3 +117,67 @@ it('known artist phone returns artist role (lets UI test role rendering without 
   const res = await t.request({ method: 'POST', path: '/auth/otp/verify', body: { phone: '+15550009999', code } });
   expect((res.json as { user: { role: string } }).user.role).toBe('artist');
 });
+
+// ---- Account + role endpoints (same contract as backend /users/me) ----
+
+async function signIn(t: MockTransport, phone = PHONE) {
+  let code = '';
+  t.onOtpGenerated = (_p, c) => { code = c; };
+  await requestOtp(t, phone);
+  const res = await t.request({ method: 'POST', path: '/auth/otp/verify', body: { phone, code } });
+  const pair = res.json as { access_token: string; user: Record<string, unknown> };
+  return { auth: { Authorization: `Bearer ${pair.access_token}` }, user: pair.user };
+}
+
+it('a new user starts with no name and is not onboarded', async () => {
+  const { user } = await signIn(new MockTransport());
+  expect(user.first_name).toBeNull();
+  expect(user.is_onboarded).toBe(false);
+  expect(user.whatsapp_booking_updates).toBe(true);
+});
+
+it('PATCH /users/me saves the sign-up details', async () => {
+  const t = new MockTransport();
+  const { auth } = await signIn(t);
+  const res = await t.request({ method: 'PATCH', path: '/users/me', headers: auth, body: { first_name: 'Ananya', last_name: 'Rao', email: 'ananya@example.com', whatsapp_booking_updates: false } });
+  expect(res.status).toBe(200);
+  expect(res.json).toMatchObject({ first_name: 'Ananya', last_name: 'Rao', email: 'ananya@example.com', whatsapp_booking_updates: false });
+});
+
+it('PATCH /users/me rejects an email another account uses (409) and a malformed one (422)', async () => {
+  const t = new MockTransport();
+  const a = await signIn(t, '+15550001111');
+  await t.request({ method: 'PATCH', path: '/users/me', headers: a.auth, body: { first_name: 'A', last_name: null, email: 'taken@example.com', whatsapp_booking_updates: true } });
+  const b = await signIn(t, '+15550002222');
+  const dup = await t.request({ method: 'PATCH', path: '/users/me', headers: b.auth, body: { first_name: 'B', last_name: null, email: 'Taken@example.com', whatsapp_booking_updates: true } });
+  expect(dup).toMatchObject({ status: 409, json: { code: 'conflict' } });
+  const bad = await t.request({ method: 'PATCH', path: '/users/me', headers: b.auth, body: { first_name: 'B', last_name: null, email: 'not-an-email', whatsapp_booking_updates: true } });
+  expect(bad).toMatchObject({ status: 422, json: { code: 'validation_error' } });
+});
+
+it('PUT /users/me/role sets the role and onboards the user, only once', async () => {
+  const t = new MockTransport();
+  const { auth } = await signIn(t);
+  const artist = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'artist' } });
+  expect(artist).toMatchObject({ status: 200, json: { role: 'artist', is_onboarded: true } });
+  const again = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'customer' } });
+  expect(again).toMatchObject({ status: 409, json: { code: 'conflict' } });
+});
+
+it('PUT /users/me/role rejects admin (422)', async () => {
+  const t = new MockTransport();
+  const { auth } = await signIn(t);
+  const res = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'admin' } });
+  expect(res).toMatchObject({ status: 422, json: { code: 'validation_error' } });
+});
+
+it('account endpoints require a valid access token (401)', async () => {
+  const t = new MockTransport();
+  const res = await t.request({ method: 'PATCH', path: '/users/me', headers: { Authorization: 'Bearer nope' }, body: { first_name: 'X' } });
+  expect(res).toMatchObject({ status: 401, json: { code: 'auth_error' } });
+});
+
+it('the seeded artist arrives already onboarded', async () => {
+  const { user } = await signIn(new MockTransport(), '+15550009999');
+  expect(user).toMatchObject({ first_name: 'Priya', role: 'artist', is_onboarded: true });
+});

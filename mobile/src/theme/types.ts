@@ -12,6 +12,8 @@ export interface ThemeColors {
   error: string; errorBackground: string; success: string;
   overlay: string;
   brandOnImage: string; brandInk: string; imageFallback: string; // deeper roses that stay legible over photos
+  washTop: string; washBottom: string; // full-screen blush gradient (Choose role)
+  photoScrim: string; // deep plum laid over photos so white text reads
 }
 
 export interface Theme {

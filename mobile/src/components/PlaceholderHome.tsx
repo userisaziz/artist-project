@@ -1,15 +1,15 @@
 import { View } from 'react-native';
-import { Screen } from '../../src/components/Screen';
-import { AppText } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
-import { useTheme } from '../../src/theme/theme-provider';
-import { useAuth } from '../../src/auth/auth-provider';
+import { Screen } from './Screen';
+import { AppText } from './AppText';
+import { AppButton } from './AppButton';
+import { useTheme } from '../theme/theme-provider';
+import { useAuth } from '../auth/auth-provider';
 
-export default function HomeScreen() {
+/** Stand-in for the customer and artist homes until their Atelier screens are built. */
+export function PlaceholderHome({ role }: { role: 'Customer' | 'Artist' }) {
   const theme = useTheme();
   const { user, signOut } = useAuth();
   const name = user?.first_name || user?.phone || '';
-  const role = user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: theme.spacing.lg }}>
@@ -23,7 +23,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <AppText variant="body" style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>
-          Signed in — real app screens arrive in the next increment
+          {role} home — built next, from the Atelier prototype
         </AppText>
         <AppButton label="Sign out" variant="ghost" onPress={() => { void signOut(); }} />
       </View>

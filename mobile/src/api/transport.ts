@@ -1,5 +1,5 @@
 export interface TransportRequest {
-  method: 'POST';
+  method: 'POST' | 'PATCH' | 'PUT';
   path: string;          // API-relative, e.g. '/auth/otp/verify'
   body?: unknown;
   headers?: Record<string, string>;

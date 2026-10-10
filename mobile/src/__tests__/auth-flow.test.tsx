@@ -23,7 +23,7 @@ afterEach(() => {
   logSpy.mockRestore();
 });
 
-it('login → OTP (mock code) → home → sign out, against the real app routes', async () => {
+it('new user: login → OTP → sign-up → Choose role → customer home → sign out, against the real app routes', async () => {
   await renderRouter('./app');
 
   // (a) unauthenticated start lands on welcome; Get started opens login
@@ -40,11 +40,19 @@ it('login → OTP (mock code) → home → sign out, against the real app routes
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
   const code = String(banner.props.children).match(/\d{6}/)![0];
 
-  // (c) entering the code auto-submits and the gate moves to home
+  // (c) entering the code auto-submits; a new number lands on sign-up, then Choose role
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), code);
-  expect(await screen.findByText('Welcome, +919845012345')).toBeTruthy();
-  expect(screen.getByText('Customer')).toBeTruthy();
+  expect(await screen.findByText('Create your account')).toBeTruthy();
   expect(screen.queryByText('Enter the code')).toBeNull();
+  expect(screen.getByText('+91 98450 12345')).toBeTruthy(); // verified phone, read-only
+  await fireEvent.changeText(screen.getByLabelText('Full name'), 'Ananya Rao');
+  await fireEvent.press(screen.getByText('Create account'));
+  expect(await screen.findByText('What brings you here?')).toBeTruthy();
+
+  // (c2) "Find artists" makes them a customer and the gate moves to the customer home
+  await fireEvent.press(screen.getByText('Find artists'));
+  expect(await screen.findByText('Welcome, Ananya')).toBeTruthy();
+  expect(screen.getByText('Customer')).toBeTruthy();
 
   // (d) sign out returns to welcome and clears the stored session
   await fireEvent.press(screen.getByText('Sign out'));
@@ -112,4 +120,48 @@ it('OTP shows the resend countdown, and Edit returns to the number screen', asyn
   expect(screen.getByText(/^Resend code in 0:\d\d$/)).toBeTruthy();
   await fireEvent.press(screen.getByText('Edit'));
   expect(await screen.findByText('Welcome back')).toBeTruthy();
+});
+
+
+/** Welcome → Log in → OTP with the mock code; leaves the app wherever the gate sends this user. */
+async function signInAs(national: string) {
+  await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('Get started'));
+  await fireEvent.changeText(await screen.findByTestId('phone-national'), national);
+  await fireEvent.press(screen.getByText('Send code'));
+  const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
+  await fireEvent.changeText(screen.getByTestId('otp-box-0'), String(banner.props.children).match(/\d{6}/)![0]);
+}
+
+it('"Get started" on the artist card onboards them as an artist', async () => {
+  await signInAs('9845066666');
+  await fireEvent.changeText(await screen.findByLabelText('Full name'), 'Riya Sen');
+  await fireEvent.press(screen.getByText('Create account'));
+  await fireEvent.press(await screen.findByText('Get started'));
+  expect(await screen.findByText('Welcome, Riya')).toBeTruthy();
+  expect(screen.getByText('Artist')).toBeTruthy();
+});
+
+it('sign-up needs a name and rejects a malformed email', async () => {
+  await signInAs('9845055555');
+  expect(await screen.findByText('Create your account')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Create account'));
+  expect(screen.queryByText('What brings you here?')).toBeNull(); // disabled without a name
+  await fireEvent.changeText(screen.getByLabelText('Full name'), 'Meera Iyer');
+  await fireEvent.changeText(screen.getByLabelText('Email (optional)'), 'meera@');
+  await fireEvent.press(screen.getByText('Create account'));
+  expect(await screen.findByText('Enter a valid email, or leave it empty.')).toBeTruthy();
+});
+
+it('a returning artist skips sign-up and role and lands on the artist home', async () => {
+  await renderRouter('./app');
+  await fireEvent.press(await screen.findByText('Get started'));
+  await fireEvent.press(await screen.findByLabelText('Country code +91'));
+  await fireEvent.press(await screen.findByText('USA / Canada'));
+  await fireEvent.changeText(screen.getByTestId('phone-national'), '5550009999'); // mock's seeded artist
+  await fireEvent.press(screen.getByText('Send code'));
+  const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
+  await fireEvent.changeText(screen.getByTestId('otp-box-0'), String(banner.props.children).match(/\d{6}/)![0]);
+  expect(await screen.findByText('Welcome, Priya')).toBeTruthy();
+  expect(screen.getByText('Artist')).toBeTruthy();
 });

@@ -5,6 +5,8 @@ interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: n
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;            // same as backend schemas/auth.py
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ACCOUNT_ROUTES = new Set(['PATCH /users/me', 'PUT /users/me/role']); // all need a Bearer token
 const RESEND_COOLDOWN_MS = 60_000;               // OTP_RESEND_COOLDOWN_SECONDS
 const OTP_TTL_MS = 5 * 60_000;                   // OTP_TTL_MINUTES
 const MAX_ATTEMPTS = 5;                          // OTP_MAX_ATTEMPTS
@@ -24,17 +26,24 @@ export class MockTransport implements Transport {
   private otps: MockOtp[] = [];
   private refreshes: MockRefresh[] = [];
   private users = new Map<string, User>();
+  private accessTokens = new Map<string, string>(); // access token → user id
   private seq = 0;
 
   advanceTime(ms: number) { this.offset += ms; }
 
   private fakeToken(kind: string) { return `mock-${kind}-${++this.seq}-${Math.random().toString(36).slice(2)}`; }
 
-  async request({ path, body }: TransportRequest): Promise<TransportResponse> {
+  async request({ method, path, body, headers }: TransportRequest): Promise<TransportResponse> {
     const data = (body ?? {}) as Record<string, string>;
     if (path === '/auth/otp/request') return this.otpRequest(data.phone ?? '');
     if (path === '/auth/otp/verify') return this.otpVerify(data.phone ?? '', data.code ?? '');
     if (path === '/auth/refresh') return this.refresh(data.refresh_token ?? '');
+    if (ACCOUNT_ROUTES.has(`${method} ${path}`)) {
+      const user = this.userFor(headers);
+      if (!user) return err('auth_error', 'Authentication failed', 401);
+      if (path === '/users/me') return this.updateMe(user, (body ?? {}) as Record<string, unknown>);
+      return this.chooseRole(user, data.role);
+    }
     return err('not_found', `Mock has no handler for ${path}`, 404); // loud: contract drift surfaces, never silent
   }
 
@@ -65,6 +74,8 @@ export class MockTransport implements Transport {
         id: this.fakeToken('user'), phone, is_phone_verified: true,
         role: isArtistSeed ? 'artist' : 'customer',
         first_name: isArtistSeed ? 'Priya' : null,
+        last_name: null, email: null, whatsapp_booking_updates: true,
+        is_onboarded: isArtistSeed,
       };
       this.users.set(phone, user);
     }
@@ -80,9 +91,43 @@ export class MockTransport implements Transport {
     return ok(this.issuePair(user));
   }
 
+  private userFor(headers?: Record<string, string>): User | undefined {
+    const id = this.accessTokens.get((headers?.Authorization ?? '').replace(/^Bearer /, ''));
+    return [...this.users.values()].find((u) => u.id === id);
+  }
+
+  private save(user: User): User {
+    this.users.set(user.phone, user);
+    return user;
+  }
+
+  private updateMe(user: User, b: Record<string, unknown>): TransportResponse {
+    const email = typeof b.email === 'string' && b.email.trim() ? b.email.trim() : null;
+    if (typeof b.first_name !== 'string' || !b.first_name.trim()) return err('validation_error', 'first_name is required', 422);
+    if (email && !EMAIL_RE.test(email)) return err('validation_error', 'email is not a valid address', 422);
+    const taken = email && [...this.users.values()].some((u) => u.id !== user.id && u.email?.toLowerCase() === email.toLowerCase());
+    if (taken) return err('conflict', 'That email is already in use', 409);
+    return ok(this.save({
+      ...user,
+      first_name: b.first_name.trim(),
+      last_name: typeof b.last_name === 'string' && b.last_name.trim() ? b.last_name.trim() : null,
+      email,
+      whatsapp_booking_updates: b.whatsapp_booking_updates !== false,
+    }));
+  }
+
+  /** Same rules as backend UserService.choose_role: one-time, customer or artist only. */
+  private chooseRole(user: User, role: string | undefined): TransportResponse {
+    if (role !== 'customer' && role !== 'artist') return err('validation_error', 'role must be customer or artist', 422);
+    if (user.is_onboarded) return err('conflict', 'Role already chosen', 409);
+    return ok(this.save({ ...user, role, is_onboarded: true }));
+  }
+
   private issuePair(user: User): TokenPair {
     const refreshToken = this.fakeToken('refresh');
     this.refreshes.push({ token: refreshToken, userId: user.id, expiresAt: this.now + REFRESH_TTL_MS, revoked: false });
-    return { access_token: this.fakeToken('access'), refresh_token: refreshToken, token_type: 'bearer', user };
+    const accessToken = this.fakeToken('access');
+    this.accessTokens.set(accessToken, user.id);
+    return { access_token: accessToken, refresh_token: refreshToken, token_type: 'bearer', user };
   }
 }

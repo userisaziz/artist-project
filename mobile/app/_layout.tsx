@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme } from '../src/theme/theme-provider';
 import { AuthProvider, useAuth } from '../src/auth/auth-provider';
 import { AppText } from '../src/components/AppText';
 import { AppButton } from '../src/components/AppButton';
+import type { User } from '../src/api/types';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,25 +25,41 @@ export default function RootLayout() {
 }
 
 function Gate() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const theme = useTheme();
   // Gate only mounts once fonts are settled, so this hides the native splash when both fonts and restore are done.
   useEffect(() => { if (status !== 'restoring') SplashScreen.hideAsync(); }, [status]);
   if (status === 'restoring') {
     return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
   }
-  // Protected groups: a group whose guard is false is unreachable, and flipping a guard
-  // drops its screens from history — no back-navigation across the auth boundary.
+  const where = destination(status, user);
+  // Protected screens: exactly one guard is true, so the stack always lands in one place, and
+  // flipping a guard drops the old screens from history (no back-navigation across a boundary).
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
-      <Stack.Protected guard={status === 'authenticated'}>
-        <Stack.Screen name="(app)" />
+      <Stack.Protected guard={where === 'signup'}>
+        <Stack.Screen name="signup" />
       </Stack.Protected>
-      <Stack.Protected guard={status === 'unauthenticated'}>
+      <Stack.Protected guard={where === 'role'}>
+        <Stack.Screen name="choose-role" />
+      </Stack.Protected>
+      <Stack.Protected guard={where === 'home'}>
+        <Stack.Screen name="index" />
+      </Stack.Protected>
+      <Stack.Protected guard={where === 'auth'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
     </Stack>
   );
+}
+
+type Destination = 'auth' | 'signup' | 'role' | 'home';
+
+/** Where a user belongs, from the account state the server returns; home itself switches on `role`. */
+function destination(status: 'unauthenticated' | 'authenticated', user: User | null): Destination {
+  if (status !== 'authenticated' || !user) return 'auth';
+  if (user.is_onboarded) return 'home';
+  return user.first_name ? 'role' : 'signup';
 }
 
 // May render outside ThemeProvider; useTheme() then falls back to the light theme via context default.
