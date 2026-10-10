@@ -6,9 +6,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, PlusJakartaSans_600SemiBold_Italic, PlusJakartaSans_500Medium_Italic, PlusJakartaSans_700Bold, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider, useTheme } from '../src/theme/theme-provider';
 import { AuthProvider, useAuth } from '../src/auth/auth-provider';
+import { destination } from '../src/auth/routing';
 import { AppText } from '../src/components/AppText';
 import { AppButton } from '../src/components/AppButton';
-import type { User } from '../src/api/types';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,33 +33,26 @@ function Gate() {
     return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
   }
   const where = destination(status, user);
-  // Protected screens: exactly one guard is true, so the stack always lands in one place, and
-  // flipping a guard drops the old screens from history (no back-navigation across a boundary).
+  // `/` is the always-mounted redirect hub (app/index.tsx) so Expo Router has a concrete boot
+  // target; it forwards into exactly one guarded area below. Flipping a guard drops the old
+  // area from history, so there is no back-navigation across a boundary.
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
-      <Stack.Protected guard={where === 'signup'}>
-        <Stack.Screen name="signup" />
-      </Stack.Protected>
-      <Stack.Protected guard={where === 'role'}>
-        <Stack.Screen name="choose-role" />
-      </Stack.Protected>
-      <Stack.Protected guard={where === 'home'}>
-        <Stack.Screen name="index" />
-      </Stack.Protected>
+      <Stack.Screen name="index" />
       <Stack.Protected guard={where === 'auth'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
+      <Stack.Protected guard={where === 'onboarding'}>
+        <Stack.Screen name="(onboarding)" />
+      </Stack.Protected>
+      <Stack.Protected guard={where === 'customer'}>
+        <Stack.Screen name="customer" />
+      </Stack.Protected>
+      <Stack.Protected guard={where === 'artist'}>
+        <Stack.Screen name="artist" />
+      </Stack.Protected>
     </Stack>
   );
-}
-
-type Destination = 'auth' | 'signup' | 'role' | 'home';
-
-/** Where a user belongs, from the account state the server returns; home itself switches on `role`. */
-function destination(status: 'unauthenticated' | 'authenticated', user: User | null): Destination {
-  if (status !== 'authenticated' || !user) return 'auth';
-  if (user.is_onboarded) return 'home';
-  return user.first_name ? 'role' : 'signup';
 }
 
 // May render outside ThemeProvider; useTheme() then falls back to the light theme via context default.

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Switch, View } from 'react-native';
-import { FormScreen } from '../src/components/FormScreen';
-import { AppText, Accent } from '../src/components/AppText';
-import { AppButton } from '../src/components/AppButton';
-import { AppTextField } from '../src/components/AppTextField';
-import { formatPhone } from '../src/components/PhoneInput';
-import { useTheme } from '../src/theme/theme-provider';
-import { useAuth } from '../src/auth/auth-provider';
-import { ApiError } from '../src/api/types';
-import { errorMessage } from '../src/api/error-message';
+import { FormScreen } from '../../src/components/FormScreen';
+import { AppText, Accent } from '../../src/components/AppText';
+import { AppButton } from '../../src/components/AppButton';
+import { AppTextField } from '../../src/components/AppTextField';
+import { formatPhone } from '../../src/components/PhoneInput';
+import { useTheme } from '../../src/theme/theme-provider';
+import { useAuth } from '../../src/auth/auth-provider';
+import { ApiError } from '../../src/api/types';
+import { errorMessage } from '../../src/api/error-message';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // same rule as the mock / backend contract
 const BAD_EMAIL = 'Enter a valid email, or leave it empty.';

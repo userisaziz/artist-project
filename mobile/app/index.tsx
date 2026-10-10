@@ -1,7 +1,11 @@
-import { PlaceholderHome } from '../src/components/PlaceholderHome';
+import { Redirect } from 'expo-router';
 import { useAuth } from '../src/auth/auth-provider';
+import { destination, landingHref } from '../src/auth/routing';
 
-export default function Home() {
-  const { user } = useAuth();
-  return <PlaceholderHome role={user?.role === 'artist' ? 'Artist' : 'Customer'} />;
+// `/` boot target: forwards to the one area the gate is currently showing. Keeping the decision
+// in shared `destination()`/`landingHref()` means this hub and the root guards can never disagree.
+export default function Index() {
+  const { status, user } = useAuth();
+  if (status === 'restoring') return null; // Gate keeps the splash up until restore settles
+  return <Redirect href={landingHref(destination(status, user), user)} />;
 }

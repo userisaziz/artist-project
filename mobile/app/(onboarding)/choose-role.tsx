@@ -5,13 +5,13 @@ import type { ImageContentPosition } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../src/components/AppText';
-import { useTheme } from '../src/theme/theme-provider';
-import { useAuth } from '../src/auth/auth-provider';
-import { errorMessage } from '../src/api/error-message';
+import { AppText, Accent } from '../../src/components/AppText';
+import { useTheme } from '../../src/theme/theme-provider';
+import { useAuth } from '../../src/auth/auth-provider';
+import { errorMessage } from '../../src/api/error-message';
 
-const CUSTOMER_PHOTO = require('../assets/hero/role-customer.webp'); // client being made up
-const ARTIST_PHOTO = require('../assets/hero/role-artist.webp');     // artist with her portfolio
+const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // client being made up
+const ARTIST_PHOTO = require('../../assets/hero/role-artist.webp');     // artist with her portfolio
 const ICON_CALENDAR = ['M3 10h18M8 3v4M16 3v4', 'M12 18.5s-3-1.8-3-3.6a1.5 1.5 0 0 1 3-.4 1.5 1.5 0 0 1 3 .4c0 1.8-3 3.6-3 3.6z'];
 const ICON_BRIEFCASE = ['M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18M11 12.5v2h2v-2'];
 
