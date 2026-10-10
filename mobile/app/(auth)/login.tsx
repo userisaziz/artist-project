@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AppText, Accent } from '../../src/components/AppText';
+import { AppText } from '../../src/components/AppText';
 import { AppButton } from '../../src/components/AppButton';
-import { FormScreen } from '../../src/components/FormScreen';
+import { FormScreen, FormHeading } from '../../src/components/FormScreen';
 import { PhoneInput } from '../../src/components/PhoneInput';
 import { useTheme } from '../../src/theme/theme-provider';
 import { useAuth } from '../../src/auth/auth-provider';
@@ -34,28 +34,26 @@ export default function LoginScreen() {
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/welcome'));
 
-  // Atelier hi-fi "Log in": blush wash fading to white, round back button, headline with italic accent.
+  // Atelier hi-fi "Log in" (v4): step 1 of 3, "Your number.", button + terms pinned above the keyboard.
   return (
-    <FormScreen onBack={goBack}>
-      <AppText variant="display" style={{ color: theme.colors.textPrimary, marginTop: theme.spacing.lg + theme.spacing.xs, lineHeight: theme.typography.display.fontSize }}>
-        {'Welcome '}<Accent>back</Accent>
-      </AppText>
-      <AppText variant="body" style={{ color: theme.colors.textMuted, marginTop: theme.spacing.sm + 2, lineHeight: 18 }}>
-        Enter your mobile number to log in or sign up. No passwords.
-      </AppText>
-      <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.xl, marginBottom: theme.spacing.sm }}>Mobile number</AppText>
-      <PhoneInput value={phone} error={!!error} onChange={(v) => { setError(null); setPhone(v); }} />
-      <AppText variant="caption" style={{ color: error ? theme.colors.error : theme.colors.textMuted, marginTop: theme.spacing.sm }}>
-        {error ?? "We'll send a 6-digit code by SMS."}
-      </AppText>
-      <View style={{ marginTop: theme.spacing.lg }}>
-        <AppButton label="Send code" onPress={onSubmit} loading={loading} disabled={!PHONE_RE.test(phone)} />
+    <FormScreen
+      onBack={goBack}
+      step={1}
+      footer={(
+        <>
+          <AppText variant="caption" style={{ fontSize: 11, textAlign: 'center', color: theme.colors.textMuted, marginBottom: theme.spacing.sm }}>
+            By continuing you agree to our <AppText variant="caption" style={{ fontSize: 11, color: theme.colors.brand }}>Terms</AppText> &{' '}
+            <AppText variant="caption" style={{ fontSize: 11, color: theme.colors.brand }}>Privacy</AppText>.
+          </AppText>
+          <AppButton label="Send code" onPress={onSubmit} loading={loading} disabled={!PHONE_RE.test(phone)} />
+        </>
+      )}
+    >
+      <FormHeading eyebrow="LOG IN / SIGN UP" title="Your" accent="number." subtitle="We’ll text you a code. No passwords." />
+      <View style={{ marginTop: 18 }}>
+        <PhoneInput autoFocus value={phone} error={!!error} onChange={(v) => { setError(null); setPhone(v); }} />
       </View>
-      <View style={{ flex: 1, minHeight: theme.spacing.xl }} />
-      <AppText variant="caption" style={{ textAlign: 'center', color: theme.colors.textMuted, lineHeight: 18 }}>
-        By continuing you agree to our <AppText variant="caption" style={{ color: theme.colors.brand }}>Terms</AppText> and{' '}
-        <AppText variant="caption" style={{ color: theme.colors.brand }}>Privacy Policy</AppText>.
-      </AppText>
+      {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm }}>{error}</AppText> : null}
     </FormScreen>
   );
 }

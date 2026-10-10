@@ -14,6 +14,10 @@ export interface ThemeColors {
   brandOnImage: string; brandInk: string; imageFallback: string; // deeper roses that stay legible over photos
   washTop: string; washBottom: string; // full-screen blush gradient (Choose role)
   photoScrim: string; // deep plum laid over photos so white text reads
+  canvas: string; heading: string; // blush page + plum headline ink of the auth/onboarding screens
+  progressTrack: string; // unfilled segment of the step bar
+  roleCard: string; roleTag: string; // Choose role light card + its tag pill
+  fieldHalo: string; // soft ring around a focused field
 }
 
 export interface Theme {

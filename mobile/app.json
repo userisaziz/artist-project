@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.userisaziz.artcircle"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,7 +29,8 @@
       "expo-secure-store",
       "expo-font",
       "expo-asset",
-      "expo-image"
+      "expo-image",
+      "./plugins/with-android-autofill-highlight"
     ],
     "scheme": "artcircle",
     "newArchEnabled": true

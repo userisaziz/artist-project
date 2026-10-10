@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AppText, Accent } from '../../src/components/AppText';
+import { AppText } from '../../src/components/AppText';
 import { AppButton } from '../../src/components/AppButton';
-import { FormScreen } from '../../src/components/FormScreen';
+import { FormScreen, FormHeading } from '../../src/components/FormScreen';
 import { OtpInput } from '../../src/components/OtpInput';
 import { formatPhone } from '../../src/components/PhoneInput';
 import { useTheme } from '../../src/theme/theme-provider';
@@ -69,42 +69,49 @@ export default function OtpScreen() {
 
   const canResend = secondsLeft <= 0 && !resending;
 
-  // Same frame as Log in (no OTP screen in the Atelier prototype): blush wash, round back button, headline with italic accent.
+  // Atelier hi-fi "Verify" (v4): step 2 of 3, six code boxes, resend timer, Verify pinned above the keyboard.
   return (
-    <FormScreen onBack={() => router.back()}>
-      <AppText variant="display" style={{ color: theme.colors.textPrimary, marginTop: theme.spacing.lg + theme.spacing.xs, lineHeight: theme.typography.display.fontSize }}>
-        {'Enter the '}<Accent>code</Accent>
-      </AppText>
-      <AppText variant="body" style={{ color: theme.colors.textMuted, marginTop: theme.spacing.sm + 2, lineHeight: 18 }}>
-        Sent to {formatPhone(phone)} ·{' '}
-        <AppText variant="label" accessibilityRole="link" onPress={() => router.back()} style={{ color: theme.colors.brand, fontSize: theme.typography.body.fontSize }}>
-          Edit
-        </AppText>
-      </AppText>
+    <FormScreen
+      onBack={() => router.back()}
+      step={2}
+      footer={<AppButton label="Verify" onPress={() => { void submit(code); }} loading={busy} disabled={code.length !== 6} />}
+    >
+      <FormHeading
+        eyebrow="VERIFY"
+        title="Enter the"
+        accent="code."
+        subtitle={(
+          <>
+            Sent to {formatPhone(phone)} ·{' '}
+            <AppText variant="label" accessibilityRole="link" onPress={() => router.back()} style={{ fontSize: 13, color: theme.colors.brand }}>Edit</AppText>
+          </>
+        )}
+      />
       {mockCode ? (
         <View style={{ alignSelf: 'flex-start', marginTop: theme.spacing.md, backgroundColor: theme.colors.brandSoft, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.md - theme.spacing.xs, paddingVertical: theme.spacing.xs }}>
           <AppText variant="caption" style={{ color: theme.colors.brandInk }}>Mock mode: your code is {mockCode}</AppText>
         </View>
       ) : null}
-      <View style={{ marginTop: theme.spacing.xl }}>
+      <View style={{ marginTop: 18 }}>
         <OtpInput onComplete={submit} onChange={(c) => { setCode(c); if (c) setError(null); }} error={shaking} busy={busy} />
       </View>
-      {error ? (
-        <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm, textAlign: 'center' }}>{error}</AppText>
-      ) : null}
-      <View style={{ marginTop: theme.spacing.lg }}>
-        <AppButton label="Verify" onPress={() => { void submit(code); }} loading={busy} disabled={code.length !== 6} />
-      </View>
+      {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm }}>{error}</AppText> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: !canResend }}
         onPress={canResend ? resend : undefined}
         hitSlop={theme.spacing.sm}
-        style={{ alignSelf: 'center', marginTop: theme.spacing.md + theme.spacing.xs }}
+        style={{ alignSelf: 'flex-start', marginTop: 12 }}
       >
-        <AppText variant={canResend ? 'label' : 'caption'} style={{ color: canResend ? theme.colors.brand : theme.colors.textMuted, fontSize: theme.typography.body.fontSize }}>
-          {resending ? 'Sending…' : secondsLeft > 0 ? `Resend code in 0:${String(secondsLeft).padStart(2, '0')}` : 'Resend code'}
-        </AppText>
+        {resending ? (
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Sending…</AppText>
+        ) : secondsLeft > 0 ? (
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+            Resend in <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{`0:${String(secondsLeft).padStart(2, '0')}`}</AppText>
+          </AppText>
+        ) : (
+          <AppText variant="label" style={{ color: theme.colors.brand }}>Resend code</AppText>
+        )}
       </Pressable>
     </FormScreen>
   );

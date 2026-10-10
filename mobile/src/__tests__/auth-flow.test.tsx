@@ -30,27 +30,27 @@ it('new user: login → OTP → sign-up → Choose role → customer home → si
   expect(await screen.findByText('Get started')).toBeTruthy();
   expect(screen.getByTestId('welcome-hero')).toBeTruthy();
   await fireEvent.press(screen.getByText('Get started'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(await screen.findByText('Your number.')).toBeTruthy();
 
   // (b) valid number + Continue → OTP screen with the mock banner
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845012345');
   await fireEvent.press(screen.getByText('Send code'));
-  expect(await screen.findByText('Enter the code')).toBeTruthy();
+  expect(await screen.findByText('Enter the code.')).toBeTruthy();
   expect(screen.getByText(/\+91 98450 12345/)).toBeTruthy();
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
   const code = String(banner.props.children).match(/\d{6}/)![0];
 
   // (c) entering the code auto-submits; a new number lands on sign-up, then Choose role
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), code);
-  expect(await screen.findByText('Create your account')).toBeTruthy();
-  expect(screen.queryByText('Enter the code')).toBeNull();
-  expect(screen.getByText('+91 98450 12345')).toBeTruthy(); // verified phone, read-only
-  await fireEvent.changeText(screen.getByLabelText('Full name'), 'Ananya Rao');
-  await fireEvent.press(screen.getByText('Create account'));
+  expect(await screen.findByText('What’s your name?')).toBeTruthy();
+  expect(screen.queryByText('Enter the code.')).toBeNull();
+  expect(screen.getByLabelText('Step 3 of 3')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('First name'), 'Ananya');
+  await fireEvent.press(screen.getByText('Continue'));
   expect(await screen.findByText('What brings you here?')).toBeTruthy();
 
-  // (c2) "Find artists" makes them a customer and the gate moves to the customer home
-  await fireEvent.press(screen.getByText('Find artists'));
+  // (c2) "Browse artists" makes them a customer and the gate moves to the customer home
+  await fireEvent.press(screen.getByText('Browse artists'));
   expect(await screen.findByText('Welcome, Ananya')).toBeTruthy();
   expect(screen.getByText('Customer')).toBeTruthy();
 
@@ -63,9 +63,9 @@ it('new user: login → OTP → sign-up → Choose role → customer home → si
 it('"I already have an account" also opens login, and its back button returns to welcome', async () => {
   await renderRouter('./app');
   await fireEvent.press(await screen.findByText('I already have an account'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
-  expect(screen.getByText('Mobile number')).toBeTruthy();
-  expect(screen.getByText("We'll send a 6-digit code by SMS.")).toBeTruthy();
+  expect(await screen.findByText('Your number.')).toBeTruthy();
+  expect(screen.getByText('We’ll text you a code. No passwords.')).toBeTruthy();
+  expect(screen.getByLabelText('Step 1 of 3')).toBeTruthy();
   await fireEvent.press(screen.getByLabelText('Back'));
   expect(await screen.findByText('Get started')).toBeTruthy();
 });
@@ -73,7 +73,7 @@ it('"I already have an account" also opens login, and its back button returns to
 it('wrong code shows "That code is incorrect." and stays on the OTP screen', async () => {
   await renderRouter('./app');
   await fireEvent.press(await screen.findByText('Get started'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(await screen.findByText('Your number.')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845099999'); // own phone: mock cooldown is per-number
   await fireEvent.press(screen.getByText('Send code'));
@@ -83,7 +83,7 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
 
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), wrong);
   expect(await screen.findByText('That code is incorrect.')).toBeTruthy();
-  expect(screen.getByText('Enter the code')).toBeTruthy();
+  expect(screen.getByText('Enter the code.')).toBeTruthy();
   expect(screen.queryByText(/^Welcome, /)).toBeNull();
 
   // typing the next attempt clears the stale error
@@ -94,7 +94,7 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
 it('non-auth verify failure shows the generic message and keeps the digits (no shake/clear)', async () => {
   await renderRouter('./app');
   await fireEvent.press(await screen.findByText('Get started'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(await screen.findByText('Your number.')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByTestId('phone-national'), '9845088888');
   await fireEvent.press(screen.getByText('Send code'));
@@ -116,10 +116,10 @@ it('OTP shows the resend countdown, and Edit returns to the number screen', asyn
   await fireEvent.press(await screen.findByText('Get started'));
   await fireEvent.changeText(await screen.findByTestId('phone-national'), '9845077777');
   await fireEvent.press(screen.getByText('Send code'));
-  expect(await screen.findByText('Enter the code')).toBeTruthy();
-  expect(screen.getByText(/^Resend code in 0:\d\d$/)).toBeTruthy();
+  expect(await screen.findByText('Enter the code.')).toBeTruthy();
+  expect(screen.getByText(/^Resend in 0:\d\d$/)).toBeTruthy();
   await fireEvent.press(screen.getByText('Edit'));
-  expect(await screen.findByText('Welcome back')).toBeTruthy();
+  expect(await screen.findByText('Your number.')).toBeTruthy();
 });
 
 
@@ -133,23 +133,23 @@ async function signInAs(national: string) {
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), String(banner.props.children).match(/\d{6}/)![0]);
 }
 
-it('"Get started" on the artist card onboards them as an artist', async () => {
+it('"Create your profile" on the artist card onboards them as an artist', async () => {
   await signInAs('9845066666');
-  await fireEvent.changeText(await screen.findByLabelText('Full name'), 'Riya Sen');
-  await fireEvent.press(screen.getByText('Create account'));
-  await fireEvent.press(await screen.findByText('Get started'));
+  await fireEvent.changeText(await screen.findByLabelText('First name'), 'Riya');
+  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(await screen.findByText('Create your profile'));
   expect(await screen.findByText('Welcome, Riya')).toBeTruthy();
   expect(screen.getByText('Artist')).toBeTruthy();
 });
 
 it('sign-up needs a name and rejects a malformed email', async () => {
   await signInAs('9845055555');
-  expect(await screen.findByText('Create your account')).toBeTruthy();
-  await fireEvent.press(screen.getByText('Create account'));
+  expect(await screen.findByText('What’s your name?')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
   expect(screen.queryByText('What brings you here?')).toBeNull(); // disabled without a name
-  await fireEvent.changeText(screen.getByLabelText('Full name'), 'Meera Iyer');
+  await fireEvent.changeText(screen.getByLabelText('First name'), 'Meera');
   await fireEvent.changeText(screen.getByLabelText('Email (optional)'), 'meera@');
-  await fireEvent.press(screen.getByText('Create account'));
+  await fireEvent.press(screen.getByText('Continue'));
   expect(await screen.findByText('Enter a valid email, or leave it empty.')).toBeTruthy();
 });
 

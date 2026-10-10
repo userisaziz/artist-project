@@ -1,6 +1,7 @@
 import { Animated, TextInput } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../theme/theme-provider';
+import { FieldHalo, fieldBorder } from './FieldHalo';
 
 interface Props {
   length?: number;
@@ -88,12 +89,15 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
 
   return (
     <Animated.View
-      style={{ transform: [{ translateX: shake }], gap: theme.spacing.sm, flexDirection: 'row' }}
+      style={{ transform: [{ translateX: shake }], gap: 7, flexDirection: 'row' }}
     >
       {digits.map((d, i) => (
+        <FieldHalo key={i} focused={focusedIndex === i && !error} radius={theme.radii.md} style={{ flex: 1, minWidth: 0 }}>
         <TextInput
-          key={i}
           testID={`otp-box-${i}`}
+          cursorColor={theme.colors.brand}
+          selectionColor={`${theme.colors.brand}55`}
+          selectionHandleColor={theme.colors.brand}
           ref={(el) => { inputs.current[i] = el; }}
           value={d}
           onChangeText={(v) => setDigit(i, v)}
@@ -107,18 +111,17 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
           editable={!busy}
           maxLength={length - i} // first box accepts a paste; later boxes accept the remainder
           style={{
-            flex: 1, minWidth: 0, // boxes share the row and span the same width as the button below
-            height: 57, // same height as the phone field
+            height: 56, // boxes share the row (flex on the halo) and span the same width as the button below
             borderRadius: theme.radii.md,
-            borderWidth: 1.5,
-            borderColor: error ? theme.colors.error : focusedIndex === i ? theme.colors.borderFocus : theme.colors.border,
+            ...fieldBorder(theme.colors, focusedIndex === i, error),
             backgroundColor: theme.colors.inputBackground,
             textAlign: 'center',
             fontSize: 22,
-            fontFamily: theme.typography.subtitle.fontFamily,
+            fontFamily: theme.typography.eyebrow.fontFamily, // bold digits, as designed
             color: theme.colors.textPrimary,
           }}
         />
+        </FieldHalo>
       ))}
     </Animated.View>
   );
