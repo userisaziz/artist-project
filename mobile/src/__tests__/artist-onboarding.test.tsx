@@ -122,3 +122,36 @@ it('the Add service sheet rejects a zero price before calling the server', async
   await fireEvent.press(screen.getByText('Save service'));
   expect(await screen.findByText('Enter a price above ₹0.')).toBeTruthy();
 });
+
+/** Portfolio: pick and upload `n` photos in one go; waits until `total` tiles are on screen. */
+async function addPhotos(n: number, total = n) {
+  mockPicks(n);
+  await fireEvent.press(screen.getByLabelText('Add photos'));
+  await waitFor(() => expect(screen.queryAllByLabelText(/^Portfolio photo \d+$/)).toHaveLength(total), { timeout: 5000 });
+}
+
+it('Portfolio: counts toward six, marks the cover, Make cover and Remove work, then submit lands on In review', async () => {
+  await startArtist('9845044445');
+  await fillProfile();
+  await addService();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+  expect(screen.getByText('Continue · 0 of 6 photos')).toBeTruthy();
+
+  await addPhotos(5);
+  expect(screen.getByText('Continue · 5 of 6 photos')).toBeTruthy();
+  expect(screen.getByText('Cover')).toBeTruthy();
+
+  // Long-press selects a tile; Make cover moves it first; Remove drops it.
+  await fireEvent(screen.getByLabelText('Portfolio photo 3'), 'longPress');
+  await fireEvent.press(await screen.findByText('Make cover'));
+  await waitFor(() => expect(screen.queryByText('Make cover')).toBeNull());
+  await fireEvent(screen.getByLabelText('Portfolio photo 2'), 'longPress');
+  await fireEvent.press(await screen.findByText('Remove'));
+  await waitFor(() => expect(screen.queryAllByLabelText(/^Portfolio photo \d+$/)).toHaveLength(4));
+
+  await addPhotos(2, 6);
+  await fireEvent.press(await screen.findByText('Submit for review'));
+  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+  expect(screen.getByText('Profile submitted')).toBeTruthy();
+});
