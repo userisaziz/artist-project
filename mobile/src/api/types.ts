@@ -3,14 +3,17 @@ export type UserRole = 'customer' | 'artist' | 'admin';
 export interface User {
   id: string;
   phone: string;
-  role: UserRole;
+  /** Every role the account holds (backend order: customer, artist, admin). */
+  roles: UserRole[];
+  /** Which side of the app is showing; null until Choose role. Never admin. */
+  active_role: ChosenRole | null;
   is_phone_verified: boolean;
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
   avatar_url?: string | null;
   whatsapp_booking_updates: boolean;
-  /** True once Choose role is done; the gate routes on this and `role`. */
+  /** True once Choose role is done; the gate routes on this and `active_role`. */
   is_onboarded: boolean;
 }
 

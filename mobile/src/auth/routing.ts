@@ -6,12 +6,12 @@ export type Destination = 'auth' | 'onboarding' | 'customer' | 'artist';
 /**
  * Single source of truth for routing, from the account state the server returns.
  * Signup vs choose-role is resolved one level down inside (onboarding); the root only
- * needs to know the user is mid-onboarding. Once onboarded, `role` picks the area.
+ * needs to know the user is mid-onboarding. Once onboarded, `active_role` picks the area.
  */
 export function destination(status: 'unauthenticated' | 'authenticated', user: User | null): Destination {
   if (status !== 'authenticated' || !user) return 'auth';
   if (!user.is_onboarded) return 'onboarding';
-  return user.role === 'artist' ? 'artist' : 'customer';
+  return user.active_role === 'artist' ? 'artist' : 'customer';
 }
 
 /** Concrete landing path for an area, used by the `/` hub's <Redirect>. */

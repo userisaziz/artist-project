@@ -109,13 +109,13 @@ it('refresh rotates: old token is dead after one use', async () => {
   expect(reuse.status).toBe(401);
 });
 
-it('known artist phone returns artist role (lets UI test role rendering without backend)', async () => {
+it('known artist phone returns an artist (lets UI test role rendering without backend)', async () => {
   const t = new MockTransport();
   let code = '';
   t.onOtpGenerated = (_p, c) => { code = c; };
   await requestOtp(t, '+15550009999');
   const res = await t.request({ method: 'POST', path: '/auth/otp/verify', body: { phone: '+15550009999', code } });
-  expect((res.json as { user: { role: string } }).user.role).toBe('artist');
+  expect((res.json as { user: unknown }).user).toMatchObject({ roles: ['artist'], active_role: 'artist' });
 });
 
 // ---- Account + role endpoints (same contract as backend /users/me) ----
@@ -133,6 +133,7 @@ it('a new user starts with no name and is not onboarded', async () => {
   const { user } = await signIn(new MockTransport());
   expect(user.first_name).toBeNull();
   expect(user.is_onboarded).toBe(false);
+  expect(user).toMatchObject({ roles: [], active_role: null }); // same as backend JIT registration
   expect(user.whatsapp_booking_updates).toBe(true);
 });
 
@@ -155,13 +156,19 @@ it('PATCH /users/me rejects an email another account uses (409) and a malformed 
   expect(bad).toMatchObject({ status: 422, json: { code: 'validation_error' } });
 });
 
-it('PUT /users/me/role sets the role and onboards the user, only once', async () => {
+it('PUT /users/me/role grants the role, makes it active and onboards the user', async () => {
   const t = new MockTransport();
   const { auth } = await signIn(t);
   const artist = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'artist' } });
-  expect(artist).toMatchObject({ status: 200, json: { role: 'artist', is_onboarded: true } });
-  const again = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'customer' } });
-  expect(again).toMatchObject({ status: 409, json: { code: 'conflict' } });
+  expect(artist).toMatchObject({ status: 200, json: { roles: ['artist'], active_role: 'artist', is_onboarded: true } });
+});
+
+it('PUT /users/me/role again switches sides and keeps every granted role', async () => {
+  const t = new MockTransport();
+  const { auth } = await signIn(t);
+  await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'artist' } });
+  const switched = await t.request({ method: 'PUT', path: '/users/me/role', headers: auth, body: { role: 'customer' } });
+  expect(switched).toMatchObject({ status: 200, json: { roles: ['customer', 'artist'], active_role: 'customer' } });
 });
 
 it('PUT /users/me/role rejects admin (422)', async () => {
@@ -179,5 +186,5 @@ it('account endpoints require a valid access token (401)', async () => {
 
 it('the seeded artist arrives already onboarded', async () => {
   const { user } = await signIn(new MockTransport(), '+15550009999');
-  expect(user).toMatchObject({ first_name: 'Priya', role: 'artist', is_onboarded: true });
+  expect(user).toMatchObject({ first_name: 'Priya', roles: ['artist'], active_role: 'artist', is_onboarded: true });
 });

@@ -1,11 +1,12 @@
 import type { Transport, TransportRequest, TransportResponse } from '../transport';
-import type { TokenPair, User } from '../types';
+import type { TokenPair, User, UserRole } from '../types';
 
 interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;            // same as backend schemas/auth.py
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ROLE_ORDER: UserRole[] = ['customer', 'artist', 'admin']; // backend UserOut sorts roles in this order
 const ACCOUNT_ROUTES = new Set(['PATCH /users/me', 'PUT /users/me/role']); // all need a Bearer token
 const RESEND_COOLDOWN_MS = 60_000;               // OTP_RESEND_COOLDOWN_SECONDS
 const OTP_TTL_MS = 5 * 60_000;                   // OTP_TTL_MINUTES
@@ -72,7 +73,8 @@ export class MockTransport implements Transport {
       const isArtistSeed = phone === '+15550009999';
       user = {
         id: this.fakeToken('user'), phone, is_phone_verified: true,
-        role: isArtistSeed ? 'artist' : 'customer',
+        roles: isArtistSeed ? ['artist'] : [],
+        active_role: isArtistSeed ? 'artist' : null,
         first_name: isArtistSeed ? 'Priya' : null,
         last_name: null, email: null, whatsapp_booking_updates: true,
         is_onboarded: isArtistSeed,
@@ -116,11 +118,11 @@ export class MockTransport implements Transport {
     }));
   }
 
-  /** Same rules as backend UserService.choose_role: one-time, customer or artist only. */
+  /** Same rules as backend UserService.choose_role: grant the role if new, then show that side (also "switch side"). */
   private chooseRole(user: User, role: string | undefined): TransportResponse {
     if (role !== 'customer' && role !== 'artist') return err('validation_error', 'role must be customer or artist', 422);
-    if (user.is_onboarded) return err('conflict', 'Role already chosen', 409);
-    return ok(this.save({ ...user, role, is_onboarded: true }));
+    const roles = ROLE_ORDER.filter((r) => r === role || user.roles.includes(r));
+    return ok(this.save({ ...user, roles, active_role: role, is_onboarded: true }));
   }
 
   private issuePair(user: User): TokenPair {
