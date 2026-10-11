@@ -1,4 +1,4 @@
-import { renderRouter, screen, fireEvent } from 'expo-router/testing-library';
+import { renderRouter, screen, fireEvent, waitFor } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -83,4 +83,42 @@ it('Profile Continue stays disabled until photo, name, a category and a city are
   await fireEvent.press(await screen.findByText('Makeup'));
   await fireEvent.press(screen.getByText('Continue'));
   expect(screen.queryByLabelText('Step 2 of 3')).toBeNull(); // no photo or city yet
+});
+
+/** Services: add "Bridal mehendi" (₹4,500, 180 min) through the sheet. */
+async function addService() {
+  await fireEvent.press(screen.getByText('+ Add service'));
+  await fireEvent.changeText(await screen.findByLabelText('Service name'), 'Bridal mehendi');
+  await fireEvent.changeText(screen.getByLabelText('Price (₹)'), '4500');
+  await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '180');
+  await fireEvent.press(screen.getByText('Save service'));
+  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  expect(screen.getByText('Mehendi · ₹4,500 · 3 hr')).toBeTruthy();
+}
+
+it('Services: Continue needs a service; services can be added and removed', async () => {
+  await startArtist('9845044443');
+  await fillProfile();
+  expect(screen.getByText('Set your prices')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(screen.queryByLabelText('Step 3 of 3')).toBeNull();
+
+  await addService();
+  await fireEvent.press(screen.getByLabelText('Remove Bridal mehendi'));
+  await waitFor(() => expect(screen.queryByText('Bridal mehendi')).toBeNull());
+
+  await addService();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByLabelText('Step 3 of 3')).toBeTruthy();
+});
+
+it('the Add service sheet rejects a zero price before calling the server', async () => {
+  await startArtist('9845044444');
+  await fillProfile();
+  await fireEvent.press(screen.getByText('+ Add service'));
+  await fireEvent.changeText(await screen.findByLabelText('Service name'), 'Trial');
+  await fireEvent.changeText(screen.getByLabelText('Price (₹)'), '0');
+  await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '30');
+  await fireEvent.press(screen.getByText('Save service'));
+  expect(await screen.findByText('Enter a price above ₹0.')).toBeTruthy();
 });
