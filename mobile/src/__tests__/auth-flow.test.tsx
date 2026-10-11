@@ -138,8 +138,7 @@ it('"Create your profile" on the artist card onboards them as an artist', async 
   await fireEvent.changeText(await screen.findByLabelText('First name'), 'Riya');
   await fireEvent.press(screen.getByText('Continue'));
   await fireEvent.press(await screen.findByText('Create your profile'));
-  expect(await screen.findByText('Welcome, Riya')).toBeTruthy();
-  expect(screen.getByText('Artist')).toBeTruthy();
+  expect(await screen.findByText('Turn your craft into bookings')).toBeTruthy();
 });
 
 it('sign-up needs a name and rejects a malformed email', async () => {

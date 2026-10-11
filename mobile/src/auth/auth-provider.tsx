@@ -6,6 +6,7 @@ import * as authApi from '../api/endpoints/auth';
 import * as accountApi from '../api/endpoints/account';
 import { sessionStore } from './session-store';
 import { MockTransport } from '../api/mock/transport';
+import { queryClient } from '../api/query-client';
 
 type AuthStatus = 'restoring' | 'unauthenticated' | 'authenticated';
 
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessTokenRef.current = null;
       setUser(null);
       setStatus('unauthenticated');
+      queryClient.clear(); // no cached profile survives into the next account
       await sessionStore.clear();
     },
     completeSignup: async (details) => { setUser(await accountApi.updateMe(details)); },

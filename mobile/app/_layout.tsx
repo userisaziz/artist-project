@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from '../src/auth/auth-provider';
 import { destination } from '../src/auth/routing';
 import { AppText } from '../src/components/AppText';
 import { AppButton } from '../src/components/AppButton';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../src/api/query-client';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -17,9 +19,11 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null; // a font failure falls back to system fonts rather than a stuck splash
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Gate />
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Gate />
+        </AuthProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
