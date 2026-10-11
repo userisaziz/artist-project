@@ -1,5 +1,6 @@
 import type { Transport, TransportRequest, TransportResponse } from '../transport';
 import type { TokenPair, User, UserRole } from '../types';
+import { CATEGORIES, CITIES, MockArtists } from './artist';
 
 interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
@@ -22,6 +23,10 @@ export class MockTransport implements Transport {
   /** Most recent generated code, so the OTP screen can replay it in dev. */
   lastOtp?: { phone: string; code: string };
 
+  /** Storage key → local file URI. The uploader registers picked images here so mock image URLs render them. */
+  readonly files = new Map<string, string>();
+  private artists = new MockArtists(this.files);
+
   private offset = 0; // test-only skew added to the wall clock
   private get now() { return Date.now() + this.offset; }
   private otps: MockOtp[] = [];
@@ -32,6 +37,13 @@ export class MockTransport implements Transport {
 
   advanceTime(ms: number) { this.offset += ms; }
 
+  /** Admin approve/reject stand-in, keyed by phone like the rest of the mock's test hooks. */
+  review(phone: string, decision: 'approved' | 'rejected', reason?: string) {
+    const user = this.users.get(phone);
+    if (!user) throw new Error(`No mock user ${phone}`);
+    this.artists.review(user.id, decision, reason ?? null);
+  }
+
   private fakeToken(kind: string) { return `mock-${kind}-${++this.seq}-${Math.random().toString(36).slice(2)}`; }
 
   async request({ method, path, body, headers }: TransportRequest): Promise<TransportResponse> {
@@ -39,6 +51,15 @@ export class MockTransport implements Transport {
     if (path === '/auth/otp/request') return this.otpRequest(data.phone ?? '');
     if (path === '/auth/otp/verify') return this.otpVerify(data.phone ?? '', data.code ?? '');
     if (path === '/auth/refresh') return this.refresh(data.refresh_token ?? '');
+    if (method === 'GET' && path === '/categories') return ok(CATEGORIES);
+    if (method === 'GET' && path === '/cities') return ok(CITIES);
+    if (path === '/uploads/signature' || path.startsWith('/artists/me')) {
+      const user = this.userFor(headers);
+      if (!user) return err('auth_error', 'Authentication failed', 401);
+      if (!user.roles.includes('artist')) return err('forbidden', 'Not allowed for this account', 403); // backend require_role: held roles, not the active side
+      if (path === '/uploads/signature') return this.artists.uploadTicket(user.id, data.purpose);
+      return this.artists.handle(user.id, method, path, (body ?? {}) as Record<string, unknown>);
+    }
     if (ACCOUNT_ROUTES.has(`${method} ${path}`)) {
       const user = this.userFor(headers);
       if (!user) return err('auth_error', 'Authentication failed', 401);
@@ -80,6 +101,7 @@ export class MockTransport implements Transport {
         is_onboarded: isArtistSeed,
       };
       this.users.set(phone, user);
+      if (isArtistSeed) this.artists.seedApproved(user.id);
     }
     return ok(this.issuePair(user));
   }

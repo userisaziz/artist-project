@@ -34,6 +34,84 @@ export interface TokenPair {
   user: User;
 }
 
+// ---- Artist onboarding (backend schemas/artist.py) ----
+
+export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+
+export interface Category {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+/** One bookable service on the artist's menu. Prices are integer paise (₹1 = 100). */
+export interface ServiceItem {
+  id: string;
+  category_id: number;
+  name: string;
+  price_paise: number;
+  duration_minutes: number;
+  description: string | null;
+}
+
+/** Image URLs are built by the server from the storage key; the app never builds storage URLs. */
+export interface PortfolioPhoto {
+  id: string;
+  key: string;
+  width: number;
+  height: number;
+  thumb_url: string;
+  card_url: string;
+  full_url: string;
+}
+
+export interface ArtistProfile {
+  id: string;
+  status: ArtistStatus;
+  business_name: string;
+  city: string;
+  bio: string | null;
+  photo_key: string | null;
+  photo_url: string | null;
+  categories: Category[];
+  services: ServiceItem[];
+  photos: PortfolioPhoto[]; // first = cover
+  rejection_reason: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+}
+
+export interface ProfileInput {
+  business_name: string;
+  city: string;
+  category_ids: number[];
+  photo_key: string | null;
+  bio?: string | null;
+}
+
+export interface ServiceInput {
+  category_id: number;
+  name: string;
+  price_paise: number;
+  duration_minutes: number;
+  description?: string | null;
+}
+
+export interface PhotoInput {
+  key: string;
+  width: number;
+  height: number;
+}
+
+export type UploadPurpose = 'artist_photo' | 'portfolio';
+
+/** POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API. */
+export interface UploadTicket {
+  upload_url: string;
+  fields: Record<string, string>;
+  key: string;
+}
+
 /** Every failed API call becomes an ApiError — screens switch on `.code`, never on raw status. */
 export class ApiError extends Error {
   readonly code: string;

@@ -1,4 +1,4 @@
-import type { Transport } from './transport';
+import type { Transport, TransportRequest } from './transport';
 import { RealTransport } from './real-transport';
 import { MockTransport } from './mock/transport';
 import { ApiError } from './types';
@@ -15,7 +15,7 @@ export interface SessionBridge {
 let bridge: SessionBridge | null = null;
 export function configureSessionBridge(b: SessionBridge | null) { bridge = b; }
 
-export async function request<T>(path: string, body?: unknown, opts: { auth?: boolean; method?: 'POST' | 'PATCH' | 'PUT' } = {}): Promise<T> {
+export async function request<T>(path: string, body?: unknown, opts: { auth?: boolean; method?: TransportRequest['method'] } = {}): Promise<T> {
   const call = () =>
     transport.request({
       method: opts.method ?? 'POST',
