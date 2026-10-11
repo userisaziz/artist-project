@@ -4,13 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
 import { useTheme } from '../theme/theme-provider';
 
-const STEPS = 3; // Log in → Verify → Your details
+const AUTH_STEPS = 3; // Log in → Verify → Your details (artist onboarding passes its own count)
 
 /**
  * Atelier form frame (Log in, code, sign-up): blush page, round back button beside a 3-step progress bar,
  * keyboard-safe scroll body, and an optional footer (the primary button) pinned above the keyboard.
  */
-export function FormScreen({ onBack, step, footer, children }: { onBack?: () => void; step?: number; footer?: ReactNode; children: ReactNode }) {
+export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children }: { onBack?: () => void; step?: number; steps?: number; footer?: ReactNode; children: ReactNode }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const gutter = theme.spacing.md + theme.spacing.xs;
@@ -33,8 +33,8 @@ export function FormScreen({ onBack, step, footer, children }: { onBack?: () => 
               </Pressable>
             ) : null}
             {step ? (
-              <View style={{ flex: 1, flexDirection: 'row', gap: 6 }} accessibilityLabel={`Step ${step} of ${STEPS}`}>
-                {Array.from({ length: STEPS }, (_, i) => (
+              <View style={{ flex: 1, flexDirection: 'row', gap: 6 }} accessibilityLabel={`Step ${step} of ${steps}`}>
+                {Array.from({ length: steps }, (_, i) => (
                   <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < step ? theme.colors.brand : theme.colors.progressTrack }} />
                 ))}
               </View>
