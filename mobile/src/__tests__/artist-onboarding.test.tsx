@@ -1,6 +1,9 @@
 import { renderRouter, screen, fireEvent, waitFor } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
+import { transport } from '../api/client';
+import { MockTransport } from '../api/mock/transport';
+import { queryClient } from '../api/query-client';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();
@@ -154,4 +157,51 @@ it('Portfolio: counts toward six, marks the cover, Make cover and Remove work, t
   await fireEvent.press(await screen.findByText('Submit for review'));
   expect(await screen.findByText('Your profile is in review')).toBeTruthy();
   expect(screen.getByText('Profile submitted')).toBeTruthy();
+});
+
+const mock = transport as MockTransport;
+
+/** Runs the whole flow to In review for a fresh number. */
+async function submitFor(national: string) {
+  await startArtist(national);
+  await fillProfile();
+  await addService();
+  await fireEvent.press(screen.getByText('Continue'));
+  await addPhotos(6);
+  await fireEvent.press(await screen.findByText('Submit for review'));
+  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+}
+
+it('a rejected profile shows the reason, and Edit and resubmit goes back through the steps', async () => {
+  await submitFor('9845044446');
+  mock.review('+919845044446', 'rejected', 'Portfolio photos are blurry');
+  await queryClient.invalidateQueries({ queryKey: ['artist'] });
+  expect(await screen.findByText('Portfolio photos are blurry')).toBeTruthy();
+  expect(screen.getByText('Your profile needs a few changes')).toBeTruthy();
+
+  await fireEvent.press(screen.getByText('Edit and resubmit'));
+  expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
+  expect(screen.getByLabelText('Business name').props.value).toBe('Ayesha Mehendi Art'); // prefilled from the saved profile
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(await screen.findByText('Submit for review'));
+  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+});
+
+it('approval moves the artist to the home', async () => {
+  await submitFor('9845044447');
+  mock.review('+919845044447', 'approved');
+  await queryClient.invalidateQueries({ queryKey: ['artist'] });
+  expect(await screen.findByText('Welcome, Ayesha')).toBeTruthy();
+});
+
+it('quitting mid-way resumes at the first incomplete step', async () => {
+  await startArtist('9845044448');
+  await fillProfile(); // profile saved, no services yet
+  // Cold restart: same stored session, empty cache.
+  await screen.unmount();
+  queryClient.clear();
+  await renderRouter('./app');
+  expect(await screen.findByText('Set your prices')).toBeTruthy();
 });

@@ -23,6 +23,14 @@ EXPO_PUBLIC_API_URL=http://localhost:8000 # iOS simulator
 
 In mock mode the OTP screen shows "Mock mode: your code is ...". `+15550009999` signs in as an already-onboarded artist. Any other number goes through sign-up and Choose role.
 
+### Artist onboarding in mock mode
+
+Choose role → "Create your profile" runs Intro → Profile → Services → Portfolio → In review entirely
+against `MockTransport` (categories are the design's six; picked photos are kept as local URIs).
+`+1 555 000 9999` is a seeded, already-approved artist. Tests approve or reject with
+`(transport as MockTransport).review(phone, 'approved' | 'rejected', reason)`.
+Against a real backend with `STORAGE_PROVIDER=fake`, uploads are skipped and photos show as broken images.
+
 Backend integration walkthrough: start `uvicorn app.main:app --reload` in `backend/`, read OTPs from the server console (dev SMS provider), set `EXPO_PUBLIC_USE_MOCKS=false`, restart Metro with `-c` (env is baked at bundle time).
 
 Testing against the backend on a physical phone: `localhost` is the phone itself, so set `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8000` and bind the server to all interfaces with `uvicorn app.main:app --reload --host 0.0.0.0`.
