@@ -1,6 +1,8 @@
 import { renderRouter, screen, waitFor, fireEvent } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
+import { act } from 'react';
 import { transport } from '../api/client';
+import { queryClient } from '../api/query-client';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();
@@ -163,4 +165,15 @@ it('a returning artist skips sign-up and role and lands on the artist home', asy
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), String(banner.props.children).match(/\d{6}/)![0]);
   expect(await screen.findByText('Welcome, Priya')).toBeTruthy();
   expect(screen.getByText('Artist')).toBeTruthy();
+
+  // a failed background refetch keeps the cached profile and the artist area mounted (no error screen)
+  const fail = jest.spyOn(transport, 'request').mockRejectedValue(new Error('offline'));
+  queryClient.setDefaultOptions({ queries: { retry: false, staleTime: 30_000 } }); // skip the retry delay
+  void queryClient.refetchQueries({ queryKey: ['artist', 'me'] });
+  await waitFor(() => expect(fail).toHaveBeenCalled());
+  await waitFor(() => expect(queryClient.getQueryCache().findAll({ queryKey: ['artist', 'me'] })[0]?.state.status).toBe('error'), { timeout: 3000 });
+  await act(async () => { jest.advanceTimersByTime(10); }); // TanStack batches notifications on a timer; flush it so the error state renders
+  expect(screen.getByText('Welcome, Priya')).toBeTruthy();
+  expect(screen.queryByText('Try again')).toBeNull();
+  fail.mockRestore();
 });

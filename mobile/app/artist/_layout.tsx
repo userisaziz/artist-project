@@ -22,7 +22,7 @@ export default function ArtistLayout() {
   const flow = useMemo(() => ({ editing, startEditing: () => setEditing(true) }), [editing]);
 
   if (profile.isPending) return <View style={{ flex: 1, backgroundColor: theme.colors.canvas }} />;
-  if (profile.isError) {
+  if (profile.isError && profile.data === undefined) { // a failed background refetch keeps the cached profile and the mounted stack
     return (
       <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg, padding: theme.spacing.lg, backgroundColor: theme.colors.canvas }}>
         <AppText variant="body" style={{ color: theme.colors.textPrimary, textAlign: 'center' }}>{errorMessage(profile.error)}</AppText>
