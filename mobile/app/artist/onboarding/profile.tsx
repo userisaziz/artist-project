@@ -17,6 +17,17 @@ import { errorMessage } from '../../../src/api/error-message';
 
 const MAX_CATEGORIES = 6; // backend ProfileIn.category_ids max_length
 
+/** A catalog list that failed to load or came back empty: say so, and let the user retry instead of a silent dead end. */
+function CatalogRetry({ message, isError, onRetry }: { message: string; isError: boolean; onRetry: () => void }) {
+  const theme = useTheme();
+  return (
+    <View style={{ marginTop: 8, alignItems: 'flex-start', gap: 8 }}>
+      <AppText variant="caption" style={{ color: isError ? theme.colors.error : theme.colors.textMuted }}>{message}</AppText>
+      <AppButton label="Try again" variant="secondary" onPress={onRetry} />
+    </View>
+  );
+}
+
 // Atelier hi-fi "onbProfile" (step 1 of 3): photo, business name, categories and city. Continue saves the draft.
 export default function ProfileStep() {
   const theme = useTheme();
@@ -102,14 +113,22 @@ export default function ProfileStep() {
       </View>
 
       <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: 16 }}>What do you offer?</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        {(categories.data ?? []).map((c) => (
-          <Chip key={c.id} label={c.name} selected={picked.includes(c.id)} onPress={() => toggle(c.id)} />
-        ))}
-      </View>
+      {categories.isError || categories.data?.length === 0 ? (
+        <CatalogRetry message={categories.isError ? errorMessage(categories.error) : 'No categories are available yet.'} isError={categories.isError} onRetry={() => { void categories.refetch(); }} />
+      ) : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+          {(categories.data ?? []).map((c) => (
+            <Chip key={c.id} label={c.name} selected={picked.includes(c.id)} onPress={() => toggle(c.id)} />
+          ))}
+        </View>
+      )}
 
       <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: 16, marginBottom: 8 }}>City</AppText>
-      <CityField value={city} cities={cities.data ?? []} onChange={setCity} />
+      {cities.isError || cities.data?.length === 0 ? (
+        <CatalogRetry message={cities.isError ? errorMessage(cities.error) : 'No cities are available yet.'} isError={cities.isError} onRetry={() => { void cities.refetch(); }} />
+      ) : (
+        <CityField value={city} cities={cities.data ?? []} onChange={setCity} />
+      )}
 
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
     </FormScreen>

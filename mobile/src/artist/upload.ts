@@ -9,6 +9,7 @@ import * as artistApi from '../api/endpoints/artist';
 
 const MAX_EDGE = 2048; // spec §2: longest side
 const QUALITY = 0.8;   // spec §2: JPEG quality
+const UPLOAD_TIMEOUT_MS = 60_000; // uploads carry a whole photo, so they get longer than an API call
 // Backend STORAGE_PROVIDER=fake hands out this URL; there is nothing to post to, so dev skips the upload.
 const FAKE_STORAGE = 'https://fake.storage/';
 
@@ -39,15 +40,19 @@ async function shrink({ uri, width, height }: PickedImage): Promise<PickedImage>
 
 /** Multipart POST of the signed fields plus the file. Failures become ApiErrors so screens can show them. */
 export async function postToStorage(ticket: UploadTicket, uri: string): Promise<void> {
-  const form = new FormData();
-  for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
-  if (Platform.OS === 'web') form.append('file', await (await fetch(uri)).blob(), 'photo.jpg');
-  else form.append('file', { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob); // React Native's file part
-  let res: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   try {
-    res = await fetch(ticket.upload_url, { method: 'POST', body: form });
-  } catch {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
+    if (Platform.OS === 'web') form.append('file', await (await fetch(uri, { signal: controller.signal })).blob(), 'photo.jpg');
+    else form.append('file', { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob); // React Native's file part
+    const res = await fetch(ticket.upload_url, { method: 'POST', body: form, signal: controller.signal });
+    if (!res.ok) throw new ApiError('upload_failed', 'Couldn’t upload that photo. Please try again.', res.status);
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
     throw new ApiError('network_error', 'Network unreachable. Check your connection.', 0);
+  } finally {
+    clearTimeout(timer);
   }
-  if (!res.ok) throw new ApiError('upload_failed', 'Couldn’t upload that photo. Please try again.', res.status);
 }

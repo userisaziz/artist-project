@@ -31,6 +31,8 @@ against `MockTransport` (categories are the design's six; picked photos are kept
 `(transport as MockTransport).review(phone, 'approved' | 'rejected', reason)`.
 Against a real backend with `STORAGE_PROVIDER=fake`, uploads are skipped and photos show as broken images.
 
+`expo-image-picker` and `expo-image-manipulator` are native modules: an existing dev client or the local `android/` prebuild must be rebuilt (`npx expo prebuild --clean`, then `npx expo run:android` / `run:ios`). Expo Go works as is.
+
 Backend integration walkthrough: start `uvicorn app.main:app --reload` in `backend/`, read OTPs from the server console (dev SMS provider), set `EXPO_PUBLIC_USE_MOCKS=false`, restart Metro with `-c` (env is baked at bundle time).
 
 Testing against the backend on a physical phone: `localhost` is the phone itself, so set `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8000` and bind the server to all interfaces with `uvicorn app.main:app --reload --host 0.0.0.0`.

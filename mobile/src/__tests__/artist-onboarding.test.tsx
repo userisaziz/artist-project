@@ -205,3 +205,23 @@ it('quitting mid-way resumes at the first incomplete step', async () => {
   await renderRouter('./app');
   expect(await screen.findByText('Set your prices')).toBeTruthy();
 });
+
+it('a failed categories load shows the error with Try again, which recovers', async () => {
+  await startArtist('9845044449');
+  queryClient.removeQueries({ queryKey: ['catalog'] }); // cached app-wide; make the failure actually fetch
+  queryClient.setDefaultOptions({ queries: { retry: false, staleTime: 30_000 } }); // skip the retry delay
+  const real = transport.request.bind(transport);
+  const spy = jest.spyOn(transport, 'request').mockImplementation((r) =>
+    r.path === '/categories' ? Promise.resolve({ status: 500, json: null }) : real(r));
+  try {
+    await fireEvent.press(screen.getByText('Let’s get started'));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
+    expect(screen.queryByText('Mehendi')).toBeNull();
+    spy.mockRestore();
+    await fireEvent.press(screen.getAllByText('Try again')[0]);
+    expect(await screen.findByText('Mehendi')).toBeTruthy();
+  } finally {
+    spy.mockRestore();
+    queryClient.setDefaultOptions({ queries: { retry: 1, staleTime: 30_000 } });
+  }
+});

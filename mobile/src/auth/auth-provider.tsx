@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessTokenRef.current = null;
       setUser(null);
       setStatus('unauthenticated');
+      queryClient.clear();
       // Deliberate swallow: storage may be what just failed; state is already unauthenticated, so a failed clear changes nothing.
       await sessionStore.clear().catch(() => {});
       return null;

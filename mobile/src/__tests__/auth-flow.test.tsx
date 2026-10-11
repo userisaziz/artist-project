@@ -168,12 +168,16 @@ it('a returning artist skips sign-up and role and lands on the artist home', asy
 
   // a failed background refetch keeps the cached profile and the artist area mounted (no error screen)
   const fail = jest.spyOn(transport, 'request').mockRejectedValue(new Error('offline'));
-  queryClient.setDefaultOptions({ queries: { retry: false, staleTime: 30_000 } }); // skip the retry delay
-  void queryClient.refetchQueries({ queryKey: ['artist', 'me'] });
-  await waitFor(() => expect(fail).toHaveBeenCalled());
-  await waitFor(() => expect(queryClient.getQueryCache().findAll({ queryKey: ['artist', 'me'] })[0]?.state.status).toBe('error'), { timeout: 3000 });
-  await act(async () => { jest.advanceTimersByTime(10); }); // TanStack batches notifications on a timer; flush it so the error state renders
-  expect(screen.getByText('Welcome, Priya')).toBeTruthy();
-  expect(screen.queryByText('Try again')).toBeNull();
-  fail.mockRestore();
+  try {
+    queryClient.setDefaultOptions({ queries: { retry: false, staleTime: 30_000 } }); // skip the retry delay
+    void queryClient.refetchQueries({ queryKey: ['artist', 'me'] });
+    await waitFor(() => expect(fail).toHaveBeenCalled());
+    await waitFor(() => expect(queryClient.getQueryCache().findAll({ queryKey: ['artist', 'me'] })[0]?.state.status).toBe('error'), { timeout: 3000 });
+    await act(async () => { jest.advanceTimersByTime(10); }); // TanStack batches notifications on a timer; flush it so the error state renders
+    expect(screen.getByText('Welcome, Priya')).toBeTruthy();
+    expect(screen.queryByText('Try again')).toBeNull();
+  } finally {
+    fail.mockRestore();
+    queryClient.setDefaultOptions({ queries: { retry: 1, staleTime: 30_000 } });
+  }
 });

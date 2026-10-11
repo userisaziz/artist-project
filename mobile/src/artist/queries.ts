@@ -19,6 +19,7 @@ export function useArtistWrite() {
   const client = useQueryClient();
   return useCallback(async (write: () => Promise<ArtistProfile>) => {
     const profile = await write();
+    await client.cancelQueries({ queryKey: artistKey(user?.id) }); // an in-flight GET must not land on top of this write
     client.setQueryData(artistKey(user?.id), profile);
     return profile;
   }, [client, user?.id]);
