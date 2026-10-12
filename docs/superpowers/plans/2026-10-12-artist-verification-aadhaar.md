@@ -12,8 +12,8 @@
 
 **Delivery in parts.** You asked to be kept involved at each stage, so the plan comes in three parts:
 - **Part 1 (backend)** is written in full below, and is built (branch `feat/artist-verification`).
-- **Part 2 (mobile)** is written in full below, against the backend as built.
-- **Part 3 (admin)** is written after Part 2 is built and reviewed, so you see each stage's result before the next one is planned.
+- **Part 2 (mobile)** is written in full below, against the backend as built, and is built.
+- **Part 3 (admin)** is written in full below, after Part 2 was built, against the backend as built (`GET /admin/artists/{id}` with `kyc`, `POST /admin/artists/{id}/kyc/reveal`) and the admin app as it is.
 
 ## Global Constraints
 
@@ -66,6 +66,12 @@
 12. *(Part 2)* The mock stores `{last4, front_key, back_key}` per profile and never the full number. It has no storage, so "delete replaced files" has nothing to mirror. The seeded approved artist (`+15550009999`) gets last 4 `2346`.
 13. *(Part 2)* The mock's "submit requires `kyc`" rule lands in **M2**, together with the Identity screen. If it landed in M1, the existing integration tests (which submit from Portfolio) would fail between the two tasks.
 14. *(Part 2)* Portfolio's Continue has no loading state, because it only navigates now. `busy` still covers Make cover and Remove.
+15. *(Part 3)* Reveal is a plain `revealAadhaar(id)` call (exported from `queries.ts` next to the hooks), and its result is kept in the Identity card's `useState`. It is deliberately **not** a `useQuery` (query cache) **nor** a `useMutation`, because the mutation cache keeps `data` for `gcTime` after the page unmounts. The card is rendered with `key={a.id}`, so the number can't carry over if the route param changes to another artist without an unmount.
+16. *(Part 3)* The revealed number is shown grouped (`2341 2341 2346`), and the Reveal button then disappears. There is no "Hide", because the spec asks for none: the number goes when the admin leaves the page. A failed reveal shows a toast (the `ApiError` message, like Approve/Reject) and the number stays masked.
+17. *(Part 3)* The existing full-size dialog is reused by changing its state from `Photo | null` to `Viewing | null`, where `Viewing = { title, url }`. Portfolio photos pass `{ title: 'Portfolio photo', url: p.full_url }`, and the card sides pass `{ title: 'Aadhaar front' | 'Aadhaar back', url }`. The title stays `sr-only`. The backend gives one private URL per side, so the thumbnail and the dialog use the same URL. The dialog image has no `onError` of its own.
+18. *(Part 3)* "Refetch once" is a `useRef` flag per Identity card mount, so front and back failing in the same tick still cause exactly one `artist.refetch()`. Later failures do nothing, so a broken image can't loop. Reloading the page starts over.
+19. *(Part 3)* Labels, for tests and screen readers: the card title is `Identity (Aadhaar)`; the images have alt text `Aadhaar front` / `Aadhaar back`, inside buttons labelled `Open Aadhaar front` / `Open Aadhaar back`, with the visible captions `Front` / `Back`. The button reads `Reveal` (`Revealing…` while the call is in flight).
+20. *(Part 3)* The tests go in `src/App.test.tsx`, the admin app's only test file, and use its in-memory `fetch` backend. The `artist()` fixture gains `kyc: KYC` by default, so the existing review tests also render the card.
 
 ## File structure (Part 1)
 
@@ -1841,7 +1847,338 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ## Part 3 (admin)
 
-Written after Part 2 is built and reviewed, against the API as it ships. Its scope is fixed by spec §3: the "Identity (Aadhaar)" card at the top of `ArtistReviewPage.tsx` shows the masked number with a Reveal button that is never cached, and a "Reveals are logged." caption. It shows front and back images that open in the existing image dialog, and refetches the detail once when an image link has expired. When there is no KYC row, the card shows "No Aadhaar on file" and doesn't block Approve. Vitest tests cover the masked number and images, the Reveal `POST`, and the null-kyc state.
+Implements spec §3 exactly, against the backend as built:
+- `GET /api/v1/admin/artists/{id}` returns `kyc: {aadhaar_masked, front_url, back_url} | null` (`AdminKycOut`). Both URLs are private links valid for 300 s. Approve and Reject return the same `AdminArtistDetail`, so they also carry fresh links.
+- `POST /api/v1/admin/artists/{id}/kyc/reveal` returns `{aadhaar_number}` (`RevealOut`) with `Cache-Control: no-store`. It answers `404` when there is no KYC row and `403` for non-admins.
+
+### Global Constraints (Part 3)
+
+- **Commands:** run from `admin/`.
+  - Tests: `npm test` (`vitest run`): 6 pass before Part 3, and 10 after A1.
+  - Types: `npm run typecheck` (`tsc -b`, which also checks `src/App.test.tsx`).
+  - Lint: `npm run lint` (`oxlint`). Before Part 3 it reports 0 errors and 3 warnings, all `only-export-components` in `src/components/ui/{badge,button,tabs}.tsx`. Part 3 adds none.
+- **The full number never enters a cache.** It isn't in the query cache, the mutation cache, storage or the console. It lives only in the Identity card's component state (Decision 15).
+- **Approve, Reject and the queue are unchanged.** `ArtistQueuePage.tsx` and `useReviewArtist` are not touched, and Approve is never gated on `kyc`.
+- **Copy (exact):** `Identity (Aadhaar)`, `Reveal`, `Reveals are logged.`, `No Aadhaar on file`, `Front`, `Back`.
+- **Test Aadhaar numbers** are generated only: `234123412346`, masked `•••• •••• 2346`, shown revealed as `2341 2341 2346`.
+- **Commits:** every commit message ends with a blank line and `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never `git commit --amend`.
+
+### File structure (Part 3)
+
+| File | Responsibility |
+|---|---|
+| `src/lib/types.ts` (modify) | `AdminKyc`; `ArtistDetail.kyc` |
+| `src/features/artists/queries.ts` (modify) | `revealAadhaar(id)`: a plain call, not a hook |
+| `src/features/artists/ArtistReviewPage.tsx` (modify) | `IdentityCard` above Services; the image dialog shows `Viewing {title, url}` |
+| `src/App.test.tsx` (modify) | `KYC` fixture, the fake reveal route, and 4 tests |
+
+---
+
+### Task A1: Identity (Aadhaar) card on the artist review page
+
+**Files:**
+- Modify: `src/lib/types.ts`, `src/features/artists/queries.ts`, `src/features/artists/ArtistReviewPage.tsx`
+- Test: `src/App.test.tsx`
+
+**Interfaces:**
+- Consumes: `AdminArtistDetail.kyc` and `POST /admin/artists/{id}/kyc/reveal` (B4); `api` and `ApiError` (`src/lib/api.ts`); `useArtist(id).refetch`.
+- Produces:
+  - `interface AdminKyc { aadhaar_masked: string; front_url: string; back_url: string }`;
+  - `ArtistDetail.kyc: AdminKyc | null`;
+  - `revealAadhaar(id: string): Promise<{ aadhaar_number: string }>`;
+  - `IdentityCard` (file-local in `ArtistReviewPage.tsx`) and `type Viewing = { title: string; url: string }`.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `src/App.test.tsx`:
+
+1. Change the first import to add `fireEvent`, and add `AdminKyc` to the type import:
+
+```tsx
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+```
+
+```tsx
+import type { AdminCategory, AdminKyc, ArtistDetail, User } from './lib/types'
+```
+
+2. Add the fixture directly above `function artist(`:
+
+```tsx
+// Generated Aadhaar number (not a real person's): 234123412346, so the masked form ends 2346.
+const KYC: AdminKyc = {
+  aadhaar_masked: '•••• •••• 2346',
+  front_url: 'https://fake.storage/private/artists/u-1/aadhaar/front.jpg?expires_at=1',
+  back_url: 'https://fake.storage/private/artists/u-1/aadhaar/back.jpg?expires_at=1',
+}
+```
+
+3. In `artist()`, change `photos: [], rejection_reason: null,` to `photos: [], kyc: KYC, rejection_reason: null,`.
+
+4. In `route()`, add this directly above the final `return json(404, …)`:
+
+```tsx
+  if (method === 'POST' && path === `/admin/artists/${db.artist.id}/kyc/reveal`) {
+    return db.artist.kyc ? json(200, { aadhaar_number: '234123412346' }) : json(404, { code: 'not_found', message: 'No Aadhaar on file' })
+  }
+```
+
+5. Append:
+
+```tsx
+it('shows the masked Aadhaar above Services, and both card photos open full size', async () => {
+  const user = userEvent.setup()
+  renderSignedIn('/artists/a-1')
+  expect(await screen.findByText('•••• •••• 2346')).toBeInTheDocument()
+  expect(screen.getByText('Reveals are logged.')).toBeInTheDocument()
+  expect(screen.getByText('Identity (Aadhaar)').compareDocumentPosition(screen.getByText('Services · 1')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.getByAltText('Aadhaar front')).toHaveAttribute('src', KYC.front_url)
+  expect(screen.getByAltText('Aadhaar back')).toHaveAttribute('src', KYC.back_url)
+
+  await user.click(screen.getByRole('button', { name: 'Open Aadhaar back' }))
+  const dialog = await screen.findByRole('dialog')
+  expect(dialog.querySelector('img')).toHaveAttribute('src', KYC.back_url)
+})
+
+it('Reveal POSTs to the reveal endpoint and shows the full number without caching it', async () => {
+  const user = userEvent.setup()
+  const queryClient = createQueryClient()
+  localStorage.setItem('atelier-admin.refresh', 'refresh')
+  window.history.pushState({}, '', '/artists/a-1')
+  render(<App queryClient={queryClient} />)
+
+  await user.click(await screen.findByRole('button', { name: 'Reveal' }))
+  expect(await screen.findByText('2341 2341 2346')).toBeInTheDocument()
+  expect(screen.queryByText('•••• •••• 2346')).not.toBeInTheDocument()
+  expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/kyc/reveal', body: undefined })
+  const cached = [...queryClient.getQueryCache().getAll(), ...queryClient.getMutationCache().getAll()].map((entry) => entry.state.data)
+  expect(JSON.stringify(cached)).not.toContain('234123412346')
+})
+
+it('says "No Aadhaar on file" when there is none, and Approve still works', async () => {
+  db.artist = artist({ kyc: null })
+  const user = userEvent.setup()
+  renderSignedIn('/artists/a-1')
+  expect(await screen.findByText('No Aadhaar on file')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reveal' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Approve' }))
+  expect(await screen.findByText('Approved')).toBeInTheDocument()
+})
+
+it('refetches the detail once when the card links have expired', async () => {
+  const detailGets = () => calls.filter((c) => c.method === 'GET' && c.path === '/admin/artists/a-1').length
+  renderSignedIn('/artists/a-1')
+  await screen.findByAltText('Aadhaar front')
+  expect(detailGets()).toBe(1)
+
+  const fresh = { ...KYC, front_url: KYC.front_url.replace('expires_at=1', 'expires_at=2'), back_url: KYC.back_url.replace('expires_at=1', 'expires_at=2') }
+  db.artist = artist({ kyc: fresh })
+  fireEvent.error(screen.getByAltText('Aadhaar front'))
+  fireEvent.error(screen.getByAltText('Aadhaar back')) // both expire together: still one refetch
+  await waitFor(() => expect(screen.getByAltText('Aadhaar front')).toHaveAttribute('src', fresh.front_url))
+  expect(screen.getByAltText('Aadhaar back')).toHaveAttribute('src', fresh.back_url)
+
+  fireEvent.error(screen.getByAltText('Aadhaar front')) // broken again: no second refetch, no loop
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(detailGets()).toBe(2)
+})
+```
+
+(jsdom never loads images, so `fireEvent.error` stands in for an expired link. The dialog's image has `alt=""`, so it has no `img` role, and the test reads it with `querySelector`.)
+
+- [ ] **Step 2: Run them to confirm they fail**
+
+Run: `npm test`
+Expected: FAIL, with **4 failed and 6 passed (10)**. The four new tests fail because there is no `•••• •••• 2346`, `No Aadhaar on file` or `Aadhaar front` on the page, and no `Reveal` button. The six existing tests still pass (Vitest doesn't type-check, so `kyc` on the fixture is harmless at runtime).
+
+- [ ] **Step 3: Add the type and the reveal call**
+
+In `src/lib/types.ts`, add this after `interface Photo { … }`:
+
+```ts
+/** Admin-only view of the artist's Aadhaar: the number is masked, and both links are private and expire after 5 minutes. */
+export interface AdminKyc {
+  aadhaar_masked: string // "•••• •••• 2346"
+  front_url: string
+  back_url: string
+}
+```
+
+In `ArtistDetail`, add this after `photos: Photo[]`:
+
+```ts
+  kyc: AdminKyc | null // null: submitted before Aadhaar verification existed
+```
+
+In `src/features/artists/queries.ts`, append (Decision 15):
+
+```ts
+/** Logged by the server. Not a query or a mutation on purpose: the full number lives only in the caller's component state. */
+export function revealAadhaar(id: string) {
+  return api<{ aadhaar_number: string }>(`/admin/artists/${id}/kyc/reveal`, { method: 'POST' })
+}
+```
+
+- [ ] **Step 4: Add the Identity card and share the image dialog**
+
+In `src/features/artists/ArtistReviewPage.tsx`:
+
+1. Change these imports:
+
+```tsx
+import { useRef, useState } from 'react'
+```
+
+```tsx
+import { ArrowLeft, Check, Eye, X } from 'lucide-react'
+```
+
+```tsx
+import type { AdminKyc, ArtistStatus } from '@/lib/types'
+import { revealAadhaar, useArtist, useReviewArtist } from './queries'
+```
+
+(`Photo` is no longer imported: the dialog state below replaces its only use.)
+
+2. Add this above `const STATUS`:
+
+```tsx
+/** What the full-size image dialog shows: a portfolio photo or one side of the Aadhaar card. */
+type Viewing = { title: string; url: string }
+```
+
+3. Change `const [viewing, setViewing] = useState<Photo | null>(null)` to:
+
+```tsx
+  const [viewing, setViewing] = useState<Viewing | null>(null)
+```
+
+4. At the top of the main column, directly inside `<div className="space-y-6">` and above the Services `<Card>`, add:
+
+```tsx
+          <IdentityCard key={a.id} artistId={a.id} kyc={a.kyc} onView={setViewing} onExpired={() => { void artist.refetch() }} />
+
+```
+
+5. In the portfolio grid, change the button's `onClick={() => setViewing(p)}` to:
+
+```tsx
+onClick={() => setViewing({ title: 'Portfolio photo', url: p.full_url })}
+```
+
+6. In the image dialog (the second `<Dialog>`), replace its title and image lines with:
+
+```tsx
+          <DialogTitle className="sr-only">{viewing?.title}</DialogTitle>
+          {viewing && <img src={viewing.url} alt="" className="max-h-[80vh] w-full rounded-md object-contain" />}
+```
+
+7. Add the card above `function Row(`:
+
+```tsx
+/**
+ * Spec §3.1. The full number comes from a plain call held in this component's state (never the query or
+ * mutation cache), so it disappears when the admin leaves the page. Keyed by artist id by the caller.
+ */
+function IdentityCard({ artistId, kyc, onView, onExpired }: {
+  artistId: string
+  kyc: AdminKyc | null
+  onView: (image: Viewing) => void
+  onExpired: () => void
+}) {
+  const [revealed, setRevealed] = useState<string | null>(null)
+  const [revealing, setRevealing] = useState(false)
+  const refreshed = useRef(false) // a ref, so front and back failing in the same tick still refetch only once
+
+  const reveal = async () => {
+    setRevealing(true)
+    try {
+      setRevealed((await revealAadhaar(artistId)).aadhaar_number)
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+    } finally {
+      setRevealing(false)
+    }
+  }
+
+  // The card links expire after 5 minutes. On the first broken image, refetch the detail once for fresh links.
+  const expired = () => {
+    if (refreshed.current) return
+    refreshed.current = true
+    onExpired()
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Identity (Aadhaar)</CardTitle></CardHeader>
+      <CardContent>
+        {!kyc ? (
+          <p className="text-sm text-muted-foreground">No Aadhaar on file</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-semibold tracking-wide tabular-nums">
+                  {revealed ? revealed.replace(/(\d{4})(?=\d)/g, '$1 ') : kyc.aadhaar_masked}
+                </span>
+                {!revealed && (
+                  <Button variant="outline" size="sm" onClick={() => { void reveal() }} disabled={revealing}>
+                    <Eye /> {revealing ? 'Revealing…' : 'Reveal'}
+                  </Button>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Reveals are logged.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {([['Front', kyc.front_url], ['Back', kyc.back_url]] as const).map(([side, url]) => (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => onView({ title: `Aadhaar ${side.toLowerCase()}`, url })}
+                  className="overflow-hidden rounded-lg bg-muted text-left"
+                  aria-label={`Open Aadhaar ${side.toLowerCase()}`}
+                >
+                  <img src={url} alt={`Aadhaar ${side.toLowerCase()}`} onError={expired} className="aspect-[3/2] w-full object-cover" />
+                  <span className="block px-2 py-1 text-xs font-medium text-muted-foreground">{side}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+Approve, Reject, the header and the side column are unchanged.
+
+- [ ] **Step 5: Run tests, types and lint**
+
+Run: `npm test && npm run typecheck && npm run lint`
+Expected:
+- Vitest: all pass, **10 tests** (6 plus 4 new).
+- `tsc -b`: no errors. Before Step 3 it fails on the fixture's `kyc`; that is how you know `ArtistDetail.kyc` is required.
+- oxlint: 0 errors, and the same 3 pre-existing `only-export-components` warnings in `src/components/ui/`. Nothing in `src/features/artists/` or `src/App.test.tsx`.
+
+If the "refetches once" test fails with `detailGets()` at 3, the flag is in `useState` instead of `useRef`: both `onError` handlers then read the stale `false`. Use the ref; don't loosen the assertion.
+
+- [ ] **Step 6: Check by hand (optional, needs the backend running with a submitted artist)**
+
+Run: `npm run dev`, sign in as an admin, and open a pending artist.
+Expected:
+- The Identity (Aadhaar) card is first in the main column, with the masked number, a Reveal button, "Reveals are logged." and both card photos.
+- Reveal shows the 12 digits, and the network tab shows a `POST …/kyc/reveal` answered with `Cache-Control: no-store`.
+- In DevTools → Network, block the URL pattern `*aadhaar*` and reload the page. Both card images fail, exactly one extra `GET /admin/artists/{id}` follows, and nothing loops.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/lib/types.ts src/features/artists/queries.ts src/features/artists/ArtistReviewPage.tsx src/App.test.tsx
+git commit -m "feat(admin): Identity (Aadhaar) card with logged Reveal on artist review
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
 
 ## Self-review notes (Part 1)
 
@@ -1885,3 +2222,28 @@ Written after Part 2 is built and reviewed, against the API as it ships. Its sco
 - **Not in Part 2 (spec scope):**
   - The backend's `KycIn.aadhaar_number` `max_length=20` produces FastAPI's `{detail}` shape rather than `{code, message}`. The app can't reach it, because it sends at most 12 digits.
   - The mock doesn't delete replaced card files, because it has no storage to delete from.
+
+## Self-review notes (Part 3)
+
+- **Spec coverage:**
+  - §3.1: the "Identity (Aadhaar)" card at the top of the main column, above Services → A1 step 4.4 (`IdentityCard` first in the `space-y-6` column).
+  - The masked number with Reveal, shown only while on the page and never cached → `revealAadhaar` (step 3) held in `IdentityCard` state (step 4.7), keyed by artist id (Decisions 15 and 16).
+  - "Reveals are logged." → step 4.7.
+  - Front and back side by side, opening full size in the existing image dialog → the `grid-cols-2` buttons and the shared `Viewing` dialog (steps 4.2–4.6, Decision 17).
+  - Refetch once on `onError` → the `refreshed` ref and `onExpired={() => void artist.refetch()}` (Decision 18).
+  - "No Aadhaar on file" for `kyc: null`, with Approve not blocked → step 4.7. The header buttons don't read `kyc`.
+  - Approve, Reject and the queue are unchanged → `ArtistQueuePage.tsx` and `useReviewArtist` are not touched.
+- **§3.2 tests:**
+  - masked number and both images → `shows the masked Aadhaar above Services…` (it also checks the order and the dialog);
+  - Reveal shows the full number via `POST` to the reveal URL → `Reveal POSTs to the reveal endpoint…` (it also checks that neither cache holds the number);
+  - "No Aadhaar on file" → `says "No Aadhaar on file"…` (Approve still works);
+  - the expired-image single refetch (cheap, so included) → `refetches the detail once…`.
+- **Consistency:**
+  - `AdminKyc` matches backend `AdminKycOut` field for field, and `{ aadhaar_number }` matches `RevealOut`.
+  - The reveal path `/admin/artists/${id}/kyc/reveal` is the same in `queries.ts`, the fake route and the test assertion.
+  - The labels (`Identity (Aadhaar)`, `Reveal`, `Aadhaar front/back`, `Open Aadhaar front/back`) are identical in the component and the tests (Decision 19).
+  - The test number `234123412346` → `•••• •••• 2346` / `2341 2341 2346` matches Parts 1 and 2.
+- **Known edits to existing code and tests:**
+  - The image dialog's state changes from `Photo` to `Viewing`; portfolio photos still open `full_url`, and the title is still "Portfolio photo".
+  - The `artist()` fixture gains `kyc: KYC`; the six existing tests pass unchanged.
+- **Verified before writing:** steps 1–5 were run in a scratch copy of `admin/`. Red: 4 failed, 6 passed. Green: 10 passed, `tsc -b` clean, and oxlint showing only the 3 pre-existing warnings.
