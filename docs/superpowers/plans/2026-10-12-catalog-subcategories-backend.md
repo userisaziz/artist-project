@@ -41,7 +41,13 @@
   - Cursor-paginated `{items, next_cursor}`, oldest `created_at` first.
   - Approve and reject only from `pending`, otherwise `409`.
   - The reject reason follows the `RejectIn` rules (1–500 chars).
-- **Profile categories:** `ProfileIn.category_ids` accepts active top-level categories only. Anything else is `422 "Unknown category"`.
+- **Category status** (added mid-execution at the user's request; replaces `categories.is_active`, migration #7):
+  - `draft` (default for new categories; admin-only), `inactive` (hidden from new picks; artists who already have it keep it) and `active` (public and pickable).
+  - Backfill: `is_active=true` becomes `active`, and `false` becomes `inactive`.
+  - A category or subcategory counts as visible only when `status == active`, and a subcategory also needs an active parent. Service templates keep `is_active`.
+  - A category with artists or services can't go back to `draft` (`409`).
+- **Profile categories:** `ProfileIn.category_ids` accepts active top-level categories, plus inactive ones the profile already has. Anything else is `422 "Unknown category"`.
+- **Names:** a template or custom-service name that is empty after trimming is `422 "Name is required"`.
 - **Errors:** domain errors use `app.core.exceptions` (`ValidationError`, `NotFoundError`, `ConflictError`) so responses keep the `{code, message}` shape.
 - **Commits:** every commit message ends with a blank line and `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never `git commit --amend`.
 - **Commands:** run from `backend/`. Tests: `.venv/bin/python -m pytest -q` (**71 pass before this plan**). Lint: `.venv/bin/ruff check .`.
@@ -68,6 +74,7 @@
 | `app/models/__init__.py` | modify | import `ServiceTemplate` |
 | `app/utils/enums.py` | modify | `ArtistServiceStatus` |
 | `app/utils/cursor.py` | create | keyset cursor encode/decode |
+| `alembic/versions/f7a2c4e6b8d1_category_status.py` | create | Migration #7: `categories.status` replaces `is_active` |
 | `app/schemas/category.py` | modify | `parent_id`, `child_count`, `template_count` |
 | `app/schemas/service_template.py` | create | admin template contracts |
 | `app/schemas/artist.py` | modify | public tree schemas, new service in/out, custom service schemas, admin queue schemas |
@@ -1015,7 +1022,282 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 4: Public catalog tree (`GET /categories`)
+### Task 4: Category status (draft / inactive / active) replaces `is_active`
+
+**Files:**
+- Create: `alembic/versions/f7a2c4e6b8d1_category_status.py`
+- Modify: `app/utils/enums.py`, `app/models/category.py`, `app/schemas/category.py`, `app/services/category_service.py`, `app/services/artist_service.py` (`_categories`, `save_profile`), `app/api/v1/catalog.py` (filter only)
+- Test: `tests/test_admin.py`, `tests/test_artists.py`
+
+**Interfaces:**
+- Consumes: `CategoryService` and `Usage` (Task 2).
+- Produces:
+  - `CategoryStatus` enum (`draft`, `inactive`, `active`) in `app/utils/enums.py`.
+  - `Category.status: CategoryStatus`. `Category.is_active` no longer exists.
+  - `CategoryIn.status` defaults to `draft`. `CategoryPatch.status: CategoryStatus | None`. `AdminCategoryOut.status` replaces `is_active`.
+  - `ArtistService._categories(ids, current=())` accepts active top-level categories, plus inactive ones already in `current`.
+  - The test seed `seed_categories` inserts categories with `status = 'active'`.
+- Later tasks treat a category or subcategory as visible only when `status == CategoryStatus.active`. Service templates keep `is_active`.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `tests/test_artists.py`, change the `seed_categories` insert to set the status:
+
+```python
+            await conn.execute(text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active')"), {"s": slug, "n": name, "i": i})
+```
+
+In `test_profile_accepts_top_level_categories_only`, insert the subcategory as active, so the test still proves that only top-level categories are accepted:
+
+```python
+            "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
+```
+
+Append to `tests/test_artists.py`:
+
+```python
+async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(client, engine):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    body = {"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]}
+    assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE categories SET status = 'inactive' WHERE id = :i"), {"i": cats["mehendi"]})
+        await conn.execute(text("UPDATE categories SET status = 'draft' WHERE id = :i"), {"i": cats["hair"]})
+
+    assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200  # kept
+    newcomer = await sign_in(client, "+919845011119")
+    inactive = await client.put("/api/v1/artists/me/profile", headers=newcomer, json=body)
+    assert (inactive.status_code, inactive.json()["message"]) == (422, "Unknown category")
+    draft = await client.put("/api/v1/artists/me/profile", headers=headers, json={**body, "category_ids": [cats["mehendi"], cats["hair"]]})
+    assert draft.status_code == 422
+```
+
+In `tests/test_admin.py`, replace `test_create_category_derives_slug_and_order` with:
+
+```python
+async def test_create_category_derives_slug_and_order(client, engine):
+    headers = await admin(client, engine)
+    first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup", "status": "active"})
+    assert first.status_code == 201
+    assert first.json() | {"id": 0} == {
+        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0, "status": "active",
+        "parent_id": None, "artist_count": 0, "service_count": 0, "child_count": 0, "template_count": 0,
+    }
+    second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art"})
+    assert second.json()["sort_order"] == 1
+    assert second.json()["status"] == "draft"  # new categories start as drafts
+
+    public = (await client.get("/api/v1/categories")).json()
+    assert [c["slug"] for c in public] == ["bridal-makeup"]  # drafts stay admin-only
+    assert [c["slug"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json()] == ["bridal-makeup", "nail-art"]
+```
+
+In `test_update_and_delete_category`, change the PATCH body and the last assert:
+
+```python
+    patched = await client.patch(f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "status": "inactive"})
+```
+
+```python
+    assert patched.json()["status"] == "inactive"
+```
+
+Add after `test_category_with_subcategories_cannot_be_deleted`:
+
+```python
+async def test_category_status_values_and_visibility(client, engine):
+    headers = await admin(client, engine)
+    nails = await create_category(client, headers, name="Nails")
+    url = f"/api/v1/admin/categories/{nails['id']}"
+    assert (await client.patch(url, headers=headers, json={"status": "archived"})).status_code == 422
+    for status, public in (("active", ["nails"]), ("inactive", []), ("draft", []), ("active", ["nails"])):
+        patched = await client.patch(url, headers=headers, json={"status": status})
+        assert patched.json()["status"] == status
+        assert [c["slug"] for c in (await client.get("/api/v1/categories")).json()] == public
+
+
+async def test_category_in_use_cannot_go_back_to_draft(client, engine):
+    await seed_categories(engine)
+    artist = await sign_in(client, "+919845011114")
+    await complete_profile(client, artist, photos=0)
+    headers = await admin(client, engine)
+    mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
+    url = f"/api/v1/admin/categories/{mehendi['id']}"
+    draft = await client.patch(url, headers=headers, json={"status": "draft"})
+    assert (draft.status_code, draft.json()["code"]) == (409, "conflict")
+    assert (await client.patch(url, headers=headers, json={"status": "inactive"})).json()["status"] == "inactive"
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `.venv/bin/python -m pytest tests/test_admin.py tests/test_artists.py -q`
+Expected: FAIL. The seed insert errors with `column "status" of relation "categories" does not exist`, and the admin responses have no `status`.
+
+- [ ] **Step 3: Add the enum**
+
+Append to `app/utils/enums.py`:
+
+```python
+
+
+class CategoryStatus(str, enum.Enum):
+    """draft: being set up, admin-only. inactive: no new picks; artists who have it keep it. active: public and pickable."""
+
+    draft = "draft"
+    inactive = "inactive"
+    active = "active"
+```
+
+- [ ] **Step 4: Write migration #7**
+
+Create `alembic/versions/f7a2c4e6b8d1_category_status.py`:
+
+```python
+"""categories.status (draft / inactive / active) replaces is_active (migration #7)
+
+Revision ID: f7a2c4e6b8d1
+Revises: e5f1b3c7a9d2
+Create Date: 2026-10-12
+"""
+from typing import Sequence, Union
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.dialects import postgresql
+
+revision: str = 'f7a2c4e6b8d1'
+down_revision: Union[str, Sequence[str], None] = 'e5f1b3c7a9d2'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    op.execute("CREATE TYPE category_status AS ENUM ('draft', 'inactive', 'active')")
+    op.add_column('categories', sa.Column(
+        'status', postgresql.ENUM(name='category_status', create_type=False),
+        server_default=sa.text("'draft'"), nullable=False,
+    ))
+    op.execute("UPDATE categories SET status = CASE WHEN is_active THEN 'active'::category_status ELSE 'inactive'::category_status END")
+    op.drop_column('categories', 'is_active')
+
+
+def downgrade() -> None:
+    op.add_column('categories', sa.Column('is_active', sa.Boolean(), server_default=sa.true(), nullable=False))
+    op.execute("UPDATE categories SET is_active = (status = 'active')")
+    op.drop_column('categories', 'status')
+    op.execute("DROP TYPE category_status")
+```
+
+- [ ] **Step 5: Update the model and schemas**
+
+In `app/models/category.py`:
+- Change the imports to:
+
+```python
+import sqlalchemy as sa
+from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
+from app.utils.enums import CategoryStatus
+```
+
+- Replace the `is_active` line with:
+
+```python
+    status: Mapped[CategoryStatus] = mapped_column(
+        Enum(CategoryStatus, name="category_status", values_callable=lambda e: [m.value for m in e]),
+        default=CategoryStatus.draft,
+        server_default=sa.text("'draft'"),
+        nullable=False,
+    )
+```
+
+In `app/schemas/category.py`:
+- Add `from app.utils.enums import CategoryStatus`.
+- In `CategoryIn`, replace `is_active: bool = True` with:
+
+```python
+    status: CategoryStatus = CategoryStatus.draft  # drafts are admin-only until switched to active
+```
+
+- In `CategoryPatch`, replace `is_active: bool | None = None` with `status: CategoryStatus | None = None`.
+- In `AdminCategoryOut`, replace `is_active: bool` with `status: CategoryStatus`.
+
+- [ ] **Step 6: Update `CategoryService`**
+
+In `app/services/category_service.py`:
+- Add `from app.utils.enums import CategoryStatus`.
+- Update the module docstring's second sentence to: `Categories in use are made inactive rather than deleted, so existing artists, services and templates keep a valid reference.`
+- In `_out`, replace `is_active=category.is_active` with `status=category.status`.
+- In `create`, replace `is_active=body.is_active` with `status=body.status`.
+- In `update`, insert this directly before `for field, value in changes.items():`:
+
+```python
+        if changes.get("status") == CategoryStatus.draft and category.status != CategoryStatus.draft:
+            usage = (await self._usage(category.id)).get(category.id, Usage())
+            if usage.artists or usage.services:
+                raise ConflictError("Category is in use; it can't go back to draft")
+```
+
+Keep the delete message as it is (plan decision 7).
+
+- [ ] **Step 7: Update profile categories and the public list**
+
+In `app/services/artist_service.py`, add `CategoryStatus` to the enums import and replace `_categories` with:
+
+```python
+    async def _categories(self, ids: list[int], current: list[Category] = ()) -> list[Category]:
+        """Top-level categories an artist may pick: active ones, plus inactive ones the profile already has."""
+        wanted = set(ids)
+        kept = {c.id for c in current}
+        found = (await self.session.scalars(
+            select(Category).where(Category.id.in_(wanted), Category.parent_id.is_(None))
+        )).all()
+        allowed = [c for c in found
+                   if c.status == CategoryStatus.active or (c.status == CategoryStatus.inactive and c.id in kept)]
+        if len(allowed) != len(wanted):
+            raise ValidationError("Unknown category")
+        return sorted(allowed, key=lambda c: c.sort_order)
+```
+
+In `save_profile`, load the profile before validating the categories. Replace these lines:
+
+```python
+        categories = await self._categories(body.category_ids)
+
+        profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
+```
+
+with:
+
+```python
+        profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
+        categories = await self._categories(body.category_ids, profile.categories if profile else [])
+```
+
+In `app/api/v1/catalog.py`, change the filter in `list_categories` to `Category.status == CategoryStatus.active` and add `from app.utils.enums import CategoryStatus`. The next task rewrites this route into the tree.
+
+- [ ] **Step 8: Run the tests**
+
+Run: `.venv/bin/python -m pytest -q && .venv/bin/ruff check .`
+Expected: all pass (80 + 3 = 83), and ruff is clean. The migration round-trip test now downgrades through #7 and #6 and back up.
+
+Run `grep -rn "is_active" app | grep -iv "template\|user"`. Expected: no category references remain.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add alembic/versions/f7a2c4e6b8d1_category_status.py app/utils/enums.py app/models/category.py app/schemas/category.py app/services/category_service.py app/services/artist_service.py app/api/v1/catalog.py tests/test_admin.py tests/test_artists.py
+git commit -m "feat(backend): category status draft/inactive/active replaces is_active
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 5: Public catalog tree (`GET /categories`)
 
 **Files:**
 - Modify: `app/schemas/artist.py`, `app/api/v1/catalog.py`
@@ -1034,14 +1316,16 @@ Append to `tests/test_catalog.py`:
 ```python
 async def test_public_catalog_is_a_tree_of_active_items(client, engine):
     headers = await admin(client, engine)
-    makeup, bridal = await makeup_bridal(client, headers)
-    party = await create_category(client, headers, name="Party", parent_id=makeup["id"], is_active=False)
+    makeup = await create_category(client, headers, name="Makeup", status="active")
+    bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"], status="active")
+    party = await create_category(client, headers, name="Party", parent_id=makeup["id"], status="inactive")
     hd = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup", description="Long-wear HD base")
     await create_template(client, headers, subcategory_id=bridal["id"], name="Old look", is_active=False)
     await create_template(client, headers, subcategory_id=party["id"], name="Party glam")
-    hair = await create_category(client, headers, name="Hair", is_active=False)
-    styling = await create_category(client, headers, name="Styling", parent_id=hair["id"])
+    hair = await create_category(client, headers, name="Hair", status="inactive")
+    styling = await create_category(client, headers, name="Styling", parent_id=hair["id"], status="active")
     await create_template(client, headers, subcategory_id=styling["id"], name="Blow dry")
+    await create_category(client, headers, name="Nails")  # draft: never public
 
     tree = (await client.get("/api/v1/categories")).json()
     assert tree == [{
@@ -1103,6 +1387,7 @@ from app.core.database import get_db
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
 from app.schemas.artist import CatalogCategoryOut, SubcategoryOut, TemplateOut
+from app.utils.enums import CategoryStatus
 
 router = APIRouter(tags=["catalog"])
 
@@ -1111,7 +1396,7 @@ router = APIRouter(tags=["catalog"])
 async def list_categories(session: AsyncSession = Depends(get_db)) -> list[CatalogCategoryOut]:
     """Active categories → active subcategories → active services. Hiding a level hides everything under it."""
     categories = (await session.scalars(
-        select(Category).where(Category.is_active.is_(True)).order_by(Category.sort_order, Category.id)
+        select(Category).where(Category.status == CategoryStatus.active).order_by(Category.sort_order, Category.id)
     )).all()
     templates = (await session.scalars(
         select(ServiceTemplate).where(ServiceTemplate.is_active.is_(True)).order_by(ServiceTemplate.sort_order, ServiceTemplate.id)
@@ -1134,7 +1419,7 @@ Keep the existing `/cities` route unchanged below it.
 - [ ] **Step 5: Run the tests**
 
 Run: `.venv/bin/python -m pytest -q`
-Expected: all pass (80 + 1 = 81). `test_categories_and_cities_are_public` still passes because it only reads top-level slugs.
+Expected: all pass (83 + 1 = 84). `test_categories_and_cities_are_public` still passes because it only reads top-level slugs.
 
 - [ ] **Step 6: Lint and commit**
 
@@ -1148,14 +1433,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 5: Onboarding services come from the admin list
+### Task 6: Onboarding services come from the admin list
 
 **Files:**
 - Modify: `app/schemas/artist.py`, `app/services/artist_service.py`
 - Test: `tests/test_artists.py`, `tests/test_admin.py`, `tests/test_catalog.py`
 
 **Interfaces:**
-- Consumes: `ServiceTemplate`, `ArtistServiceItem.template`/`display_name`/`status`, `ArtistServiceStatus` (Task 1); the public tree (Task 4).
+- Consumes: `ServiceTemplate`, `ArtistServiceItem.template`/`display_name`/`status`, `ArtistServiceStatus` (Task 1); the public tree (Task 5).
 - Produces:
   - `ServiceIn = {template_id, price_paise, duration_minutes, description?}`.
   - `ServicePatch = {price_paise?, duration_minutes?, description?}`.
@@ -1176,13 +1461,13 @@ async def seed_categories(engine) -> None:
         ids = {}
         for i, (slug, name) in enumerate(CATEGORIES):
             ids[slug] = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order) VALUES (:s, :n, :i) RETURNING id"),
+                text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"),
                 {"s": slug, "n": name, "i": i},
             )).scalar_one()
         for parent, slug, name, services in (("mehendi", "mehendi-bridal", "Bridal", ("Bridal Classic", "Bridal Full Arms")),
                                              ("makeup", "makeup-party", "Party", ("Party Makeup",))):
             sub = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order, parent_id) VALUES (:s, :n, 0, :p) RETURNING id"),
+                text("INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"),
                 {"s": slug, "n": name, "p": ids[parent]},
             )).scalar_one()
             for i, service in enumerate(services):
@@ -1364,7 +1649,7 @@ In `profile_out`, replace the `services=` line with:
 
 In `app/services/artist_service.py`:
 - Add `from app.models.service_template import ServiceTemplate`.
-- Change the enums import to `from app.utils.enums import ArtistServiceStatus, ArtistStatus`.
+- Change the enums import to `from app.utils.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus`.
 - Replace `add_service` with:
 
 ```python
@@ -1376,7 +1661,8 @@ In `app/services/artist_service.py`:
         template = await self.session.get(ServiceTemplate, template_id)
         subcategory = await self.session.get(Category, template.subcategory_id) if template else None
         parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
-        if not (template and template.is_active and subcategory.is_active and parent and parent.is_active):
+        if not (template and template.is_active and subcategory.status == CategoryStatus.active
+                and parent and parent.status == CategoryStatus.active):
             raise ValidationError("Unknown service")
         if parent.id not in {c.id for c in profile.categories}:
             raise ValidationError("Pick that category on your profile first")
@@ -1421,7 +1707,7 @@ Keep `_service` as it is.
 - [ ] **Step 6: Run the tests**
 
 Run: `.venv/bin/python -m pytest -q`
-Expected: all pass (81 + 2 = 83).
+Expected: all pass (84 + 2 = 86).
 
 - [ ] **Step 7: Lint and commit**
 
@@ -1435,14 +1721,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Custom services for approved artists
+### Task 7: Custom services for approved artists
 
 **Files:**
 - Modify: `app/schemas/artist.py`, `app/services/artist_service.py`, `app/api/v1/artists.py`
 - Test: `tests/test_custom_services.py` (create)
 
 **Interfaces:**
-- Consumes: `service_out`, `_next_service_order`, `seed_categories` and `templates` (Task 5); `submitted_artist` and `admin` (`tests/test_admin.py`).
+- Consumes: `service_out`, `_next_service_order`, `seed_categories` and `templates` (Task 6); `submitted_artist` and `admin` (`tests/test_admin.py`).
 - Produces:
   - `POST /api/v1/artists/me/custom-services` (201), `PATCH /api/v1/artists/me/custom-services/{id}` and `DELETE /api/v1/artists/me/custom-services/{id}`. Each returns `ArtistProfileOut`.
   - `CustomServiceIn`, `CustomServicePatch`.
@@ -1512,6 +1798,8 @@ async def test_custom_service_waits_for_review(client, engine):
 
     top_level = await client.post(URL, headers=headers, json=custom((await categories(client))["mehendi"]))
     assert (top_level.status_code, top_level.json()["message"]) == (422, "Unknown subcategory")
+    blank = await client.post(URL, headers=headers, json=custom(party, "   "))
+    assert (blank.status_code, blank.json()["message"]) == (422, "Name is required")
     listed = next(s for s in added.json()["services"] if s["template_id"] is not None)
     assert (await client.patch(f"{URL}/{listed['id']}", headers=headers, json={"price_paise": 1})).status_code == 404
 
@@ -1588,7 +1876,7 @@ Add these methods after `delete_service`:
     async def _subcategory(self, subcategory_id: int) -> Category:
         subcategory = await self.session.get(Category, subcategory_id)
         parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
-        if not (subcategory and subcategory.is_active and parent and parent.is_active):
+        if not (subcategory and subcategory.status == CategoryStatus.active and parent and parent.status == CategoryStatus.active):
             raise ValidationError("Unknown subcategory")
         return subcategory
 
@@ -1601,9 +1889,12 @@ Add these methods after `delete_service`:
     async def add_custom_service(self, user: User, body: CustomServiceIn) -> ArtistProfile:
         profile = await self._approved(user)
         await self._subcategory(body.subcategory_id)
+        name = body.name.strip()
+        if not name:
+            raise ValidationError("Name is required")
         profile.services.append(ArtistServiceItem(
             category_id=body.subcategory_id,
-            name=body.name.strip(),
+            name=name,
             price_paise=body.price_paise,
             duration_minutes=body.duration_minutes,
             description=body.description,
@@ -1621,9 +1912,13 @@ Add these methods after `delete_service`:
         if changes.get("subcategory_id") is not None:
             await self._subcategory(changes["subcategory_id"])
             item.category_id = changes["subcategory_id"]
+        if changes.get("name") is not None:
+            changes["name"] = changes["name"].strip()
+            if not changes["name"]:
+                raise ValidationError("Name is required")
         for field in ("name", "price_paise", "duration_minutes"):
             if changes.get(field) is not None:
-                setattr(item, field, changes[field].strip() if field == "name" else changes[field])
+                setattr(item, field, changes[field])
         if "description" in changes:
             item.description = changes["description"]
         item.status = ArtistServiceStatus.pending
@@ -1670,7 +1965,7 @@ async def delete_custom_service(
 - [ ] **Step 6: Run the tests**
 
 Run: `.venv/bin/python -m pytest -q`
-Expected: all pass (83 + 3 = 86).
+Expected: all pass (86 + 3 = 89).
 
 - [ ] **Step 7: Lint and commit**
 
@@ -1684,7 +1979,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 7: Admin custom-service queue
+### Task 8: Admin custom-service queue
 
 **Files:**
 - Create: `app/utils/cursor.py`, `app/services/custom_service_review.py`, `app/api/v1/admin_custom_services.py`
@@ -1692,7 +1987,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Test: `tests/test_custom_services.py`, `tests/test_admin.py`
 
 **Interfaces:**
-- Consumes: the Task 6 endpoints and test helpers; `RejectIn`.
+- Consumes: the Task 7 endpoints and test helpers; `RejectIn`.
 - Produces:
   - `encode_cursor(at: datetime, row_id: uuid.UUID) -> str` and `decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]` (raises `ValidationError("Invalid cursor")`).
   - `GET /api/v1/admin/custom-services?status=&limit=&cursor=` → `AdminCustomServicePage`.
@@ -1956,7 +2251,7 @@ api_router.include_router(admin_custom_services.router)
 - [ ] **Step 7: Run the tests**
 
 Run: `.venv/bin/python -m pytest -q`
-Expected: all pass (86 + 1 = 87). The existing artist-queue paging tests confirm the cursor refactor didn't change behaviour.
+Expected: all pass (89 + 1 = 90). The existing artist-queue paging tests confirm the cursor refactor didn't change behaviour.
 
 - [ ] **Step 8: Lint and commit**
 
@@ -1970,7 +2265,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 8: README and final verification
+### Task 9: README and final verification
 
 **Files:**
 - Modify: `README.md`
@@ -1994,6 +2289,8 @@ The catalog has three levels: **category → subcategory → service**. Admins b
 | GET | `/admin/custom-services` | admin | Review queue, `?status=pending\|approved\|rejected&limit=&cursor=` |
 | POST | `/admin/custom-services/{id}/approve` · `/reject` | admin | Reject takes `{reason}` |
 
+Categories and subcategories have a `status`: `draft` (new ones start here; admin-only), `inactive` (no new picks; artists who have it keep it) or `active` (public and pickable). A subcategory is public only when it and its parent are both active. A category in use can't go back to draft.
+
 Anything in use (a category with artists, services, subcategories or templates; a template an artist offers) can only be hidden, not deleted.
 
 > **Fill in the catalog before artists onboard.** During onboarding, artists can only add services from the admin's list. If a category has no subcategories and services, artists in it can't add a service and can't submit their profile.
@@ -2002,12 +2299,12 @@ Anything in use (a category with artists, services, subcategories or templates; 
 - [ ] **Step 2: Run the full suite and lint**
 
 Run: `.venv/bin/python -m pytest -q && .venv/bin/ruff check .`
-Expected: 87 passed, and ruff reports no issues.
+Expected: 90 passed, and ruff reports no issues.
 
 - [ ] **Step 3: Check the dev database migrates**
 
 Run: `.venv/bin/alembic upgrade head && .venv/bin/alembic current`
-Expected: `e5f1b3c7a9d2 (head)`.
+Expected: `f7a2c4e6b8d1 (head)`.
 
 - [ ] **Step 4: Commit**
 

@@ -21,6 +21,17 @@ Part 1 covers the backend, the admin panel and the mobile onboarding change. The
 | Renaming | An artist's listed service shows the admin's current name. Renaming a service on the list renames it for every artist. |
 | Existing services | Kept valid. They become `approved` with no template, and show as "Custom". |
 | Data model | `parent_id` on `categories`, plus a new `service_templates` table. A separate subcategories table or a generic tree table were rejected. |
+| Category status (added 2026-10-12, during build) | Categories and subcategories get `status`: `draft`, `inactive` or `active`, replacing `is_active` (see "Category status" below). Services on the admin list keep a simple active/hidden switch. |
+
+## Category status (added during the build)
+
+- **`categories.status`** is a new enum `category_status` (`draft`, `inactive`, `active`) added in migration #7. It replaces `is_active`. Backfill: `true` becomes `active`, and `false` becomes `inactive`.
+- **`draft`:** being set up. Admin-only, never in the public tree, and can't be picked. **New categories and subcategories start as `draft`.**
+- **`inactive`:** hidden from the public tree and from new picks. Artists who already have it keep it, including when they re-save their profile.
+- **`active`:** public and pickable.
+- A subcategory is visible only when it and its parent are both `active`. Everywhere this spec says "active" or "hidden" for a category or subcategory, it means this status. Service templates keep `is_active`.
+- A category with artists or services can't go back to `draft` (`409 conflict`).
+- The admin API takes and returns `status` in place of `is_active`. The admin panel's Catalog page needs updating to match; that happens in the admin part.
 
 ## Out of scope
 
