@@ -68,7 +68,7 @@ async def client(engine):
         yield ac
 
 
-TABLES = "users, user_roles, otp_codes, refresh_tokens, artist_profiles, artist_categories, artist_services, portfolio_photos, categories"
+TABLES = "users, user_roles, otp_codes, refresh_tokens, artist_profiles, artist_categories, artist_services, portfolio_photos, categories, artist_kyc, aadhaar_reveals"
 
 
 @pytest_asyncio.fixture(autouse=True)

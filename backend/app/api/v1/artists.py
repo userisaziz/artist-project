@@ -6,6 +6,7 @@ from app.core.dependencies import current_artist, get_artist_service
 from app.models.user import User
 from app.schemas.artist import (
     ArtistProfileOut,
+    KycIn,
     PhotoIn,
     PhotoOrder,
     ProfileIn,
@@ -69,6 +70,13 @@ async def reorder_photos(
     body: PhotoOrder, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
 ) -> ArtistProfileOut:
     return profile_out(await service.reorder_photos(user, body.photo_ids), service.storage)
+
+
+@router.put("/kyc", response_model=ArtistProfileOut)
+async def save_kyc(
+    body: KycIn, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
+) -> ArtistProfileOut:
+    return profile_out(await service.save_kyc(user, body), service.storage)
 
 
 @router.delete("/photos/{photo_id}", response_model=ArtistProfileOut)

@@ -64,6 +64,7 @@ class ArtistProfile(Base, TimestampMixin):
     photos: Mapped[list["PortfolioPhoto"]] = relationship(
         lazy="selectin", order_by="PortfolioPhoto.sort_order", cascade="all, delete-orphan"
     )
+    kyc: Mapped["ArtistKyc | None"] = relationship(lazy="selectin", uselist=False, cascade="all, delete-orphan")
 
 
 class ArtistServiceItem(Base, TimestampMixin):
@@ -108,3 +109,34 @@ class PortfolioPhoto(Base):
     height: Mapped[int] = mapped_column(Integer, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # lowest = cover
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ArtistKyc(Base, TimestampMixin):
+    """Identity proof for one artist profile. The Aadhaar number is Fernet-encrypted; only the last 4 are plain."""
+
+    __tablename__ = "artist_kyc"
+    __mapper_args__ = {"eager_defaults": True}
+
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), primary_key=True
+    )
+    aadhaar_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    aadhaar_last4: Mapped[str] = mapped_column(String(4), nullable=False)
+    front_key: Mapped[str] = mapped_column(String(255), nullable=False)  # private storage keys
+    back_key: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class AadhaarReveal(Base):
+    """Audit trail: which admin decrypted which artist's Aadhaar number, and when."""
+
+    __tablename__ = "aadhaar_reveals"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    admin_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    revealed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

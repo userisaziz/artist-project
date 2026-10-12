@@ -11,12 +11,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.artist import ArtistProfile, ArtistServiceItem, PortfolioPhoto
+from app.models.artist import (
+    ArtistKyc,
+    ArtistProfile,
+    ArtistServiceItem,
+    PortfolioPhoto,
+)
 from app.models.category import Category
 from app.models.user import User
-from app.schemas.artist import PhotoIn, ProfileIn, ServiceIn, ServicePatch
+from app.schemas.artist import KycIn, PhotoIn, ProfileIn, ServiceIn, ServicePatch
 from app.services.storage import ImageStorage
+from app.utils.aadhaar import is_valid_aadhaar
 from app.utils.enums import ArtistStatus
 
 MIN_PHOTOS = 6
@@ -60,7 +67,7 @@ class ArtistService:
         profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
         if profile is None:
             # Empty collections up front: a new object has nothing loaded, and async can't lazy-load later.
-            profile = ArtistProfile(user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[])
+            profile = ArtistProfile(user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[], kyc=None)
             self.session.add(profile)
         elif profile.status not in EDITABLE:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
@@ -152,6 +159,33 @@ class ArtistService:
         await self.session.flush()
         return profile
 
+    async def save_kyc(self, user: User, body: KycIn) -> ArtistProfile:
+        """Identity step: validate, encrypt, store; a replacement deletes the superseded private files."""
+        profile = await self._editable(user)
+        number = body.aadhaar_number.replace(" ", "")
+        if not is_valid_aadhaar(number):
+            raise ValidationError("Invalid Aadhaar number")
+        for key in (body.front_key, body.back_key):
+            if not self.storage.owns(key, user.id, "aadhaar"):
+                raise ValidationError("Invalid photo key")
+        if body.front_key == body.back_key:
+            raise ValidationError("Front and back must be different photos")
+
+        fields = {"aadhaar_encrypted": encrypt_aadhaar(number), "aadhaar_last4": number[-4:],
+                  "front_key": body.front_key, "back_key": body.back_key}
+        stale: list[str] = []
+        if profile.kyc is None:
+            profile.kyc = ArtistKyc(**fields)
+        else:
+            kept = {body.front_key, body.back_key}
+            stale = [k for k in (profile.kyc.front_key, profile.kyc.back_key) if k not in kept]
+            for name, value in fields.items():
+                setattr(profile.kyc, name, value)
+        await self.session.flush()
+        for key in stale:
+            await self.storage.delete(key, private=True)
+        return profile
+
     async def submit(self, user: User) -> ArtistProfile:
         profile = await self._editable(user)
         missing = []
@@ -163,6 +197,8 @@ class ArtistService:
             missing.append("services")
         if len(profile.photos) < MIN_PHOTOS:
             missing.append("portfolio")
+        if profile.kyc is None:
+            missing.append("kyc")
         if missing:
             raise ValidationError("Profile is incomplete", missing=missing, min_photos=MIN_PHOTOS)
         profile.status = ArtistStatus.pending

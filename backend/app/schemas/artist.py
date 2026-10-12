@@ -77,6 +77,19 @@ class PhotoOrder(BaseModel):
     photo_ids: list[uuid.UUID]
 
 
+class KycIn(BaseModel):
+    # Format and checksum are checked in the service so errors keep the {code, message} contract.
+    aadhaar_number: str = Field(max_length=20)
+    front_key: str = Field(min_length=1, max_length=255)
+    back_key: str = Field(min_length=1, max_length=255)
+
+
+class KycOut(BaseModel):
+    """What the artist sees about their own identity proof: never the number, keys or images."""
+
+    aadhaar_last4: str
+
+
 class PhotoOut(BaseModel):
     id: uuid.UUID
     key: str
@@ -98,6 +111,7 @@ class ArtistProfileOut(BaseModel):
     categories: list[CategoryOut]
     services: list[ServiceOut]
     photos: list[PhotoOut]  # first = cover
+    kyc: KycOut | None
     rejection_reason: str | None
     submitted_at: datetime | None
     reviewed_at: datetime | None
@@ -158,6 +172,7 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> ArtistProfileO
         categories=[CategoryOut.model_validate(c) for c in profile.categories],
         services=[ServiceOut.model_validate(s) for s in profile.services],
         photos=[photo_out(p, storage) for p in profile.photos],
+        kyc=KycOut(aadhaar_last4=profile.kyc.aadhaar_last4) if profile.kyc else None,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,
         reviewed_at=profile.reviewed_at,
