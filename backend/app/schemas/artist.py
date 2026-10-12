@@ -7,8 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.artist import ArtistProfile, PortfolioPhoto
+from app.models.artist import ArtistKyc, ArtistProfile, PortfolioPhoto
 from app.services.storage import ImageStorage
+from app.utils.aadhaar import mask_aadhaar_last4
 from app.utils.enums import ArtistStatus
 
 
@@ -131,8 +132,29 @@ class ArtistOwner(BaseModel):
     email: str | None
 
 
+class AdminKycOut(BaseModel):
+    aadhaar_masked: str
+    front_url: str  # private, expiring (300 s)
+    back_url: str
+
+
 class AdminArtistDetail(ArtistProfileOut):
     owner: ArtistOwner
+    kyc: AdminKycOut | None  # admin shape replaces the artist's {aadhaar_last4}
+
+
+class RevealOut(BaseModel):
+    aadhaar_number: str
+
+
+def admin_kyc_out(kyc: ArtistKyc | None, storage: ImageStorage) -> AdminKycOut | None:
+    if kyc is None:
+        return None
+    return AdminKycOut(
+        aadhaar_masked=mask_aadhaar_last4(kyc.aadhaar_last4),
+        front_url=storage.private_url(kyc.front_key),
+        back_url=storage.private_url(kyc.back_key),
+    )
 
 
 class AdminArtistSummary(BaseModel):

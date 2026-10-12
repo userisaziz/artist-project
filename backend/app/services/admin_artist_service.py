@@ -7,8 +7,9 @@ from datetime import UTC, datetime
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.crypto import decrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.artist import ArtistProfile
+from app.models.artist import AadhaarReveal, ArtistProfile
 from app.models.user import User
 from app.utils.enums import ArtistStatus
 
@@ -68,3 +69,12 @@ class AdminArtistService:
 
     async def reject(self, admin: User, artist_id: uuid.UUID, reason: str) -> tuple[ArtistProfile, User]:
         return await self._decide(admin, artist_id, ArtistStatus.rejected, reason.strip())
+
+    async def reveal_aadhaar(self, admin: User, artist_id: uuid.UUID) -> str:
+        """Decrypt one artist's Aadhaar number for an admin, leaving an audit row."""
+        profile, _owner = await self.get(artist_id)
+        if profile.kyc is None:
+            raise NotFoundError("No Aadhaar on file")
+        self.session.add(AadhaarReveal(artist_id=profile.id, admin_id=admin.id))
+        await self.session.flush()
+        return decrypt_aadhaar(profile.kyc.aadhaar_encrypted)

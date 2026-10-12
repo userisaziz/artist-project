@@ -1,5 +1,7 @@
 """Admin contract: category management and the artist review queue (approve / reject)."""
 
+from sqlalchemy import text as sql_text
+
 from tests.test_artists import complete_profile, seed_categories, sign_in
 
 ADMIN_PHONE = "+919845000001"
@@ -152,3 +154,55 @@ async def test_unknown_or_draft_artist_is_not_found(client, engine):
     headers = await admin(client, engine)
     assert (await client.get(f"/api/v1/admin/artists/{profile['id']}", headers=headers)).status_code == 404
     assert (await client.get("/api/v1/admin/artists?cursor=garbage", headers=headers)).status_code == 422
+
+
+# --- Aadhaar verification ---------------------------------------------------
+
+async def submitted_artist_id(client, phone="+919845066601") -> str:
+    headers = await sign_in(client, phone, role="artist")
+    await complete_profile(client, headers)
+    assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 200
+    return (await client.get("/api/v1/artists/me", headers=headers)).json()["id"]
+
+
+async def test_admin_detail_shows_masked_aadhaar_and_private_links(client, engine):
+    await seed_categories(engine)
+    artist_id = await submitted_artist_id(client)
+    headers = await admin(client, engine)
+    kyc = (await client.get(f"/api/v1/admin/artists/{artist_id}", headers=headers)).json()["kyc"]
+    assert kyc["aadhaar_masked"] == "•••• •••• 2346"
+    assert kyc["front_url"].startswith("https://fake.storage/private/") and "/aadhaar/" in kyc["front_url"]
+    assert kyc["back_url"].startswith("https://fake.storage/private/")
+    assert kyc["front_url"] != kyc["back_url"]
+    assert "234123412346" not in str(kyc)
+
+
+async def test_reveal_returns_the_number_and_logs_it(client, engine):
+    await seed_categories(engine)
+    artist_id = await submitted_artist_id(client)
+    headers = await admin(client, engine)
+    response = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=headers)
+    assert response.status_code == 200
+    assert response.json() == {"aadhaar_number": "234123412346"}
+    assert response.headers["cache-control"] == "no-store"
+    async with engine.connect() as conn:
+        rows = (await conn.execute(sql_text(
+            "SELECT r.artist_id::text, u.phone FROM aadhaar_reveals r JOIN users u ON u.id = r.admin_id"
+        ))).all()
+    assert [(r[0], r[1]) for r in rows] == [(artist_id, ADMIN_PHONE)]
+
+
+async def test_reveal_is_admin_only_and_needs_kyc(client, engine):
+    await seed_categories(engine)
+    artist_id = await submitted_artist_id(client)
+    artist_headers = await sign_in(client, "+919845066602", role="artist")
+    forbidden = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=artist_headers)
+    assert forbidden.status_code == 403
+
+    headers = await admin(client, engine)
+    async with engine.begin() as conn:
+        await conn.execute(sql_text("DELETE FROM artist_kyc"))  # a profile submitted before this increment
+    detail = (await client.get(f"/api/v1/admin/artists/{artist_id}", headers=headers)).json()
+    assert detail["kyc"] is None
+    missing = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=headers)
+    assert missing.status_code == 404

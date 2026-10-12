@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.core.dependencies import current_admin, get_admin_artist_service
 from app.models.artist import ArtistProfile
@@ -11,6 +11,8 @@ from app.schemas.artist import (
     AdminArtistPage,
     ArtistOwner,
     RejectIn,
+    RevealOut,
+    admin_kyc_out,
     profile_out,
     summary_out,
 )
@@ -22,7 +24,8 @@ router = APIRouter(prefix="/admin/artists", tags=["admin"])
 
 
 def _detail(profile: ArtistProfile, owner: User, storage: ImageStorage) -> AdminArtistDetail:
-    return AdminArtistDetail(**profile_out(profile, storage).model_dump(), owner=ArtistOwner.model_validate(owner))
+    data = profile_out(profile, storage).model_dump(exclude={"kyc"})
+    return AdminArtistDetail(**data, owner=ArtistOwner.model_validate(owner), kyc=admin_kyc_out(profile.kyc, storage))
 
 
 @router.get("", response_model=AdminArtistPage)
@@ -67,3 +70,14 @@ async def reject_artist(
     storage: ImageStorage = Depends(get_storage),
 ) -> AdminArtistDetail:
     return _detail(*await service.reject(admin, artist_id, body.reason), storage)
+
+
+@router.post("/{artist_id}/kyc/reveal", response_model=RevealOut)
+async def reveal_aadhaar(
+    artist_id: uuid.UUID,
+    response: Response,
+    admin: User = Depends(current_admin),
+    service: AdminArtistService = Depends(get_admin_artist_service),
+) -> RevealOut:
+    response.headers["Cache-Control"] = "no-store"  # never let a proxy or browser keep the full number
+    return RevealOut(aadhaar_number=await service.reveal_aadhaar(admin, artist_id))
