@@ -16,7 +16,7 @@ const MAX_PHOTOS = 30; // backend artist_service.MAX_PHOTOS
 
 interface Uploading { localId: string; uri: string }
 
-// Atelier hi-fi "onbPortfolio" (step 3 of 3): the first photo is the cover; long-press a tile for Make cover / Remove.
+// Atelier hi-fi "onbPortfolio" (step 3 of 4): the first photo is the cover; long-press a tile for Make cover / Remove. Continue opens Identity.
 export default function PortfolioStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -58,7 +58,6 @@ export default function PortfolioStep() {
   };
   const makeCover = (id: string) => run(() => write(() => artistApi.reorderPhotos([id, ...photos.filter((p) => p.id !== id).map((p) => p.id)])));
   const remove = (id: string) => run(() => write(() => artistApi.deletePhoto(id)));
-  const submit = () => run(() => write(artistApi.submitProfile)); // status → pending; the artist layout moves to In review
 
   const tile = { width: '31.5%', aspectRatio: 1, borderRadius: 16, overflow: 'hidden', backgroundColor: theme.colors.imageFallback } as const;
   const enough = count >= MIN_PHOTOS;
@@ -66,12 +65,11 @@ export default function PortfolioStep() {
     <FormScreen
       onBack={() => router.dismissTo('/artist/onboarding/services')}
       step={3}
-      steps={3}
+      steps={4}
       footer={(
         <AppButton
-          label={enough ? 'Submit for review' : `Continue · ${count} of ${MIN_PHOTOS} photos`}
-          onPress={() => { if (enough && uploading.length === 0) void submit(); }}
-          loading={busy && enough}
+          label={enough ? 'Continue' : `Continue · ${count} of ${MIN_PHOTOS} photos`}
+          onPress={() => { if (enough && uploading.length === 0) router.push('/artist/onboarding/identity'); }}
           disabled={!enough || uploading.length > 0}
         />
       )}

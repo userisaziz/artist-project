@@ -25,9 +25,10 @@ In mock mode the OTP screen shows "Mock mode: your code is ...". `+15550009999` 
 
 ### Artist onboarding in mock mode
 
-Choose role → "Create your profile" runs Intro → Profile → Services → Portfolio → In review entirely
+Choose role → "Create your profile" runs Intro → Profile → Services → Portfolio → Identity → In review entirely
 against `MockTransport` (categories are the design's six; picked photos are kept as local URIs).
-`+1 555 000 9999` is a seeded, already-approved artist. Tests approve or reject with
+Identity accepts only Verhoeff-valid Aadhaar numbers: use generated ones such as `234123412346`, never a real one.
+`+1 555 000 9999` is a seeded, already-approved artist (Aadhaar on file, last 4 `2346`). Tests approve or reject with
 `(transport as MockTransport).review(phone, 'approved' | 'rejected', reason)`.
 Against a real backend with `STORAGE_PROVIDER=fake`, uploads are skipped and photos show as broken images.
 

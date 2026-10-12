@@ -134,7 +134,7 @@ it('submit lists what is missing, then moves to pending and locks edits (409)', 
   const t = new MockTransport();
   const auth = await artist(t);
   await draft(t, auth);
-  expect(await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth })).toMatchObject({ status: 422, json: { code: 'validation_error', missing: ['services', 'portfolio'], min_photos: 6 } });
+  expect(await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth })).toMatchObject({ status: 422, json: { code: 'validation_error', missing: ['services', 'portfolio', 'kyc'], min_photos: 6 } });
 
   await complete(t, auth);
   const sent = await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth });

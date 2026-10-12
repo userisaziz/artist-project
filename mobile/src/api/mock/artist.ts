@@ -149,6 +149,7 @@ export class MockArtists {
     if (!p.category_ids.length) missing.push('categories');
     if (!p.services.length) missing.push('services');
     if (p.photos.length < MIN_PHOTOS) missing.push('portfolio');
+    if (!p.kyc) missing.push('kyc');
     if (missing.length) return err('validation_error', 'Profile is incomplete', 422, { missing, min_photos: MIN_PHOTOS });
     Object.assign(p, { status: 'pending', submitted_at: new Date().toISOString(), rejection_reason: null });
     return this.ok(p);

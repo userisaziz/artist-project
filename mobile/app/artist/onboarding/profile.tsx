@@ -28,7 +28,7 @@ function CatalogRetry({ message, isError, onRetry }: { message: string; isError:
   );
 }
 
-// Atelier hi-fi "onbProfile" (step 1 of 3): photo, business name, categories and city. Continue saves the draft.
+// Atelier hi-fi "onbProfile" (step 1 of 4): photo, business name, categories and city. Continue saves the draft.
 export default function ProfileStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -86,7 +86,7 @@ export default function ProfileStep() {
       // Editing a rejection starts here, so there is no Intro behind it.
       onBack={editing ? undefined : () => router.dismissTo('/artist/onboarding/intro')}
       step={1}
-      steps={3}
+      steps={4}
       footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saving} disabled={!ready} />}
     >
       <FormHeading eyebrow="STEP 1 · PROFILE" title="Tell clients" accent="who you are" />

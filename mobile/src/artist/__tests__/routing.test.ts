@@ -7,6 +7,7 @@ const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
   rejection_reason: null, submitted_at: null, reviewed_at: null, kyc: null, ...over,
 });
 const service = { id: 's', category_id: 1, name: 'S', price_paise: 100, duration_minutes: 60, description: null };
+const photos = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, key: `k${i}`, width: 1, height: 1, thumb_url: 'u', card_url: 'u', full_url: 'u' }));
 
 it('stage follows the review status; a rejection waits on In review until the artist edits', () => {
   expect(artistStage(null, false)).toBe('onboarding');
@@ -18,15 +19,19 @@ it('stage follows the review status; a rejection waits on In review until the ar
   expect(artistStage(profile({ status: 'approved' }), false)).toBe('live');
 });
 
-it('a draft resumes at the first step the server has no data for', () => {
+it('a draft resumes at the first step the server has no data for; six photos go on to Identity', () => {
   expect(resumeStep(null)).toBe('intro');
   expect(resumeStep(profile())).toBe('services');
   expect(resumeStep(profile({ services: [service] }))).toBe('portfolio');
+  expect(resumeStep(profile({ services: [service], photos: photos.slice(0, 5) }))).toBe('portfolio');
+  expect(resumeStep(profile({ services: [service], photos }))).toBe('identity');
+  expect(resumeStep(profile({ services: [service], photos, kyc: { aadhaar_last4: '2346' } }))).toBe('identity'); // on file: submit from there
 });
 
 it('artistHref maps each stage to its route; editing a rejection starts at Profile', () => {
   expect(artistHref(null, false)).toBe('/artist/onboarding/intro');
   expect(artistHref(profile({ services: [service] }), false)).toBe('/artist/onboarding/portfolio');
+  expect(artistHref(profile({ services: [service], photos }), false)).toBe('/artist/onboarding/identity');
   expect(artistHref(profile({ status: 'pending' }), false)).toBe('/artist/in-review');
   expect(artistHref(profile({ status: 'rejected' }), true)).toBe('/artist/onboarding/profile');
   expect(artistHref(profile({ status: 'approved' }), false)).toBe('/artist/home');

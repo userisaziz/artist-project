@@ -11,7 +11,7 @@ import { formatDuration, formatPrice } from '../../../src/artist/format';
 import * as artistApi from '../../../src/api/endpoints/artist';
 import { errorMessage } from '../../../src/api/error-message';
 
-// Step 2 of 3 (not drawn in the design; follows the Profile step): the artist's service menu.
+// Step 2 of 4 (not drawn in the design; follows the Profile step): the artist's service menu.
 export default function ServicesStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function ServicesStep() {
     <FormScreen
       onBack={() => router.dismissTo('/artist/onboarding/profile')}
       step={2}
-      steps={3}
+      steps={4}
       footer={<AppButton label="Continue" onPress={() => { if (services.length) router.push('/artist/onboarding/portfolio'); }} disabled={!services.length} />}
     >
       <FormHeading eyebrow="STEP 2 · SERVICES" title="Set your" accent="prices" subtitle="Add what clients can book. You need at least one service." />

@@ -45,7 +45,7 @@ export default function InReviewScreen() {
             </AppText>
             <View style={[card, { gap: 16 }]}>
               <Milestone state="done" title="Profile submitted" detail={submitted} />
-              <Milestone state="current" title="Portfolio check" detail="In progress · usually 24–48 hrs" />
+              <Milestone state="current" title="Identity & portfolio check" detail="In progress · usually 24–48 hrs" />
               <Milestone state="next" title="Go live" detail="Clients can find and book you" />
             </View>
           </>

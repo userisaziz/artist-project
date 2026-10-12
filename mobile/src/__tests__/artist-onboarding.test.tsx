@@ -42,6 +42,8 @@ beforeEach(() => {
 });
 afterEach(() => { logSpy.mockRestore(); });
 
+const INVALID = 'That doesn’t look like a valid Aadhaar number.';
+
 /** Fresh number → OTP → name → "Create your profile"; ends on the Intro. */
 async function startArtist(national: string, name = 'Ayesha') {
   await renderRouter('./app');
@@ -60,7 +62,7 @@ async function startArtist(national: string, name = 'Ayesha') {
 async function fillProfile() {
   await fireEvent.press(screen.getByText('Let’s get started'));
   expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
-  expect(screen.getByLabelText('Step 1 of 3')).toBeTruthy();
+  expect(screen.getByLabelText('Step 1 of 4')).toBeTruthy();
   mockPicks(1);
   await fireEvent.press(screen.getByLabelText('Add profile photo'));
   expect(await screen.findByLabelText('Change profile photo')).toBeTruthy();
@@ -69,12 +71,12 @@ async function fillProfile() {
   await fireEvent.press(screen.getByLabelText('City'));
   await fireEvent.press(await screen.findByText('Bangalore'));
   await fireEvent.press(screen.getByText('Continue'));
-  expect(await screen.findByLabelText('Step 2 of 3')).toBeTruthy();
+  expect(await screen.findByLabelText('Step 2 of 4')).toBeTruthy();
 }
 
 it('Intro → Profile saves a draft and moves on to Services', async () => {
   await startArtist('9845044441');
-  expect(screen.getByText('3 short steps')).toBeTruthy();
+  expect(screen.getByText('4 short steps')).toBeTruthy();
   expect(screen.queryByText(/every Monday/)).toBeNull();
   await fillProfile();
 });
@@ -85,7 +87,7 @@ it('Profile Continue stays disabled until photo, name, a category and a city are
   await fireEvent.changeText(await screen.findByLabelText('Business name'), 'Studio');
   await fireEvent.press(await screen.findByText('Makeup'));
   await fireEvent.press(screen.getByText('Continue'));
-  expect(screen.queryByLabelText('Step 2 of 3')).toBeNull(); // no photo or city yet
+  expect(screen.queryByLabelText('Step 2 of 4')).toBeNull(); // no photo or city yet
 });
 
 /** Services: add "Bridal mehendi" (₹4,500, 180 min) through the sheet. */
@@ -104,7 +106,7 @@ it('Services: Continue needs a service; services can be added and removed', asyn
   await fillProfile();
   expect(screen.getByText('Set your prices')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
-  expect(screen.queryByLabelText('Step 3 of 3')).toBeNull();
+  expect(screen.queryByLabelText('Step 3 of 4')).toBeNull();
 
   await addService();
   await fireEvent.press(screen.getByLabelText('Remove Bridal mehendi'));
@@ -112,7 +114,7 @@ it('Services: Continue needs a service; services can be added and removed', asyn
 
   await addService();
   await fireEvent.press(screen.getByText('Continue'));
-  expect(await screen.findByLabelText('Step 3 of 3')).toBeTruthy();
+  expect(await screen.findByLabelText('Step 3 of 4')).toBeTruthy();
 });
 
 it('the Add service sheet rejects a zero price before calling the server', async () => {
@@ -133,7 +135,25 @@ async function addPhotos(n: number, total = n) {
   await waitFor(() => expect(screen.queryAllByLabelText(/^Portfolio photo \d+$/)).toHaveLength(total), { timeout: 5000 });
 }
 
-it('Portfolio: counts toward six, marks the cover, Make cover and Remove work, then submit lands on In review', async () => {
+/** Identity: type the number and upload both sides of the card; leaves Submit for review enabled. */
+async function fillIdentity(number = '234123412346') {
+  expect(await screen.findByText('Confirm it’s you')).toBeTruthy();
+  expect(screen.getByLabelText('Step 4 of 4')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Aadhaar number'), number);
+  for (const side of ['front', 'back']) {
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText(`Add ${side} of card`));
+    expect(await screen.findByLabelText(`Retake ${side} of card`)).toBeTruthy();
+  }
+}
+
+/** Submit for review from Identity; ends on the In review timeline. */
+async function submitIdentity() {
+  await fireEvent.press(screen.getByText('Submit for review'));
+  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+}
+
+it('Portfolio: counts toward six, marks the cover, Make cover and Remove work, then Continue opens Identity, which submits to In review', async () => {
   await startArtist('9845044445');
   await fillProfile();
   await addService();
@@ -154,22 +174,30 @@ it('Portfolio: counts toward six, marks the cover, Make cover and Remove work, t
   await waitFor(() => expect(screen.queryAllByLabelText(/^Portfolio photo \d+$/)).toHaveLength(4));
 
   await addPhotos(2, 6);
-  await fireEvent.press(await screen.findByText('Submit for review'));
-  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+  await fireEvent.press(await screen.findByText('Continue'));
+  await fillIdentity();
+  await submitIdentity();
   expect(screen.getByText('Profile submitted')).toBeTruthy();
+  expect(screen.getByText('Identity & portfolio check')).toBeTruthy();
 });
 
 const mock = transport as MockTransport;
 
-/** Runs the whole flow to In review for a fresh number. */
-async function submitFor(national: string) {
+/** Profile, one service and six photos for a fresh number; ends on Identity. */
+async function toIdentity(national: string) {
   await startArtist(national);
   await fillProfile();
   await addService();
   await fireEvent.press(screen.getByText('Continue'));
   await addPhotos(6);
-  await fireEvent.press(await screen.findByText('Submit for review'));
-  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+  await fireEvent.press(await screen.findByText('Continue'));
+}
+
+/** Runs the whole flow to In review for a fresh number. */
+async function submitFor(national: string) {
+  await toIdentity(national);
+  await fillIdentity();
+  await submitIdentity();
 }
 
 it('a rejected profile shows the reason, and Edit and resubmit goes back through the steps', async () => {
@@ -185,8 +213,18 @@ it('a rejected profile shows the reason, and Edit and resubmit goes back through
   await fireEvent.press(screen.getByText('Continue'));
   expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
-  await fireEvent.press(await screen.findByText('Submit for review'));
-  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  // The app never gets the number or the photos back: it shows the last 4 digits, and resubmits without re-entering them.
+  expect(await screen.findByText('Aadhaar on file •••• 2346')).toBeTruthy();
+  expect(screen.queryByLabelText('Aadhaar number')).toBeNull();
+  const spy = jest.spyOn(transport, 'request');
+  try {
+    await submitIdentity();
+    expect(spy.mock.calls.map(([r]) => r.path)).not.toContain('/artists/me/kyc');
+  } finally {
+    spy.mockRestore();
+  }
 });
 
 it('approval moves the artist to the home', async () => {
@@ -204,6 +242,87 @@ it('quitting mid-way resumes at the first incomplete step', async () => {
   queryClient.clear();
   await renderRouter('./app');
   expect(await screen.findByText('Set your prices')).toBeTruthy();
+});
+
+it('Identity: groups the number, flags a bad checksum on blur, and a failed submit keeps the artist on the step', async () => {
+  await toIdentity('9845044450');
+  const field = () => screen.getByLabelText('Aadhaar number');
+  await fireEvent.changeText(field(), '2341-2341-2347-99'); // non-digits dropped, capped at 12
+  expect(field().props.value).toBe('2341 2341 2347');
+  expect(screen.queryByText(INVALID)).toBeNull(); // not while typing
+  await fireEvent(field(), 'blur');
+  expect(await screen.findByText(INVALID)).toBeTruthy();
+  await fireEvent.changeText(field(), '234123412346');
+  await waitFor(() => expect(screen.queryByText(INVALID)).toBeNull());
+
+  await fillIdentity();
+  const real = transport.request.bind(transport);
+  const spy = jest.spyOn(transport, 'request').mockImplementation((r) =>
+    r.path === '/artists/me/submit' ? Promise.resolve({ status: 500, json: null }) : real(r));
+  try {
+    await fireEvent.press(screen.getByText('Submit for review'));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
+    expect(screen.getByText('Confirm it’s you')).toBeTruthy();
+    // The details were saved before submit failed, so they are on file and the retry only submits.
+    expect(screen.getByText('Aadhaar on file •••• 2346')).toBeTruthy();
+    spy.mockClear();
+    spy.mockImplementation(real);
+    await submitIdentity();
+    expect(spy.mock.calls.map(([r]) => r.path)).not.toContain('/artists/me/kyc');
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('Replace details after a rejection needs the number and both photos again', async () => {
+  await submitFor('9845044451');
+  mock.review('+919845044451', 'rejected', 'Aadhaar photo is unreadable');
+  await queryClient.invalidateQueries({ queryKey: ['artist'] });
+  await fireEvent.press(await screen.findByText('Edit and resubmit'));
+  expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(await screen.findByText('Replace details'));
+  expect(screen.getByLabelText('Aadhaar number').props.value).toBe('');
+  expect(screen.getByLabelText('Add front of card')).toBeTruthy();
+  expect(screen.queryByText(/^Aadhaar on file/)).toBeNull();
+
+  const spy = jest.spyOn(transport, 'request');
+  const kycPuts = () => spy.mock.calls.filter(([r]) => r.path === '/artists/me/kyc');
+  try {
+    await fireEvent.press(screen.getByText('Submit for review')); // nothing entered
+    await fireEvent.changeText(screen.getByLabelText('Aadhaar number'), '498765432102');
+    await fireEvent.press(screen.getByText('Submit for review')); // no photos
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText('Add front of card'));
+    expect(await screen.findByLabelText('Retake front of card')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Submit for review')); // no back photo
+    expect(kycPuts()).toHaveLength(0);
+    expect(screen.getByText('Confirm it’s you')).toBeTruthy();
+
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText('Add back of card'));
+    expect(await screen.findByLabelText('Retake back of card')).toBeTruthy();
+    await submitIdentity();
+    expect(kycPuts()).toHaveLength(1);
+    expect(kycPuts()[0][0].body).toMatchObject({ aadhaar_number: '498765432102' });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('quitting on Identity resumes there at step 4 of 4, and Back returns to Portfolio', async () => {
+  await toIdentity('9845044452');
+  await screen.unmount();
+  queryClient.clear();
+  await renderRouter('./app');
+  expect(await screen.findByText('Confirm it’s you')).toBeTruthy();
+  expect(screen.getByLabelText('Step 4 of 4')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Back'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
 });
 
 it('a failed categories load shows the error with Try again, which recovers', async () => {
