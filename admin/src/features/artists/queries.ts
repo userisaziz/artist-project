@@ -48,3 +48,8 @@ export function useReviewArtist(id: string) {
     },
   })
 }
+
+/** Logged by the server. Not a query or a mutation on purpose: the full number lives only in the caller's component state. */
+export function revealAadhaar(id: string) {
+  return api<{ aadhaar_number: string }>(`/admin/artists/${id}/kyc/reveal`, { method: 'POST' })
+}

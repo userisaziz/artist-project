@@ -57,6 +57,13 @@ export interface Photo {
   full_url: string
 }
 
+/** Admin-only view of the artist's Aadhaar: the number is masked, and both links are private and expire after 5 minutes. */
+export interface AdminKyc {
+  aadhaar_masked: string // "•••• •••• 2346"
+  front_url: string
+  back_url: string
+}
+
 export interface ArtistSummary {
   id: string
   status: ArtistStatus
@@ -79,6 +86,7 @@ export interface ArtistDetail {
   categories: { id: number; slug: string; name: string }[]
   services: Service[]
   photos: Photo[]
+  kyc: AdminKyc | null // null: submitted before Aadhaar verification existed
   rejection_reason: string | null
   submitted_at: string | null
   reviewed_at: string | null

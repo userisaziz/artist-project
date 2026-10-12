@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Check, X } from 'lucide-react'
+import { ArrowLeft, Check, Eye, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +14,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCategories } from '@/features/categories/queries'
 import { ApiError } from '@/lib/api'
 import { dateTime, duration, rupees } from '@/lib/format'
-import type { ArtistStatus, Photo } from '@/lib/types'
-import { useArtist, useReviewArtist } from './queries'
+import type { AdminKyc, ArtistStatus } from '@/lib/types'
+import { revealAadhaar, useArtist, useReviewArtist } from './queries'
+
+/** What the full-size image dialog shows: a portfolio photo or one side of the Aadhaar card. */
+type Viewing = { title: string; url: string }
 
 const STATUS: Record<ArtistStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
@@ -32,7 +35,7 @@ export function ArtistReviewPage() {
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
-  const [viewing, setViewing] = useState<Photo | null>(null)
+  const [viewing, setViewing] = useState<Viewing | null>(null)
 
   if (artist.isPending) return <Skeleton className="h-96 w-full rounded-xl" />
   if (artist.isError) {
@@ -102,6 +105,8 @@ export function ArtistReviewPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
+          <IdentityCard key={a.id} artistId={a.id} kyc={a.kyc} onView={setViewing} onExpired={() => { void artist.refetch() }} />
+
           <Card>
             <CardHeader><CardTitle>Services · {a.services.length}</CardTitle></CardHeader>
             <CardContent className="px-0">
@@ -136,7 +141,7 @@ export function ArtistReviewPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {a.photos.map((p, i) => (
-                  <button key={p.id} type="button" onClick={() => setViewing(p)} className="group relative overflow-hidden rounded-lg bg-muted" aria-label={`Open photo ${i + 1}`}>
+                  <button key={p.id} type="button" onClick={() => setViewing({ title: 'Portfolio photo', url: p.full_url })} className="group relative overflow-hidden rounded-lg bg-muted" aria-label={`Open photo ${i + 1}`}>
                     <img src={p.card_url} alt="" className="aspect-[4/5] w-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy" />
                     {i === 0 && <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold">Cover</span>}
                   </button>
@@ -200,11 +205,85 @@ export function ArtistReviewPage() {
 
       <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
         <DialogContent className="max-w-3xl p-2 sm:max-w-3xl">
-          <DialogTitle className="sr-only">Portfolio photo</DialogTitle>
-          {viewing && <img src={viewing.full_url} alt="" className="max-h-[80vh] w-full rounded-md object-contain" />}
+          <DialogTitle className="sr-only">{viewing?.title}</DialogTitle>
+          {viewing && <img src={viewing.url} alt="" className="max-h-[80vh] w-full rounded-md object-contain" />}
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/**
+ * Spec §3.1. The full number comes from a plain call held in this component's state (never the query or
+ * mutation cache), so it disappears when the admin leaves the page. Keyed by artist id by the caller.
+ */
+function IdentityCard({ artistId, kyc, onView, onExpired }: {
+  artistId: string
+  kyc: AdminKyc | null
+  onView: (image: Viewing) => void
+  onExpired: () => void
+}) {
+  const [revealed, setRevealed] = useState<string | null>(null)
+  const [revealing, setRevealing] = useState(false)
+  const refreshed = useRef(false) // a ref, so front and back failing in the same tick still refetch only once
+
+  const reveal = async () => {
+    setRevealing(true)
+    try {
+      setRevealed((await revealAadhaar(artistId)).aadhaar_number)
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+    } finally {
+      setRevealing(false)
+    }
+  }
+
+  // The card links expire after 5 minutes. On the first broken image, refetch the detail once for fresh links.
+  const expired = () => {
+    if (refreshed.current) return
+    refreshed.current = true
+    onExpired()
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Identity (Aadhaar)</CardTitle></CardHeader>
+      <CardContent>
+        {!kyc ? (
+          <p className="text-sm text-muted-foreground">No Aadhaar on file</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-semibold tracking-wide tabular-nums">
+                  {revealed ? revealed.replace(/(\d{4})(?=\d)/g, '$1 ') : kyc.aadhaar_masked}
+                </span>
+                {!revealed && (
+                  <Button variant="outline" size="sm" onClick={() => { void reveal() }} disabled={revealing}>
+                    <Eye /> {revealing ? 'Revealing…' : 'Reveal'}
+                  </Button>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Reveals are logged.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {([['Front', kyc.front_url], ['Back', kyc.back_url]] as const).map(([side, url]) => (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => onView({ title: `Aadhaar ${side.toLowerCase()}`, url })}
+                  className="overflow-hidden rounded-lg bg-muted text-left"
+                  aria-label={`Open Aadhaar ${side.toLowerCase()}`}
+                >
+                  <img src={url} alt={`Aadhaar ${side.toLowerCase()}`} onError={expired} className="aspect-[3/2] w-full object-cover" />
+                  <span className="block px-2 py-1 text-xs font-medium text-muted-foreground">{side}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
