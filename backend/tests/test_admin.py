@@ -26,8 +26,8 @@ async def test_create_category_derives_slug_and_order(client, engine):
     first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup"})
     assert first.status_code == 201
     assert first.json() | {"id": 0} == {
-        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0,
-        "is_active": True, "artist_count": 0, "service_count": 0,
+        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0, "is_active": True,
+        "parent_id": None, "artist_count": 0, "service_count": 0, "child_count": 0, "template_count": 0,
     }
     second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art", "is_active": False})
     assert second.json()["sort_order"] == 1
@@ -68,6 +68,71 @@ async def test_category_in_use_cannot_be_deleted(client, engine):
     assert mehendi["service_count"] == 1
     response = await client.delete(f"/api/v1/admin/categories/{mehendi['id']}", headers=headers)
     assert response.status_code == 409
+
+
+async def create_category(client, headers, **body) -> dict:
+    response = await client.post("/api/v1/admin/categories", headers=headers, json=body)
+    assert response.status_code == 201, response.json()
+    return response.json()
+
+
+async def test_subcategories_sit_under_a_top_level_category(client, engine):
+    headers = await admin(client, engine)
+    makeup = await create_category(client, headers, name="Makeup")
+    bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
+    assert bridal["slug"] == "makeup-bridal"
+    assert bridal["parent_id"] == makeup["id"]
+    assert bridal["sort_order"] == 0  # ordered among its siblings
+
+    too_deep = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "HD", "parent_id": bridal["id"]})
+    assert too_deep.status_code == 422
+    assert too_deep.json()["code"] == "validation_error"
+    no_parent = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "HD", "parent_id": 9999})
+    assert no_parent.status_code == 422
+
+    listed = (await client.get("/api/v1/admin/categories", headers=headers)).json()
+    assert [(c["slug"], c["parent_id"], c["child_count"]) for c in listed] == [
+        ("makeup", None, 1), ("makeup-bridal", makeup["id"], 0),
+    ]
+
+
+async def test_subcategory_names_are_unique_per_parent(client, engine):
+    headers = await admin(client, engine)
+    makeup = await create_category(client, headers, name="Makeup")
+    mehendi = await create_category(client, headers, name="Mehendi")
+    await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
+    other = await create_category(client, headers, name="Bridal", parent_id=mehendi["id"])  # another parent is fine
+    assert other["slug"] == "mehendi-bridal"
+    dupe = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "bridal", "parent_id": makeup["id"]})
+    assert dupe.status_code == 409
+
+
+async def test_moving_categories_keeps_two_levels(client, engine):
+    headers = await admin(client, engine)
+    makeup = await create_category(client, headers, name="Makeup")
+    hair = await create_category(client, headers, name="Hair")
+    bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
+    url = "/api/v1/admin/categories/{}"
+
+    has_children = await client.patch(url.format(makeup["id"]), headers=headers, json={"parent_id": hair["id"]})
+    assert has_children.status_code == 422
+    own_parent = await client.patch(url.format(hair["id"]), headers=headers, json={"parent_id": hair["id"]})
+    assert own_parent.status_code == 422
+
+    moved = await client.patch(url.format(bridal["id"]), headers=headers, json={"parent_id": hair["id"]})
+    assert moved.status_code == 200
+    assert moved.json()["parent_id"] == hair["id"]
+    promoted = await client.patch(url.format(bridal["id"]), headers=headers, json={"parent_id": None})
+    assert promoted.json()["parent_id"] is None
+
+
+async def test_category_with_subcategories_cannot_be_deleted(client, engine):
+    headers = await admin(client, engine)
+    makeup = await create_category(client, headers, name="Makeup")
+    bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
+    assert (await client.delete(f"/api/v1/admin/categories/{makeup['id']}", headers=headers)).status_code == 409
+    assert (await client.delete(f"/api/v1/admin/categories/{bridal['id']}", headers=headers)).status_code == 204
+    assert (await client.delete(f"/api/v1/admin/categories/{makeup['id']}", headers=headers)).status_code == 204
 
 
 # --- artist review ------------------------------------------------------------

@@ -51,7 +51,7 @@ class ArtistService:
     async def _categories(self, ids: list[int]) -> list[Category]:
         wanted = set(ids)
         found = (await self.session.scalars(
-            select(Category).where(Category.id.in_(wanted), Category.is_active.is_(True))
+            select(Category).where(Category.id.in_(wanted), Category.is_active.is_(True), Category.parent_id.is_(None))
         )).all()
         if len(found) != len(wanted):
             raise ValidationError("Unknown category")

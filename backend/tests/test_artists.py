@@ -127,6 +127,20 @@ async def test_profile_rejects_unknown_city_category_and_foreign_keys(client):
         assert response.json()["code"] == "validation_error"
 
 
+async def test_profile_accepts_top_level_categories_only(client, engine):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    async with engine.begin() as conn:
+        sub_id = (await conn.execute(text(
+            "INSERT INTO categories (slug, name, sort_order, parent_id) VALUES ('mehendi-arabic', 'Arabic', 0, :p) RETURNING id"
+        ), {"p": cats["mehendi"]})).scalar_one()
+    response = await client.put("/api/v1/artists/me/profile", headers=headers, json={
+        "business_name": "A", "city": "Bangalore", "category_ids": [sub_id],
+    })
+    assert response.status_code == 422
+    assert response.json()["message"] == "Unknown category"
+
+
 async def test_changing_the_profile_photo_deletes_the_old_one(client):
     headers = await sign_in(client, ARTIST_PHONE)
     cats = await categories(client)
