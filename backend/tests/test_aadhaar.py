@@ -44,5 +44,6 @@ def test_settings_reject_an_invalid_key(monkeypatch):
     from app.core.config import Settings
 
     monkeypatch.setenv("AADHAAR_ENCRYPTION_KEY", "not-a-fernet-key")
-    with pytest.raises(PydanticValidationError):
+    with pytest.raises(PydanticValidationError) as excinfo:
         Settings()
+    assert "not-a-fernet-key" not in str(excinfo.value)

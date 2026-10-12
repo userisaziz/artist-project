@@ -75,6 +75,8 @@ class AdminArtistService:
         profile, _owner = await self.get(artist_id)
         if profile.kyc is None:
             raise NotFoundError("No Aadhaar on file")
+        token = profile.kyc.aadhaar_encrypted
         self.session.add(AadhaarReveal(artist_id=profile.id, admin_id=admin.id))
-        await self.session.flush()
-        return decrypt_aadhaar(profile.kyc.aadhaar_encrypted)
+        # Commit now: get_db commits only after the response is sent, and the number must not leave unlogged.
+        await self.session.commit()
+        return decrypt_aadhaar(token)

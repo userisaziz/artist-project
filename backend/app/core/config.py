@@ -7,12 +7,12 @@ error instead of mysteriously at the first request.
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True)
     database_url: str
     test_database_url: str
     jwt_secret: str
@@ -31,14 +31,17 @@ class Settings(BaseSettings):
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
     # Fernet key for stored Aadhaar numbers (required: the app refuses to start without it).
-    aadhaar_encryption_key: str
+    aadhaar_encryption_key: SecretStr
 
     @field_validator("aadhaar_encryption_key")
     @classmethod
-    def _valid_fernet_key(cls, value: str) -> str:
+    def _valid_fernet_key(cls, value: SecretStr) -> SecretStr:
         from cryptography.fernet import Fernet
 
-        Fernet(value.encode())  # raises ValueError unless it is 32 url-safe base64-encoded bytes
+        try:
+            Fernet(value.get_secret_value().encode())
+        except ValueError:  # deliberately not chained: the message must never echo the key
+            raise ValueError("AADHAAR_ENCRYPTION_KEY must be a 32-byte url-safe base64 Fernet key") from None
         return value
 
     # Cities an artist can pick; a table replaces this once admins edit it.

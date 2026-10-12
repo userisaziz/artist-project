@@ -9,7 +9,7 @@ from app.core.config import get_settings
 
 
 def _fernet() -> Fernet:
-    return Fernet(get_settings().aadhaar_encryption_key.encode())
+    return Fernet(get_settings().aadhaar_encryption_key.get_secret_value().encode())
 
 
 def encrypt_aadhaar(number: str) -> str:

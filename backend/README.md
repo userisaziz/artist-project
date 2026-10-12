@@ -37,6 +37,7 @@ All settings live in `app/core/config.py` (pydantic-settings). If a required val
 | `DEBUG` | `true` | Allows CORS from every origin when true |
 | `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output; `fast2sms` sends real SMS |
 | `FAST2SMS_API_KEY` | empty | Required when `SMS_PROVIDER=fast2sms` |
+| `AADHAAR_ENCRYPTION_KEY` | required | Fernet key that encrypts stored Aadhaar numbers; the app won't start without it. Generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing it makes stored Aadhaar numbers unrecoverable, so back it up. |
 
 > `.env.example` ships with `SMS_PROVIDER=fast2sms`. For local development, set it to `console` and read codes from the uvicorn log (`[console-sms] to=+91... | Your Art Circle code is 123456`).
 
@@ -53,6 +54,9 @@ Every route is under `/api/v1` except `/health`.
 | GET | `/users/me` | Bearer | Current user |
 | PATCH | `/users/me` | Bearer | Sign-up details: `{first_name, last_name?, email?, whatsapp_booking_updates?}` |
 | PUT | `/users/me/role` | Bearer | `{role: "customer" \| "artist"}`. Can be called once; sets `is_onboarded=true`. |
+| PUT | `/artists/me/kyc` | Bearer (artist) | Aadhaar verification: `{aadhaar_number, front_key, back_key}`. The number is validated and stored encrypted; the keys come from `/uploads/signature` with `purpose: "aadhaar"`. |
+| POST | `/uploads/signature` | Bearer | With `purpose: "aadhaar"`, signs an upload of an Aadhaar image to private storage. |
+| POST | `/admin/artists/{id}/kyc/reveal` | Bearer (admin) | Returns `{aadhaar_number}` in full. Admin-only. Each call is logged in `aadhaar_reveals`, and the response is `Cache-Control: no-store`. |
 
 ### Error contract
 
