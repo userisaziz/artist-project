@@ -15,6 +15,7 @@ from app.services.admin_artist_service import AdminArtistService
 from app.services.artist_service import ArtistService
 from app.services.auth_service import AuthService
 from app.services.category_service import CategoryService
+from app.services.service_template_service import ServiceTemplateService
 from app.services.storage import ImageStorage, get_storage
 from app.services.user_service import UserService
 from app.utils.enums import UserRole
@@ -38,6 +39,10 @@ def get_artist_service(
 
 def get_category_service(session: AsyncSession = Depends(get_db)) -> CategoryService:
     return CategoryService(session)
+
+
+def get_service_template_service(session: AsyncSession = Depends(get_db)) -> ServiceTemplateService:
+    return ServiceTemplateService(session)
 
 
 def get_admin_artist_service(session: AsyncSession = Depends(get_db)) -> AdminArtistService:

@@ -15,7 +15,8 @@ async def admin(client, engine) -> dict:
 
 async def test_admin_endpoints_refuse_non_admins(client):
     headers = await sign_in(client, "+919845011112", role="artist")
-    for method, path in (("get", "/api/v1/admin/categories"), ("get", "/api/v1/admin/artists")):
+    for method, path in (("get", "/api/v1/admin/categories"), ("get", "/api/v1/admin/artists"),
+                         ("get", "/api/v1/admin/service-templates?subcategory_id=1")):
         response = await getattr(client, method)(path, headers=headers)
         assert response.status_code == 403
         assert response.json()["code"] == "forbidden"
