@@ -19,7 +19,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 from app.models.category import Category
-from app.utils.enums import ArtistStatus
+from app.models.service_template import ServiceTemplate
+from app.utils.enums import ArtistServiceStatus, ArtistStatus
 
 artist_categories = Table(
     "artist_categories",
@@ -80,17 +81,33 @@ class ArtistServiceItem(Base, TimestampMixin):
     artist_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # Template rows: the template's subcategory. Custom rows: the chosen subcategory. Pre-#6 rows: a top-level category.
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("service_templates.id"), index=True)
+    name: Mapped[str | None] = mapped_column(String(120))  # NULL for template rows: the template's name is used
     price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[ArtistServiceStatus] = mapped_column(
+        Enum(ArtistServiceStatus, name="artist_service_status", values_callable=lambda e: [m.value for m in e]),
+        default=ArtistServiceStatus.approved,
+        server_default=sa.text("'approved'"),
+        nullable=False,
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(String(500))
+    template: Mapped[ServiceTemplate | None] = relationship(lazy="selectin")
 
     __table_args__ = (
         sa.CheckConstraint("price_paise > 0", name="ck_artist_services_price_positive"),
         sa.CheckConstraint("duration_minutes > 0", name="ck_artist_services_duration_positive"),
+        sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="ck_artist_services_name_or_template"),
     )
+
+    @property
+    def display_name(self) -> str:
+        """Template rows follow the admin's current name; custom rows keep their own."""
+        return self.template.name if self.template else self.name
 
 
 class PortfolioPhoto(Base):

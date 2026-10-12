@@ -14,11 +14,11 @@ os.environ["AADHAAR_ENCRYPTION_KEY"] = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw
 
 import pytest
 import pytest_asyncio
+from alembic.command import upgrade
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from alembic.command import upgrade
-from alembic.config import Config
 
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -68,7 +68,7 @@ async def client(engine):
         yield ac
 
 
-TABLES = "users, user_roles, otp_codes, refresh_tokens, artist_profiles, artist_categories, artist_services, portfolio_photos, categories, artist_kyc, aadhaar_reveals"
+TABLES = "users, user_roles, otp_codes, refresh_tokens, artist_profiles, artist_categories, artist_services, portfolio_photos, categories, artist_kyc, aadhaar_reveals, service_templates"
 
 
 @pytest_asyncio.fixture(autouse=True)
