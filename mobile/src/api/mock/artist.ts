@@ -1,5 +1,6 @@
 import type { ArtistProfile, ArtistStatus, Category, ServiceItem, UploadPurpose } from '../types';
 import type { TransportResponse } from '../transport';
+import { isValidAadhaar } from '../../artist/aadhaar';
 
 // Same rules as backend services/artist_service.py and schemas/artist.py — keep them in lockstep.
 export const CITIES = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune']; // backend settings.cities
@@ -9,11 +10,14 @@ export const CATEGORIES: Category[] = ['Mehendi', 'Makeup', 'Hair', 'Photography
 const MIN_PHOTOS = 6;
 const MAX_PHOTOS = 30;
 const EDITABLE: ArtistStatus[] = ['draft', 'rejected'];
+const PURPOSES: UploadPurpose[] = ['artist_photo', 'portfolio', 'aadhaar']; // backend UploadRequest.purpose
 
 interface MockPhoto { id: string; key: string; width: number; height: number }
+interface MockKyc { last4: string; front_key: string; back_key: string } // like artist_kyc, minus the (encrypted) number
 interface MockProfile {
   id: string; status: ArtistStatus; business_name: string; city: string; bio: string | null;
   photo_key: string | null; category_ids: number[]; services: ServiceItem[]; photos: MockPhoto[];
+  kyc: MockKyc | null;
   rejection_reason: string | null; submitted_at: string | null; reviewed_at: string | null;
 }
 
@@ -38,6 +42,7 @@ export class MockArtists {
       categories: CATEGORIES.filter((c) => p.category_ids.includes(c.id)),
       services: p.services.map((s) => ({ ...s })),
       photos: p.photos.map((ph) => ({ ...ph, thumb_url: this.url(ph.key), card_url: this.url(ph.key), full_url: this.url(ph.key) })),
+      kyc: p.kyc ? { aadhaar_last4: p.kyc.last4 } : null,
       rejection_reason: p.rejection_reason, submitted_at: p.submitted_at, reviewed_at: p.reviewed_at,
     };
   }
@@ -45,8 +50,8 @@ export class MockArtists {
   private ok(p: MockProfile, status = 200): TransportResponse { return { status, json: this.out(p) }; }
 
   uploadTicket(userId: string, purpose: unknown): TransportResponse {
-    if (purpose !== 'artist_photo' && purpose !== 'portfolio') return err('validation_error', 'purpose must be artist_photo or portfolio', 422);
-    return { status: 200, json: { upload_url: 'mock://upload', fields: {}, key: `artists/${userId}/${purpose}/${++this.seq}` } };
+    if (!PURPOSES.includes(purpose as UploadPurpose)) return err('validation_error', 'purpose must be artist_photo, portfolio or aadhaar', 422);
+    return { status: 200, json: { upload_url: 'mock://upload', fields: {}, key: `artists/${userId}/${purpose as UploadPurpose}/${++this.seq}` } };
   }
 
   /** Routes `/artists/me…` for a signed-in artist. */
@@ -61,6 +66,7 @@ export class MockArtists {
     if (method === 'DELETE' && path.startsWith('/artists/me/services/')) return this.remove(p, 'services', id, 'Service not found');
     if (method === 'POST' && path === '/artists/me/photos') return this.addPhoto(userId, p, b);
     if (method === 'PUT' && path === '/artists/me/photos/order') return this.reorder(p, b.photo_ids);
+    if (method === 'PUT' && path === '/artists/me/kyc') return this.saveKyc(userId, p, b);
     if (method === 'DELETE' && path.startsWith('/artists/me/photos/')) return this.remove(p, 'photos', id, 'Photo not found');
     if (method === 'POST' && path === '/artists/me/submit') return this.submit(p);
     return err('not_found', `Mock has no handler for ${method} ${path}`, 404);
@@ -77,7 +83,7 @@ export class MockArtists {
     if (existing && !EDITABLE.includes(existing.status)) return err('conflict', `Profile is ${existing.status} and can't be edited`, 409);
     const p: MockProfile = existing ?? {
       id: this.id('artist'), status: 'draft', business_name: '', city: '', bio: null, photo_key: null,
-      category_ids: [], services: [], photos: [], rejection_reason: null, submitted_at: null, reviewed_at: null,
+      category_ids: [], services: [], photos: [], kyc: null, rejection_reason: null, submitted_at: null, reviewed_at: null,
     };
     Object.assign(p, { business_name: name, city: b.city, category_ids: [...new Set(ids as number[])], photo_key: photoKey, bio: typeof b.bio === 'string' ? b.bio : null });
     this.profiles.set(userId, p);
@@ -118,6 +124,18 @@ export class MockArtists {
     return this.ok(p);
   }
 
+  /** Backend ArtistService.save_kyc checks 3–5, in order; only the last 4 digits and the keys are kept. */
+  private saveKyc(userId: string, p: MockProfile, b: Record<string, unknown>): TransportResponse {
+    const number = typeof b.aadhaar_number === 'string' ? b.aadhaar_number.replace(/ /g, '') : '';
+    if (!isValidAadhaar(number)) return err('validation_error', 'Invalid Aadhaar number', 422);
+    const front = typeof b.front_key === 'string' ? b.front_key : '';
+    const back = typeof b.back_key === 'string' ? b.back_key : '';
+    if (![front, back].every((key) => this.owns(key, userId, 'aadhaar'))) return err('validation_error', 'Invalid photo key', 422);
+    if (front === back) return err('validation_error', 'Front and back must be different photos', 422);
+    p.kyc = { last4: number.slice(-4), front_key: front, back_key: back };
+    return this.ok(p);
+  }
+
   private remove(p: MockProfile, field: 'services' | 'photos', id: string, missing: string): TransportResponse {
     const i = p[field].findIndex((item) => item.id === id);
     if (i < 0) return err('not_found', missing, 404);
@@ -149,6 +167,7 @@ export class MockArtists {
     this.profiles.set(userId, {
       id: this.id('artist'), status: 'approved', business_name: 'Priya Bridal Studio', city: 'Bangalore', bio: null,
       photo_key: null, category_ids: [1, 2], services: [], photos: [], rejection_reason: null, submitted_at: now, reviewed_at: now,
+      kyc: { last4: '2346', front_key: `artists/${userId}/aadhaar/seed-front`, back_key: `artists/${userId}/aadhaar/seed-back` },
     });
   }
 }

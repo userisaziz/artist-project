@@ -76,6 +76,8 @@ export interface ArtistProfile {
   categories: Category[];
   services: ServiceItem[];
   photos: PortfolioPhoto[]; // first = cover
+  /** Identity proof on file. Only the last 4 digits ever reach the app: never the number, keys or images. */
+  kyc: { aadhaar_last4: string } | null;
   rejection_reason: string | null;
   submitted_at: string | null;
   reviewed_at: string | null;
@@ -103,7 +105,14 @@ export interface PhotoInput {
   height: number;
 }
 
-export type UploadPurpose = 'artist_photo' | 'portfolio';
+/** PUT /artists/me/kyc. All three are required on every call ("Replace details" re-sends everything). */
+export interface KycInput {
+  aadhaar_number: string;
+  front_key: string;
+  back_key: string;
+}
+
+export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar';
 
 /** POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API. */
 export interface UploadTicket {

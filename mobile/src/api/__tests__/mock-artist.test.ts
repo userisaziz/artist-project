@@ -1,5 +1,5 @@
 import { MockTransport } from '../mock/transport';
-import type { ArtistProfile, UploadTicket } from '../types';
+import type { ArtistProfile, UploadPurpose, UploadTicket } from '../types';
 
 let logSpy: jest.SpyInstance;
 beforeEach(() => { logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); });
@@ -21,7 +21,7 @@ async function artist(t: MockTransport, phone = '+15550004444') {
   return auth;
 }
 
-async function ticket(t: MockTransport, auth: Record<string, string>, purpose: 'artist_photo' | 'portfolio') {
+async function ticket(t: MockTransport, auth: Record<string, string>, purpose: UploadPurpose) {
   const res = await t.request({ method: 'POST', path: '/uploads/signature', headers: auth, body: { purpose } });
   return res.json as UploadTicket;
 }
@@ -31,7 +31,14 @@ async function draft(t: MockTransport, auth: Record<string, string>) {
   return t.request({ method: 'PUT', path: '/artists/me/profile', headers: auth, body: { business_name: ' Ayesha Mehendi Art ', city: 'Bangalore', category_ids: [1], photo_key: photo.key } });
 }
 
-/** Draft + one service + six photos: ready to submit. */
+/** Identity step with a generated (not real) Aadhaar number and two fresh card keys. */
+async function kyc(t: MockTransport, auth: Record<string, string>, aadhaar_number = '234123412346') {
+  const front = await ticket(t, auth, 'aadhaar');
+  const back = await ticket(t, auth, 'aadhaar');
+  return t.request({ method: 'PUT', path: '/artists/me/kyc', headers: auth, body: { aadhaar_number, front_key: front.key, back_key: back.key } });
+}
+
+/** Draft + one service + six photos + identity: ready to submit. */
 async function complete(t: MockTransport, auth: Record<string, string>) {
   await draft(t, auth);
   await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'Bridal', price_paise: 100, duration_minutes: 60 } });
@@ -39,6 +46,7 @@ async function complete(t: MockTransport, auth: Record<string, string>) {
     const tk = await ticket(t, auth, 'portfolio');
     await t.request({ method: 'POST', path: '/artists/me/photos', headers: auth, body: { key: tk.key, width: 10, height: 10 } });
   }
+  await kyc(t, auth);
 }
 
 it('serves the catalog without auth', async () => {
@@ -63,6 +71,7 @@ it('upload tickets are scoped to the caller and purpose', async () => {
   const tk = await ticket(t, auth, 'portfolio');
   expect(tk.upload_url).toBe('mock://upload');
   expect(tk.key).toMatch(/^artists\/[^/]+\/portfolio\/\d+$/);
+  expect((await ticket(t, auth, 'aadhaar')).key).toMatch(/^artists\/[^/]+\/aadhaar\/\d+$/);
 });
 
 it('PUT /artists/me/profile creates a trimmed draft and validates city, categories and photo key', async () => {
@@ -70,7 +79,7 @@ it('PUT /artists/me/profile creates a trimmed draft and validates city, categori
   const auth = await artist(t);
   const res = await draft(t, auth);
   expect(res.status).toBe(200);
-  expect(res.json).toMatchObject({ status: 'draft', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', categories: [{ id: 1, name: 'Mehendi' }], services: [], photos: [] });
+  expect(res.json).toMatchObject({ status: 'draft', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', categories: [{ id: 1, name: 'Mehendi' }], services: [], photos: [], kyc: null });
   expect((res.json as ArtistProfile).photo_url).toBeTruthy();
 
   const base = { business_name: 'X', city: 'Bangalore', category_ids: [1], photo_key: null };
@@ -145,8 +154,38 @@ it('review() rejects a pending profile with a reason, which makes it editable ag
   expect((await draft(t, auth)).status).toBe(200);
 });
 
-it('the seeded artist has an approved profile', async () => {
+it('the seeded artist has an approved profile with Aadhaar on file', async () => {
   const t = new MockTransport();
   const auth = await signIn(t, '+15550009999');
-  expect(await t.request({ method: 'GET', path: '/artists/me', headers: auth })).toMatchObject({ status: 200, json: { status: 'approved' } });
+  expect(await t.request({ method: 'GET', path: '/artists/me', headers: auth })).toMatchObject({ status: 200, json: { status: 'approved', kyc: { aadhaar_last4: '2346' } } });
+});
+
+it('PUT /artists/me/kyc runs the backend checks in order and returns only the last 4 digits', async () => {
+  const t = new MockTransport();
+  const auth = await artist(t);
+  expect(await kyc(t, auth)).toMatchObject({ status: 404, json: { code: 'not_found' } }); // 1. no profile yet
+  await draft(t, auth);
+
+  const put = (body: object) => t.request({ method: 'PUT', path: '/artists/me/kyc', headers: auth, body });
+  const invalid = (message: string) => ({ status: 422, json: { code: 'validation_error', message } });
+  const front = await ticket(t, auth, 'aadhaar');
+  const back = await ticket(t, auth, 'aadhaar');
+  const portfolio = await ticket(t, auth, 'portfolio');
+  const good = { aadhaar_number: '2341 2341 2346', front_key: front.key, back_key: back.key }; // spaces are stripped
+  const foreign = 'artists/someone-else/aadhaar/1';
+
+  expect(await put({ ...good, aadhaar_number: '234123412347', front_key: foreign })).toMatchObject(invalid('Invalid Aadhaar number')); // 3. number before keys
+  expect(await put({ ...good, aadhaar_number: '134123412346' })).toMatchObject(invalid('Invalid Aadhaar number'));
+  expect(await put({ ...good, front_key: foreign })).toMatchObject(invalid('Invalid photo key')); // 4. someone else's key
+  expect(await put({ ...good, back_key: portfolio.key })).toMatchObject(invalid('Invalid photo key')); // 4. wrong purpose
+  expect(await put({ ...good, back_key: front.key })).toMatchObject(invalid('Front and back must be different photos')); // 5.
+
+  const saved = await put(good);
+  expect(saved).toMatchObject({ status: 200, json: { kyc: { aadhaar_last4: '2346' } } });
+  expect(JSON.stringify(saved.json)).not.toMatch(/234123412346|aadhaar\//); // never the number, the keys or a URL
+  expect((await kyc(t, auth, '498765432102')).json).toMatchObject({ kyc: { aadhaar_last4: '2102' } }); // replace
+
+  await complete(t, auth);
+  expect(await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth })).toMatchObject({ status: 200 });
+  expect(await put({ ...good, aadhaar_number: '234123412347' })).toMatchObject({ status: 409, json: { code: 'conflict' } }); // 2. before the number
 });

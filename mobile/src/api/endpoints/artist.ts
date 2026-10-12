@@ -1,6 +1,6 @@
 import { request } from '../client';
 import { ApiError } from '../types';
-import type { ArtistProfile, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../types';
+import type { ArtistProfile, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../types';
 
 // Mirrors backend api/v1/artists.py + uploads.py. Every write returns the whole profile.
 
@@ -30,6 +30,9 @@ export function deletePhoto(id: string) {
 }
 export function reorderPhotos(photoIds: string[]) {
   return request<ArtistProfile>('/artists/me/photos/order', { photo_ids: photoIds }, { auth: true, method: 'PUT' });
+}
+export function saveKyc(body: KycInput) {
+  return request<ArtistProfile>('/artists/me/kyc', body, { auth: true, method: 'PUT' });
 }
 export function submitProfile() {
   return request<ArtistProfile>('/artists/me/submit', undefined, { auth: true });
