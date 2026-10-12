@@ -9,6 +9,8 @@ import os
 # Tests never touch a real SMS gateway, whatever .env says. Must precede get_settings (cached).
 os.environ["SMS_PROVIDER"] = "console"
 os.environ["FAST2SMS_API_KEY"] = ""
+# Fixed Fernet key for tests (32 zero bytes, base64) — never used outside the test DB.
+os.environ["AADHAAR_ENCRYPTION_KEY"] = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
 import pytest
 import pytest_asyncio

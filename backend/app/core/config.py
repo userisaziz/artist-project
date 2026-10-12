@@ -7,6 +7,7 @@ error instead of mysteriously at the first request.
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,17 @@ class Settings(BaseSettings):
     cloudinary_cloud_name: str = ""
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
+    # Fernet key for stored Aadhaar numbers (required: the app refuses to start without it).
+    aadhaar_encryption_key: str
+
+    @field_validator("aadhaar_encryption_key")
+    @classmethod
+    def _valid_fernet_key(cls, value: str) -> str:
+        from cryptography.fernet import Fernet
+
+        Fernet(value.encode())  # raises ValueError unless it is 32 url-safe base64-encoded bytes
+        return value
+
     # Cities an artist can pick; a table replaces this once admins edit it.
     cities: list[str] = ["Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune"]
     # CORS origins when DEBUG=false (the admin web app).
