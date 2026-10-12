@@ -21,7 +21,7 @@ class CategoryOut(BaseModel):
 
 
 class UploadRequest(BaseModel):
-    purpose: Literal["artist_photo", "portfolio"]
+    purpose: Literal["artist_photo", "portfolio", "aadhaar"]
 
 
 class UploadOut(BaseModel):

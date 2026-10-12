@@ -13,6 +13,7 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from typing import ClassVar, Literal
+from urllib.parse import urlencode
 
 import httpx
 
@@ -20,7 +21,8 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("art_circle.storage")
 
-Purpose = Literal["artist_photo", "portfolio"]
+Purpose = Literal["artist_photo", "portfolio", "aadhaar"]
+PRIVATE_PURPOSES = {"aadhaar"}  # stored without a public URL; viewed through expiring signed links
 Variant = Literal["thumb", "card", "full"]
 ALLOWED_FORMATS = "jpg,jpeg,png,webp,heic"
 
@@ -46,7 +48,11 @@ class ImageStorage(ABC):
     def url(self, key: str, variant: Variant) -> str: ...
 
     @abstractmethod
-    async def delete(self, key: str) -> None:
+    def private_url(self, key: str, expires_in: int = 300) -> str:
+        """Short-lived link to a private image (admin viewing of identity documents)."""
+
+    @abstractmethod
+    async def delete(self, key: str, private: bool = False) -> None:
         """Best effort: a failed delete is logged, never raised (the DB row is already gone)."""
 
 
@@ -62,7 +68,10 @@ class FakeStorage(ImageStorage):
     def url(self, key: str, variant: Variant) -> str:
         return f"https://fake.storage/{variant}/{key}.jpg"
 
-    async def delete(self, key: str) -> None:
+    def private_url(self, key: str, expires_in: int = 300) -> str:
+        return f"https://fake.storage/private/{key}.jpg?expires_at={int(time.time()) + expires_in}"
+
+    async def delete(self, key: str, private: bool = False) -> None:
         FakeStorage.deleted.append(key)
 
 
@@ -87,6 +96,8 @@ class CloudinaryStorage(ImageStorage):
     def upload_params(self, owner_id: uuid.UUID, purpose: Purpose) -> dict:
         key = new_key(owner_id, purpose)
         signed = {"public_id": key, "timestamp": str(int(time.time())), "allowed_formats": ALLOWED_FORMATS}
+        if purpose in PRIVATE_PURPOSES:
+            signed["type"] = "private"  # part of the signature, so a client can't upload it publicly
         return {
             "upload_url": f"https://api.cloudinary.com/v1_1/{self.cloud_name}/image/upload",
             "fields": {**signed, "api_key": self.api_key, "signature": self.sign(signed)},
@@ -96,8 +107,18 @@ class CloudinaryStorage(ImageStorage):
     def url(self, key: str, variant: Variant) -> str:
         return f"https://res.cloudinary.com/{self.cloud_name}/image/upload/{self.TRANSFORMS[variant]}/{key}"
 
-    async def delete(self, key: str) -> None:
+    def private_url(self, key: str, expires_in: int = 300) -> str:
+        # Cloudinary "download" endpoint for private assets (the SDK's private_download_url).
+        now = int(time.time())
+        params = {"public_id": key, "format": "jpg", "type": "private",
+                  "timestamp": str(now), "expires_at": str(now + expires_in)}
+        query = urlencode({**params, "api_key": self.api_key, "signature": self.sign(params)})
+        return f"https://api.cloudinary.com/v1_1/{self.cloud_name}/image/download?{query}"
+
+    async def delete(self, key: str, private: bool = False) -> None:
         signed = {"public_id": key, "timestamp": str(int(time.time()))}
+        if private:
+            signed["type"] = "private"
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 response = await client.post(
