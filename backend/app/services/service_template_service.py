@@ -65,6 +65,8 @@ class ServiceTemplateService:
     async def create(self, body: TemplateIn) -> AdminTemplateOut:
         await self._subcategory(body.subcategory_id)
         name = body.name.strip()
+        if not name:
+            raise ValidationError("Name is required")
         await self._ensure_unique(body.subcategory_id, name)
         sort_order = body.sort_order
         if sort_order is None:
@@ -85,6 +87,8 @@ class ServiceTemplateService:
         changes = body.model_dump(exclude_unset=True)
         if changes.get("name") is not None:
             changes["name"] = changes["name"].strip()
+            if not changes["name"]:
+                raise ValidationError("Name is required")
             await self._ensure_unique(template.subcategory_id, changes["name"], template.id)
         for field, value in changes.items():
             if value is not None or field == "description":  # required columns: null means "leave as is"

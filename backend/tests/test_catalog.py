@@ -43,7 +43,7 @@ async def test_template_crud(client, engine):
 async def test_templates_sit_under_subcategories_with_unique_names(client, engine):
     headers = await admin(client, engine)
     makeup, bridal = await makeup_bridal(client, headers)
-    await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup")
+    template = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup")
 
     dupe = await client.post(TEMPLATES, headers=headers, json={"subcategory_id": bridal["id"], "name": "hd bridal makeup"})
     assert dupe.status_code == 409
@@ -52,3 +52,11 @@ async def test_templates_sit_under_subcategories_with_unique_names(client, engin
     assert top_level.json()["code"] == "validation_error"
     unknown = await client.get(f"{TEMPLATES}?subcategory_id=999999", headers=headers)
     assert unknown.status_code == 422
+
+    whitespace = await client.post(TEMPLATES, headers=headers, json={"subcategory_id": bridal["id"], "name": "   "})
+    assert whitespace.status_code == 422
+    assert whitespace.json()["code"] == "validation_error"
+
+    patch_whitespace = await client.patch(f"{TEMPLATES}/{template['id']}", headers=headers, json={"name": "   "})
+    assert patch_whitespace.status_code == 422
+    assert patch_whitespace.json()["code"] == "validation_error"
