@@ -11,8 +11,9 @@
 **Spec:** `docs/superpowers/specs/2026-10-12-artist-verification-aadhaar-design.md`
 
 **Delivery in parts.** You asked to be kept involved at each stage, so the plan comes in three parts:
-- **Part 1 (backend)** is written in full below.
-- **Part 2 (mobile)** and **Part 3 (admin)** are written after the backend is built and reviewed. They then target the API as it actually ships, and you see each stage's result before the next one is planned.
+- **Part 1 (backend)** is written in full below, and is built (branch `feat/artist-verification`).
+- **Part 2 (mobile)** is written in full below, against the backend as built.
+- **Part 3 (admin)** is written after Part 2 is built and reviewed, so you see each stage's result before the next one is planned.
 
 ## Global Constraints
 
@@ -56,6 +57,15 @@
 3. `ArtistProfile.kyc` is a one-to-one relationship (`uselist=False`, `lazy="selectin"`, `cascade="all, delete-orphan"`). A newly created profile sets `kyc=None` explicitly, because async sessions can't lazy-load it after a flush. The existing `services=[]` and `photos=[]` follow the same rule.
 4. `ImageStorage.delete` gains `private: bool = False`, and new `private_url(key, expires_in=300)` is abstract. `FakeStorage.private_url` returns `https://fake.storage/private/{key}.jpg?expires_at={unix}`.
 5. Tests set a fixed Fernet key in `conftest.py`. Developers generate their own key into `backend/.env`. **A running dev server without the key fails to start on reload. That is intended (spec §1.2).**
+6. *(Part 2)* `src/artist/aadhaar.ts` exports `isValidAadhaar(digits)` and `formatAadhaar(digits)`. The mock imports `isValidAadhaar` from it, so the app has one Verhoeff port, pinned by unit tests to the backend's test numbers.
+7. *(Part 2)* The Aadhaar field keeps **digits only** in state: `onChangeText` drops non-digits and caps at 12, the field shows `formatAadhaar(digits)` (`maxLength={14}`), and `PUT /kyc` sends the 12 digits without spaces.
+8. *(Part 2)* "On file and unchanged" means the on-file view (`profile.kyc && !replacing`). The app can't detect anything finer, because it never gets the number or the photos back. "Replace details" clears the form and has no cancel (spec §2.2 asks for none). After a successful `PUT /kyc`, the screen switches to the on-file view, so if `POST /submit` then fails, the retry only re-submits.
+9. *(Part 2)* The number error shows once the field has blurred or Submit was pressed, and the number is invalid (an empty number counts). It is computed at render time, so it clears as soon as the number becomes valid. No effects are involved.
+10. *(Part 2)* Card tiles are labelled for tests and screen readers as `Add front of card` / `Uploading front of card` / `Retake front of card` (and the same for `back`). A failed upload or retake restores the tile's previous state and shows the error under the form.
+11. *(Part 2)* UI copy uses typographic apostrophes, like the existing screens ("Let’s get started"): "Confirm it’s **you**" and "That doesn’t look like a valid Aadhaar number."
+12. *(Part 2)* The mock stores `{last4, front_key, back_key}` per profile and never the full number. It has no storage, so "delete replaced files" has nothing to mirror. The seeded approved artist (`+15550009999`) gets last 4 `2346`.
+13. *(Part 2)* The mock's "submit requires `kyc`" rule lands in **M2**, together with the Identity screen. If it landed in M1, the existing integration tests (which submit from Portfolio) would fail between the two tasks.
+14. *(Part 2)* Portfolio's Continue has no loading state, because it only navigates now. `busy` still covers Make cover and Remove.
 
 ## File structure (Part 1)
 
@@ -960,19 +970,878 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-## Part 2 (mobile) and Part 3 (admin)
+## Part 2 (mobile)
 
-These are written after Part 1 is built and reviewed, against the API as it ships. Their scope is fixed by spec §2 and §3:
+Implements spec §2 exactly, against the backend as built: `PUT /api/v1/artists/me/kyc`, `KycIn {aadhaar_number, front_key, back_key}`, `ArtistProfileOut.kyc: {aadhaar_last4} | null`, and `missing` gaining `"kyc"` after `"portfolio"`.
 
-- **Part 2 (mobile):**
-  - types (`kyc`, `'aadhaar'` purpose, `KycInput`), `saveKyc`, and the mock mirroring §1.5 (the seeded artist gets kyc);
-  - `src/artist/aadhaar.ts` (Verhoeff);
-  - the Identity screen with its on-file / "Replace details" state;
-  - 4-step progress, the Portfolio "Continue" button, the `identity` resume step, and the In review copy "Identity & portfolio check";
-  - tests.
-- **Part 3 (admin):**
-  - the Identity (Aadhaar) card, with the masked number, a Reveal button that isn't cached, front and back images in the existing dialog, a one-time refetch when an image link has expired, and the "No Aadhaar on file" state;
-  - Vitest tests.
+### Global Constraints (Part 2)
+
+- **Commands:** run from `mobile/`.
+  - Tests: `npx jest` (83 pass before Part 2; 87 after M1; 90 after M2).
+  - Types: `npx tsc --noEmit`.
+  - Lint: `npx expo lint`.
+  - Tests run with `EXPO_PUBLIC_USE_MOCKS=true`, so every integration test runs against `MockTransport`.
+- **The mock mirrors the backend contract**, with these exact strings and order:
+  - `PUT /artists/me/kyc` checks, in order:
+    1. the profile exists (`404 not_found`);
+    2. it is editable (`409 conflict`);
+    3. the number is valid after spaces are removed (`422 "Invalid Aadhaar number"`);
+    4. both keys are the caller's `aadhaar` keys (`422 "Invalid photo key"`);
+    5. front and back differ (`422 "Front and back must be different photos"`).
+  - The response is the profile, with `kyc: {aadhaar_last4}`.
+  - In submit's `missing` list, `"kyc"` comes after `"portfolio"`.
+- **The full number never leaves the Identity screen's component state.** It is not logged, not put in the query cache (the server answers with `last4` only), and not persisted. Cloudinary's `type=private` is already a signed field in the upload ticket, so `postToStorage` needs no change.
+- **Lint:**
+  - no `setState` inside `useEffect` (`react-hooks/set-state-in-effect`): reset during render or in event handlers;
+  - no unused imports.
+- **Handlers guard themselves.** Under RNTL, `fireEvent.press` on a disabled `AppButton` can still reach `onPress`, so every Continue/Submit handler re-checks its own preconditions.
+- **Integration tests:**
+  - Use a fresh phone number per test; signing in twice as the same phone in one file hangs. New numbers: `9845044450`, `9845044451`, `9845044452`. The `98450444xx` numbers already in use are `41`–`49`.
+  - `jest.mock` factories may only reference variables prefixed `mock`.
+  - `await screen.unmount()`.
+  - `queryClient` is a shared singleton: restore changed defaults, and every `jest.spyOn(transport, 'request')`, in `finally`.
+- **Test Aadhaar numbers** are generated only:
+  - valid: `234123412346` (last 4 `2346`), `498765432102` (`2102`), `567812345678`;
+  - checksum-invalid: `234123412347`.
+- **Copy (exact):**
+  - Intro: "4 short steps".
+  - Identity eyebrow and title: "STEP 4 · IDENTITY", then "Confirm it’s **you**".
+  - Identity subtitle: "We use your Aadhaar only to verify your identity."
+  - Number error: "That doesn’t look like a valid Aadhaar number."
+  - Privacy note: "Your Aadhaar is encrypted and only seen by our verification team."
+  - On-file line and link: "Aadhaar on file •••• NNNN" with "Replace details".
+  - Button: "Submit for review".
+  - In review middle milestone: "Identity & portfolio check".
+- **Commits:** every commit message ends with a blank line and `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Never `git commit --amend`.
+
+### File structure (Part 2)
+
+| File | Responsibility |
+|---|---|
+| `src/api/types.ts` (modify) | `ArtistProfile.kyc`, `UploadPurpose` adds `'aadhaar'`, `KycInput` |
+| `src/api/endpoints/artist.ts` (modify) | `saveKyc(body)` → `PUT /artists/me/kyc` |
+| `src/artist/aadhaar.ts` (create) | `isValidAadhaar` (Verhoeff, same tables as the backend), `formatAadhaar` |
+| `src/api/mock/artist.ts` (modify) | `aadhaar` purpose, `PUT /artists/me/kyc`, `kyc` in the profile, seeded kyc; in M2, `kyc` in `missing` |
+| `src/artist/routing.ts` (modify) | `ResumeStep` adds `'identity'`; the new resume rule |
+| `app/artist/onboarding/identity.tsx` (create) | step 4 of 4: number, front/back tiles, on-file / Replace details, Submit for review |
+| `app/artist/onboarding/{profile,services,portfolio}.tsx` (modify) | `steps={4}`; Portfolio's Continue pushes Identity, and submit moves off it |
+| `app/artist/onboarding/{intro,_layout}.tsx`, `app/artist/in-review.tsx` (modify) | "4 short steps"; the flow comment; "Identity & portfolio check" |
+| `README.md` (modify) | the mock-mode onboarding walkthrough includes Identity |
+| Tests | `src/artist/__tests__/aadhaar.test.ts` (create), `src/api/__tests__/mock-artist.test.ts`, `src/artist/__tests__/routing.test.ts`, `src/__tests__/artist-onboarding.test.tsx` |
+
+`src/__tests__/auth-flow.test.tsx` needs **no change**. Its `Step 1 of 3` and `Step 3 of 3` checks are the *auth* progress bar (`FormScreen`'s `AUTH_STEPS = 3`: Log in → Verify → Your details), and it never reaches Portfolio. Its seeded-artist test only checks the artist home. Step 9 of M2 confirms this with a grep.
+
+---
+
+### Task M1: Aadhaar types, Verhoeff check, `saveKyc`, and the mock `PUT /artists/me/kyc`
+
+**Files:**
+- Modify: `src/api/types.ts`, `src/api/endpoints/artist.ts`, `src/api/mock/artist.ts`, `src/artist/__tests__/routing.test.ts` (fixture only)
+- Create: `src/artist/aadhaar.ts`, `src/artist/__tests__/aadhaar.test.ts`
+- Test: `src/api/__tests__/mock-artist.test.ts`
+
+**Interfaces:**
+- Consumes: the backend contract (B3): `PUT /artists/me/kyc`, `KycIn`, `ArtistProfileOut.kyc`.
+- Produces:
+  - `ArtistProfile.kyc: { aadhaar_last4: string } | null`
+  - `UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar'`
+  - `KycInput { aadhaar_number; front_key; back_key }`
+  - `saveKyc(body: KycInput): Promise<ArtistProfile>`
+  - `isValidAadhaar(digits: string): boolean`
+  - `formatAadhaar(digits: string): string`
+  - the mock route `PUT /artists/me/kyc` and the seeded artist's kyc.
+
+- [ ] **Step 1: Write the failing tests**
+
+Create `src/artist/__tests__/aadhaar.test.ts`:
+
+```ts
+import { formatAadhaar, isValidAadhaar } from '../aadhaar';
+
+// Generated numbers (not real people): the same ones the backend tests use (tests/test_aadhaar.py).
+const VALID = ['234123412346', '498765432102', '567812345678'];
+const INVALID = [
+  '234123412347',   // checksum off by one
+  '034123412346',   // leading 0
+  '134123412346',   // leading 1
+  '23412341234',    // 11 digits
+  '2341234123460',  // 13 digits
+  '2341 2341 2346', // callers strip spaces first
+  '23412341234a',
+  '',
+];
+
+it('accepts Verhoeff-valid 12-digit numbers', () => {
+  expect(VALID.filter((n) => !isValidAadhaar(n))).toEqual([]);
+});
+
+it('rejects a bad checksum, a leading 0 or 1, wrong lengths, spaces and non-digits', () => {
+  expect(INVALID.filter(isValidAadhaar)).toEqual([]);
+});
+
+it('groups digits in fours for display, including partial input', () => {
+  expect(formatAadhaar('')).toBe('');
+  expect(formatAadhaar('2341')).toBe('2341');
+  expect(formatAadhaar('23412')).toBe('2341 2');
+  expect(formatAadhaar('234123412346')).toBe('2341 2341 2346');
+});
+```
+
+In `src/api/__tests__/mock-artist.test.ts`:
+
+1. Change the type import, and widen `ticket`'s `purpose` parameter:
+
+```ts
+import type { ArtistProfile, UploadPurpose, UploadTicket } from '../types';
+```
+
+```ts
+async function ticket(t: MockTransport, auth: Record<string, string>, purpose: UploadPurpose) {
+```
+
+2. Add a helper right after `draft`:
+
+```ts
+/** Identity step with a generated (not real) Aadhaar number and two fresh card keys. */
+async function kyc(t: MockTransport, auth: Record<string, string>, aadhaar_number = '234123412346') {
+  const front = await ticket(t, auth, 'aadhaar');
+  const back = await ticket(t, auth, 'aadhaar');
+  return t.request({ method: 'PUT', path: '/artists/me/kyc', headers: auth, body: { aadhaar_number, front_key: front.key, back_key: back.key } });
+}
+```
+
+3. In `complete`, change the doc comment to `/** Draft + one service + six photos + identity: ready to submit. */`, and add this as its last line:
+
+```ts
+  await kyc(t, auth);
+```
+
+4. In `upload tickets are scoped to the caller and purpose`, add this as the last line:
+
+```ts
+  expect((await ticket(t, auth, 'aadhaar')).key).toMatch(/^artists\/[^/]+\/aadhaar\/\d+$/);
+```
+
+5. In `PUT /artists/me/profile creates a trimmed draft…`, add `kyc: null` to the first `toMatchObject`, so it ends `…, services: [], photos: [], kyc: null });`.
+
+6. Replace the last test (`the seeded artist has an approved profile`) with:
+
+```ts
+it('the seeded artist has an approved profile with Aadhaar on file', async () => {
+  const t = new MockTransport();
+  const auth = await signIn(t, '+15550009999');
+  expect(await t.request({ method: 'GET', path: '/artists/me', headers: auth })).toMatchObject({ status: 200, json: { status: 'approved', kyc: { aadhaar_last4: '2346' } } });
+});
+```
+
+7. Append:
+
+```ts
+it('PUT /artists/me/kyc runs the backend checks in order and returns only the last 4 digits', async () => {
+  const t = new MockTransport();
+  const auth = await artist(t);
+  expect(await kyc(t, auth)).toMatchObject({ status: 404, json: { code: 'not_found' } }); // 1. no profile yet
+  await draft(t, auth);
+
+  const put = (body: object) => t.request({ method: 'PUT', path: '/artists/me/kyc', headers: auth, body });
+  const invalid = (message: string) => ({ status: 422, json: { code: 'validation_error', message } });
+  const front = await ticket(t, auth, 'aadhaar');
+  const back = await ticket(t, auth, 'aadhaar');
+  const portfolio = await ticket(t, auth, 'portfolio');
+  const good = { aadhaar_number: '2341 2341 2346', front_key: front.key, back_key: back.key }; // spaces are stripped
+  const foreign = 'artists/someone-else/aadhaar/1';
+
+  expect(await put({ ...good, aadhaar_number: '234123412347', front_key: foreign })).toMatchObject(invalid('Invalid Aadhaar number')); // 3. number before keys
+  expect(await put({ ...good, aadhaar_number: '134123412346' })).toMatchObject(invalid('Invalid Aadhaar number'));
+  expect(await put({ ...good, front_key: foreign })).toMatchObject(invalid('Invalid photo key')); // 4. someone else's key
+  expect(await put({ ...good, back_key: portfolio.key })).toMatchObject(invalid('Invalid photo key')); // 4. wrong purpose
+  expect(await put({ ...good, back_key: front.key })).toMatchObject(invalid('Front and back must be different photos')); // 5.
+
+  const saved = await put(good);
+  expect(saved).toMatchObject({ status: 200, json: { kyc: { aadhaar_last4: '2346' } } });
+  expect(JSON.stringify(saved.json)).not.toMatch(/234123412346|aadhaar\//); // never the number, the keys or a URL
+  expect((await kyc(t, auth, '498765432102')).json).toMatchObject({ kyc: { aadhaar_last4: '2102' } }); // replace
+
+  await complete(t, auth);
+  expect(await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth })).toMatchObject({ status: 200 });
+  expect(await put({ ...good, aadhaar_number: '234123412347' })).toMatchObject({ status: 409, json: { code: 'conflict' } }); // 2. before the number
+});
+```
+
+- [ ] **Step 2: Run them to confirm they fail**
+
+Run: `npx jest src/artist/__tests__/aadhaar.test.ts src/api/__tests__/mock-artist.test.ts`
+Expected: FAIL.
+- `aadhaar.test.ts` fails with `Cannot find module '../aadhaar'`.
+- In `mock-artist.test.ts`, the new kyc test fails: the first `kyc()` call gets `422 purpose must be artist_photo or portfolio` from the upload ticket. The ticket, draft and seeded tests fail too, because `kyc` is missing from the profile.
+
+- [ ] **Step 3: Implement the types, the util and the endpoint**
+
+In `src/api/types.ts`:
+- in `ArtistProfile`, add the field after `photos`;
+- replace `UploadPurpose`;
+- add `KycInput` after `PhotoInput`.
+
+```ts
+  /** Identity proof on file. Only the last 4 digits ever reach the app: never the number, keys or images. */
+  kyc: { aadhaar_last4: string } | null;
+```
+
+```ts
+export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar';
+```
+
+```ts
+/** PUT /artists/me/kyc. All three are required on every call ("Replace details" re-sends everything). */
+export interface KycInput {
+  aadhaar_number: string;
+  front_key: string;
+  back_key: string;
+}
+```
+
+In `src/api/endpoints/artist.ts`:
+- add `KycInput` to the type import, which becomes `import type { ArtistProfile, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../types';`;
+- add this after `reorderPhotos`:
+
+```ts
+export function saveKyc(body: KycInput) {
+  return request<ArtistProfile>('/artists/me/kyc', body, { auth: true, method: 'PUT' });
+}
+```
+
+Create `src/artist/aadhaar.ts`:
+
+```ts
+// Same rule as backend app/utils/aadhaar.py (keep them in lockstep): 12 digits, first digit 2–9,
+// last digit a Verhoeff check digit. Use generated numbers only: 234123412346 passes, 234123412347 fails.
+
+// Verhoeff tables: multiplication (dihedral group D5) and permutation, as published by Verhoeff (1969).
+const D = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 0, 6, 7, 8, 9, 5], [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+  [3, 4, 0, 1, 2, 8, 9, 5, 6, 7], [4, 0, 1, 2, 3, 9, 5, 6, 7, 8], [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+  [6, 5, 9, 8, 7, 1, 0, 4, 3, 2], [7, 6, 5, 9, 8, 2, 1, 0, 4, 3], [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+  [9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+];
+const P = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 5, 7, 6, 2, 8, 3, 0, 9, 4], [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+  [8, 9, 1, 6, 0, 4, 3, 5, 2, 7], [9, 4, 5, 3, 1, 2, 6, 8, 7, 0], [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+  [2, 7, 9, 3, 8, 0, 6, 4, 1, 5], [7, 0, 4, 6, 9, 1, 3, 2, 5, 8],
+];
+
+/** `digits` must already be stripped of spaces (the Identity screen keeps digits only). */
+export function isValidAadhaar(digits: string): boolean {
+  if (!/^[2-9]\d{11}$/.test(digits)) return false;
+  let check = 0;
+  [...digits].reverse().forEach((d, i) => { check = D[check][P[i % 8][Number(d)]]; });
+  return check === 0;
+}
+
+/** "234123412346" → "2341 2341 2346"; partial input groups the same way ("23412" → "2341 2"). */
+export function formatAadhaar(digits: string): string {
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+```
+
+- [ ] **Step 4: Implement the mock**
+
+In `src/api/mock/artist.ts`:
+
+1. Add the import and a purpose list. Keep the existing type import (it already imports `UploadPurpose`), and add `import { isValidAadhaar } from '../../artist/aadhaar';` below it. After `EDITABLE`, add:
+
+```ts
+const PURPOSES: UploadPurpose[] = ['artist_photo', 'portfolio', 'aadhaar']; // backend UploadRequest.purpose
+```
+
+2. Add the kyc record to `MockProfile`. Add `interface MockKyc` above `MockProfile`, and add the field after `photos: MockPhoto[];`:
+
+```ts
+interface MockKyc { last4: string; front_key: string; back_key: string } // like artist_kyc, minus the (encrypted) number
+```
+
+```ts
+  kyc: MockKyc | null;
+```
+
+3. In `out()`, add this after the `photos:` line:
+
+```ts
+      kyc: p.kyc ? { aadhaar_last4: p.kyc.last4 } : null,
+```
+
+4. Replace `uploadTicket`:
+
+```ts
+  uploadTicket(userId: string, purpose: unknown): TransportResponse {
+    if (!PURPOSES.includes(purpose as UploadPurpose)) return err('validation_error', 'purpose must be artist_photo, portfolio or aadhaar', 422);
+    return { status: 200, json: { upload_url: 'mock://upload', fields: {}, key: `artists/${userId}/${purpose as UploadPurpose}/${++this.seq}` } };
+  }
+```
+
+5. In `handle`, add the route after the `PUT /artists/me/photos/order` line. It sits below the existing 404 and 409 checks, so the backend's checks 1 and 2 already run first:
+
+```ts
+    if (method === 'PUT' && path === '/artists/me/kyc') return this.saveKyc(userId, p, b);
+```
+
+6. In `saveProfile`'s new-profile literal, add `kyc: null` after `photos: []`:
+
+```ts
+      category_ids: [], services: [], photos: [], kyc: null, rejection_reason: null, submitted_at: null, reviewed_at: null,
+```
+
+7. Add `saveKyc` after `reorder`:
+
+```ts
+  /** Backend ArtistService.save_kyc checks 3–5, in order; only the last 4 digits and the keys are kept. */
+  private saveKyc(userId: string, p: MockProfile, b: Record<string, unknown>): TransportResponse {
+    const number = typeof b.aadhaar_number === 'string' ? b.aadhaar_number.replace(/ /g, '') : '';
+    if (!isValidAadhaar(number)) return err('validation_error', 'Invalid Aadhaar number', 422);
+    const front = typeof b.front_key === 'string' ? b.front_key : '';
+    const back = typeof b.back_key === 'string' ? b.back_key : '';
+    if (![front, back].every((key) => this.owns(key, userId, 'aadhaar'))) return err('validation_error', 'Invalid photo key', 422);
+    if (front === back) return err('validation_error', 'Front and back must be different photos', 422);
+    p.kyc = { last4: number.slice(-4), front_key: front, back_key: back };
+    return this.ok(p);
+  }
+```
+
+8. In `seedApproved`, replace the `photo_key: null, …` line so the profile gets a kyc record:
+
+```ts
+      photo_key: null, category_ids: [1, 2], services: [], photos: [], rejection_reason: null, submitted_at: now, reviewed_at: now,
+      kyc: { last4: '2346', front_key: `artists/${userId}/aadhaar/seed-front`, back_key: `artists/${userId}/aadhaar/seed-back` },
+```
+
+(Don't add `kyc` to `submit()` yet. That rule lands in M2, together with the screen that satisfies it; see Decision 13.)
+
+In `src/artist/__tests__/routing.test.ts`, add `kyc: null` to the `profile` fixture (it is now a required field), so its last line reads:
+
+```ts
+  rejection_reason: null, submitted_at: null, reviewed_at: null, kyc: null, ...over,
+```
+
+- [ ] **Step 5: Run tests, types and lint**
+
+Run: `npx jest && npx tsc --noEmit && npx expo lint`
+Expected:
+- Jest: all pass, **87 tests** (83 plus 3 Aadhaar plus 1 mock kyc test). The onboarding integration tests are unchanged and still submit from Portfolio, because the mock doesn't require kyc yet.
+- `tsc`: no output.
+- Lint: no errors or warnings.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/api/types.ts src/api/endpoints/artist.ts src/api/mock/artist.ts src/artist/aadhaar.ts src/artist/__tests__/aadhaar.test.ts src/artist/__tests__/routing.test.ts src/api/__tests__/mock-artist.test.ts
+git commit -m "feat(mobile): Aadhaar types, Verhoeff check, saveKyc and mock /artists/me/kyc
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+### Task M2: Identity step, 4-step flow, resume rule and copy
+
+**Files:**
+- Create: `app/artist/onboarding/identity.tsx`
+- Modify:
+  - `src/artist/routing.ts`, `src/api/mock/artist.ts` (`submit`);
+  - `app/artist/onboarding/{portfolio,profile,services,intro,_layout}.tsx`, `app/artist/in-review.tsx`;
+  - `README.md`.
+- Test: `src/artist/__tests__/routing.test.ts`, `src/api/__tests__/mock-artist.test.ts`, `src/__tests__/artist-onboarding.test.tsx`
+
+**Interfaces:**
+- Consumes (M1): `saveKyc`, `KycInput`, `ArtistProfile.kyc`, `isValidAadhaar`, `formatAadhaar`, `uploadImage(image, 'aadhaar')`.
+- Consumes (existing):
+  - `useArtistProfile`, `useArtistWrite`, `pickImages`, `errorMessage`;
+  - `FormScreen` (`onBack`, `step`, `steps`, `footer`), `FormHeading` (`eyebrow`, `title`, `accent`, `subtitle`);
+  - `AppTextField` (`label`, `error`, TextInput props), `AppButton` (`label`, `onPress`, `loading`, `disabled`).
+- Produces:
+  - route `/artist/onboarding/identity`;
+  - `ResumeStep` adds `'identity'`;
+  - in the mock, submit's `missing` adds `'kyc'`;
+  - test helpers `fillIdentity`, `submitIdentity` and `toIdentity` in `artist-onboarding.test.tsx`.
+
+- [ ] **Step 1: Write the failing unit tests (routing and mock submit)**
+
+In `src/artist/__tests__/routing.test.ts`:
+- add a six-photo fixture below `service`;
+- replace the `a draft resumes…` test;
+- in `artistHref maps each stage…`, add a line after the `/artist/onboarding/portfolio` expectation.
+
+```ts
+const photos = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, key: `k${i}`, width: 1, height: 1, thumb_url: 'u', card_url: 'u', full_url: 'u' }));
+```
+
+```ts
+it('a draft resumes at the first step the server has no data for; six photos go on to Identity', () => {
+  expect(resumeStep(null)).toBe('intro');
+  expect(resumeStep(profile())).toBe('services');
+  expect(resumeStep(profile({ services: [service] }))).toBe('portfolio');
+  expect(resumeStep(profile({ services: [service], photos: photos.slice(0, 5) }))).toBe('portfolio');
+  expect(resumeStep(profile({ services: [service], photos }))).toBe('identity');
+  expect(resumeStep(profile({ services: [service], photos, kyc: { aadhaar_last4: '2346' } }))).toBe('identity'); // on file: submit from there
+});
+```
+
+```ts
+  expect(artistHref(profile({ services: [service], photos }), false)).toBe('/artist/onboarding/identity');
+```
+
+In `src/api/__tests__/mock-artist.test.ts`, in `submit lists what is missing…`, change the expected list to `missing: ['services', 'portfolio', 'kyc']`.
+
+- [ ] **Step 2: Update the existing integration tests and add the Identity ones**
+
+In `src/__tests__/artist-onboarding.test.tsx`:
+
+1. Progress bars are out of 4 now. Replace each `'Step 1 of 3'` with `'Step 1 of 4'`, `'Step 2 of 3'` with `'Step 2 of 4'` (in `fillProfile` and in the Profile-disabled test), and `'Step 3 of 3'` with `'Step 3 of 4'` (both lines of the Services test). In the Intro test, replace `'3 short steps'` with `'4 short steps'`.
+
+2. Below the `afterEach` line, add:
+
+```ts
+const INVALID = 'That doesn’t look like a valid Aadhaar number.';
+```
+
+3. Right after `addPhotos`, add the Identity helpers:
+
+```ts
+/** Identity: type the number and upload both sides of the card; leaves Submit for review enabled. */
+async function fillIdentity(number = '234123412346') {
+  expect(await screen.findByText('Confirm it’s you')).toBeTruthy();
+  expect(screen.getByLabelText('Step 4 of 4')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Aadhaar number'), number);
+  for (const side of ['front', 'back']) {
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText(`Add ${side} of card`));
+    expect(await screen.findByLabelText(`Retake ${side} of card`)).toBeTruthy();
+  }
+}
+
+/** Submit for review from Identity; ends on the In review timeline. */
+async function submitIdentity() {
+  await fireEvent.press(screen.getByText('Submit for review'));
+  expect(await screen.findByText('Your profile is in review')).toBeTruthy();
+}
+```
+
+4. In the Portfolio test:
+   - Rename it to `'Portfolio: counts toward six, marks the cover, Make cover and Remove work, then Continue opens Identity, which submits to In review'`.
+   - Replace its last four lines (from `await addPhotos(2, 6);` to the end of the test body) with:
+
+```ts
+  await addPhotos(2, 6);
+  await fireEvent.press(await screen.findByText('Continue'));
+  await fillIdentity();
+  await submitIdentity();
+  expect(screen.getByText('Profile submitted')).toBeTruthy();
+  expect(screen.getByText('Identity & portfolio check')).toBeTruthy();
+```
+
+5. Replace `submitFor` with `toIdentity` plus a new `submitFor`:
+
+```ts
+/** Profile, one service and six photos for a fresh number; ends on Identity. */
+async function toIdentity(national: string) {
+  await startArtist(national);
+  await fillProfile();
+  await addService();
+  await fireEvent.press(screen.getByText('Continue'));
+  await addPhotos(6);
+  await fireEvent.press(await screen.findByText('Continue'));
+}
+
+/** Runs the whole flow to In review for a fresh number. */
+async function submitFor(national: string) {
+  await toIdentity(national);
+  await fillIdentity();
+  await submitIdentity();
+}
+```
+
+6. In the rejection test, replace its last five lines (from the `await fireEvent.press(screen.getByText('Continue'));` right after the `prefilled from the saved profile` assertion, to the end of the test body) with:
+
+```ts
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  // The app never gets the number or the photos back: it shows the last 4 digits, and resubmits without re-entering them.
+  expect(await screen.findByText('Aadhaar on file •••• 2346')).toBeTruthy();
+  expect(screen.queryByLabelText('Aadhaar number')).toBeNull();
+  const spy = jest.spyOn(transport, 'request');
+  try {
+    await submitIdentity();
+    expect(spy.mock.calls.map(([r]) => r.path)).not.toContain('/artists/me/kyc');
+  } finally {
+    spy.mockRestore();
+  }
+```
+
+7. Append three tests after `quitting mid-way resumes at the first incomplete step`:
+
+```ts
+it('Identity: groups the number, flags a bad checksum on blur, and a failed submit keeps the artist on the step', async () => {
+  await toIdentity('9845044450');
+  const field = () => screen.getByLabelText('Aadhaar number');
+  await fireEvent.changeText(field(), '2341-2341-2347-99'); // non-digits dropped, capped at 12
+  expect(field().props.value).toBe('2341 2341 2347');
+  expect(screen.queryByText(INVALID)).toBeNull(); // not while typing
+  await fireEvent(field(), 'blur');
+  expect(await screen.findByText(INVALID)).toBeTruthy();
+  await fireEvent.changeText(field(), '234123412346');
+  await waitFor(() => expect(screen.queryByText(INVALID)).toBeNull());
+
+  await fillIdentity();
+  const real = transport.request.bind(transport);
+  const spy = jest.spyOn(transport, 'request').mockImplementation((r) =>
+    r.path === '/artists/me/submit' ? Promise.resolve({ status: 500, json: null }) : real(r));
+  try {
+    await fireEvent.press(screen.getByText('Submit for review'));
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeTruthy();
+    expect(screen.getByText('Confirm it’s you')).toBeTruthy();
+    // The details were saved before submit failed, so they are on file and the retry only submits.
+    expect(screen.getByText('Aadhaar on file •••• 2346')).toBeTruthy();
+    spy.mockClear();
+    spy.mockImplementation(real);
+    await submitIdentity();
+    expect(spy.mock.calls.map(([r]) => r.path)).not.toContain('/artists/me/kyc');
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('Replace details after a rejection needs the number and both photos again', async () => {
+  await submitFor('9845044451');
+  mock.review('+919845044451', 'rejected', 'Aadhaar photo is unreadable');
+  await queryClient.invalidateQueries({ queryKey: ['artist'] });
+  await fireEvent.press(await screen.findByText('Edit and resubmit'));
+  expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(await screen.findByText('Replace details'));
+  expect(screen.getByLabelText('Aadhaar number').props.value).toBe('');
+  expect(screen.getByLabelText('Add front of card')).toBeTruthy();
+  expect(screen.queryByText(/^Aadhaar on file/)).toBeNull();
+
+  const spy = jest.spyOn(transport, 'request');
+  const kycPuts = () => spy.mock.calls.filter(([r]) => r.path === '/artists/me/kyc');
+  try {
+    await fireEvent.press(screen.getByText('Submit for review')); // nothing entered
+    await fireEvent.changeText(screen.getByLabelText('Aadhaar number'), '498765432102');
+    await fireEvent.press(screen.getByText('Submit for review')); // no photos
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText('Add front of card'));
+    expect(await screen.findByLabelText('Retake front of card')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Submit for review')); // no back photo
+    expect(kycPuts()).toHaveLength(0);
+    expect(screen.getByText('Confirm it’s you')).toBeTruthy();
+
+    mockPicks(1);
+    await fireEvent.press(screen.getByLabelText('Add back of card'));
+    expect(await screen.findByLabelText('Retake back of card')).toBeTruthy();
+    await submitIdentity();
+    expect(kycPuts()).toHaveLength(1);
+    expect(kycPuts()[0][0].body).toMatchObject({ aadhaar_number: '498765432102' });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('quitting on Identity resumes there at step 4 of 4, and Back returns to Portfolio', async () => {
+  await toIdentity('9845044452');
+  await screen.unmount();
+  queryClient.clear();
+  await renderRouter('./app');
+  expect(await screen.findByText('Confirm it’s you')).toBeTruthy();
+  expect(screen.getByLabelText('Step 4 of 4')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Back'));
+  expect(await screen.findByText('Show your best work')).toBeTruthy();
+});
+```
+
+- [ ] **Step 3: Run them to confirm they fail**
+
+Run: `npx jest src/artist/__tests__/routing.test.ts src/api/__tests__/mock-artist.test.ts src/__tests__/artist-onboarding.test.tsx`
+Expected: FAIL.
+- In routing, `resumeStep` returns `'portfolio'` where `'identity'` is expected.
+- In the mock, `missing` lacks `'kyc'`.
+- In onboarding, `Step 1 of 4` and `4 short steps` aren't found, and the Identity tests time out waiting for "Confirm it’s you".
+
+The categories-retry test and the zero-price test still pass.
+
+- [ ] **Step 4: Resume rule and the mock's submit rule**
+
+In `src/artist/routing.ts`, replace the `ResumeStep` type and `resumeStep`:
+
+```ts
+export type ResumeStep = 'intro' | 'services' | 'portfolio' | 'identity';
+const MIN_PHOTOS = 6; // backend artist_service.MIN_PHOTOS
+```
+
+```ts
+/** Spec §2.1: each Continue saves, so a returning artist resumes at the first step the server has no data for. */
+export function resumeStep(profile: ArtistProfile | null): ResumeStep {
+  if (!profile) return 'intro'; // the Profile step creates the row, so a saved row always has profile details
+  if (!profile.services.length) return 'services';
+  if (profile.photos.length < MIN_PHOTOS) return 'portfolio';
+  return 'identity'; // with or without kyc on file: Identity is also where the artist submits
+}
+```
+
+In `src/api/mock/artist.ts`, in `submit()`, add this after the `portfolio` line:
+
+```ts
+    if (!p.kyc) missing.push('kyc');
+```
+
+- [ ] **Step 5: The Identity screen**
+
+Create `app/artist/onboarding/identity.tsx`:
+
+```tsx
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { FormScreen, FormHeading } from '../../../src/components/FormScreen';
+import { AppText } from '../../../src/components/AppText';
+import { AppButton } from '../../../src/components/AppButton';
+import { AppTextField } from '../../../src/components/AppTextField';
+import { useTheme } from '../../../src/theme/theme-provider';
+import { useArtistProfile, useArtistWrite } from '../../../src/artist/queries';
+import { pickImages, uploadImage } from '../../../src/artist/upload';
+import { formatAadhaar, isValidAadhaar } from '../../../src/artist/aadhaar';
+import * as artistApi from '../../../src/api/endpoints/artist';
+import type { KycInput } from '../../../src/api/types';
+import { errorMessage } from '../../../src/api/error-message';
+
+const INVALID = 'That doesn’t look like a valid Aadhaar number.';
+
+/** One side of the card: the local preview and, once uploaded, its private storage key. */
+interface Side { uri: string | null; key: string | null; uploading: boolean }
+type SideName = 'front' | 'back';
+const EMPTY: Record<SideName, Side> = {
+  front: { uri: null, key: null, uploading: false },
+  back: { uri: null, key: null, uploading: false },
+};
+
+// Step 4 of 4 (spec §2.2; not drawn in the design): Aadhaar number and both sides of the card, then Submit for review.
+// The server never sends the number or the photos back, so details on file show only the last 4 digits.
+export default function IdentityStep() {
+  const theme = useTheme();
+  const router = useRouter();
+  const { data: profile } = useArtistProfile();
+  const write = useArtistWrite();
+  const [replacing, setReplacing] = useState(false);
+  const [digits, setDigits] = useState('');
+  const [checked, setChecked] = useState(false); // validate on blur and on submit, not while typing
+  const [sides, setSides] = useState(EMPTY);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onFile = replacing ? null : profile?.kyc ?? null;
+  const valid = isValidAadhaar(digits);
+  const { front, back } = sides;
+  // A key is only set once its upload finished, so both keys mean nothing is still uploading.
+  const details: KycInput | null = !onFile && valid && front.key && back.key
+    ? { aadhaar_number: digits, front_key: front.key, back_key: back.key }
+    : null;
+  const ready = !!onFile || !!details;
+
+  const choose = async (name: SideName) => {
+    const previous = sides[name];
+    setError(null);
+    try {
+      const [image] = await pickImages(1);
+      if (!image) return;
+      setSides((s) => ({ ...s, [name]: { uri: image.uri, key: null, uploading: true } }));
+      const { key } = await uploadImage(image, 'aadhaar');
+      setSides((s) => ({ ...s, [name]: { uri: image.uri, key, uploading: false } }));
+    } catch (e) {
+      setSides((s) => ({ ...s, [name]: previous })); // a failed retake keeps the photo already uploaded
+      setError(errorMessage(e));
+    }
+  };
+
+  const replace = () => { // spec §2.2: an empty form; the number and both photos are required again
+    setDigits('');
+    setSides(EMPTY);
+    setChecked(false);
+    setError(null);
+    setReplacing(true);
+  };
+
+  const submit = async () => {
+    if (!onFile) setChecked(true);
+    if (!ready || submitting) return; // disabled buttons still reach onPress under RNTL
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (details) {
+        await write(() => artistApi.saveKyc(details));
+        setReplacing(false); // now on file, so a failed submit retries without re-sending the details
+      }
+      await write(artistApi.submitProfile); // status → pending; the artist layout moves to In review
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <FormScreen
+      onBack={() => router.dismissTo('/artist/onboarding/portfolio')}
+      step={4}
+      steps={4}
+      footer={<AppButton label="Submit for review" onPress={() => { void submit(); }} loading={submitting} disabled={!ready} />}
+    >
+      <FormHeading eyebrow="STEP 4 · IDENTITY" title="Confirm it’s" accent="you" subtitle="We use your Aadhaar only to verify your identity." />
+      {onFile ? (
+        <View style={{ marginTop: 20, padding: 14, gap: 8, borderRadius: theme.radii.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}>
+          <AppText variant="label" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{`Aadhaar on file •••• ${onFile.aadhaar_last4}`}</AppText>
+          <Pressable accessibilityRole="button" onPress={replace} hitSlop={8} style={{ alignSelf: 'flex-start' }}>
+            <AppText variant="label" style={{ color: theme.colors.brand }}>Replace details</AppText>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <View style={{ marginTop: 20 }}>
+            <AppTextField
+              label="Aadhaar number"
+              value={formatAadhaar(digits)}
+              onChangeText={(t) => setDigits(t.replace(/\D/g, '').slice(0, 12))}
+              onBlur={() => setChecked(true)}
+              keyboardType="number-pad"
+              maxLength={14}
+              placeholder="1234 5678 9012"
+              error={checked && !valid ? INVALID : null}
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+            <CardSide title="Front" side={front} onPress={() => { void choose('front'); }} />
+            <CardSide title="Back" side={back} onPress={() => { void choose('back'); }} />
+          </View>
+        </>
+      )}
+      <View style={{ marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: theme.colors.washTop }}>
+        <AppText variant="caption" style={{ color: theme.colors.textSecondary, lineHeight: 19 }}>
+          Your Aadhaar is encrypted and only seen by our verification team.
+        </AppText>
+      </View>
+      {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
+    </FormScreen>
+  );
+}
+
+/** Front or back tile: tap to pick and upload, a spinner while uploading, then the local preview with "Retake". */
+function CardSide({ title, side, onPress }: { title: 'Front' | 'Back'; side: Side; onPress: () => void }) {
+  const theme = useTheme();
+  const name = `${title.toLowerCase()} of card`;
+  return (
+    <View style={{ flex: 1, gap: 6 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={side.uploading ? `Uploading ${name}` : side.key ? `Retake ${name}` : `Add ${name}`}
+        disabled={side.uploading}
+        onPress={onPress}
+        style={{
+          aspectRatio: 1.58, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+          borderWidth: 1.5, borderStyle: side.uri ? 'solid' : 'dashed', borderColor: theme.colors.border,
+          backgroundColor: side.uri ? theme.colors.imageFallback : theme.colors.washTop,
+        }}
+      >
+        {side.uri ? (
+          <Image source={{ uri: side.uri }} contentFit="cover" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: side.uploading ? 0.5 : 1 }} />
+        ) : (
+          <AppText style={{ fontSize: 22, color: theme.colors.brand }}>+</AppText>
+        )}
+        {side.uploading ? <ActivityIndicator color={theme.colors.brand} /> : null}
+      </Pressable>
+      <AppText variant="label" style={{ fontSize: 13, color: theme.colors.textSecondary }}>
+        {title}
+        {side.key ? <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}> · Retake</AppText> : null}
+      </AppText>
+    </View>
+  );
+}
+```
+
+- [ ] **Step 6: Portfolio Continue, 4-step progress and copy**
+
+`app/artist/onboarding/portfolio.tsx`:
+- Change the header comment to `// Atelier hi-fi "onbPortfolio" (step 3 of 4): the first photo is the cover; long-press a tile for Make cover / Remove. Continue opens Identity.`
+- Delete the line `const submit = () => run(() => write(artistApi.submitProfile)); // status → pending; the artist layout moves to In review`. (`run`, `write` and `artistApi` are still used by `add`, `makeCover` and `remove`.)
+- Change `steps={3}` to `steps={4}`.
+- Replace the footer `AppButton` with:
+
+```tsx
+        <AppButton
+          label={enough ? 'Continue' : `Continue · ${count} of ${MIN_PHOTOS} photos`}
+          onPress={() => { if (enough && uploading.length === 0) router.push('/artist/onboarding/identity'); }}
+          disabled={!enough || uploading.length > 0}
+        />
+```
+
+`app/artist/onboarding/profile.tsx`: change `steps={3}` to `steps={4}`, and change the header comment's `(step 1 of 3)` to `(step 1 of 4)`.
+
+`app/artist/onboarding/services.tsx`: change `steps={3}` to `steps={4}`, and change the header comment's `// Step 2 of 3` to `// Step 2 of 4`.
+
+`app/artist/onboarding/intro.tsx`: change the caption text `3 short steps` to `4 short steps`, and change the header comment's `"3 short steps"` to `"4 short steps"`.
+
+`app/artist/onboarding/_layout.tsx`: change the first comment line to `// Intro → Profile → Services → Portfolio → Identity. The artist layout guards the whole group; steps`.
+
+`app/artist/in-review.tsx`: change the middle milestone to:
+
+```tsx
+              <Milestone state="current" title="Identity & portfolio check" detail="In progress · usually 24–48 hrs" />
+```
+
+- [ ] **Step 7: README**
+
+In `README.md`, under "### Artist onboarding in mock mode", replace the first sentence ("Choose role → "Create your profile" runs Intro → Profile → Services → Portfolio → In review entirely against `MockTransport` (…).") with:
+
+```
+Choose role → "Create your profile" runs Intro → Profile → Services → Portfolio → Identity → In review entirely
+against `MockTransport` (categories are the design's six; picked photos are kept as local URIs).
+Identity accepts only Verhoeff-valid Aadhaar numbers: use generated ones such as `234123412346`, never a real one.
+```
+
+In the next sentence, change `` `+1 555 000 9999` is a seeded, already-approved artist. `` to `` `+1 555 000 9999` is a seeded, already-approved artist (Aadhaar on file, last 4 `2346`). ``
+
+- [ ] **Step 8: Run tests, types and lint**
+
+Run: `npx jest && npx tsc --noEmit && npx expo lint`
+Expected:
+- Jest: all pass, **90 tests** (87 plus the 3 new Identity tests).
+- `tsc`: no output.
+- Lint: no errors or warnings. In particular, no `set-state-in-effect` and no unused imports, because `portfolio.tsx` keeps using `artistApi`.
+
+If a long integration test hits Jest's 5 s default timeout on a slow machine, give that test a third `it` argument of `15_000`. Don't loosen any assertion.
+
+- [ ] **Step 9: Check nothing else still says three steps**
+
+Run: `grep -rn "steps={3}\|of 3 photos\|3 short steps\|Portfolio check" app src`
+Expected: no output. The auth screens use `FormScreen`'s default (`AUTH_STEPS`), so `auth-flow.test.tsx`'s `Step 1 of 3` and `Step 3 of 3` correctly stay as they are.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add app/artist/onboarding/identity.tsx app/artist/onboarding/portfolio.tsx app/artist/onboarding/profile.tsx app/artist/onboarding/services.tsx app/artist/onboarding/intro.tsx app/artist/onboarding/_layout.tsx app/artist/in-review.tsx src/artist/routing.ts src/api/mock/artist.ts src/artist/__tests__/routing.test.ts src/api/__tests__/mock-artist.test.ts src/__tests__/artist-onboarding.test.tsx README.md
+git commit -m "feat(mobile): onboarding Identity step (Aadhaar), 4-step progress and resume
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+---
+
+## Part 3 (admin)
+
+Written after Part 2 is built and reviewed, against the API as it ships. Its scope is fixed by spec §3: the "Identity (Aadhaar)" card at the top of `ArtistReviewPage.tsx` shows the masked number with a Reveal button that is never cached, and a "Reveals are logged." caption. It shows front and back images that open in the existing image dialog, and refetches the detail once when an image link has expired. When there is no KYC row, the card shows "No Aadhaar on file" and doesn't block Approve. Vitest tests cover the masked number and images, the Reveal `POST`, and the null-kyc state.
 
 ## Self-review notes (Part 1)
 
@@ -987,3 +1856,32 @@ These are written after Part 1 is built and reviewed, against the API as it ship
   - `test_submit_lists_what_is_missing` gains `"kyc"`;
   - the `EXPECTED_TABLES` and `TABLES` lists grow;
   - `complete_profile` adds KYC by default, so existing submit flows still pass.
+
+## Self-review notes (Part 2)
+
+- **Spec coverage:**
+  - §2.1: the 4 steps and "4 short steps", `steps={4}`, Portfolio's Continue pushing Identity (and still disabled below 6), the resume rule, and "Identity & portfolio check" → M2, steps 4 and 6.
+  - §2.2: the Identity screen (FormScreen 4/4, eyebrow, title and subtitle; number pad, grouping and the 12-digit cap; Verhoeff on blur and on submit; Front/Back tiles with upload, spinner, preview and Retake; the privacy note; Submit enabled when the form is complete or the details are on file; `PUT` then `POST /submit`; errors shown on the step; "Aadhaar on file •••• NNNN" with "Replace details"; handlers guard themselves) → M2, step 5.
+  - §2.3: types, `saveKyc` and the mock → M1. The mock's `kyc` in `missing` → M2, step 4 (Decision 13).
+  - §2.3 tests:
+    - an invalid number shows the error → `Identity: groups the number…`;
+    - uploading both sides and submitting reaches In review → the Portfolio test and `submitFor`;
+    - resuming after a quit lands on Identity → `quitting on Identity resumes there…`;
+    - Edit and resubmit shows "on file" and doesn't re-send the details → the rejection test;
+    - Replace details needs all three fields again → `Replace details after a rejection…`;
+    - the existing tests are updated for 4 steps → M2, step 2.1.
+- **Consistency:**
+  - `isValidAadhaar` and `formatAadhaar` are defined in M1 and used by the mock (M1) and the Identity screen (M2).
+  - `KycInput` and `saveKyc` are defined in M1 and used in M2.
+  - `ArtistProfile.kyc` is defined in M1. It is read by `identity.tsx`, and the routing fixture sets it.
+  - `ResumeStep 'identity'` and the route `/artist/onboarding/identity` are both added in M2, so `artistHref` never points at a missing screen.
+  - The tile labels `Add/Uploading/Retake {front|back} of card`, the field label `Aadhaar number`, and the copy strings are identical in `identity.tsx` and the tests.
+  - The test numbers are consistent: `234123412346` → `2346` (also the seeded artist), and `498765432102` → `2102`.
+- **Known edits to existing tests:**
+  - `artist-onboarding.test.tsx`: "Step N of 3" becomes "of 4", "3 short steps" becomes "4"; the Portfolio test continues through Identity; `submitFor` goes through Identity; the rejection test resubmits from the on-file view and asserts that no `PUT /kyc` is sent.
+  - `mock-artist.test.ts`: `complete()` adds kyc; the draft test expects `kyc: null`; the seeded test expects kyc; `missing` gains `'kyc'` (in M2).
+  - `routing.test.ts`: the fixture gains `kyc: null` (M1), and gains identity assertions (M2).
+  - `auth-flow.test.tsx`: unchanged, because its "of 3" checks are the auth progress bar.
+- **Not in Part 2 (spec scope):**
+  - The backend's `KycIn.aadhaar_number` `max_length=20` produces FastAPI's `{detail}` shape rather than `{code, message}`. The app can't reach it, because it sends at most 12 digits.
+  - The mock doesn't delete replaced card files, because it has no storage to delete from.
