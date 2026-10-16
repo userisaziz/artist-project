@@ -1,19 +1,22 @@
 import { NavLink, Outlet } from 'react-router'
-import { BadgeCheck, LayoutGrid, LogOut } from 'lucide-react'
+import { BadgeCheck, LayoutGrid, ListChecks, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePendingCount } from '@/features/artists/queries'
+import { useCustomServicePendingCount } from '@/features/custom-services/queries'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
+// `badge` names which pending count, if any, shows next to the item.
 const NAV = [
-  { to: '/artists', label: 'Verification', icon: BadgeCheck, badge: true },
-  { to: '/categories', label: 'Catalog', icon: LayoutGrid, badge: false },
-]
+  { to: '/artists', label: 'Verification', icon: BadgeCheck, badge: 'artists' },
+  { to: '/custom-services', label: 'Custom services', icon: ListChecks, badge: 'customServices' },
+  { to: '/categories', label: 'Catalog', icon: LayoutGrid, badge: null },
+] as const
 
 /** The design's admin console frame: a white sidebar on the blush page. */
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const pending = usePendingCount()
+  const pending = { artists: usePendingCount().data, customServices: useCustomServicePendingCount().data }
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Admin'
 
   return (
@@ -37,8 +40,8 @@ export function AppShell() {
             >
               <Icon className="size-4" />
               <span className="flex-1">{label}</span>
-              {badge && pending.data ? (
-                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground tabular-nums">{pending.data}</span>
+              {badge && pending[badge] ? (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground tabular-nums">{pending[badge]}</span>
               ) : null}
             </NavLink>
           ))}

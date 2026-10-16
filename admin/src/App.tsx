@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { ArtistQueuePage } from '@/features/artists/ArtistQueuePage'
 import { ArtistReviewPage } from '@/features/artists/ArtistReviewPage'
 import { CategoriesPage } from '@/features/categories/CategoriesPage'
+import { CustomServicesPage } from '@/features/custom-services/CustomServicesPage'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { createQueryClient } from '@/lib/query-client'
 import { LoginPage } from '@/pages/LoginPage'
@@ -19,6 +20,7 @@ function Gate() {
       <Route element={<AppShell />}>
         <Route path="/artists" element={<ArtistQueuePage />} />
         <Route path="/artists/:id" element={<ArtistReviewPage />} />
+        <Route path="/custom-services" element={<CustomServicesPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="*" element={<Navigate to="/artists" replace />} />
       </Route>

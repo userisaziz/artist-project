@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import { ApiError } from '@/lib/api'
 import type { AdminCategory } from '@/lib/types'
 import { useSaveCategory } from './queries'
+import { StatusSelect } from './StatusSelect'
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
@@ -20,14 +20,22 @@ const schema = z.object({
     .max(50)
     .regex(/^([a-z0-9]+(-[a-z0-9]+)*)?$/, 'Lowercase letters, digits and single hyphens only'),
   sort_order: z.string().trim().regex(/^\d*$/, 'A whole number'),
-  is_active: z.boolean(),
+  status: z.enum(['draft', 'inactive', 'active']),
 })
 type FormValues = z.infer<typeof schema>
 
-const empty: FormValues = { name: '', slug: '', sort_order: '', is_active: true }
+const empty: FormValues = { name: '', slug: '', sort_order: '', status: 'draft' }
 
-/** Create (category = null) or edit a category. Blank slug/order are filled in by the server. */
-export function CategoryDialog({ open, category, onClose }: { open: boolean; category: AdminCategory | null; onClose: () => void }) {
+/**
+ * Create (category = null) or edit a category. With `parent` it's a subcategory of that top-level category:
+ * shown read-only, and sent as parent_id on create. Blank slug/order are filled in by the server.
+ */
+export function CategoryDialog({ open, category, parent = null, onClose }: {
+  open: boolean
+  category: AdminCategory | null
+  parent?: AdminCategory | null
+  onClose: () => void
+}) {
   const save = useSaveCategory()
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: empty })
 
@@ -35,21 +43,24 @@ export function CategoryDialog({ open, category, onClose }: { open: boolean; cat
     if (!open) return
     form.reset(
       category
-        ? { name: category.name, slug: category.slug, sort_order: String(category.sort_order), is_active: category.is_active }
+        ? { name: category.name, slug: category.slug, sort_order: String(category.sort_order), status: category.status }
         : empty,
     )
   }, [open, category, form])
 
+  const noun = parent ? 'Subcategory' : 'Category'
+
   const submit = form.handleSubmit(async (values) => {
     const input = {
       name: values.name,
-      is_active: values.is_active,
+      status: values.status,
       ...(values.slug ? { slug: values.slug } : {}),
       ...(values.sort_order ? { sort_order: Number(values.sort_order) } : {}),
+      ...(parent && !category ? { parent_id: parent.id } : {}),
     }
     try {
       await save.mutateAsync({ id: category?.id, input })
-      toast.success(category ? 'Category updated' : `“${values.name}” created`)
+      toast.success(category ? `${noun} updated` : `“${values.name}” created`)
       onClose()
     } catch (e) {
       const message = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.'
@@ -63,13 +74,16 @@ export function CategoryDialog({ open, category, onClose }: { open: boolean; cat
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit} noValidate>
           <DialogHeader>
-            <DialogTitle>{category ? 'Edit category' : 'New category'}</DialogTitle>
-            <DialogDescription>Artists pick categories during onboarding; customers browse by them.</DialogDescription>
+            <DialogTitle>{category ? `Edit ${noun.toLowerCase()}` : `New ${noun.toLowerCase()}`}</DialogTitle>
+            <DialogDescription>
+              {parent ? 'Each subcategory holds the list of services artists pick from.' : 'Artists pick categories during onboarding; customers browse by them.'}
+            </DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            {parent && <p className="text-sm text-muted-foreground">Under: <span className="font-medium text-foreground">{parent.name}</span></p>}
             <Field data-invalid={!!form.formState.errors.name}>
               <FieldLabel htmlFor="category-name">Name</FieldLabel>
-              <Input id="category-name" autoFocus placeholder="Mehendi" aria-invalid={!!form.formState.errors.name} {...form.register('name')} />
+              <Input id="category-name" autoFocus placeholder={parent ? 'Bridal' : 'Mehendi'} aria-invalid={!!form.formState.errors.name} {...form.register('name')} />
               <FieldError errors={[form.formState.errors.name]} />
             </Field>
             <div className="grid grid-cols-2 gap-4">
@@ -84,21 +98,19 @@ export function CategoryDialog({ open, category, onClose }: { open: boolean; cat
                 <FieldError errors={[form.formState.errors.sort_order]} />
               </Field>
             </div>
-            <Field orientation="horizontal">
+            <Field>
+              <FieldLabel htmlFor="category-status">Status</FieldLabel>
               <Controller
                 control={form.control}
-                name="is_active"
-                render={({ field }) => <Switch id="category-active" checked={field.value} onCheckedChange={field.onChange} />}
+                name="status"
+                render={({ field }) => <StatusSelect id="category-status" value={field.value} onChange={field.onChange} />}
               />
-              <div>
-                <FieldLabel htmlFor="category-active">Active</FieldLabel>
-                <FieldDescription>Inactive categories are hidden from the apps.</FieldDescription>
-              </div>
+              <FieldDescription>Draft: only admins see it. Inactive: no new picks; artists who have it keep it. Active: live in the apps.</FieldDescription>
             </Field>
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Saving…' : category ? 'Save changes' : 'Create category'}</Button>
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Saving…' : category ? 'Save changes' : `Create ${noun.toLowerCase()}`}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

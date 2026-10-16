@@ -1,6 +1,6 @@
 # Atelier admin
 
-Internal web console for Art Circle: manage service categories (**Catalog**) and approve or reject artist profiles (**Verification**). It's React + Vite + TypeScript, with shadcn/ui (Base UI + Tailwind v4, using the Atelier palette), TanStack Query, React Router, react-hook-form + zod, and sonner.
+Internal web console for Art Circle: build the service catalog (**Catalog**), approve or reject artist profiles (**Verification**), and review the services approved artists add outside the catalog (**Custom services**). It's React + Vite + TypeScript, with shadcn/ui (Base UI + Tailwind v4, using the Atelier palette), TanStack Query, React Router, react-hook-form + zod, and sonner.
 
 ## Run
 
@@ -37,10 +37,13 @@ With `SMS_PROVIDER=console`, the OTP is printed in the backend log.
 src/
   lib/            api client (token refresh), auth context, types, formatting
   features/
-    categories/   Catalog page, create/edit dialog, queries
+    categories/   Catalog: categories and subcategories (left), the selected subcategory's services (right, ?sub=), dialogs, queries
     artists/      Verification queue, review page, queries
+    custom-services/  Custom services queue with approve / reject, queries
   pages/          LoginPage
-  components/     AppShell (sidebar), PageHeader, ui/ (shadcn)
+  components/     AppShell (sidebar), PageHeader, RejectReasonDialog, ui/ (shadcn)
 ```
+
+**Fill in the catalog before artists onboard.** Artists can only add services from the catalog during onboarding, so every active category needs at least one active subcategory with services. New categories and subcategories start as **Draft** (admin-only); switch them to **Active** when they're ready.
 
 Add shadcn components with `npx shadcn@latest add <name>`.
