@@ -1,5 +1,5 @@
 """Admin category management, two levels deep: top-level categories and their subcategories.
-Categories in use are deactivated rather than deleted, so existing artists, services and
+Categories in use are made inactive rather than deleted, so existing artists, services and
 templates keep a valid reference."""
 
 import re
@@ -13,6 +13,7 @@ from app.models.artist import ArtistServiceItem, artist_categories
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
 from app.schemas.category import AdminCategoryOut, CategoryIn, CategoryPatch
+from app.utils.enums import CategoryStatus
 
 
 def slugify(name: str) -> str:
@@ -52,7 +53,7 @@ class CategoryService:
         u = usage.get(category.id, Usage())
         return AdminCategoryOut(
             id=category.id, slug=category.slug, name=category.name, sort_order=category.sort_order,
-            is_active=category.is_active, parent_id=category.parent_id, artist_count=u.artists,
+            status=category.status, parent_id=category.parent_id, artist_count=u.artists,
             service_count=u.services, child_count=u.children, template_count=u.templates,
         )
 
@@ -109,7 +110,7 @@ class CategoryService:
             sort_order = await self.session.scalar(
                 select(func.coalesce(func.max(Category.sort_order) + 1, 0)).where(siblings(body.parent_id))
             )
-        category = Category(name=name, slug=slug, sort_order=sort_order, is_active=body.is_active, parent_id=body.parent_id)
+        category = Category(name=name, slug=slug, sort_order=sort_order, status=body.status, parent_id=body.parent_id)
         self.session.add(category)
         await self.session.flush()
         return self._out(category, {})
@@ -127,6 +128,10 @@ class CategoryService:
             await self._ensure_unique(
                 changes.get("slug", category.slug), changes.get("name", category.name), category.parent_id, category.id
             )
+        if changes.get("status") == CategoryStatus.draft and category.status != CategoryStatus.draft:
+            usage = (await self._usage(category.id)).get(category.id, Usage())
+            if usage.artists or usage.services:
+                raise ConflictError("Category is in use; it can't go back to draft")
         for field, value in changes.items():
             setattr(category, field, value)
         await self.session.flush()

@@ -17,7 +17,7 @@ async def seed_categories(engine) -> None:
     """Admins create categories in the admin app; tests insert the design's six directly."""
     async with engine.begin() as conn:
         for i, (slug, name) in enumerate(CATEGORIES):
-            await conn.execute(text("INSERT INTO categories (slug, name, sort_order) VALUES (:s, :n, :i)"), {"s": slug, "n": name, "i": i})
+            await conn.execute(text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active')"), {"s": slug, "n": name, "i": i})
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -132,7 +132,7 @@ async def test_profile_accepts_top_level_categories_only(client, engine):
     cats = await categories(client)
     async with engine.begin() as conn:
         sub_id = (await conn.execute(text(
-            "INSERT INTO categories (slug, name, sort_order, parent_id) VALUES ('mehendi-arabic', 'Arabic', 0, :p) RETURNING id"
+            "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
         ), {"p": cats["mehendi"]})).scalar_one()
     response = await client.put("/api/v1/artists/me/profile", headers=headers, json={
         "business_name": "A", "city": "Bangalore", "category_ids": [sub_id],
@@ -228,3 +228,20 @@ async def test_submit_moves_to_pending_and_locks_edits(client):
     locked = await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "B", "city": "Pune", "category_ids": [cats["decor"]]})
     assert locked.status_code == 409
     assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 409
+
+
+async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(client, engine):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    body = {"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]}
+    assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE categories SET status = 'inactive' WHERE id = :i"), {"i": cats["mehendi"]})
+        await conn.execute(text("UPDATE categories SET status = 'draft' WHERE id = :i"), {"i": cats["hair"]})
+
+    assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200  # kept
+    newcomer = await sign_in(client, "+919845011119")
+    inactive = await client.put("/api/v1/artists/me/profile", headers=newcomer, json=body)
+    assert (inactive.status_code, inactive.json()["message"]) == (422, "Unknown category")
+    draft = await client.put("/api/v1/artists/me/profile", headers=headers, json={**body, "category_ids": [cats["mehendi"], cats["hair"]]})
+    assert draft.status_code == 422

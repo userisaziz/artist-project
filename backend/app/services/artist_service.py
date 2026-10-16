@@ -24,7 +24,7 @@ from app.models.user import User
 from app.schemas.artist import KycIn, PhotoIn, ProfileIn, ServiceIn, ServicePatch
 from app.services.storage import ImageStorage
 from app.utils.aadhaar import is_valid_aadhaar
-from app.utils.enums import ArtistStatus
+from app.utils.enums import ArtistStatus, CategoryStatus
 
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
@@ -48,23 +48,26 @@ class ArtistService:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         return profile
 
-    async def _categories(self, ids: list[int]) -> list[Category]:
+    async def _categories(self, ids: list[int], current: list[Category] = ()) -> list[Category]:
+        """Top-level categories an artist may pick: active ones, plus inactive ones the profile already has."""
         wanted = set(ids)
+        kept = {c.id for c in current}
         found = (await self.session.scalars(
-            select(Category).where(Category.id.in_(wanted), Category.is_active.is_(True), Category.parent_id.is_(None))
+            select(Category).where(Category.id.in_(wanted), Category.parent_id.is_(None))
         )).all()
-        if len(found) != len(wanted):
+        allowed = [c for c in found
+                   if c.status == CategoryStatus.active or (c.status == CategoryStatus.inactive and c.id in kept)]
+        if len(allowed) != len(wanted):
             raise ValidationError("Unknown category")
-        return sorted(found, key=lambda c: c.sort_order)
+        return sorted(allowed, key=lambda c: c.sort_order)
 
     async def save_profile(self, user: User, body: ProfileIn) -> ArtistProfile:
         if body.city not in get_settings().cities:
             raise ValidationError("Unknown city")
         if body.photo_key and not self.storage.owns(body.photo_key, user.id, "artist_photo"):
             raise ValidationError("Invalid photo key")
-        categories = await self._categories(body.category_ids)
-
         profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
+        categories = await self._categories(body.category_ids, profile.categories if profile else [])
         if profile is None:
             # Empty collections up front: a new object has nothing loaded, and async can't lazy-load later.
             profile = ArtistProfile(user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[], kyc=None)

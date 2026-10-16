@@ -24,17 +24,18 @@ async def test_admin_endpoints_refuse_non_admins(client):
 
 async def test_create_category_derives_slug_and_order(client, engine):
     headers = await admin(client, engine)
-    first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup"})
+    first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup", "status": "active"})
     assert first.status_code == 201
     assert first.json() | {"id": 0} == {
-        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0, "is_active": True,
+        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0, "status": "active",
         "parent_id": None, "artist_count": 0, "service_count": 0, "child_count": 0, "template_count": 0,
     }
-    second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art", "is_active": False})
+    second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art"})
     assert second.json()["sort_order"] == 1
+    assert second.json()["status"] == "draft"  # new categories start as drafts
 
     public = (await client.get("/api/v1/categories")).json()
-    assert [c["slug"] for c in public] == ["bridal-makeup"]  # inactive ones stay hidden from apps
+    assert [c["slug"] for c in public] == ["bridal-makeup"]  # drafts stay admin-only
     assert [c["slug"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json()] == ["bridal-makeup", "nail-art"]
 
 
@@ -50,10 +51,10 @@ async def test_category_names_and_slugs_are_unique(client, engine):
 async def test_update_and_delete_category(client, engine):
     headers = await admin(client, engine)
     created = (await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Decor"})).json()
-    patched = await client.patch(f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "is_active": False})
+    patched = await client.patch(f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "status": "inactive"})
     assert patched.json()["name"] == "Event Decor"
     assert patched.json()["slug"] == "decor"  # slug is stable unless set explicitly
-    assert patched.json()["is_active"] is False
+    assert patched.json()["status"] == "inactive"
 
     assert (await client.delete(f"/api/v1/admin/categories/{created['id']}", headers=headers)).status_code == 204
     assert (await client.delete(f"/api/v1/admin/categories/{created['id']}", headers=headers)).status_code == 404
@@ -134,6 +135,29 @@ async def test_category_with_subcategories_cannot_be_deleted(client, engine):
     assert (await client.delete(f"/api/v1/admin/categories/{makeup['id']}", headers=headers)).status_code == 409
     assert (await client.delete(f"/api/v1/admin/categories/{bridal['id']}", headers=headers)).status_code == 204
     assert (await client.delete(f"/api/v1/admin/categories/{makeup['id']}", headers=headers)).status_code == 204
+
+
+async def test_category_status_values_and_visibility(client, engine):
+    headers = await admin(client, engine)
+    nails = await create_category(client, headers, name="Nails")
+    url = f"/api/v1/admin/categories/{nails['id']}"
+    assert (await client.patch(url, headers=headers, json={"status": "archived"})).status_code == 422
+    for status, public in (("active", ["nails"]), ("inactive", []), ("draft", []), ("active", ["nails"])):
+        patched = await client.patch(url, headers=headers, json={"status": status})
+        assert patched.json()["status"] == status
+        assert [c["slug"] for c in (await client.get("/api/v1/categories")).json()] == public
+
+
+async def test_category_in_use_cannot_go_back_to_draft(client, engine):
+    await seed_categories(engine)
+    artist = await sign_in(client, "+919845011114")
+    await complete_profile(client, artist, photos=0)
+    headers = await admin(client, engine)
+    mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
+    url = f"/api/v1/admin/categories/{mehendi['id']}"
+    draft = await client.patch(url, headers=headers, json={"status": "draft"})
+    assert (draft.status_code, draft.json()["code"]) == (409, "conflict")
+    assert (await client.patch(url, headers=headers, json={"status": "inactive"})).json()["status"] == "inactive"
 
 
 # --- artist review ------------------------------------------------------------

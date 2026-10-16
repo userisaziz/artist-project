@@ -24,3 +24,11 @@ class ArtistServiceStatus(str, enum.Enum):
     approved = "approved"
     pending = "pending"
     rejected = "rejected"
+
+
+class CategoryStatus(str, enum.Enum):
+    """draft: being set up, admin-only. inactive: no new picks; artists who have it keep it. active: public and pickable."""
+
+    draft = "draft"
+    inactive = "inactive"
+    active = "active"
