@@ -7,10 +7,15 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.artist import ArtistKyc, ArtistProfile, PortfolioPhoto
+from app.models.artist import (
+    ArtistKyc,
+    ArtistProfile,
+    ArtistServiceItem,
+    PortfolioPhoto,
+)
 from app.services.storage import ImageStorage
 from app.utils.aadhaar import mask_aadhaar_last4
-from app.utils.enums import ArtistStatus
+from app.utils.enums import ArtistServiceStatus, ArtistStatus
 
 
 class CategoryOut(BaseModel):
@@ -66,30 +71,39 @@ class ProfileIn(BaseModel):
 
 
 class ServiceIn(BaseModel):
-    category_id: int
-    name: str = Field(min_length=1, max_length=120)
+    """Onboarding: a service from the admin's list, with the artist's own price and duration."""
+
+    template_id: int
     price_paise: int = Field(gt=0, le=100_000_000)  # ≤ ₹10 lakh
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
 
 
 class ServicePatch(BaseModel):
-    category_id: int | None = None
-    name: str | None = Field(default=None, min_length=1, max_length=120)
     price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
 
 
 class ServiceOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: uuid.UUID
     category_id: int
+    subcategory_id: int  # the same column; pre-#6 rows point at a top-level category
+    template_id: int | None  # None = custom service
     name: str
     price_paise: int
     duration_minutes: int
     description: str | None = None
+    status: ArtistServiceStatus
+    rejection_reason: str | None
+
+
+def service_out(item: ArtistServiceItem) -> ServiceOut:
+    return ServiceOut(
+        id=item.id, category_id=item.category_id, subcategory_id=item.category_id, template_id=item.template_id,
+        name=item.display_name, price_paise=item.price_paise, duration_minutes=item.duration_minutes,
+        description=item.description, status=item.status, rejection_reason=item.rejection_reason,
+    )
 
 
 class PhotoIn(BaseModel):
@@ -216,7 +230,7 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> ArtistProfileO
         photo_key=profile.photo_key,
         photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
         categories=[CategoryOut.model_validate(c) for c in profile.categories],
-        services=[ServiceOut.model_validate(s) for s in profile.services],
+        services=[service_out(s) for s in profile.services],
         photos=[photo_out(p, storage) for p in profile.photos],
         kyc=KycOut(aadhaar_last4=profile.kyc.aadhaar_last4) if profile.kyc else None,
         rejection_reason=profile.rejection_reason,

@@ -1,6 +1,7 @@
 """Catalog contract: the admin's service list under each subcategory, and the public category tree."""
 
 from tests.test_admin import admin, create_category
+from tests.test_artists import complete_profile, seed_categories, sign_in
 
 TEMPLATES = "/api/v1/admin/service-templates"
 
@@ -83,3 +84,16 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
             "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
         }],
     }]
+
+
+async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engine):
+    await seed_categories(engine)
+    artist = await sign_in(client, "+919845030001")
+    await complete_profile(client, artist, photos=0, kyc=False)
+    headers = await admin(client, engine)
+    sub_id = next(c["id"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi-bridal")
+    listed = (await client.get(f"{TEMPLATES}?subcategory_id={sub_id}", headers=headers)).json()
+    classic = next(t for t in listed if t["name"] == "Bridal Classic")
+    assert classic["artist_count"] == 1
+    response = await client.delete(f"{TEMPLATES}/{classic['id']}", headers=headers)
+    assert response.status_code == 409

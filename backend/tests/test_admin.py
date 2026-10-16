@@ -66,8 +66,7 @@ async def test_category_in_use_cannot_be_deleted(client, engine):
     await complete_profile(client, artist, photos=0)
     headers = await admin(client, engine)
     mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
-    assert mehendi["artist_count"] == 1
-    assert mehendi["service_count"] == 1
+    assert (mehendi["artist_count"], mehendi["service_count"], mehendi["child_count"]) == (1, 0, 1)
     response = await client.delete(f"/api/v1/admin/categories/{mehendi['id']}", headers=headers)
     assert response.status_code == 409
 

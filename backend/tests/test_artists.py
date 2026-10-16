@@ -14,10 +14,24 @@ CATEGORIES = [("mehendi", "Mehendi"), ("makeup", "Makeup"), ("hair", "Hair"),
 
 
 async def seed_categories(engine) -> None:
-    """Admins create categories in the admin app; tests insert the design's six directly."""
+    """Admins build the catalog in the admin app; tests insert the design's six categories directly,
+    plus Mehendi › Bridal and Makeup › Party with a few services so onboarding has something to pick."""
     async with engine.begin() as conn:
+        ids = {}
         for i, (slug, name) in enumerate(CATEGORIES):
-            await conn.execute(text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active')"), {"s": slug, "n": name, "i": i})
+            ids[slug] = (await conn.execute(
+                text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"),
+                {"s": slug, "n": name, "i": i},
+            )).scalar_one()
+        for parent, slug, name, services in (("mehendi", "mehendi-bridal", "Bridal", ("Bridal Classic", "Bridal Full Arms")),
+                                             ("makeup", "makeup-party", "Party", ("Party Makeup",))):
+            sub = (await conn.execute(
+                text("INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"),
+                {"s": slug, "n": name, "p": ids[parent]},
+            )).scalar_one()
+            for i, service in enumerate(services):
+                await conn.execute(text("INSERT INTO service_templates (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
+                                   {"s": sub, "n": service, "i": i})
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -41,6 +55,12 @@ async def sign_in(client, phone: str, role: str | None = "artist", engine=None) 
 
 async def categories(client) -> dict[str, int]:
     return {c["slug"]: c["id"] for c in (await client.get("/api/v1/categories")).json()}
+
+
+async def templates(client) -> dict[str, int]:
+    """Service name → template id, from the public catalog tree."""
+    tree = (await client.get("/api/v1/categories")).json()
+    return {s["name"]: s["id"] for c in tree for sub in c["subcategories"] for s in sub["services"]}
 
 
 async def upload_key(client, headers, purpose: str) -> str:
@@ -67,7 +87,7 @@ async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -
         "category_ids": [cats["mehendi"]], "photo_key": await upload_key(client, headers, "artist_photo"),
     })
     await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "category_id": cats["mehendi"], "name": "Bridal Classic", "price_paise": 550000, "duration_minutes": 180,
+        "template_id": (await templates(client))["Bridal Classic"], "price_paise": 550000, "duration_minutes": 180,
     })
     for _ in range(photos):
         key = await upload_key(client, headers, "portfolio")
@@ -153,36 +173,69 @@ async def test_changing_the_profile_photo_deletes_the_old_one(client):
 
 async def test_service_crud(client):
     headers = await sign_in(client, ARTIST_PHONE)
-    cats = await categories(client)
+    cats, tpl = await categories(client), await templates(client)
     await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "A", "city": "Pune", "category_ids": [cats["makeup"]]})
     added = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "category_id": cats["makeup"], "name": "Party makeup", "price_paise": 300000, "duration_minutes": 90,
+        "template_id": tpl["Party Makeup"], "price_paise": 300000, "duration_minutes": 90,
     })
     assert added.status_code == 201
-    service_id = added.json()["services"][0]["id"]
+    service = added.json()["services"][0]
+    assert service | {"id": None, "category_id": None, "subcategory_id": None} == {
+        "id": None, "category_id": None, "subcategory_id": None, "template_id": tpl["Party Makeup"],
+        "name": "Party Makeup", "price_paise": 300000, "duration_minutes": 90, "description": None,
+        "status": "approved", "rejection_reason": None,
+    }
+    assert service["subcategory_id"] == service["category_id"] != cats["makeup"]  # stored on the subcategory
 
-    patched = await client.patch(f"/api/v1/artists/me/services/{service_id}", headers=headers, json={"price_paise": 350000})
+    patched = await client.patch(f"/api/v1/artists/me/services/{service['id']}", headers=headers,
+                                 json={"price_paise": 350000, "name": "Renamed"})  # the name isn't editable
     assert patched.json()["services"][0]["price_paise"] == 350000
-    assert patched.json()["services"][0]["name"] == "Party makeup"
+    assert patched.json()["services"][0]["name"] == "Party Makeup"
 
-    bad = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "category_id": cats["makeup"], "name": "Free", "price_paise": 0, "duration_minutes": 30,
+    free = await client.post("/api/v1/artists/me/services", headers=headers, json={
+        "template_id": tpl["Party Makeup"], "price_paise": 0, "duration_minutes": 30,
     })
-    assert bad.status_code == 422
+    assert free.status_code == 422
 
     missing = await client.delete(f"/api/v1/artists/me/services/{uuid.uuid4()}", headers=headers)
     assert missing.status_code == 404
-    deleted = await client.delete(f"/api/v1/artists/me/services/{service_id}", headers=headers)
+    deleted = await client.delete(f"/api/v1/artists/me/services/{service['id']}", headers=headers)
     assert deleted.json()["services"] == []
 
 
 async def test_services_need_a_profile_first(client):
     headers = await sign_in(client, ARTIST_PHONE)
-    cats = await categories(client)
+    tpl = await templates(client)
     response = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "category_id": cats["makeup"], "name": "X", "price_paise": 100, "duration_minutes": 30,
+        "template_id": tpl["Party Makeup"], "price_paise": 100, "duration_minutes": 30,
     })
     assert response.status_code == 404
+
+
+async def test_services_come_from_the_admin_list(client, engine):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats, tpl = await categories(client), await templates(client)
+    await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]})
+    url = "/api/v1/artists/me/services"
+
+    def body(template_id: int) -> dict:
+        return {"template_id": template_id, "price_paise": 500000, "duration_minutes": 120}
+
+    unknown = await client.post(url, headers=headers, json=body(999999))
+    assert (unknown.status_code, unknown.json()["message"]) == (422, "Unknown service")
+    other_category = await client.post(url, headers=headers, json=body(tpl["Party Makeup"]))
+    assert (other_category.status_code, other_category.json()["message"]) == (422, "Pick that category on your profile first")
+    assert (await client.post(url, headers=headers, json=body(tpl["Bridal Classic"]))).status_code == 201
+    again = await client.post(url, headers=headers, json=body(tpl["Bridal Classic"]))
+    assert (again.status_code, again.json()["code"]) == (409, "conflict")
+
+    async with engine.begin() as conn:  # the admin renames one template and hides another
+        await conn.execute(text("UPDATE service_templates SET name = 'Bridal Royal' WHERE id = :i"), {"i": tpl["Bridal Classic"]})
+        await conn.execute(text("UPDATE service_templates SET is_active = false WHERE id = :i"), {"i": tpl["Bridal Full Arms"]})
+    mine = (await client.get("/api/v1/artists/me", headers=headers)).json()
+    assert [s["name"] for s in mine["services"]] == ["Bridal Royal"]
+    hidden = await client.post(url, headers=headers, json=body(tpl["Bridal Full Arms"]))
+    assert (hidden.status_code, hidden.json()["message"]) == (422, "Unknown service")
 
 
 async def test_photos_add_reorder_delete(client):

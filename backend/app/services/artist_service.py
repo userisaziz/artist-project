@@ -20,11 +20,12 @@ from app.models.artist import (
     PortfolioPhoto,
 )
 from app.models.category import Category
+from app.models.service_template import ServiceTemplate
 from app.models.user import User
 from app.schemas.artist import KycIn, PhotoIn, ProfileIn, ServiceIn, ServicePatch
 from app.services.storage import ImageStorage
 from app.utils.aadhaar import is_valid_aadhaar
-from app.utils.enums import ArtistStatus, CategoryStatus
+from app.utils.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
@@ -86,16 +87,34 @@ class ArtistService:
             await self.storage.delete(old_photo)
         return profile
 
+    def _next_service_order(self, profile: ArtistProfile) -> int:
+        return max((s.sort_order for s in profile.services), default=-1) + 1
+
+    async def _template(self, profile: ArtistProfile, template_id: int) -> ServiceTemplate:
+        """An active service from the admin's list, under one of the artist's chosen categories."""
+        template = await self.session.get(ServiceTemplate, template_id)
+        subcategory = await self.session.get(Category, template.subcategory_id) if template else None
+        parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
+        if not (template and template.is_active and subcategory.status == CategoryStatus.active
+                and parent and parent.status == CategoryStatus.active):
+            raise ValidationError("Unknown service")
+        if parent.id not in {c.id for c in profile.categories}:
+            raise ValidationError("Pick that category on your profile first")
+        return template
+
     async def add_service(self, user: User, body: ServiceIn) -> ArtistProfile:
         profile = await self._editable(user)
-        await self._categories([body.category_id])
+        template = await self._template(profile, body.template_id)
+        if any(s.template_id == template.id for s in profile.services):
+            raise ConflictError("You've already added this service")
         profile.services.append(ArtistServiceItem(
-            category_id=body.category_id,
-            name=body.name.strip(),
+            template=template,
+            category_id=template.subcategory_id,
             price_paise=body.price_paise,
             duration_minutes=body.duration_minutes,
             description=body.description,
-            sort_order=max((s.sort_order for s in profile.services), default=-1) + 1,
+            status=ArtistServiceStatus.approved,
+            sort_order=self._next_service_order(profile),
         ))
         await self.session.flush()
         return profile
@@ -110,11 +129,9 @@ class ArtistService:
         profile = await self._editable(user)
         item = self._service(profile, service_id)
         changes = body.model_dump(exclude_unset=True)
-        if changes.get("category_id") is not None:
-            await self._categories([changes["category_id"]])
-        for field in ("category_id", "name", "price_paise", "duration_minutes"):
+        for field in ("price_paise", "duration_minutes"):
             if changes.get(field) is not None:  # required columns: an explicit null means "leave as is"
-                setattr(item, field, changes[field].strip() if field == "name" else changes[field])
+                setattr(item, field, changes[field])
         if "description" in changes:
             item.description = changes["description"]
         await self.session.flush()
