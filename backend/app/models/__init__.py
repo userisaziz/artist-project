@@ -6,3 +6,4 @@ from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.category import Category  # noqa: F401
 from app.models.service_template import ServiceTemplate  # noqa: F401
 from app.models.artist import ArtistProfile, ArtistServiceItem, PortfolioPhoto, artist_categories  # noqa: F401
+from app.models.booking import Booking  # noqa: F401

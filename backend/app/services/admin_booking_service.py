@@ -1,0 +1,88 @@
+"""Admin view of bookings: every booking with search, cancel with a reason, and the Overview numbers."""
+
+import uuid
+from datetime import timedelta
+
+from sqlalchemy import ColumnElement, Date, cast, func, or_, select
+
+from app.models.artist import ArtistProfile, ArtistServiceItem
+from app.models.booking import Booking
+from app.models.user import User
+from app.schemas.booking import AdminOverview, BookingOut, WeekCount
+from app.services.booking_service import OPEN, BookingService, rows_query
+from app.utils import booking_rules as rules
+from app.utils import clock
+from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.utils.search import like_pattern
+
+WEEKS = 12
+
+
+class AdminBookingService(BookingService):
+    async def list(self, status: BookingStatus | None, q: str | None, limit: int, cursor: str | None):
+        """Newest first. `q` matches the booking code, the customer's phone or the artist's business name."""
+        await self.expire_overdue()
+        query = rows_query()
+        if status:
+            query = query.where(Booking.status == status)
+        if q and q.strip():
+            pattern = like_pattern(q)
+            query = query.where(or_(
+                Booking.code.ilike(pattern, escape="\\"),
+                User.phone.ilike(pattern, escape="\\"),
+                ArtistProfile.business_name.ilike(pattern, escape="\\"),
+            ))
+        return await self.page(query, Booking.created_at, True, limit, cursor, admin=True)
+
+    async def get(self, booking_id: uuid.UUID) -> BookingOut:
+        await self.expire_overdue(Booking.id == booking_id)
+        return await self.one(booking_id, admin=True)
+
+    async def cancel(self, booking_id: uuid.UUID, reason: str) -> BookingOut:
+        booking = await self.locked(booking_id)
+        self.require(booking, *OPEN)
+        booking.status = BookingStatus.cancelled
+        booking.cancelled_at = clock.now()
+        booking.cancelled_by = "admin"
+        booking.cancel_reason = reason.strip()
+        booking.refund_due = True  # the platform called it off: the customer gets the deposit back
+        return await self.save(booking_id, admin=True)
+
+    async def _count(self, model, *where: ColumnElement[bool]) -> int:
+        return (await self.session.execute(select(func.count()).select_from(model).where(*where))).scalar_one()
+
+    async def overview(self) -> AdminOverview:
+        await self.expire_overdue()
+        now = clock.now()
+        since = now - timedelta(days=30)
+        gross = (await self.session.execute(
+            select(func.coalesce(func.sum(Booking.total_paise), 0)).where(
+                Booking.created_at >= since, Booking.status.not_in((BookingStatus.declined, BookingStatus.expired))
+            )
+        )).scalar_one()
+        return AdminOverview(
+            gross_paise_30d=gross,
+            bookings_30d=await self._count(Booking, Booking.created_at >= since),
+            awaiting_artist=await self._count(Booking, Booking.status == BookingStatus.requested),
+            completed_30d=await self._count(Booking, Booking.completed_at >= since),
+            cancelled_30d=await self._count(Booking, Booking.cancelled_at >= since),
+            pending_artists=await self._count(ArtistProfile, ArtistProfile.status == ArtistStatus.pending),
+            pending_custom_services=await self._count(
+                ArtistServiceItem, ArtistServiceItem.template_id.is_(None),
+                ArtistServiceItem.status == ArtistServiceStatus.pending,
+            ),
+            bookings_by_week=await self._weeks(now),
+        )
+
+    async def _weeks(self, now) -> list[WeekCount]:
+        """Bookings created per IST week (Monday start), oldest first, the current week last."""
+        today = rules.ist_today(now)
+        this_week = today - timedelta(days=today.weekday())
+        weeks = [this_week - timedelta(weeks=i) for i in range(WEEKS - 1, -1, -1)]
+        first_start, _ = rules.ist_day_bounds(weeks[0], weeks[0])
+        week_of = cast(func.date_trunc("week", func.timezone("Asia/Kolkata", Booking.created_at)), Date)
+        rows = await self.session.execute(
+            select(week_of, func.count()).where(Booking.created_at >= first_start).group_by(week_of)
+        )
+        counts = dict(rows.all())
+        return [WeekCount(week_start=w, count=counts.get(w, 0)) for w in weeks]

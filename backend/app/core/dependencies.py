@@ -12,10 +12,13 @@ from app.core.exceptions import AuthError, ForbiddenError
 from app.core.security import decode_token
 from app.models.user import User
 from app.services.admin_artist_service import AdminArtistService
+from app.services.admin_booking_service import AdminBookingService
 from app.services.artist_service import ArtistService
 from app.services.auth_service import AuthService
+from app.services.booking_service import BookingService
 from app.services.category_service import CategoryService
 from app.services.custom_service_review import CustomServiceReview
+from app.services.directory_service import DirectoryService
 from app.services.service_template_service import ServiceTemplateService
 from app.services.storage import ImageStorage, get_storage
 from app.services.user_service import UserService
@@ -84,3 +87,22 @@ def require_role(role: UserRole):
 
 current_artist = require_role(UserRole.artist)
 current_admin = require_role(UserRole.admin)
+current_customer = require_role(UserRole.customer)
+
+
+def get_booking_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> BookingService:
+    return BookingService(session, storage)
+
+
+def get_admin_booking_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> AdminBookingService:
+    return AdminBookingService(session, storage)
+
+
+def get_directory_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> DirectoryService:
+    return DirectoryService(session, storage)

@@ -46,6 +46,17 @@ class Settings(BaseSettings):
 
     # Cities an artist can pick; a table replaces this once admins edit it.
     cities: list[str] = ["Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune"]
+    # Bookings (Increment 5). Money values are copied onto each booking, so changes only affect new ones.
+    platform_fee_paise: int = 9_900  # ₹99 charged to the customer…
+    platform_fee_waived_from_paise: int = 2_500_000  # …unless the service costs ₹25,000 or more
+    deposit_percent: int = 30  # of the total, paid when requesting
+    commission_percent: int = 10  # of the service price, kept from the artist
+    booking_accept_hours: int = 3  # the artist's window to accept a request
+    free_cancel_hours: int = 72  # customer cancellations this far ahead get the deposit back
+    slot_first_hour: int = 9  # hourly start times, IST
+    slot_last_hour: int = 17
+    booking_lead_hours: int = 2  # earliest bookable start, from now
+    booking_horizon_days: int = 60
     # CORS origins when DEBUG=false (the admin web app).
     admin_origins: list[str] = ["http://localhost:5173"]
 

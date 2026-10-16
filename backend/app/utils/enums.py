@@ -32,3 +32,14 @@ class CategoryStatus(str, enum.Enum):
     draft = "draft"
     inactive = "inactive"
     active = "active"
+
+
+class BookingStatus(str, enum.Enum):
+    """requested → confirmed → completed; a request can also be declined, expire unanswered, or be cancelled."""
+
+    requested = "requested"
+    confirmed = "confirmed"
+    declined = "declined"
+    expired = "expired"
+    cancelled = "cancelled"
+    completed = "completed"
