@@ -60,3 +60,26 @@ async def test_templates_sit_under_subcategories_with_unique_names(client, engin
     patch_whitespace = await client.patch(f"{TEMPLATES}/{template['id']}", headers=headers, json={"name": "   "})
     assert patch_whitespace.status_code == 422
     assert patch_whitespace.json()["code"] == "validation_error"
+
+
+async def test_public_catalog_is_a_tree_of_active_items(client, engine):
+    headers = await admin(client, engine)
+    makeup = await create_category(client, headers, name="Makeup", status="active")
+    bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"], status="active")
+    party = await create_category(client, headers, name="Party", parent_id=makeup["id"], status="inactive")
+    hd = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup", description="Long-wear HD base")
+    await create_template(client, headers, subcategory_id=bridal["id"], name="Old look", is_active=False)
+    await create_template(client, headers, subcategory_id=party["id"], name="Party glam")
+    hair = await create_category(client, headers, name="Hair", status="inactive")
+    styling = await create_category(client, headers, name="Styling", parent_id=hair["id"], status="active")
+    await create_template(client, headers, subcategory_id=styling["id"], name="Blow dry")
+    await create_category(client, headers, name="Nails")  # draft: never public
+
+    tree = (await client.get("/api/v1/categories")).json()
+    assert tree == [{
+        "id": makeup["id"], "slug": "makeup", "name": "Makeup",
+        "subcategories": [{
+            "id": bridal["id"], "slug": "makeup-bridal", "name": "Bridal",
+            "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
+        }],
+    }]

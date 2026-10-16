@@ -21,6 +21,30 @@ class CategoryOut(BaseModel):
     name: str
 
 
+class TemplateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None = None
+
+
+class SubcategoryOut(BaseModel):
+    id: int
+    slug: str
+    name: str
+    services: list[TemplateOut]
+
+
+class CatalogCategoryOut(BaseModel):
+    """The public tree. `CategoryOut` stays flat: it is also an artist's own category list."""
+
+    id: int
+    slug: str
+    name: str
+    subcategories: list[SubcategoryOut]
+
+
 class UploadRequest(BaseModel):
     purpose: Literal["artist_photo", "portfolio", "aadhaar"]
 
