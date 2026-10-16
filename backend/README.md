@@ -58,6 +58,26 @@ Every route is under `/api/v1` except `/health`.
 | POST | `/uploads/signature` | Bearer | With `purpose: "aadhaar"`, signs an upload of an Aadhaar image to private storage. |
 | POST | `/admin/artists/{id}/kyc/reveal` | Bearer (admin) | Returns `{aadhaar_number}` in full. Admin-only. Each call is logged in `aadhaar_reveals`, and the response is `Cache-Control: no-store`. |
 
+### Catalog and services
+
+The catalog has three levels: **category → subcategory → service**. Admins build it in the admin panel, and the apps read it from one public endpoint.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/categories` | none | Active tree: `[{id, slug, name, subcategories: [{id, slug, name, services: [{id, name, description}]}]}]` |
+| GET/POST/PATCH/DELETE | `/admin/categories` | admin | Categories and subcategories (`parent_id` set = subcategory; two levels only) |
+| GET/POST/PATCH/DELETE | `/admin/service-templates` | admin | The service list under a subcategory (`GET` needs `?subcategory_id=`) |
+| POST/PATCH/DELETE | `/artists/me/services` | artist | Onboarding: `{template_id, price_paise, duration_minutes, description?}` from the admin list |
+| POST/PATCH/DELETE | `/artists/me/custom-services` | approved artist | `{subcategory_id, name, price_paise, duration_minutes, description?}`; each one waits for review |
+| GET | `/admin/custom-services` | admin | Review queue, `?status=pending\|approved\|rejected&limit=&cursor=` |
+| POST | `/admin/custom-services/{id}/approve` · `/reject` | admin | Reject takes `{reason}` |
+
+Categories and subcategories have a `status`: `draft` (new ones start here; admin-only), `inactive` (no new picks; artists who have it keep it) or `active` (public and pickable). A subcategory is public only when it and its parent are both active. A category in use can't go back to draft.
+
+Anything in use (a category with artists, services, subcategories or templates; a template an artist offers) can only be hidden, not deleted.
+
+> **Fill in the catalog before artists onboard.** During onboarding, artists can only add services from the admin's list. If a category has no subcategories and services, artists in it can't add a service and can't submit their profile.
+
 ### Error contract
 
 Domain errors return `{"code": "...", "message": "..."}`. Clients branch on `code` and never on `message`, so treat the codes as part of the API contract (`app/core/exceptions.py`):
