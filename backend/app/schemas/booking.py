@@ -69,8 +69,8 @@ class BookingOut(BaseModel):
     total_paise: int
     deposit_paise: int
     balance_paise: int
-    commission_paise: int
-    artist_earning_paise: int
+    commission_paise: int | None  # None when shown to the customer
+    artist_earning_paise: int | None
     deposit_paid_at: datetime | None
     expires_at: datetime
     responded_at: datetime | None

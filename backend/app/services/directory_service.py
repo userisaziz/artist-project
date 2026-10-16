@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import raiseload
 
 from app.core.exceptions import NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem, artist_categories
@@ -27,6 +28,9 @@ from app.utils import clock
 from app.utils.cursor import decode_cursor, encode_cursor
 from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.utils.search import like_pattern
+
+# Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.
+LISTED_AT = func.coalesce(ArtistProfile.reviewed_at, ArtistProfile.created_at)
 
 
 def _bookable(services: list[ArtistServiceItem]) -> list[ArtistServiceItem]:
@@ -51,8 +55,12 @@ class DirectoryService:
 
     async def list(self, city: str | None, category_id: int | None, q: str | None,
                    limit: int, cursor: str | None) -> tuple[list[ArtistCard], str | None]:
-        """Most recently approved first; keyset paging on (reviewed_at, id)."""
-        query = select(ArtistProfile).where(ArtistProfile.status == ArtistStatus.approved)
+        """Most recently approved first; keyset paging on (approved-at, id). The public cards never need KYC."""
+        query = (
+            select(ArtistProfile, LISTED_AT)
+            .where(ArtistProfile.status == ArtistStatus.approved)
+            .options(raiseload(ArtistProfile.kyc))
+        )
         if city:
             query = query.where(ArtistProfile.city == city)
         if category_id is not None:
@@ -71,15 +79,13 @@ class DirectoryService:
             query = query.where(or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it)))
         if cursor:
             at, artist_id = decode_cursor(cursor)
-            query = query.where(or_(
-                ArtistProfile.reviewed_at < at, and_(ArtistProfile.reviewed_at == at, ArtistProfile.id < artist_id),
-            ))
-        profiles = (await self.session.execute(
-            query.order_by(ArtistProfile.reviewed_at.desc(), ArtistProfile.id.desc()).limit(limit + 1)
-        )).scalars().all()
-        page = profiles[:limit]
-        next_cursor = encode_cursor(page[-1].reviewed_at, page[-1].id) if len(profiles) > limit else None
-        return [ArtistCard(**self._card_fields(p)) for p in page], next_cursor
+            query = query.where(or_(LISTED_AT < at, and_(LISTED_AT == at, ArtistProfile.id < artist_id)))
+        rows = (await self.session.execute(
+            query.order_by(LISTED_AT.desc(), ArtistProfile.id.desc()).limit(limit + 1)
+        )).all()
+        page = rows[:limit]
+        next_cursor = encode_cursor(page[-1][1], page[-1][0].id) if len(rows) > limit else None
+        return [ArtistCard(**self._card_fields(profile)) for profile, _ in page], next_cursor
 
     async def _approved(self, artist_id: uuid.UUID) -> ArtistProfile:
         profile = (await self.session.execute(

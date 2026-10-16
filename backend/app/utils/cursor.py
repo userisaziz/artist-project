@@ -14,6 +14,10 @@ def encode_cursor(at: datetime, row_id: uuid.UUID) -> str:
 def decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
     try:
         at, row_id = base64.urlsafe_b64decode(cursor.encode()).decode().split("|")
-        return datetime.fromisoformat(at), uuid.UUID(row_id)
-    except ValueError as exc:
+        when = datetime.fromisoformat(at)
+        parsed_id = uuid.UUID(row_id)
+    except (ValueError, UnicodeDecodeError) as exc:
         raise ValidationError("Invalid cursor") from exc
+    if when.tzinfo is None:  # every keyset column is timestamptz; a naive value would crash the query
+        raise ValidationError("Invalid cursor")
+    return when, parsed_id

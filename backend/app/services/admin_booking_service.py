@@ -32,11 +32,11 @@ class AdminBookingService(BookingService):
                 User.phone.ilike(pattern, escape="\\"),
                 ArtistProfile.business_name.ilike(pattern, escape="\\"),
             ))
-        return await self.page(query, Booking.created_at, True, limit, cursor, admin=True)
+        return await self.page(query, Booking.created_at, True, limit, cursor, view="admin")
 
     async def get(self, booking_id: uuid.UUID) -> BookingOut:
         await self.expire_overdue(Booking.id == booking_id)
-        return await self.one(booking_id, admin=True)
+        return await self.one(booking_id, view="admin")
 
     async def cancel(self, booking_id: uuid.UUID, reason: str) -> BookingOut:
         booking = await self.locked(booking_id)
@@ -46,7 +46,7 @@ class AdminBookingService(BookingService):
         booking.cancelled_by = "admin"
         booking.cancel_reason = reason.strip()
         booking.refund_due = True  # the platform called it off: the customer gets the deposit back
-        return await self.save(booking_id, admin=True)
+        return await self.save(booking_id, view="admin")
 
     async def _count(self, model, *where: ColumnElement[bool]) -> int:
         return (await self.session.execute(select(func.count()).select_from(model).where(*where))).scalar_one()

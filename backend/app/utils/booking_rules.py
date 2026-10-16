@@ -58,7 +58,10 @@ def check_bookable_start(start: datetime, now: datetime) -> None:
     """A start the slot grid would offer: on the hour, within slot hours, in range, and far enough ahead."""
     if start.tzinfo is None:
         raise ValidationError("start_at needs a timezone")
-    local = start.astimezone(IST)
+    try:
+        local = start.astimezone(IST)
+    except OverflowError as exc:  # e.g. year 9999 plus the IST offset
+        raise ValidationError("Pick one of the offered times") from exc
     check_bookable_day(local.date(), now)
     if local not in slot_starts(local.date()):
         raise ValidationError("Pick one of the offered times")
@@ -70,5 +73,16 @@ def customer_refund_due(start: datetime, now: datetime) -> bool:
     return start - now >= timedelta(hours=get_settings().free_cancel_hours)
 
 
-def accept_deadline(now: datetime) -> datetime:
-    return now + timedelta(hours=get_settings().booking_accept_hours)
+def accept_deadline(now: datetime, start: datetime) -> datetime:
+    """The artist's window to answer, but never past the start: an unanswered request can't hold a slot that began."""
+    return min(now + timedelta(hours=get_settings().booking_accept_hours), start)
+
+
+CALENDAR_RANGE = timedelta(days=3 * 366)
+
+
+def check_calendar_day(day: date, now: datetime) -> None:
+    """Calendar filters stay within a few years, so date arithmetic can't overflow."""
+    today = ist_today(now)
+    if not today - CALENDAR_RANGE <= day <= today + CALENDAR_RANGE:
+        raise ValidationError("Pick a date within three years")

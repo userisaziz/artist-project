@@ -3,9 +3,9 @@ from storage keys at response time (see services/storage.py); keys go in, URLs c
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models.artist import (
     ArtistKyc,
@@ -175,7 +175,9 @@ class ArtistProfileOut(BaseModel):
 
 
 class RejectIn(BaseModel):
-    reason: str = Field(min_length=1, max_length=500)
+    """A required reason (reject an artist or a service, cancel a booking); whitespace alone doesn't count."""
+
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
 
 class ArtistOwner(BaseModel):

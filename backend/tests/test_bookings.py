@@ -51,11 +51,11 @@ async def test_customer_requests_a_booking_and_pays_the_deposit(client, engine):
     assert b["service_name"] == "Bridal Classic"
     assert b["duration_minutes"] == 180
     assert datetime.fromisoformat(b["end_at"]) - datetime.fromisoformat(b["start_at"]) == timedelta(hours=3)
-    # ₹5,500 + ₹99 fee = ₹5,599; the 30% deposit rounds to ₹1,680; the artist keeps 90% of ₹5,500.
+    # ₹5,500 + ₹99 fee = ₹5,599; the 30% deposit rounds to ₹1,680. The platform margin stays hidden from customers.
     assert {k: b[k] for k in ("subtotal_paise", "platform_fee_paise", "total_paise", "deposit_paise",
                               "balance_paise", "commission_paise", "artist_earning_paise")} == {
         "subtotal_paise": 550000, "platform_fee_paise": 9900, "total_paise": 559900, "deposit_paise": 168000,
-        "balance_paise": 391900, "commission_paise": 55000, "artist_earning_paise": 495000,
+        "balance_paise": 391900, "commission_paise": None, "artist_earning_paise": None,
     }
     assert b["deposit_paid_at"] is not None
     assert datetime.fromisoformat(b["expires_at"]) - datetime.fromisoformat(b["deposit_paid_at"]) == timedelta(hours=3)
@@ -299,3 +299,53 @@ async def test_admin_overview_counts(client, engine):
     assert len(o["bookings_by_week"]) == 12
     assert o["bookings_by_week"][-1]["count"] == 2
     assert sum(w["count"] for w in o["bookings_by_week"]) == 2
+
+
+# --- abuse and robustness (security review) -------------------------------------------------------
+
+async def test_customers_hold_at_most_three_unanswered_requests(client, engine):
+    _, artist, customer = await setup(client, engine)
+    for day in (5, 6, 7):
+        assert (await book(client, customer, artist, slot(day, 9))).status_code == 201
+    fourth = await book(client, customer, artist, slot(8, 9))
+    assert fourth.status_code == 409
+    assert fourth.json()["message"] == "You have 3 requests waiting for an answer. Wait for a reply or cancel one first."
+
+
+async def test_customers_never_see_the_platform_margin(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+    for shown in (b, (await client.get(f"/api/v1/bookings/{b['id']}", headers=customer)).json()):
+        assert shown["commission_paise"] is None
+        assert shown["artist_earning_paise"] is None
+    as_artist = (await client.get("/api/v1/artists/me/bookings?scope=requests", headers=artist["headers"])).json()["items"][0]
+    assert as_artist["artist_earning_paise"] == 495000
+    assert (await client.get(f"/api/v1/admin/bookings/{b['id']}", headers=admin)).json()["commission_paise"] == 55000
+
+
+async def test_bad_cursors_and_far_dates_are_rejected_cleanly(client, engine):
+    import base64
+    _, artist, customer = await setup(client, engine)
+    naive = base64.urlsafe_b64encode(b"2026-10-17T10:00:00|00000000-0000-0000-0000-000000000000").decode()
+    assert (await client.get(f"/api/v1/artists?cursor={naive}")).status_code == 422
+    assert (await client.get("/api/v1/artists?cursor=%%%")).status_code == 422
+    assert (await book(client, customer, artist, "9999-12-31T23:00:00+00:00")).status_code == 422
+
+
+async def test_a_request_close_to_its_start_must_be_answered_before_it(client, engine, monkeypatch):
+    _, artist, customer = await setup(client, engine)
+    start = slot(5, 11)
+    monkeypatch.setattr(clock, "now", at(start, -2))  # booked 2 h ahead: the 3 h window would run past the start
+    b = (await book(client, customer, artist, start)).json()
+    assert b["expires_at"] == b["start_at"]
+    monkeypatch.setattr(clock, "now", at(start, 0.5))
+    assert (await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=artist["headers"])).status_code == 409
+
+
+async def test_calendar_and_reason_inputs_are_validated(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    far = await client.get("/api/v1/artists/me/bookings?to=9999-12-31", headers=artist["headers"])
+    assert far.status_code == 422
+    b = (await book(client, customer, artist)).json()
+    blank = await client.post(f"/api/v1/admin/bookings/{b['id']}/cancel", headers=admin, json={"reason": "   "})
+    assert blank.status_code == 422

@@ -7,7 +7,7 @@ error instead of mysteriously at the first request.
 
 from functools import lru_cache
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,6 +44,14 @@ class Settings(BaseSettings):
             raise ValueError("AADHAAR_ENCRYPTION_KEY must be a 32-byte url-safe base64 Fernet key") from None
         return value
 
+    @model_validator(mode="after")
+    def _no_mock_payments_in_production(self) -> "Settings":
+        if self.payment_provider != "mock":
+            raise ValueError(f"Unknown PAYMENT_PROVIDER: {self.payment_provider!r} (supported: mock)")
+        if not self.debug:
+            raise ValueError("PAYMENT_PROVIDER=mock takes no real deposits; it only runs with DEBUG=true")
+        return self
+
     # Cities an artist can pick; a table replaces this once admins edit it.
     cities: list[str] = ["Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune"]
     # Bookings (Increment 5). Money values are copied onto each booking, so changes only affect new ones.
@@ -57,6 +65,9 @@ class Settings(BaseSettings):
     slot_last_hour: int = 17
     booking_lead_hours: int = 2  # earliest bookable start, from now
     booking_horizon_days: int = 60
+    max_open_requests_per_customer: int = 3  # unanswered requests at once, so one account can't squat on slots
+    # Deposit payments. "mock" marks the deposit paid with no gateway: dev only (see _no_mock_payments_in_production).
+    payment_provider: str = "mock"
     # CORS origins when DEBUG=false (the admin web app).
     admin_origins: list[str] = ["http://localhost:5173"]
 
