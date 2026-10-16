@@ -1,6 +1,8 @@
-import type { ArtistProfile, ArtistStatus, CatalogCategory, Category, ServiceItem, ServiceTemplate, UploadPurpose } from '../types';
+import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistStatus, CatalogCategory, Category, NamedRef, PublicService, ServiceItem, ServiceTemplate, UploadPurpose } from '../types';
 import type { TransportResponse } from '../transport';
 import { isValidAadhaar } from '../../artist/aadhaar';
+import { PORTFOLIO_SIZE, seedAvatarUrl, seedPhotoUrl } from './directory-seed';
+import type { SeedArtist } from './directory-seed';
 
 // Same rules as backend services/artist_service.py and schemas/artist.py — keep them in lockstep.
 export const CITIES = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune']; // backend settings.cities
@@ -35,6 +37,23 @@ function findTemplate(id: unknown) {
   }
   return null;
 }
+/** Top-level category and subcategory refs for a service's subcategory id (ServiceItem.subcategory_id). */
+function serviceRefs(subcategoryId: number): { category: NamedRef | null; subcategory: NamedRef | null } {
+  for (const category of CATALOG) {
+    if (category.id === subcategoryId) return { category: { id: category.id, name: category.name }, subcategory: null };
+    const sub = category.subcategories.find((s) => s.id === subcategoryId);
+    if (sub) return { category: { id: category.id, name: category.name }, subcategory: { id: sub.id, name: sub.name } };
+  }
+  return { category: null, subcategory: null };
+}
+
+function findTemplateByName(category: string, subcategory: string, name: string) {
+  const sub = CATALOG.find((c) => c.name === category)?.subcategories.find((s) => s.name === subcategory);
+  const template = sub?.services.find((t) => t.name === name);
+  if (!sub || !template) throw new Error(`Seed service ${category} › ${subcategory} › ${name} is not in the catalog`);
+  return { sub, template };
+}
+
 const MIN_PHOTOS = 6;
 const MAX_PHOTOS = 30;
 const EDITABLE: ArtistStatus[] = ['draft', 'rejected'];
@@ -42,7 +61,7 @@ const PURPOSES: UploadPurpose[] = ['artist_photo', 'portfolio', 'aadhaar']; // b
 
 interface MockPhoto { id: string; key: string; width: number; height: number }
 interface MockKyc { last4: string; front_key: string; back_key: string } // like artist_kyc, minus the (encrypted) number
-interface MockProfile {
+export interface MockProfile {
   id: string; status: ArtistStatus; business_name: string; city: string; bio: string | null;
   photo_key: string | null; category_ids: number[]; services: ServiceItem[]; photos: MockPhoto[];
   kyc: MockKyc | null;
@@ -192,13 +211,76 @@ export class MockArtists {
     Object.assign(p, { status: decision, rejection_reason: decision === 'rejected' ? reason : null, reviewed_at: new Date().toISOString() });
   }
 
-  /** Demo artist (+15550009999): already approved, so the returning-artist path lands on the home. */
-  seedApproved(userId: string) {
-    const now = new Date().toISOString();
-    this.profiles.set(userId, {
-      id: this.id('artist'), status: 'approved', business_name: 'Priya Bridal Studio', city: 'Bangalore', bio: null,
-      photo_key: null, category_ids: [1, 2], services: [], photos: [], rejection_reason: null, submitted_at: now, reviewed_at: now,
-      kyc: { last4: '2346', front_key: `artists/${userId}/aadhaar/seed-front`, back_key: `artists/${userId}/aadhaar/seed-back` },
+  /** Seeded directory artist (spec §5): approved, with services, portfolio and Aadhaar on file. */
+  seed(userId: string, a: SeedArtist, reviewedAt: string): MockProfile {
+    const photoKey = `artists/${userId}/artist_photo/seed`;
+    this.files.set(photoKey, seedAvatarUrl(a.slug));
+    const photos = Array.from({ length: PORTFOLIO_SIZE }, (_, n) => {
+      const key = `artists/${userId}/portfolio/seed-${n + 1}`;
+      this.files.set(key, seedPhotoUrl(a.slug, n + 1));
+      return { id: this.id('photo'), key, width: 600, height: 800 };
     });
+    const services = a.services.map((s): ServiceItem => {
+      const { sub, template } = findTemplateByName(s.category, s.subcategory, s.name);
+      return {
+        id: this.id('service'), category_id: sub.id, subcategory_id: sub.id, template_id: template.id, name: template.name,
+        price_paise: s.rupees * 100, duration_minutes: s.minutes, description: s.description, status: 'approved', rejection_reason: null,
+      };
+    });
+    const p: MockProfile = {
+      id: this.id('artist'), status: 'approved', business_name: a.business_name, city: a.city, bio: a.bio, photo_key: photoKey,
+      category_ids: CATEGORIES.filter((c) => a.categories.includes(c.name)).map((c) => c.id), services, photos,
+      kyc: { last4: '2346', front_key: `artists/${userId}/aadhaar/seed-front`, back_key: `artists/${userId}/aadhaar/seed-back` },
+      rejection_reason: null, submitted_at: reviewedAt, reviewed_at: reviewedAt,
+    };
+    this.profiles.set(userId, p);
+    return p;
+  }
+
+  // ---- Read side for the public directory and bookings ----
+
+  profileOf(userId: string): MockProfile | undefined {
+    return this.profiles.get(userId);
+  }
+
+  /** Approved profiles with their owner's user id, newest approval first (then id), like GET /artists. */
+  approved(): { userId: string; profile: MockProfile }[] {
+    return [...this.profiles.entries()]
+      .filter(([, p]) => p.status === 'approved')
+      .map(([userId, profile]) => ({ userId, profile }))
+      .sort((a, b) => (b.profile.reviewed_at ?? '').localeCompare(a.profile.reviewed_at ?? '') || a.profile.id.localeCompare(b.profile.id));
+  }
+
+  /** Any profile by its id, with the owner's user id. */
+  byId(profileId: string): { userId: string; profile: MockProfile } | undefined {
+    for (const [userId, profile] of this.profiles) if (profile.id === profileId) return { userId, profile };
+    return undefined;
+  }
+
+  photoUrl(p: MockProfile): string | null {
+    return p.photo_key ? this.url(p.photo_key) : null;
+  }
+
+  card(p: MockProfile): ArtistCard {
+    const prices = p.services.filter((s) => s.status === 'approved').map((s) => s.price_paise);
+    return {
+      id: p.id, business_name: p.business_name, city: p.city, photo_url: this.photoUrl(p),
+      cover_url: p.photos.length ? this.url(p.photos[0].key) : null,
+      categories: CATEGORIES.filter((c) => p.category_ids.includes(c.id)).map(({ id, name }) => ({ id, name })),
+      from_price_paise: prices.length ? Math.min(...prices) : null,
+    };
+  }
+
+  /** The storefront: approved services only; never KYC, phone or the rejection reason. */
+  storefront(p: MockProfile, completedBookings: number): ArtistPublic {
+    const services = p.services.filter((s) => s.status === 'approved').map((s): PublicService => ({
+      id: s.id, name: s.name, description: s.description, price_paise: s.price_paise, duration_minutes: s.duration_minutes,
+      ...serviceRefs(s.subcategory_id),
+    }));
+    return {
+      ...this.card(p), bio: p.bio, services,
+      photos: p.photos.map((ph) => ({ id: ph.id, url: this.url(ph.key), thumb_url: this.url(ph.key) })),
+      member_since: p.reviewed_at, completed_bookings: completedBookings,
+    };
   }
 }

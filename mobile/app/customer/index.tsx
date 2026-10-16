@@ -1,7 +1,6 @@
-import { PlaceholderHome } from '../../src/components/PlaceholderHome';
+import { Redirect } from 'expo-router';
 
-// Customer home. This route only mounts for a customer (the root gate guards the folder),
-// so the role is fixed here — no runtime branching. Grows into browse/orders later.
-export default function CustomerHome() {
-  return <PlaceholderHome role="Customer" />;
+// `/customer` hub (the root's landing href): the area opens on the Home tab.
+export default function CustomerIndex() {
+  return <Redirect href="/customer/home" />;
 }

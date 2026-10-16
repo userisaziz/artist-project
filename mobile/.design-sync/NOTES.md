@@ -11,7 +11,7 @@ Run everything from `mobile/`.
 - `cfg.cssEntry` must live inside the package dir, so web-build.mjs copies `.design-sync/web.css` into web-pkg. It removes the browser focus outline on `<input>` (RN fields draw their own `borderFocus`).
 - Fonts: `.design-sync/fonts.css` registers Plus Jakarta Sans under the exact RN family names (`PlusJakartaSans_600SemiBold`…) from `node_modules/@expo-google-fonts/plus-jakarta-sans`. Add a weight there if `src/theme/tokens/typography.ts` starts using a new one.
 - Provider chain: `SafeAreaProvider` (fixed `initialMetrics`) → `ThemeProvider`. `Screen`/`FormScreen` throw without SafeAreaProvider.
-- `componentSrcMap` nulls: ThemeProvider/SafeAreaProvider (providers) and the re-exported RN primitives (View, ScrollView, Pressable, Image, LinearGradient) — exported for designs' layout glue, no cards. `PlaceholderHome` is not in the web entry (needs the auth session).
+- `componentSrcMap` nulls: ThemeProvider/SafeAreaProvider (providers) and the re-exported RN primitives (View, ScrollView, Pressable, Image, LinearGradient) — exported for designs' layout glue, no cards.
 - Cards are phone-width (340–393pt): every component except AppButton uses `cardMode: column`.
 - Groups come from `.design-sync/docs/<Name>.md` frontmatter (`docsDir: ../../docs`); those docs also become each `.prompt.md`.
 

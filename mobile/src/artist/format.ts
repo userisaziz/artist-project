@@ -9,3 +9,8 @@ export function formatDuration(minutes: number): string {
   if (!h) return `${m} min`;
   return m ? `${h} hr ${m} min` : `${h} hr`;
 }
+
+/** A money field the server may withhold (e.g. the artist's earning on customer responses). */
+export function formatMaybePrice(paise: number | null): string {
+  return paise === null ? '—' : formatPrice(paise);
+}

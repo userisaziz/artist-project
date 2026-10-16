@@ -8,9 +8,11 @@ interface Props {
   variant?: 'primary' | 'secondary' | 'ghost';
   loading?: boolean;
   disabled?: boolean;
+  /** Overrides the label for screen readers when several buttons share one, e.g. "Accept Ananya Rao". */
+  accessibilityLabel?: string;
 }
 
-export function AppButton({ label, onPress, variant = 'primary', loading = false, disabled = false }: Props) {
+export function AppButton({ label, onPress, variant = 'primary', loading = false, disabled = false, accessibilityLabel }: Props) {
   const theme = useTheme();
   const inactive = disabled || loading;
   const isPrimary = variant === 'primary';
@@ -18,6 +20,8 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       onPress={inactive ? undefined : onPress}
       style={({ pressed }) => [
         {

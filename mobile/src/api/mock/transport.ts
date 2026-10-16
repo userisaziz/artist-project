@@ -1,6 +1,12 @@
 import type { Transport, TransportRequest, TransportResponse } from '../transport';
-import type { TokenPair, User, UserRole } from '../types';
+import type { Booking, TokenPair, User, UserRole } from '../types';
 import { CATALOG, CITIES, MockArtists } from './artist';
+import { MockBookings } from './bookings';
+import { handleDirectory } from './directory';
+import { seedMarketplace } from './seed';
+import { parseQuery } from '../query-string';
+import { availability } from '../../bookings/pricing';
+import { addDays, istDateKey } from '../../bookings/time';
 
 interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
@@ -13,6 +19,7 @@ const RESEND_COOLDOWN_MS = 60_000;               // OTP_RESEND_COOLDOWN_SECONDS
 const OTP_TTL_MS = 5 * 60_000;                   // OTP_TTL_MINUTES
 const MAX_ATTEMPTS = 5;                          // OTP_MAX_ATTEMPTS
 const REFRESH_TTL_MS = 7 * 24 * 3600_000;        // REFRESH_TOKEN_TTL_DAYS
+const SEARCH_DAYS = 60;                           // requestBooking looks this far ahead for a free slot
 
 const err = (code: string, message: string, status: number): TransportResponse => ({ status, json: { code, message } });
 const ok = (json: unknown): TransportResponse => ({ status: 200, json });
@@ -28,14 +35,53 @@ export class MockTransport implements Transport {
   private artists = new MockArtists(this.files);
 
   private offset = 0; // test-only skew added to the wall clock
-  private get now() { return Date.now() + this.offset; }
+  /** The mock clock: the wall clock plus whatever advanceTime() added. */
+  get now() { return Date.now() + this.offset; }
   private otps: MockOtp[] = [];
   private refreshes: MockRefresh[] = [];
   private users = new Map<string, User>();
   private accessTokens = new Map<string, string>(); // access token → user id
   private seq = 0;
+  private bookings = new MockBookings({
+    artists: this.artists,
+    userById: (id) => [...this.users.values()].find((u) => u.id === id),
+    now: () => this.now,
+  });
+
+  constructor() {
+    seedMarketplace(this.users, this.artists, this.bookings, this.now);
+  }
 
   advanceTime(ms: number) { this.offset += ms; }
+
+  /**
+   * Test hook (spec §5): `customerPhone` asks the artist at `artistPhone` for a booking, through the same rules as
+   * POST /bookings. A new customer phone gets a customer account. Defaults: the artist's first service and the
+   * first free slot from tomorrow on. Returns the artist's view of the booking (with the earning).
+   */
+  requestBooking(customerPhone: string, artistPhone: string, opts: { startAt?: string; serviceId?: string; note?: string; address?: string; firstName?: string; lastName?: string } = {}): Booking {
+    const owner = this.users.get(artistPhone);
+    const profile = owner && this.artists.profileOf(owner.id);
+    if (!profile || profile.status !== 'approved') throw new Error(`No approved mock artist ${artistPhone}`);
+    const service = profile.services.find((s) => s.id === (opts.serviceId ?? profile.services[0]?.id));
+    if (!service) throw new Error(`Mock artist ${artistPhone} has no such service`);
+    const customer = this.users.get(customerPhone) ?? this.save({
+      id: this.fakeToken('user'), phone: customerPhone, roles: ['customer'], active_role: 'customer', is_phone_verified: true,
+      first_name: opts.firstName ?? 'Ananya', last_name: opts.lastName ?? 'Rao', email: null, whatsapp_booking_updates: true, is_onboarded: true,
+    });
+    const startAt = opts.startAt ?? this.firstFreeSlot(profile.id, service.duration_minutes);
+    const res = this.bookings.create(customer, { artist_id: profile.id, service_id: service.id, start_at: startAt, address: opts.address ?? '12 MG Road, Bangalore', note: opts.note }, 'artist');
+    if (res.status >= 400) throw new Error(`requestBooking failed: ${JSON.stringify(res.json)}`);
+    return res.json as Booking;
+  }
+
+  private firstFreeSlot(artistId: string, minutes: number): string {
+    for (let d = 1; d <= SEARCH_DAYS; d++) {
+      const free = availability(addDays(istDateKey(this.now), d), minutes, this.bookings.busy(artistId), this.now).find((s) => s.available);
+      if (free) return free.start_at;
+    }
+    throw new Error('No free slot in the next 60 days');
+  }
 
   /** Admin approve/reject stand-in, keyed by phone like the rest of the mock's test hooks. */
   review(phone: string, decision: 'approved' | 'rejected', reason?: string) {
@@ -46,8 +92,10 @@ export class MockTransport implements Transport {
 
   private fakeToken(kind: string) { return `mock-${kind}-${++this.seq}-${Math.random().toString(36).slice(2)}`; }
 
-  async request({ method, path, body, headers }: TransportRequest): Promise<TransportResponse> {
+  async request({ method, path: fullPath, body, headers }: TransportRequest): Promise<TransportResponse> {
+    const { path, query } = parseQuery(fullPath);
     const data = (body ?? {}) as Record<string, string>;
+    const payload = (body ?? {}) as Record<string, unknown>;
     if (path === '/auth/otp/request') return this.otpRequest(data.phone ?? '');
     if (path === '/auth/otp/verify') return this.otpVerify(data.phone ?? '', data.code ?? '');
     if (path === '/auth/refresh') return this.refresh(data.refresh_token ?? '');
@@ -58,12 +106,20 @@ export class MockTransport implements Transport {
       if (!user) return err('auth_error', 'Authentication failed', 401);
       if (!user.roles.includes('artist')) return err('forbidden', 'Not allowed for this account', 403); // backend require_role: held roles, not the active side
       if (path === '/uploads/signature') return this.artists.uploadTicket(user.id, data.purpose);
-      return this.artists.handle(user.id, method, path, (body ?? {}) as Record<string, unknown>);
+      if (path === '/artists/me/dashboard' || path.startsWith('/artists/me/bookings')) return this.bookings.artist(user.id, method, path, query, payload);
+      return this.artists.handle(user.id, method, path, payload);
+    }
+    if (method === 'GET' && (path === '/artists' || path.startsWith('/artists/'))) return handleDirectory(this.artists, this.bookings, this.now, path, query);
+    if (path === '/bookings' || path.startsWith('/bookings/')) {
+      const user = this.userFor(headers);
+      if (!user) return err('auth_error', 'Authentication failed', 401);
+      if (!user.roles.includes('customer')) return err('forbidden', 'Not allowed for this account', 403);
+      return this.bookings.customer(user, method, path, query, payload);
     }
     if (ACCOUNT_ROUTES.has(`${method} ${path}`)) {
       const user = this.userFor(headers);
       if (!user) return err('auth_error', 'Authentication failed', 401);
-      if (path === '/users/me') return this.updateMe(user, (body ?? {}) as Record<string, unknown>);
+      if (path === '/users/me') return this.updateMe(user, payload);
       return this.chooseRole(user, data.role);
     }
     return err('not_found', `Mock has no handler for ${path}`, 404); // loud: contract drift surfaces, never silent
@@ -90,18 +146,12 @@ export class MockTransport implements Transport {
     if (otp.code !== code) { otp.attempts += 1; return err('auth_error', 'Invalid or expired code', 401); }
     otp.consumed = true;
     let user = this.users.get(phone);
-    if (!user) {  // JIT registration, same as backend verify_otp
-      const isArtistSeed = phone === '+15550009999';
+    if (!user) {  // JIT registration, same as backend verify_otp (seeded artists and customers already exist)
       user = {
-        id: this.fakeToken('user'), phone, is_phone_verified: true,
-        roles: isArtistSeed ? ['artist'] : [],
-        active_role: isArtistSeed ? 'artist' : null,
-        first_name: isArtistSeed ? 'Priya' : null,
-        last_name: null, email: null, whatsapp_booking_updates: true,
-        is_onboarded: isArtistSeed,
+        id: this.fakeToken('user'), phone, is_phone_verified: true, roles: [], active_role: null,
+        first_name: null, last_name: null, email: null, whatsapp_booking_updates: true, is_onboarded: false,
       };
       this.users.set(phone, user);
-      if (isArtistSeed) this.artists.seedApproved(user.id);
     }
     return ok(this.issuePair(user));
   }

@@ -1,7 +1,14 @@
 import { Stack } from 'expo-router';
+import { useTheme } from '../../src/theme/theme-provider';
+import { BookingFlowProvider } from '../../src/bookings/flow-context';
 
-// Customer area stack. Guarded at the root (role === 'customer'), so anything mounted here is
-// customer-only. Future screens (browse, orders) are added as siblings — paths stay under /customer.
+// Customer area. Guarded at the root (role === 'customer'), so anything mounted here is customer-only.
+// The tabs sit at the bottom of this stack; the storefront and the booking flow are pushed above them.
 export default function CustomerLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const theme = useTheme();
+  return (
+    <BookingFlowProvider>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }} />
+    </BookingFlowProvider>
+  );
 }

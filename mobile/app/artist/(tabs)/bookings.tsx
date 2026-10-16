@@ -1,0 +1,79 @@
+import { useState } from 'react';
+import { FlatList, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppText } from '../../../src/components/AppText';
+import { Segmented } from '../../../src/components/Segmented';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/StateViews';
+import { useTheme } from '../../../src/theme/theme-provider';
+import { useArtistBookings } from '../../../src/bookings/queries';
+import { useNow } from '../../../src/bookings/use-now';
+import { useArtistBookingActions } from '../../../src/artist/bookings/actions';
+import { RequestCard } from '../../../src/artist/bookings/RequestCard';
+import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
+import type { ArtistBookingScope, Booking } from '../../../src/api/types';
+
+const EMPTY: Record<ArtistBookingScope, string> = {
+  requests: 'No requests waiting for you.',
+  upcoming: 'No confirmed bookings coming up.',
+  past: 'Nothing here yet.',
+};
+
+// Spec §3 Bookings: Requests · n / Upcoming / Past.
+export default function ArtistBookings() {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const now = useNow();
+  const [scope, setScope] = useState<ArtistBookingScope>('requests');
+  const requests = useArtistBookings('requests'); // always loaded: it feeds the "Requests · n" count
+  const other = useArtistBookings(scope === 'past' ? 'past' : 'upcoming');
+  const list = scope === 'requests' ? requests : other;
+  const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const requestCount = requests.data ? `${requests.data.pages.reduce((n, p) => n + p.items.length, 0)}${requests.hasNextPage ? '+' : ''}` : '…';
+  const { run, busyId, errors } = useArtistBookingActions();
+
+  const renderItem = ({ item }: { item: Booking }) => {
+    if (scope === 'requests') {
+      return (
+        <RequestCard
+          booking={item}
+          now={now}
+          busy={busyId === item.id}
+          error={errors[item.id]}
+          onAccept={() => { void run(item.id, { kind: 'accept' }); }}
+          onDecline={(reason) => { void run(item.id, { kind: 'decline', reason }); }}
+        />
+      );
+    }
+    const complete = scope === 'upcoming'
+      ? { enabled: now >= Date.parse(item.start_at), busy: busyId === item.id, error: errors[item.id], onPress: () => { void run(item.id, { kind: 'complete' }); } }
+      : undefined;
+    return <AgendaRow booking={item} showDate complete={complete} />;
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
+      <View style={{ paddingHorizontal: theme.spacing.md, gap: 12 }}>
+        <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Bookings</AppText>
+        <Segmented
+          options={[{ key: 'requests', label: `Requests · ${requestCount}` }, { key: 'upcoming', label: 'Upcoming' }, { key: 'past', label: 'Past' }]}
+          value={scope}
+          onChange={setScope}
+        />
+      </View>
+      <FlatList
+        data={items}
+        keyExtractor={(b) => b.id}
+        contentContainerStyle={{ padding: theme.spacing.md, gap: 12 }}
+        renderItem={renderItem}
+        extraData={[busyId, errors, now]}
+        onEndReachedThreshold={0.5}
+        onEndReached={() => { if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage(); }}
+        ListEmptyComponent={
+          list.isPending ? <LoadingView />
+            : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
+              : <EmptyView message={EMPTY[scope]} />
+        }
+      />
+    </View>
+  );
+}

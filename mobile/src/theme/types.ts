@@ -18,6 +18,9 @@ export interface ThemeColors {
   progressTrack: string; // unfilled segment of the step bar
   roleCard: string; roleTag: string; // Choose role light card + its tag pill
   fieldHalo: string; // soft ring around a focused field
+  pendingSoft: string; pendingInk: string; pendingDot: string; // amber: awaiting the artist
+  confirmedSoft: string; confirmedInk: string; // green: confirmed
+  neutralSoft: string; // grey-pink pill for ended bookings
 }
 
 export interface Theme {

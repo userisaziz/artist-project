@@ -25,7 +25,7 @@ afterEach(() => {
   logSpy.mockRestore();
 });
 
-it('new user: login → OTP → sign-up → Choose role → customer home → sign out, against the real app routes', async () => {
+it('new user: login → OTP → sign-up → Choose role → customer home → log out, against the real app routes', async () => {
   await renderRouter('./app');
 
   // (a) unauthenticated start lands on welcome; Get started opens login
@@ -53,11 +53,12 @@ it('new user: login → OTP → sign-up → Choose role → customer home → si
 
   // (c2) "Browse artists" makes them a customer and the gate moves to the customer home
   await fireEvent.press(screen.getByText('Browse artists'));
-  expect(await screen.findByText('Welcome, Ananya')).toBeTruthy();
-  expect(screen.getByText('Customer')).toBeTruthy();
+  expect(await screen.findByText(/^Good (morning|afternoon|evening), Ananya$/)).toBeTruthy();
+  expect(screen.getByText('Discover artists')).toBeTruthy();
 
-  // (d) sign out returns to welcome and clears the stored session
-  await fireEvent.press(screen.getByText('Sign out'));
+  // (d) Log out (Profile tab) returns to welcome and clears the stored session
+  await fireEvent.press(screen.getByLabelText('Profile tab'));
+  await fireEvent.press(await screen.findByText('Log out'));
   expect(await screen.findByText('Get started')).toBeTruthy();
   await waitFor(() => expect(store.size).toBe(0));
 });
@@ -86,7 +87,7 @@ it('wrong code shows "That code is incorrect." and stays on the OTP screen', asy
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), wrong);
   expect(await screen.findByText('That code is incorrect.')).toBeTruthy();
   expect(screen.getByText('Enter the code.')).toBeTruthy();
-  expect(screen.queryByText(/^Welcome, /)).toBeNull();
+  expect(screen.queryByText(/^Good (morning|afternoon|evening), /)).toBeNull();
 
   // typing the next attempt clears the stale error
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), '1');
@@ -163,8 +164,8 @@ it('a returning artist skips sign-up and role and lands on the artist home', asy
   await fireEvent.press(screen.getByText('Send code'));
   const banner = await screen.findByText(/^Mock mode: your code is \d{6}$/);
   await fireEvent.changeText(screen.getByTestId('otp-box-0'), String(banner.props.children).match(/\d{6}/)![0]);
-  expect(await screen.findByText('Welcome, Priya')).toBeTruthy();
-  expect(screen.getByText('Artist')).toBeTruthy();
+  expect(await screen.findByText(/^Good (morning|afternoon|evening), Priya$/)).toBeTruthy();
+  expect(screen.getByText('Earnings this month')).toBeTruthy();
 
   // a failed background refetch keeps the cached profile and the artist area mounted (no error screen)
   const fail = jest.spyOn(transport, 'request').mockRejectedValue(new Error('offline'));
@@ -174,7 +175,7 @@ it('a returning artist skips sign-up and role and lands on the artist home', asy
     await waitFor(() => expect(fail).toHaveBeenCalled());
     await waitFor(() => expect(queryClient.getQueryCache().findAll({ queryKey: ['artist', 'me'] })[0]?.state.status).toBe('error'), { timeout: 3000 });
     await act(async () => { jest.advanceTimersByTime(10); }); // TanStack batches notifications on a timer; flush it so the error state renders
-    expect(screen.getByText('Welcome, Priya')).toBeTruthy();
+    expect(screen.getByText(/^Good (morning|afternoon|evening), Priya$/)).toBeTruthy();
     expect(screen.queryByText('Try again')).toBeNull();
   } finally {
     fail.mockRestore();

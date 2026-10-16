@@ -149,6 +149,117 @@ export interface UploadTicket {
   key: string;
 }
 
+// ---- Discovery and bookings (spec Increment 5 §1.3–§1.5) ----
+
+/** Cursor-paginated list (backend `{items, next_cursor}`). */
+export interface Page<T> {
+  items: T[];
+  next_cursor: string | null;
+}
+
+export interface NamedRef {
+  id: number;
+  name: string;
+}
+
+/** GET /artists list item: approved artists only. */
+export interface ArtistCard {
+  id: string;
+  business_name: string;
+  city: string;
+  photo_url: string | null;
+  cover_url: string | null;
+  categories: NamedRef[];
+  from_price_paise: number | null; // cheapest approved service; null if none yet
+}
+
+export interface PublicService {
+  id: string;
+  name: string;
+  description: string | null;
+  price_paise: number;
+  duration_minutes: number;
+  category: NamedRef | null;
+  subcategory: NamedRef | null;
+}
+
+/** GET /artists/{id}: the storefront. Never carries KYC, phone, rejection reason or unapproved services. */
+export interface ArtistPublic extends ArtistCard {
+  bio: string | null;
+  photos: { id: string; url: string; thumb_url: string }[];
+  services: PublicService[];
+  member_since: string | null;
+  completed_bookings: number;
+}
+
+export interface Slot {
+  start_at: string;
+  available: boolean;
+}
+
+/** GET /artists/{id}/availability: hourly IST slots for one date. */
+export interface Availability {
+  date: string;
+  slots: Slot[];
+}
+
+export type BookingStatus = 'requested' | 'confirmed' | 'declined' | 'expired' | 'cancelled' | 'completed';
+export type CancelledBy = 'customer' | 'artist' | 'admin';
+
+export interface BookingInput {
+  artist_id: string;
+  service_id: string;
+  start_at: string;
+  address: string;
+  note?: string | null;
+}
+
+/** BookingOut: money is integer paise, copied onto the booking when it is created. */
+export interface Booking {
+  id: string;
+  code: string;
+  status: BookingStatus;
+  start_at: string;
+  end_at: string;
+  address: string;
+  note: string | null;
+  service_name: string;
+  duration_minutes: number;
+  artist: { id: string; business_name: string; photo_url: string | null; city: string };
+  customer: { id: string; first_name: string | null; last_name: string | null };
+  subtotal_paise: number;
+  platform_fee_paise: number;
+  total_paise: number;
+  deposit_paise: number;
+  balance_paise: number;
+  /** Artist and admin responses only: customer-facing responses carry null. */
+  commission_paise: number | null;
+  artist_earning_paise: number | null;
+  deposit_paid_at: string | null;
+  /** min(created + 3h, start_at): a request close to its start must be answered before it begins. */
+  expires_at: string;
+  responded_at: string | null;
+  cancelled_at: string | null;
+  completed_at: string | null;
+  decline_reason: string | null;
+  cancel_reason: string | null;
+  cancelled_by: CancelledBy | null;
+  refund_due: boolean | null;
+  created_at: string;
+}
+
+export type CustomerBookingScope = 'upcoming' | 'past';
+export type ArtistBookingScope = 'requests' | 'upcoming' | 'past';
+
+/** GET /artists/me/dashboard */
+export interface ArtistDashboard {
+  requests: number;
+  upcoming: number;
+  completed_this_month: number;
+  earnings_this_month_paise: number;
+  today: Booking[];
+}
+
 /** Every failed API call becomes an ApiError — screens switch on `.code`, never on raw status. */
 export class ApiError extends Error {
   readonly code: string;

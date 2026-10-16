@@ -269,7 +269,8 @@ it('approval moves the artist to the home', async () => {
   await submitFor('9845044447');
   mock.review('+919845044447', 'approved');
   await queryClient.invalidateQueries({ queryKey: ['artist'] });
-  expect(await screen.findByText('Welcome, Ayesha')).toBeTruthy();
+  expect(await screen.findByText(/^Good (morning|afternoon|evening), Ayesha$/)).toBeTruthy();
+  expect(screen.getByText('Earnings this month')).toBeTruthy();
 });
 
 it('quitting mid-way resumes at the first incomplete step', async () => {
