@@ -230,6 +230,31 @@ class AdminArtistPage(BaseModel):
     next_cursor: str | None
 
 
+class NamedRef(BaseModel):
+    id: int
+    name: str
+
+
+class AdminCustomServiceOut(BaseModel):
+    id: uuid.UUID
+    artist_id: uuid.UUID
+    business_name: str
+    category: NamedRef | None  # None for pre-#6 rows, which point straight at a top-level category
+    subcategory: NamedRef
+    name: str
+    price_paise: int
+    duration_minutes: int
+    description: str | None
+    status: ArtistServiceStatus
+    rejection_reason: str | None
+    created_at: datetime
+
+
+class AdminCustomServicePage(BaseModel):
+    items: list[AdminCustomServiceOut]
+    next_cursor: str | None
+
+
 def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> PhotoOut:
     key = photo.storage_key
     return PhotoOut(

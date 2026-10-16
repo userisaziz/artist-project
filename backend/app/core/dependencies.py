@@ -15,6 +15,7 @@ from app.services.admin_artist_service import AdminArtistService
 from app.services.artist_service import ArtistService
 from app.services.auth_service import AuthService
 from app.services.category_service import CategoryService
+from app.services.custom_service_review import CustomServiceReview
 from app.services.service_template_service import ServiceTemplateService
 from app.services.storage import ImageStorage, get_storage
 from app.services.user_service import UserService
@@ -47,6 +48,10 @@ def get_service_template_service(session: AsyncSession = Depends(get_db)) -> Ser
 
 def get_admin_artist_service(session: AsyncSession = Depends(get_db)) -> AdminArtistService:
     return AdminArtistService(session)
+
+
+def get_custom_service_review(session: AsyncSession = Depends(get_db)) -> CustomServiceReview:
+    return CustomServiceReview(session)
 
 
 async def get_current_user(

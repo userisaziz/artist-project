@@ -76,3 +76,43 @@ async def test_editing_a_custom_service_resubmits_it(client, engine):
     assert (await client.delete(f"{URL}/{uuid.uuid4()}", headers=headers)).status_code == 404
     deleted = await client.delete(f"{URL}/{service_id}", headers=headers)
     assert all(s["id"] != service_id for s in deleted.json()["services"])
+
+
+QUEUE = "/api/v1/admin/custom-services"
+
+
+async def test_admin_approves_and_rejects_custom_services(client, engine):
+    admin_headers = await admin(client, engine)
+    headers = await approved_artist(client, engine, "+919845040010", admin_headers)
+    sub = await subcategory_id(client, "mehendi-bridal")
+    for name in ("Glitter mehendi", "Neon mehendi"):
+        assert (await client.post(URL, headers=headers, json=custom(sub, name))).status_code == 201
+
+    page = (await client.get(f"{QUEUE}?limit=1", headers=admin_headers)).json()
+    first = page["items"][0]
+    assert first | {"id": None, "artist_id": None, "created_at": None} == {
+        "id": None, "artist_id": None, "created_at": None, "business_name": "Ayesha Mehendi Art",
+        "category": {"id": (await categories(client))["mehendi"], "name": "Mehendi"},
+        "subcategory": {"id": sub, "name": "Bridal"}, "name": "Glitter mehendi", "price_paise": 150000,
+        "duration_minutes": 60, "description": None, "status": "pending", "rejection_reason": None,
+    }
+    second = (await client.get(f"{QUEUE}?limit=1&cursor={page['next_cursor']}", headers=admin_headers)).json()
+    assert [i["name"] for i in second["items"]] == ["Neon mehendi"]
+    assert second["next_cursor"] is None
+
+    approved = await client.post(f"{QUEUE}/{first['id']}/approve", headers=admin_headers)
+    assert approved.json()["status"] == "approved"
+    assert (await client.post(f"{QUEUE}/{first['id']}/approve", headers=admin_headers)).status_code == 409
+    neon = second["items"][0]["id"]
+    assert (await client.post(f"{QUEUE}/{neon}/reject", headers=admin_headers, json={"reason": ""})).status_code == 422
+    rejected = await client.post(f"{QUEUE}/{neon}/reject", headers=admin_headers, json={"reason": " Too close to Bridal Classic "})
+    assert (rejected.json()["status"], rejected.json()["rejection_reason"]) == ("rejected", "Too close to Bridal Classic")
+
+    mine = (await client.get("/api/v1/artists/me", headers=headers)).json()["services"]
+    assert {s["name"]: s["status"] for s in mine} == {"Bridal Classic": "approved", "Glitter mehendi": "approved", "Neon mehendi": "rejected"}
+    assert (await client.get(QUEUE, headers=admin_headers)).json()["items"] == []
+    assert [i["name"] for i in (await client.get(f"{QUEUE}?status=rejected", headers=admin_headers)).json()["items"]] == ["Neon mehendi"]
+
+    listed = next(s for s in mine if s["template_id"] is not None)  # services from the admin list aren't in the queue
+    assert (await client.post(f"{QUEUE}/{listed['id']}/approve", headers=admin_headers)).status_code == 404
+    assert (await client.get(f"{QUEUE}?cursor=garbage", headers=admin_headers)).status_code == 422

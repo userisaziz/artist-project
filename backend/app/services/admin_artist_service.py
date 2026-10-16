@@ -1,6 +1,5 @@
 """Admin review of submitted artist profiles: the queue, one profile, approve / reject."""
 
-import base64
 import uuid
 from datetime import UTC, datetime
 
@@ -8,23 +7,11 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import decrypt_aadhaar
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.models.artist import AadhaarReveal, ArtistProfile
 from app.models.user import User
+from app.utils.cursor import decode_cursor, encode_cursor
 from app.utils.enums import ArtistStatus
-
-
-def _encode_cursor(profile: ArtistProfile) -> str:
-    raw = f"{profile.submitted_at.isoformat()}|{profile.id}"
-    return base64.urlsafe_b64encode(raw.encode()).decode()
-
-
-def _decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
-    try:
-        at, pid = base64.urlsafe_b64decode(cursor.encode()).decode().split("|")
-        return datetime.fromisoformat(at), uuid.UUID(pid)
-    except ValueError as exc:
-        raise ValidationError("Invalid cursor") from exc
 
 
 class AdminArtistService:
@@ -35,7 +22,7 @@ class AdminArtistService:
         """Oldest submission first; keyset paging on (submitted_at, id) so new submissions never shift pages."""
         query = select(ArtistProfile).where(ArtistProfile.status == status)
         if cursor:
-            at, pid = _decode_cursor(cursor)
+            at, pid = decode_cursor(cursor)
             query = query.where(or_(
                 ArtistProfile.submitted_at > at,
                 and_(ArtistProfile.submitted_at == at, ArtistProfile.id > pid),
@@ -44,7 +31,7 @@ class AdminArtistService:
             query.order_by(ArtistProfile.submitted_at, ArtistProfile.id).limit(limit + 1)
         )).all()
         page = list(rows[:limit])
-        return page, _encode_cursor(page[-1]) if len(rows) > limit else None
+        return page, encode_cursor(page[-1].submitted_at, page[-1].id) if len(rows) > limit else None
 
     async def get(self, artist_id: uuid.UUID) -> tuple[ArtistProfile, User]:
         profile = await self.session.get(ArtistProfile, artist_id)
