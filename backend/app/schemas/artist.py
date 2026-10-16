@@ -106,6 +106,24 @@ def service_out(item: ArtistServiceItem) -> ServiceOut:
     )
 
 
+class CustomServiceIn(BaseModel):
+    """After approval: the artist's own service under any active subcategory; waits for admin review."""
+
+    subcategory_id: int
+    name: str = Field(min_length=1, max_length=120)
+    price_paise: int = Field(gt=0, le=100_000_000)
+    duration_minutes: int = Field(gt=0, le=1440)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class CustomServicePatch(BaseModel):
+    subcategory_id: int | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
+    duration_minutes: int | None = Field(default=None, gt=0, le=1440)
+    description: str | None = Field(default=None, max_length=1000)
+
+
 class PhotoIn(BaseModel):
     key: str = Field(min_length=1, max_length=255)
     width: int = Field(gt=0, le=20_000)

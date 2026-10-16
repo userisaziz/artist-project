@@ -1,7 +1,8 @@
 """The signed-in artist's own profile: build it step by step, then submit it for review.
 
 Edits are allowed while the profile is a draft or was rejected; once submitted it is
-locked until an admin decides (editing an approved profile is a later feature).
+locked until an admin decides (editing an approved profile is a later feature). Approved
+artists can propose custom services, which wait for admin review one by one.
 """
 
 import uuid
@@ -22,7 +23,15 @@ from app.models.artist import (
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
 from app.models.user import User
-from app.schemas.artist import KycIn, PhotoIn, ProfileIn, ServiceIn, ServicePatch
+from app.schemas.artist import (
+    CustomServiceIn,
+    CustomServicePatch,
+    KycIn,
+    PhotoIn,
+    ProfileIn,
+    ServiceIn,
+    ServicePatch,
+)
 from app.services.storage import ImageStorage
 from app.utils.aadhaar import is_valid_aadhaar
 from app.utils.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
@@ -140,6 +149,71 @@ class ArtistService:
     async def delete_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
         profile = await self._editable(user)
         profile.services.remove(self._service(profile, service_id))
+        await self.session.flush()
+        return profile
+
+    async def _approved(self, user: User) -> ArtistProfile:
+        profile = await self.get(user)
+        if profile.status != ArtistStatus.approved:
+            raise ConflictError("Custom services open once your profile is approved")
+        return profile
+
+    async def _subcategory(self, subcategory_id: int) -> Category:
+        subcategory = await self.session.get(Category, subcategory_id)
+        parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
+        if not (subcategory and subcategory.status == CategoryStatus.active and parent and parent.status == CategoryStatus.active):
+            raise ValidationError("Unknown subcategory")
+        return subcategory
+
+    def _custom(self, profile: ArtistProfile, service_id: uuid.UUID) -> ArtistServiceItem:
+        item = self._service(profile, service_id)
+        if item.template_id is not None:
+            raise NotFoundError("Service not found")
+        return item
+
+    async def add_custom_service(self, user: User, body: CustomServiceIn) -> ArtistProfile:
+        profile = await self._approved(user)
+        await self._subcategory(body.subcategory_id)
+        name = body.name.strip()
+        if not name:
+            raise ValidationError("Name is required")
+        profile.services.append(ArtistServiceItem(
+            category_id=body.subcategory_id,
+            name=name,
+            price_paise=body.price_paise,
+            duration_minutes=body.duration_minutes,
+            description=body.description,
+            status=ArtistServiceStatus.pending,
+            sort_order=self._next_service_order(profile),
+        ))
+        await self.session.flush()
+        return profile
+
+    async def update_custom_service(self, user: User, service_id: uuid.UUID, body: CustomServicePatch) -> ArtistProfile:
+        """Any edit sends the service back for review."""
+        profile = await self._approved(user)
+        item = self._custom(profile, service_id)
+        changes = body.model_dump(exclude_unset=True)
+        if changes.get("subcategory_id") is not None:
+            await self._subcategory(changes["subcategory_id"])
+            item.category_id = changes["subcategory_id"]
+        if changes.get("name") is not None:
+            changes["name"] = changes["name"].strip()
+            if not changes["name"]:
+                raise ValidationError("Name is required")
+        for field in ("name", "price_paise", "duration_minutes"):
+            if changes.get(field) is not None:
+                setattr(item, field, changes[field])
+        if "description" in changes:
+            item.description = changes["description"]
+        item.status = ArtistServiceStatus.pending
+        item.rejection_reason = None
+        await self.session.flush()
+        return profile
+
+    async def delete_custom_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
+        profile = await self._approved(user)
+        profile.services.remove(self._custom(profile, service_id))
         await self.session.flush()
         return profile
 
