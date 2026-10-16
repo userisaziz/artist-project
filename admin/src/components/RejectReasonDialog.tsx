@@ -4,8 +4,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
-/** Asks for the reason the artist will see (backend RejectIn: 1–500 characters). */
-export function RejectReasonDialog({ open, title, description, placeholder, pending, onClose, onSubmit }: {
+/** Wording for the form; the defaults are the artist-review ones. */
+interface ReasonCopy {
+  label?: string
+  submitLabel?: string
+  dismissLabel?: string
+  requiredMessage?: string
+}
+
+/** Asks for a required reason (backend RejectIn: 1–500 characters): rejecting an artist or service, or cancelling a booking. */
+export function RejectReasonDialog({ open, title, description, placeholder, pending, onClose, onSubmit, ...copy }: ReasonCopy & {
   open: boolean
   title: string
   description: string
@@ -22,13 +30,19 @@ export function RejectReasonDialog({ open, title, description, placeholder, pend
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {/* The content unmounts when closed, so each opening starts with a blank reason. */}
-        <ReasonForm placeholder={placeholder} pending={pending} onClose={onClose} onSubmit={onSubmit} />
+        <ReasonForm {...copy} placeholder={placeholder} pending={pending} onClose={onClose} onSubmit={onSubmit} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function ReasonForm({ placeholder, pending, onClose, onSubmit }: {
+function ReasonForm({
+  label = 'What needs fixing',
+  submitLabel = 'Reject',
+  dismissLabel = 'Cancel',
+  requiredMessage = 'Tell the artist what to fix.',
+  placeholder, pending, onClose, onSubmit,
+}: ReasonCopy & {
   placeholder: string
   pending: boolean
   onClose: () => void
@@ -39,14 +53,14 @@ function ReasonForm({ placeholder, pending, onClose, onSubmit }: {
 
   const submit = () => {
     const text = reason.trim()
-    if (!text) return setError('Tell the artist what to fix.')
+    if (!text) return setError(requiredMessage)
     onSubmit(text)
   }
 
   return (
     <>
       <Field data-invalid={!!error}>
-        <FieldLabel htmlFor="reject-reason">What needs fixing</FieldLabel>
+        <FieldLabel htmlFor="reject-reason">{label}</FieldLabel>
         <Textarea
           id="reject-reason"
           autoFocus
@@ -60,8 +74,8 @@ function ReasonForm({ placeholder, pending, onClose, onSubmit }: {
         <FieldError>{error}</FieldError>
       </Field>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button variant="destructive" onClick={submit} disabled={pending}>{pending ? 'Sending…' : 'Reject'}</Button>
+        <Button variant="outline" onClick={onClose}>{dismissLabel}</Button>
+        <Button variant="destructive" onClick={submit} disabled={pending}>{pending ? 'Sending…' : submitLabel}</Button>
       </DialogFooter>
     </>
   )

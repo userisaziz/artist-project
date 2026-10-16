@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import App from './App'
 import { createQueryClient } from './lib/query-client'
 import { API_URL } from './lib/api'
-import type { AdminCategory, AdminKyc, ArtistDetail, CustomServiceItem, ServiceTemplate, User } from './lib/types'
+import type { AdminBooking, AdminCategory, AdminKyc, AdminOverview, ArtistDetail, CustomServiceItem, ServiceTemplate, User } from './lib/types'
 
 // A tiny in-memory backend behind fetch: just enough of the API contract for these flows.
 const ADMIN: User = { id: 'u-admin', phone: '+919845000001', roles: ['admin'], active_role: null, first_name: 'Neha', last_name: 'Menon', email: null }
@@ -39,7 +39,27 @@ function customService(overrides: Partial<CustomServiceItem> = {}): CustomServic
   }
 }
 
-interface Db { categories: AdminCategory[]; templates: ServiceTemplate[]; customServices: CustomServiceItem[]; artist: ArtistDetail; me: User }
+// ₹5,500 service + ₹99 fee = ₹5,599; 30% deposit ₹1,680, balance ₹3,919; 10% commission ₹550, so the artist earns ₹4,950.
+function booking(overrides: Partial<AdminBooking> = {}): AdminBooking {
+  return {
+    id: 'b-1', code: 'BK-7F3K2Q', status: 'requested', start_at: '2026-10-20T05:30:00Z', end_at: '2026-10-20T08:30:00Z',
+    address: '12 Residency Road, Bangalore', note: 'Gate code 4512', service_name: 'Bridal Classic', duration_minutes: 180,
+    artist: { id: 'a-1', business_name: 'Ayesha Mehendi Art', photo_url: null, city: 'Bangalore' },
+    customer: { id: 'u-9', first_name: 'Priya', last_name: 'Rao', phone: '+919845022222' },
+    subtotal_paise: 550000, platform_fee_paise: 9900, total_paise: 559900, deposit_paise: 168000, balance_paise: 391900,
+    commission_paise: 55000, artist_earning_paise: 495000, deposit_paid_at: '2026-10-17T04:12:00Z', expires_at: '2026-10-17T07:11:00Z',
+    responded_at: null, cancelled_at: null, completed_at: null,
+    decline_reason: null, cancel_reason: null, cancelled_by: null, refund_due: null, created_at: '2026-10-17T04:11:00Z', ...overrides,
+  }
+}
+
+const OVERVIEW: AdminOverview = {
+  gross_paise_30d: 426000000, bookings_30d: 1284, awaiting_artist: 42, completed_30d: 902, cancelled_30d: 22,
+  pending_artists: 1, pending_custom_services: 0,
+  bookings_by_week: Array.from({ length: 12 }, (_, i) => ({ week_start: new Date(Date.UTC(2026, 6, 27 + 7 * i)).toISOString().slice(0, 10), count: 10 + i })),
+}
+
+interface Db { categories: AdminCategory[]; templates: ServiceTemplate[]; customServices: CustomServiceItem[]; artist: ArtistDetail; bookings: AdminBooking[]; overview: AdminOverview; me: User }
 let db: Db
 let calls: { method: string; path: string; body: unknown }[]
 
@@ -99,11 +119,37 @@ function route(method: string, path: string, body: any): Response {
   if (method === 'POST' && path === `/admin/artists/${db.artist.id}/kyc/reveal`) {
     return db.artist.kyc ? json(200, { aadhaar_number: '234123412346' }) : json(404, { code: 'not_found', message: 'No Aadhaar on file' })
   }
+  if (method === 'GET' && path === '/admin/overview') return json(200, db.overview)
+  if (method === 'GET' && path.startsWith('/admin/bookings?')) {
+    const query = new URLSearchParams(path.split('?')[1])
+    const status = query.get('status')
+    const q = query.get('q')?.toLowerCase()
+    const limit = Number(query.get('limit') ?? 20)
+    const start = Number(query.get('cursor') ?? 0)
+    const matches = db.bookings.filter((b) =>
+      (!status || b.status === status) &&
+      (!q || [b.code, b.customer.phone, b.artist.business_name].some((field) => field.toLowerCase().includes(q))))
+    const end = start + limit
+    return json(200, { items: matches.slice(start, end), next_cursor: end < matches.length ? String(end) : null })
+  }
+  const bookingPath = path.match(/^\/admin\/bookings\/([^/]+)(\/cancel)?$/)
+  if (bookingPath) {
+    const [, id, cancel] = bookingPath
+    const found = db.bookings.find((b) => b.id === id)
+    if (!found) return json(404, { code: 'not_found', message: 'Booking not found' })
+    if (method === 'GET' && !cancel) return json(200, found)
+    if (method === 'POST' && cancel) {
+      if (found.status !== 'requested' && found.status !== 'confirmed') return json(409, { code: 'conflict', message: `This booking is already ${found.status}` })
+      const next: AdminBooking = { ...found, status: 'cancelled', cancel_reason: body.reason, cancelled_by: 'admin', refund_due: true, cancelled_at: '2026-10-17T05:00:00Z' }
+      db.bookings = db.bookings.map((b) => (b.id === id ? next : b))
+      return json(200, next)
+    }
+  }
   return json(404, { code: 'not_found', message: `No fake route for ${method} ${path}` })
 }
 
 beforeEach(() => {
-  db = { categories: [], templates: [], customServices: [], artist: artist(), me: ADMIN }
+  db = { categories: [], templates: [], customServices: [], artist: artist(), bookings: [], overview: OVERVIEW, me: ADMIN }
   calls = []
   localStorage.clear()
   sessionStorage.clear()
@@ -129,14 +175,15 @@ const renderSignedIn = (path: string) => {
   return renderApp(path)
 }
 
-it('signs an admin in with phone + code and opens Verification', async () => {
+it('signs an admin in with phone + code and opens the Overview', async () => {
   const user = userEvent.setup()
   renderApp()
   await user.type(await screen.findByLabelText('Phone number'), '98450 00001')
   await user.click(screen.getByRole('button', { name: 'Sign in' }))
   expect(await screen.findByText('We texted a 6-digit code to +91 98450 00001.')).toBeInTheDocument()
   await user.keyboard('123456')
-  expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/overview')
   expect(calls).toContainEqual({ method: 'POST', path: '/auth/otp/verify', body: { phone: '+919845000001', code: '123456' } })
   expect(localStorage.getItem('atelier-admin.refresh')).toBe('refresh') // "Keep me signed in" is on by default
 })
@@ -149,7 +196,7 @@ it('without "Keep me signed in" the session lasts only for this browser session'
   await user.click(screen.getByRole('button', { name: 'Sign in' }))
   await screen.findByText(/We texted a 6-digit code/)
   await user.keyboard('123456')
-  await screen.findByRole('heading', { name: 'Verification' })
+  await screen.findByRole('heading', { name: /Neha/ })
   expect(localStorage.getItem('atelier-admin.refresh')).toBeNull()
   expect(sessionStorage.getItem('atelier-admin.refresh')).toBe('refresh')
 })
@@ -377,4 +424,100 @@ it('the review page shows Category › Subcategory and marks custom and pending 
   expect(within(row('Glitter mehendi')).getByText('Custom')).toBeInTheDocument()
   expect(within(row('Glitter mehendi')).getByText('Pending review')).toBeInTheDocument()
   expect(within(row('Old custom')).getByText('Mehendi')).toBeInTheDocument() // older rows point at the top-level category
+})
+
+it('lands on the Overview by default, with KPIs, the weekly chart and the first pending artists', async () => {
+  const user = userEvent.setup()
+  renderSignedIn('/')
+  expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/overview')
+  expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
+
+  const kpi = (label: string) => screen.getByText(label).closest('[data-slot="card"]') as HTMLElement
+  await screen.findByText('₹42.6L')
+  expect(within(kpi('Gross bookings (30d)')).getByText('₹42.6L')).toBeInTheDocument()
+  expect(within(kpi('Bookings (30d)')).getByText('1,284')).toBeInTheDocument()
+  expect(within(kpi('Awaiting artist')).getByText('42')).toBeInTheDocument()
+  expect(within(kpi('Pending verification')).getByText('1')).toBeInTheDocument()
+
+  expect(screen.getAllByRole('listitem', { name: /^Week of/ })).toHaveLength(12)
+  expect(screen.getByRole('listitem', { name: 'Week of 12 Oct: 21 bookings' })).toBeInTheDocument()
+  expect(screen.getByRole('listitem', { name: 'Week of 27 Jul: 10 bookings' })).toBeInTheDocument()
+
+  const artistLink = await screen.findByRole('link', { name: /Ayesha Mehendi Art/ })
+  expect(artistLink).toHaveAttribute('href', '/artists/a-1')
+  await user.click(screen.getByRole('link', { name: 'Open queue' }))
+  expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument()
+})
+
+it('filters bookings by status chip and by search', async () => {
+  db.bookings = [
+    booking(),
+    booking({ id: 'b-2', code: 'BK-9H4M2P', status: 'confirmed', service_name: 'Party Makeup', artist: { id: 'a-2', business_name: 'Glam by Riya', photo_url: null, city: 'Mumbai' } }),
+  ]
+  const user = userEvent.setup()
+  renderSignedIn('/bookings')
+  expect(await screen.findByRole('link', { name: 'BK-7F3K2Q' })).toHaveAttribute('href', '/bookings/b-1')
+  expect(screen.getByText('BK-9H4M2P')).toBeInTheDocument()
+  const row = screen.getByText('BK-7F3K2Q').closest('tr') as HTMLElement
+  expect(within(row).getByText('₹5,599')).toBeInTheDocument()
+  expect(within(row).getByText('Requested')).toBeInTheDocument()
+  expect(within(row).getByText(/20 Oct.*11:00 am/i)).toBeInTheDocument() // 05:30 UTC is 11:00 IST
+
+  await user.click(screen.getByRole('button', { name: 'Confirmed' }))
+  await waitFor(() => expect(screen.queryByText('BK-7F3K2Q')).not.toBeInTheDocument())
+  expect(screen.getByText('BK-9H4M2P')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Confirmed' })).toHaveAttribute('aria-pressed', 'true')
+  expect(calls.some((c) => c.path.startsWith('/admin/bookings?') && c.path.includes('status=confirmed'))).toBe(true)
+
+  await user.click(screen.getByRole('button', { name: 'All' }))
+  await user.type(screen.getByRole('searchbox', { name: /Search/ }), 'ayesha')
+  await waitFor(() => expect(screen.queryByText('BK-9H4M2P')).not.toBeInTheDocument())
+  expect(await screen.findByText('BK-7F3K2Q')).toBeInTheDocument()
+  expect(calls.some((c) => c.path.includes('q=ayesha'))).toBe(true)
+})
+
+it('loads the next page of bookings with "Load more"', async () => {
+  db.bookings = Array.from({ length: 21 }, (_, i) => booking({ id: `b-${i}`, code: `BK-${String(i).padStart(6, '0')}` }))
+  const user = userEvent.setup()
+  renderSignedIn('/bookings')
+  expect(await screen.findByText('BK-000019')).toBeInTheDocument()
+  expect(screen.queryByText('BK-000020')).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Load more' }))
+  expect(await screen.findByText('BK-000020')).toBeInTheDocument()
+  expect(calls.some((c) => c.path.includes('cursor=20'))).toBe(true)
+  expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
+})
+
+it('booking detail shows the payment breakdown, and cancelling needs a reason', async () => {
+  db.bookings = [booking()]
+  const user = userEvent.setup()
+  renderSignedIn('/bookings/b-1')
+  expect(await screen.findByRole('heading', { name: 'BK-7F3K2Q' })).toBeInTheDocument()
+  expect(screen.getByText('Priya Rao')).toBeInTheDocument()
+  expect(screen.getByText('+919845022222')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ayesha Mehendi Art' })).toHaveAttribute('href', '/artists/a-1')
+  expect(screen.getByText('12 Residency Road, Bangalore')).toBeInTheDocument()
+  expect(screen.getByText('Gate code 4512')).toBeInTheDocument()
+  const payment = (label: string) => screen.getByText(label).closest('div') as HTMLElement
+  expect(within(payment('Deposit paid')).getByText('₹1,680')).toBeInTheDocument()
+  expect(within(payment('Balance')).getByText('₹3,919')).toBeInTheDocument()
+  expect(within(payment('Commission')).getByText('₹550')).toBeInTheDocument()
+  expect(within(payment('Artist earns')).getByText('₹4,950')).toBeInTheDocument()
+  expect(screen.getByText('Booking requested')).toBeInTheDocument()
+  expect(screen.getByText('Waiting for the artist')).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Cancel booking' }))
+  const dialog = await screen.findByRole('dialog')
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel booking' }))
+  expect(within(dialog).getByText('Add a reason for cancelling.')).toBeInTheDocument()
+  expect(calls.some((c) => c.path.endsWith('/cancel'))).toBe(false)
+
+  await user.type(within(dialog).getByLabelText('Reason'), 'Artist is unwell')
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel booking' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(calls).toContainEqual({ method: 'POST', path: '/admin/bookings/b-1/cancel', body: { reason: 'Artist is unwell' } })
+  expect(await screen.findByText('Cancelled')).toBeInTheDocument()
+  expect(screen.getByText(/Artist is unwell/)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Cancel booking' })).not.toBeInTheDocument()
 })

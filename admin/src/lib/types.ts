@@ -147,3 +147,56 @@ export interface Page<T> {
 }
 
 export type CustomServicePage = Page<CustomServiceItem>
+
+/** requested → confirmed → completed; a request can also be declined, expire unanswered, or be cancelled. */
+export type BookingStatus = 'requested' | 'confirmed' | 'completed' | 'cancelled' | 'declined' | 'expired'
+
+/** BookingOut: money is integer paise, copied onto the booking when it was requested. */
+export interface Booking {
+  id: string
+  code: string // "BK-7F3K2Q"
+  status: BookingStatus
+  start_at: string
+  end_at: string
+  address: string
+  note: string | null
+  service_name: string
+  duration_minutes: number
+  artist: { id: string; business_name: string; photo_url: string | null; city: string }
+  customer: { id: string; first_name: string | null; last_name: string | null }
+  subtotal_paise: number
+  platform_fee_paise: number
+  total_paise: number
+  deposit_paise: number
+  balance_paise: number
+  commission_paise: number
+  artist_earning_paise: number
+  deposit_paid_at: string | null
+  expires_at: string
+  decline_reason: string | null
+  cancel_reason: string | null
+  cancelled_by: 'customer' | 'artist' | 'admin' | null
+  refund_due: boolean | null
+  created_at: string
+  responded_at: string | null // accepted or declined
+  cancelled_at: string | null
+  completed_at: string | null
+}
+
+/** AdminBookingOut: BookingOut plus the customer's phone. */
+export interface AdminBooking extends Omit<Booking, 'customer'> {
+  customer: Booking['customer'] & { phone: string }
+}
+
+export type BookingPage = Page<AdminBooking>
+
+export interface AdminOverview {
+  gross_paise_30d: number // total of bookings created in the last 30 days, minus declined and expired
+  bookings_30d: number
+  awaiting_artist: number
+  completed_30d: number
+  cancelled_30d: number
+  pending_artists: number
+  pending_custom_services: number
+  bookings_by_week: { week_start: string; count: number }[] // 12 entries, oldest first; week_start is a YYYY-MM-DD date
+}

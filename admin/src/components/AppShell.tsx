@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router'
-import { BadgeCheck, LayoutGrid, ListChecks, LogOut } from 'lucide-react'
+import { BadgeCheck, CalendarCheck, LayoutDashboard, LayoutGrid, ListChecks, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePendingCount } from '@/features/artists/queries'
 import { useCustomServicePendingCount } from '@/features/custom-services/queries'
@@ -8,8 +8,10 @@ import { cn } from '@/lib/utils'
 
 // `badge` names which pending count, if any, shows next to the item.
 const NAV = [
+  { to: '/overview', label: 'Overview', icon: LayoutDashboard, badge: null },
   { to: '/artists', label: 'Verification', icon: BadgeCheck, badge: 'artists' },
   { to: '/custom-services', label: 'Custom services', icon: ListChecks, badge: 'customServices' },
+  { to: '/bookings', label: 'Bookings', icon: CalendarCheck, badge: null },
   { to: '/categories', label: 'Catalog', icon: LayoutGrid, badge: null },
 ] as const
 
