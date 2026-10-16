@@ -1,12 +1,40 @@
-import type { ArtistProfile, ArtistStatus, Category, ServiceItem, UploadPurpose } from '../types';
+import type { ArtistProfile, ArtistStatus, CatalogCategory, Category, ServiceItem, ServiceTemplate, UploadPurpose } from '../types';
 import type { TransportResponse } from '../transport';
 import { isValidAadhaar } from '../../artist/aadhaar';
 
 // Same rules as backend services/artist_service.py and schemas/artist.py — keep them in lockstep.
 export const CITIES = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune']; // backend settings.cities
-// The backend has no categories until an admin adds them; the mock seeds the design's six.
-export const CATEGORIES: Category[] = ['Mehendi', 'Makeup', 'Hair', 'Photography', 'Decor', 'Tattoo']
-  .map((name, i) => ({ id: i + 1, slug: name.toLowerCase(), name }));
+// The backend has no catalog until an admin builds it; the mock seeds the design's six categories,
+// with subcategories and services under Mehendi and Makeup (the rest are still being set up).
+const SEED: Record<string, Record<string, string[]>> = {
+  Mehendi: { Bridal: ['Bridal Classic', 'Bridal Full Arms'], Arabic: ['Arabic Hands', 'Arabic Feet', 'Arabic Party'] },
+  Makeup: { Bridal: ['HD Bridal Makeup', 'Airbrush Bridal'], Party: ['Party Makeup', 'Engagement Look'] },
+  Hair: {}, Photography: {}, Decor: {}, Tattoo: {},
+};
+let nextSubId = 100;
+let nextTemplateId = 1000;
+export const CATALOG: CatalogCategory[] = Object.entries(SEED).map(([name, subs], i) => {
+  const slug = name.toLowerCase();
+  return {
+    id: i + 1, slug, name,
+    subcategories: Object.entries(subs).map(([sub, services]) => ({
+      id: ++nextSubId, slug: `${slug}-${sub.toLowerCase()}`, name: sub,
+      services: services.map((s): ServiceTemplate => ({ id: ++nextTemplateId, name: s, description: null })),
+    })),
+  };
+});
+export const CATEGORIES: Category[] = CATALOG.map(({ id, slug, name }) => ({ id, slug, name }));
+
+/** A template with its subcategory and top-level category, as backend ArtistService._template looks it up. */
+function findTemplate(id: unknown) {
+  for (const category of CATALOG) {
+    for (const sub of category.subcategories) {
+      const template = sub.services.find((t) => t.id === id);
+      if (template) return { category, sub, template };
+    }
+  }
+  return null;
+}
 const MIN_PHOTOS = 6;
 const MAX_PHOTOS = 30;
 const EDITABLE: ArtistStatus[] = ['draft', 'rejected'];
@@ -91,15 +119,17 @@ export class MockArtists {
   }
 
   private addService(p: MockProfile, b: Record<string, unknown>): TransportResponse {
-    const name = text(b.name);
-    if (!CATEGORIES.some((c) => c.id === b.category_id)) return err('validation_error', 'Unknown category', 422);
-    if (!name || name.length > 120) return err('validation_error', 'name must be 1–120 characters', 422);
     if (!isInt(b.price_paise, 100_000_000)) return err('validation_error', 'price_paise must be a positive whole number', 422);
     if (!isInt(b.duration_minutes, 1440)) return err('validation_error', 'duration_minutes must be 1–1440', 422);
+    if (typeof b.description === 'string' && b.description.length > 1000) return err('validation_error', 'description must be at most 1000 characters', 422);
+    const found = findTemplate(b.template_id);
+    if (!found) return err('validation_error', 'Unknown service', 422);
+    if (!p.category_ids.includes(found.category.id)) return err('validation_error', 'Pick that category on your profile first', 422);
+    if (p.services.some((s) => s.template_id === found.template.id)) return err('conflict', "You've already added this service", 409);
     p.services.push({
-      id: this.id('service'), category_id: b.category_id as number, name,
-      price_paise: b.price_paise, duration_minutes: b.duration_minutes,
-      description: typeof b.description === 'string' ? b.description : null,
+      id: this.id('service'), category_id: found.sub.id, subcategory_id: found.sub.id, template_id: found.template.id,
+      name: found.template.name, price_paise: b.price_paise, duration_minutes: b.duration_minutes,
+      description: typeof b.description === 'string' ? b.description : null, status: 'approved', rejection_reason: null,
     });
     return this.ok(p, 201);
   }

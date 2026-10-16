@@ -6,10 +6,11 @@ import { AppText } from '../../../src/components/AppText';
 import { AppButton } from '../../../src/components/AppButton';
 import { AddServiceSheet } from '../../../src/artist/AddServiceSheet';
 import { useTheme } from '../../../src/theme/theme-provider';
-import { useArtistProfile, useArtistWrite } from '../../../src/artist/queries';
+import { useArtistProfile, useArtistWrite, useCategories } from '../../../src/artist/queries';
 import { formatDuration, formatPrice } from '../../../src/artist/format';
 import * as artistApi from '../../../src/api/endpoints/artist';
 import { errorMessage } from '../../../src/api/error-message';
+import type { CatalogCategory } from '../../../src/api/types';
 
 // Step 2 of 4 (not drawn in the design; follows the Profile step): the artist's service menu.
 export default function ServicesStep() {
@@ -19,8 +20,18 @@ export default function ServicesStep() {
   const write = useArtistWrite();
   const [sheet, setSheet] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { data: catalog = [] } = useCategories();
   const services = profile?.services ?? [];
-  const categoryName = (id: number) => profile?.categories.find((c) => c.id === id)?.name ?? '';
+  const mine: CatalogCategory[] = catalog.filter((c) => profile?.categories.some((p) => p.id === c.id));
+
+  // "Makeup › Bridal"; rows from before subcategories point straight at a top-level category.
+  const where = (subcategoryId: number) => {
+    for (const c of catalog) {
+      const sub = c.subcategories.find((s) => s.id === subcategoryId);
+      if (sub) return `${c.name} › ${sub.name}`;
+    }
+    return profile?.categories.find((c) => c.id === subcategoryId)?.name ?? '';
+  };
 
   const remove = async (id: string) => {
     setError(null);
@@ -41,7 +52,7 @@ export default function ServicesStep() {
             <View style={{ flex: 1 }}>
               <AppText variant="label" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{s.name}</AppText>
               <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>
-                {`${categoryName(s.category_id)} · ${formatPrice(s.price_paise)} · ${formatDuration(s.duration_minutes)}`}
+                {`${where(s.subcategory_id)} · ${formatPrice(s.price_paise)} · ${formatDuration(s.duration_minutes)}`}
               </AppText>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${s.name}`} onPress={() => { void remove(s.id); }} hitSlop={8}>
@@ -60,7 +71,8 @@ export default function ServicesStep() {
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
       <AddServiceSheet
         visible={sheet}
-        categories={profile?.categories ?? []}
+        categories={mine}
+        addedIds={services.flatMap((s) => (s.template_id === null ? [] : [s.template_id]))}
         onClose={() => setSheet(false)}
         onSubmit={async (service) => { await write(() => artistApi.addService(service)); }}
       />

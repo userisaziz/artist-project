@@ -1,6 +1,6 @@
 import type { Transport, TransportRequest, TransportResponse } from '../transport';
 import type { TokenPair, User, UserRole } from '../types';
-import { CATEGORIES, CITIES, MockArtists } from './artist';
+import { CATALOG, CITIES, MockArtists } from './artist';
 
 interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
@@ -51,7 +51,7 @@ export class MockTransport implements Transport {
     if (path === '/auth/otp/request') return this.otpRequest(data.phone ?? '');
     if (path === '/auth/otp/verify') return this.otpVerify(data.phone ?? '', data.code ?? '');
     if (path === '/auth/refresh') return this.refresh(data.refresh_token ?? '');
-    if (method === 'GET' && path === '/categories') return ok(CATEGORIES);
+    if (method === 'GET' && path === '/categories') return ok(CATALOG);
     if (method === 'GET' && path === '/cities') return ok(CITIES);
     if (path === '/uploads/signature' || path.startsWith('/artists/me')) {
       const user = this.userFor(headers);

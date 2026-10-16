@@ -38,20 +38,48 @@ export interface TokenPair {
 
 export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
+/** A top-level category, flat: what an artist's own `categories` lists (backend CategoryOut). */
 export interface Category {
   id: number;
   slug: string;
   name: string;
 }
 
+/** One service on the admin's list; artists pick it and set their own price and duration. */
+export interface ServiceTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+/** Slug is `parent-child`, e.g. `makeup-bridal`. */
+export interface Subcategory {
+  id: number;
+  slug: string;
+  name: string;
+  services: ServiceTemplate[];
+}
+
+/** GET /categories: the public tree, active items only (backend CatalogCategoryOut). */
+export interface CatalogCategory extends Category {
+  subcategories: Subcategory[];
+}
+
+export type ServiceStatus = 'approved' | 'pending' | 'rejected';
+
 /** One bookable service on the artist's menu. Prices are integer paise (₹1 = 100). */
 export interface ServiceItem {
   id: string;
   category_id: number;
+  /** Same value as category_id; rows from before subcategories point at a top-level category. */
+  subcategory_id: number;
+  template_id: number | null; // null = the artist's own (custom) service
   name: string;
   price_paise: number;
   duration_minutes: number;
   description: string | null;
+  status: ServiceStatus; // onboarding picks from the admin's list, so those are approved at once
+  rejection_reason: string | null;
 }
 
 /** Image URLs are built by the server from the storage key; the app never builds storage URLs. */
@@ -91,9 +119,9 @@ export interface ProfileInput {
   bio?: string | null;
 }
 
+/** POST /artists/me/services: a template from the catalog, with the artist's own price and duration. */
 export interface ServiceInput {
-  category_id: number;
-  name: string;
+  template_id: number;
   price_paise: number;
   duration_minutes: number;
   description?: string | null;

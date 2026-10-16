@@ -1,5 +1,5 @@
 import { MockTransport } from '../mock/transport';
-import type { ArtistProfile, UploadPurpose, UploadTicket } from '../types';
+import type { ArtistProfile, CatalogCategory, UploadPurpose, UploadTicket } from '../types';
 
 let logSpy: jest.SpyInstance;
 beforeEach(() => { logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); });
@@ -38,10 +38,16 @@ async function kyc(t: MockTransport, auth: Record<string, string>, aadhaar_numbe
   return t.request({ method: 'PUT', path: '/artists/me/kyc', headers: auth, body: { aadhaar_number, front_key: front.key, back_key: back.key } });
 }
 
+/** Service name → template id, from the catalog tree (the mock seeds Mehendi › Bridal › Bridal Classic, …). */
+async function templates(t: MockTransport) {
+  const tree = (await t.request({ method: 'GET', path: '/categories' })).json as CatalogCategory[];
+  return Object.fromEntries(tree.flatMap((c) => c.subcategories.flatMap((s) => s.services.map((sv) => [sv.name, sv.id] as const))));
+}
+
 /** Draft + one service + six photos + identity: ready to submit. */
 async function complete(t: MockTransport, auth: Record<string, string>) {
   await draft(t, auth);
-  await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'Bridal', price_paise: 100, duration_minutes: 60 } });
+  await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id: (await templates(t))['Bridal Classic'], price_paise: 100, duration_minutes: 60 } });
   for (let i = 0; i < 6; i++) {
     const tk = await ticket(t, auth, 'portfolio');
     await t.request({ method: 'POST', path: '/artists/me/photos', headers: auth, body: { key: tk.key, width: 10, height: 10 } });
@@ -52,7 +58,9 @@ async function complete(t: MockTransport, auth: Record<string, string>) {
 it('serves the catalog without auth', async () => {
   const t = new MockTransport();
   const cats = await t.request({ method: 'GET', path: '/categories' });
-  expect((cats.json as { name: string }[]).map((c) => c.name)).toEqual(['Mehendi', 'Makeup', 'Hair', 'Photography', 'Decor', 'Tattoo']);
+  const tree = cats.json as CatalogCategory[];
+  expect(tree.map((c) => c.name)).toEqual(['Mehendi', 'Makeup', 'Hair', 'Photography', 'Decor', 'Tattoo']);
+  expect(tree[1].subcategories.map((s) => s.slug)).toEqual(['makeup-bridal', 'makeup-party']);
   const cities = await t.request({ method: 'GET', path: '/cities' });
   expect(cities.json).toEqual(['Bangalore', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune']);
 });
@@ -93,12 +101,17 @@ it('services: add (201), validate price and duration, delete', async () => {
   const t = new MockTransport();
   const auth = await artist(t);
   await draft(t, auth);
-  const added = await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'Bridal mehendi', price_paise: 450000, duration_minutes: 180 } });
+  const tpl = await templates(t);
+  const added = await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id: tpl['Bridal Classic'], price_paise: 450000, duration_minutes: 180 } });
   expect(added.status).toBe(201);
   const svc = (added.json as ArtistProfile).services[0];
-  expect(svc).toMatchObject({ name: 'Bridal mehendi', price_paise: 450000, duration_minutes: 180, description: null });
-  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'X', price_paise: 0, duration_minutes: 30 } })).toMatchObject({ status: 422 });
-  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'X', price_paise: 100, duration_minutes: 1441 } })).toMatchObject({ status: 422 });
+  expect(svc).toMatchObject({
+    name: 'Bridal Classic', template_id: tpl['Bridal Classic'], price_paise: 450000, duration_minutes: 180,
+    description: null, status: 'approved', rejection_reason: null,
+  });
+  expect(svc.subcategory_id).toBe(svc.category_id); // stored on the subcategory, like the backend
+  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id: tpl['Bridal Full Arms'], price_paise: 0, duration_minutes: 30 } })).toMatchObject({ status: 422 });
+  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id: tpl['Bridal Full Arms'], price_paise: 100, duration_minutes: 1441 } })).toMatchObject({ status: 422 });
   const removed = await t.request({ method: 'DELETE', path: `/artists/me/services/${svc.id}`, headers: auth });
   expect((removed.json as ArtistProfile).services).toEqual([]);
 });
@@ -140,7 +153,19 @@ it('submit lists what is missing, then moves to pending and locks edits (409)', 
   const sent = await t.request({ method: 'POST', path: '/artists/me/submit', headers: auth });
   expect(sent).toMatchObject({ status: 200, json: { status: 'pending', rejection_reason: null } });
   expect((sent.json as ArtistProfile).submitted_at).toBeTruthy();
-  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { category_id: 1, name: 'Y', price_paise: 100, duration_minutes: 60 } })).toMatchObject({ status: 409, json: { code: 'conflict' } });
+  expect(await t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id: (await templates(t))['Bridal Full Arms'], price_paise: 100, duration_minutes: 60 } })).toMatchObject({ status: 409, json: { code: 'conflict' } });
+});
+
+it('services come from the admin list: unknown, outside the artist’s categories, or already added are refused', async () => {
+  const t = new MockTransport();
+  const auth = await artist(t);
+  await draft(t, auth); // Mehendi only
+  const tpl = await templates(t);
+  const add = (template_id: number) => t.request({ method: 'POST', path: '/artists/me/services', headers: auth, body: { template_id, price_paise: 100, duration_minutes: 60 } });
+  expect(await add(999999)).toMatchObject({ status: 422, json: { message: 'Unknown service' } });
+  expect(await add(tpl['Party Makeup'])).toMatchObject({ status: 422, json: { message: 'Pick that category on your profile first' } });
+  expect(await add(tpl['Bridal Classic'])).toMatchObject({ status: 201 });
+  expect(await add(tpl['Bridal Classic'])).toMatchObject({ status: 409, json: { code: 'conflict', message: "You've already added this service" } });
 });
 
 it('review() rejects a pending profile with a reason, which makes it editable again', async () => {

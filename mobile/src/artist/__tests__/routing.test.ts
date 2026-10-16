@@ -6,7 +6,10 @@ const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
   categories: [{ id: 1, slug: 'mehendi', name: 'Mehendi' }], services: [], photos: [],
   rejection_reason: null, submitted_at: null, reviewed_at: null, kyc: null, ...over,
 });
-const service = { id: 's', category_id: 1, name: 'S', price_paise: 100, duration_minutes: 60, description: null };
+const service = {
+  id: 's', category_id: 101, subcategory_id: 101, template_id: 1001, name: 'S', price_paise: 100, duration_minutes: 60,
+  description: null, status: 'approved' as const, rejection_reason: null,
+};
 const photos = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, key: `k${i}`, width: 1, height: 1, thumb_url: 'u', card_url: 'u', full_url: 'u' }));
 
 it('stage follows the review status; a rejection waits on In review until the artist edits', () => {

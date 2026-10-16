@@ -90,15 +90,21 @@ it('Profile Continue stays disabled until photo, name, a category and a city are
   expect(screen.queryByLabelText('Step 2 of 4')).toBeNull(); // no photo or city yet
 });
 
-/** Services: add "Bridal mehendi" (₹4,500, 180 min) through the sheet. */
-async function addService() {
+/** Opens the sheet and picks Mehendi (preselected, the only category) › Bridal › Bridal Classic. */
+async function pickBridalClassic() {
   await fireEvent.press(screen.getByText('+ Add service'));
-  await fireEvent.changeText(await screen.findByLabelText('Service name'), 'Bridal mehendi');
-  await fireEvent.changeText(screen.getByLabelText('Price (₹)'), '4500');
+  await fireEvent.press(await screen.findByText('Bridal'));
+  await fireEvent.press(await screen.findByLabelText('Bridal Classic'));
+}
+
+/** Services: add "Bridal Classic" (₹4,500, 180 min) from the admin's list through the sheet. */
+async function addService() {
+  await pickBridalClassic();
+  await fireEvent.changeText(await screen.findByLabelText('Price (₹)'), '4500');
   await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '180');
   await fireEvent.press(screen.getByText('Save service'));
-  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
-  expect(screen.getByText('Mehendi · ₹4,500 · 3 hr')).toBeTruthy();
+  expect(await screen.findByText('Bridal Classic')).toBeTruthy();
+  expect(screen.getByText('Mehendi › Bridal · ₹4,500 · 3 hr')).toBeTruthy();
 }
 
 it('Services: Continue needs a service; services can be added and removed', async () => {
@@ -109,8 +115,8 @@ it('Services: Continue needs a service; services can be added and removed', asyn
   expect(screen.queryByLabelText('Step 3 of 4')).toBeNull();
 
   await addService();
-  await fireEvent.press(screen.getByLabelText('Remove Bridal mehendi'));
-  await waitFor(() => expect(screen.queryByText('Bridal mehendi')).toBeNull());
+  await fireEvent.press(screen.getByLabelText('Remove Bridal Classic'));
+  await waitFor(() => expect(screen.queryByText('Bridal Classic')).toBeNull());
 
   await addService();
   await fireEvent.press(screen.getByText('Continue'));
@@ -120,12 +126,44 @@ it('Services: Continue needs a service; services can be added and removed', asyn
 it('the Add service sheet rejects a zero price before calling the server', async () => {
   await startArtist('9845044444');
   await fillProfile();
-  await fireEvent.press(screen.getByText('+ Add service'));
-  await fireEvent.changeText(await screen.findByLabelText('Service name'), 'Trial');
-  await fireEvent.changeText(screen.getByLabelText('Price (₹)'), '0');
+  await pickBridalClassic();
+  await fireEvent.changeText(await screen.findByLabelText('Price (₹)'), '0');
   await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '30');
   await fireEvent.press(screen.getByText('Save service'));
   expect(await screen.findByText('Enter a price above ₹0.')).toBeTruthy();
+});
+
+it('the Add service sheet steps through subcategory and service, and marks services already added', async () => {
+  await startArtist('9845044460');
+  await fillProfile();
+  await fireEvent.press(screen.getByText('+ Add service'));
+  expect(screen.queryByLabelText('Price (₹)')).toBeNull(); // nothing to price until a service is picked
+  await fireEvent.press(await screen.findByText('Arabic'));
+  expect(await screen.findByLabelText('Arabic Hands')).toBeTruthy();
+  expect(screen.queryByLabelText('Bridal Classic')).toBeNull(); // only the chosen subcategory's services
+  await fireEvent.press(screen.getByLabelText('Close'));
+
+  await addService();
+  await fireEvent.press(screen.getByText('+ Add service'));
+  await fireEvent.press(await screen.findByText('Bridal'));
+  const added = await screen.findByLabelText('Bridal Classic, added');
+  expect(added.props.accessibilityState).toMatchObject({ disabled: true });
+  expect(screen.getByLabelText('Bridal Full Arms').props.accessibilityState).toMatchObject({ disabled: false });
+});
+
+it('the Add service sheet says so when the artist’s categories have no services yet', async () => {
+  await startArtist('9845044461');
+  await fireEvent.press(screen.getByText('Let’s get started'));
+  mockPicks(1);
+  await fireEvent.press(await screen.findByLabelText('Add profile photo'));
+  expect(await screen.findByLabelText('Change profile photo')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Business name'), 'Hair by Ira');
+  await fireEvent.press(await screen.findByText('Hair')); // the mock lists nothing under Hair yet
+  await fireEvent.press(screen.getByLabelText('City'));
+  await fireEvent.press(await screen.findByText('Bangalore'));
+  await fireEvent.press(screen.getByText('Continue'));
+  await fireEvent.press(await screen.findByText('+ Add service'));
+  expect(await screen.findByText('Services for your categories are being set up. Check back soon.')).toBeTruthy();
 });
 
 /** Portfolio: pick and upload `n` photos in one go; waits until `total` tiles are on screen. */
@@ -211,7 +249,7 @@ it('a rejected profile shows the reason, and Edit and resubmit goes back through
   expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
   expect(screen.getByLabelText('Business name').props.value).toBe('Ayesha Mehendi Art'); // prefilled from the saved profile
   await fireEvent.press(screen.getByText('Continue'));
-  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  expect(await screen.findByText('Bridal Classic')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
   expect(await screen.findByText('Show your best work')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
@@ -281,7 +319,7 @@ it('Replace details after a rejection needs the number and both photos again', a
   await fireEvent.press(await screen.findByText('Edit and resubmit'));
   expect(await screen.findByText('Tell clients who you are')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
-  expect(await screen.findByText('Bridal mehendi')).toBeTruthy();
+  expect(await screen.findByText('Bridal Classic')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
   expect(await screen.findByText('Show your best work')).toBeTruthy();
   await fireEvent.press(screen.getByText('Continue'));
