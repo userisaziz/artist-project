@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.catalog.models import Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.catalog.schemas import TemplateIn, TemplatePatch
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 
 
 class TemplateUsage(NamedTuple):
@@ -21,12 +21,6 @@ class ServiceTemplateService:
         self.session = session
         self.categories = CategoryRepository(session)
         self.templates = TemplateRepository(session)
-
-    async def _get(self, template_id: int) -> ServiceTemplate:
-        template = await self.templates.get(template_id)
-        if template is None:
-            raise NotFoundError("Service not found")
-        return template
 
     async def _subcategory(self, subcategory_id: int) -> Category:
         subcategory = await self.categories.get(subcategory_id)
@@ -64,8 +58,7 @@ class ServiceTemplateService:
         await self.session.flush()
         return TemplateUsage(template, 0)
 
-    async def update(self, template_id: int, body: TemplatePatch) -> TemplateUsage:
-        template = await self._get(template_id)
+    async def update(self, template: ServiceTemplate, body: TemplatePatch) -> TemplateUsage:
         changes = body.model_dump(exclude_unset=True)
         if changes.get("name") is not None:
             changes["name"] = changes["name"].strip()
@@ -78,8 +71,7 @@ class ServiceTemplateService:
         await self.session.flush()
         return TemplateUsage(template, (await self.templates.artist_counts(template.id)).get(template.id, 0))
 
-    async def delete(self, template_id: int) -> None:
-        template = await self._get(template_id)
+    async def delete(self, template: ServiceTemplate) -> None:
         if (await self.templates.artist_counts(template.id)).get(template.id):
             raise ConflictError("Service is in use; hide it instead")
         await self.templates.delete(template)

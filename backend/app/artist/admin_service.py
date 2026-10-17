@@ -8,15 +8,16 @@ from app.artist.models import AadhaarReveal, ArtistProfile
 from app.artist.repository import ArtistRepository
 from app.core.crypto import decrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError
-from app.shared import clock
+from app.shared.clock import Clock
 from app.shared.enums import ArtistStatus
 from app.user.models import User
 from app.user.repository import UserRepository
 
 
 class AdminArtistService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, clock: Clock):
         self.session = session
+        self.clock = clock
         self.artists = ArtistRepository(session)
         self.users = UserRepository(session)
 
@@ -41,7 +42,7 @@ class AdminArtistService:
             raise ConflictError(f"Profile is {profile.status.value}, not pending")
         profile.status = status
         profile.rejection_reason = reason
-        profile.reviewed_at = clock.now()
+        profile.reviewed_at = self.clock.now()
         profile.reviewed_by = admin.id
         await self.session.flush()
         return profile, owner

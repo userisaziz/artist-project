@@ -3,10 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.artist.schemas import RejectIn
-from app.booking.admin_service import (
-    AdminBookingService,
-    get_admin_booking_service,
-)
+from app.booking.admin_service import AdminBookingService
+from app.booking.dependencies import get_admin_booking_service
 from app.booking.schemas import AdminBookingOut, AdminBookingPage, AdminOverview
 from app.core.auth import audited_admin
 from app.shared.enums import BookingStatus

@@ -3,12 +3,13 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.booking.dependencies import limit_booking_requests, limit_reviews
+from app.booking.dependencies import get_booking_service, limit_booking_requests, limit_reviews
 from app.booking.schemas import BookingIn, BookingOut, BookingPage, ReasonIn
-from app.booking.service import BookingService, get_booking_service
+from app.booking.service import BookingService
 from app.core.auth import current_customer
+from app.review.dependencies import get_review_service
 from app.review.schemas import OwnReviewOut, ReviewIn
-from app.review.service import ReviewService, get_review_service
+from app.review.service import ReviewService
 from app.shared.responses import errors
 from app.user.models import User
 

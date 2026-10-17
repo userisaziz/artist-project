@@ -3,8 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import audited_admin
+from app.review.dependencies import get_review_service
 from app.review.schemas import AdminReviewOut, AdminReviewPage, DecisionIn
-from app.review.service import ReviewService, get_review_service
+from app.review.service import ReviewService
 from app.shared.enums import ReviewStatus
 from app.shared.responses import errors
 from app.user.models import User

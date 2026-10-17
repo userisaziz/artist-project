@@ -13,7 +13,6 @@ from zoneinfo import ZoneInfo
 import pytest_asyncio
 
 from app.auth.sms import ConsoleSMSProvider
-from app.shared import clock
 from tests.support.artist import complete_profile
 from tests.support.auth import admin_headers, sign_in
 from tests.support.booking import at, book, setup
@@ -61,7 +60,7 @@ async def test_stranger_to_approved_artist_journey(client, engine):
     assert (dashboard["requests"], dashboard["upcoming"]) == (0, 0)  # the artist home boots empty
 
 
-async def test_first_booking_to_public_review_journey(client, engine, monkeypatch):
+async def test_first_booking_to_public_review_journey(client, engine, travel):
     """The flagship story: browse → availability → deposit → accept → complete → rate → reply → public."""
     _, artist, customer = await setup(client, engine)
     # The sign-up screen's name step: without it the review would read "Atelier customer".
@@ -96,7 +95,7 @@ async def test_first_booking_to_public_review_journey(client, engine, monkeypatc
         "status"
     ] == "confirmed"
 
-    monkeypatch.setattr(clock, "now", at(b["start_at"], 4))  # the visit happened
+    travel(at(b["start_at"], 4))  # the visit happened
     assert (await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=h)).json()[
         "status"
     ] == "completed"
@@ -169,12 +168,12 @@ async def test_far_ahead_cancel_refunds_journey(client, engine):
     ).status_code == 409  # already over
 
 
-async def test_review_moderation_journey(client, engine, monkeypatch):
+async def test_review_moderation_journey(client, engine, travel):
     """Hidden for a phone number → published by an admin → reported by the artist → removed: the public only ever counts what is visible."""
     admin, artist, customer = await setup(client, engine)
     h = artist["headers"]
 
-    first = await _completed(client, artist, customer, monkeypatch, day=5)
+    first = await _completed(client, artist, customer, travel, day=5)
     hidden = (
         await client.post(
             f"/api/v1/bookings/{first['id']}/review",
@@ -185,8 +184,8 @@ async def test_review_moderation_journey(client, engine, monkeypatch):
     assert hidden["status"] == "hidden"
     assert (await client.get(f"/api/v1/artists/{artist['id']}/reviews")).json()["summary"]["count"] == 0
 
-    monkeypatch.undo()
-    second = await _completed(client, artist, customer, monkeypatch, day=6)
+    travel.back()
+    second = await _completed(client, artist, customer, travel, day=6)
     good = (
         await client.post(
             f"/api/v1/bookings/{second['id']}/review",
@@ -249,11 +248,11 @@ async def test_customer_becomes_artist_journey(client, engine):
     assert (await client.post("/api/v1/artists/me/submit", headers=customer)).json()["status"] == "pending"
 
 
-async def _completed(client, artist: dict, customer: dict, monkeypatch, day: int) -> dict:
+async def _completed(client, artist: dict, customer: dict, travel, day: int) -> dict:
     """Book, accept, jump past the end, complete: a reviewable booking in `day` days' place on the wall clock."""
     b = (await book(client, customer, artist, slot(day, 11))).json()
     await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=artist["headers"])
-    monkeypatch.setattr(clock, "now", at(b["start_at"], 4))
+    travel(at(b["start_at"], 4))
     done = await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=artist["headers"])
     assert done.status_code == 200
     return done.json()

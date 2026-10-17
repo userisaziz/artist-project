@@ -3,8 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import current_artist
+from app.review.dependencies import get_review_service
 from app.review.schemas import OwnReviewOut, OwnReviewPage, ReplyIn, ReportIn
-from app.review.service import ReviewService, get_review_service
+from app.review.service import ReviewService
 from app.shared.responses import errors
 from app.user.models import User
 

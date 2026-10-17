@@ -1,5 +1,32 @@
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.booking import constants
+from app.booking.admin_service import AdminBookingService
+from app.booking.config import BookingSettings, get_booking_settings
+from app.booking.service import BookingService
+from app.core.database import get_db
 from app.core.rate_limit import Limit, limit_by_user
+from app.shared.clock import Clock, get_clock
+from app.upload.service import ImageStorage, get_storage
+
+
+def get_booking_service(
+    session: AsyncSession = Depends(get_db),
+    storage: ImageStorage = Depends(get_storage),
+    settings: BookingSettings = Depends(get_booking_settings),
+    clock: Clock = Depends(get_clock),
+) -> BookingService:
+    return BookingService(session, storage, settings, clock)
+
+
+def get_admin_booking_service(
+    session: AsyncSession = Depends(get_db),
+    storage: ImageStorage = Depends(get_storage),
+    settings: BookingSettings = Depends(get_booking_settings),
+    clock: Clock = Depends(get_clock),
+) -> AdminBookingService:
+    return AdminBookingService(session, storage, settings, clock)
 
 
 def booking_requests_per_user() -> Limit:

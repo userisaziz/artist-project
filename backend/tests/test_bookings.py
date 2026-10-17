@@ -1,5 +1,5 @@
 """Booking contract: a customer requests a slot with a deposit; the artist accepts, declines or completes;
-customers and admins cancel. Time is moved by patching app.shared.clock.now."""
+customers and admins cancel. Time is moved with the `travel` fixture (a get_clock override)."""
 
 import asyncio
 import re
@@ -8,9 +8,7 @@ from datetime import datetime, timedelta
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.booking import service as booking_service
 from app.booking.config import BookingSettings, get_booking_settings
-from app.shared import clock
 from tests.support.artist import approved_artist
 from tests.support.auth import CUSTOMER_PHONE, sign_in
 from tests.support.booking import at, book, setup
@@ -98,20 +96,48 @@ async def test_a_taken_slot_conflicts_until_the_request_is_declined(client, engi
     assert (await book(client, customer, artist, slot(5, 13))).status_code == 201
 
 
-async def test_only_one_of_two_simultaneous_requests_gets_the_slot(client, engine, monkeypatch):
+async def _racing(engine, lock_sql: str, params: dict, *requests):
+    """Hold a row lock in another transaction while `requests` start, so they all reach the lock and wait;
+    then release it. Only the app's own row locks can then stop them from both passing their checks."""
+    async with engine.connect() as holder:
+        await holder.begin()
+        await holder.execute(text(lock_sql), params)
+        tasks = [asyncio.ensure_future(r) for r in requests]
+        await asyncio.sleep(0.3)
+        assert not any(t.done() for t in tasks), "requests should be queued behind the held lock"
+        await holder.commit()
+        return await asyncio.gather(*tasks)
+
+
+async def test_only_one_of_two_simultaneous_requests_gets_the_slot(client, engine):
     _, artist, customer = await setup(client, engine)
     other = await sign_in(client, "+919845080002", role="customer")
-    check_overlap = booking_service.busy_ranges
-
-    async def slow_check(*args):
-        # Widen the gap between "is it free?" and "insert": without the artist-row lock both requests see a free slot.
-        busy = await check_overlap(*args)
-        await asyncio.sleep(0.2)
-        return busy
-
-    monkeypatch.setattr(booking_service, "busy_ranges", slow_check)
-    results = await asyncio.gather(book(client, customer, artist), book(client, other, artist))
+    results = await _racing(
+        engine,
+        "SELECT id FROM artist_profile WHERE id = :id FOR UPDATE",
+        {"id": artist["id"]},
+        book(client, customer, artist),
+        book(client, other, artist),
+    )
     assert sorted(r.status_code for r in results) == [201, 409]
+
+
+async def test_one_customer_racing_two_artists_cannot_pass_the_open_request_cap(client, engine, override):
+    override(
+        get_booking_settings,
+        lambda: BookingSettings(environment="test", payment_provider="mock", max_open_requests_per_customer=1),
+    )
+    admin, artist, customer = await setup(client, engine)
+    noor = await approved_artist(client, engine, "+919845091002", admin, name="Henna by Noor")
+    results = await _racing(
+        engine,
+        "SELECT id FROM user_account WHERE phone = :phone FOR UPDATE",
+        {"phone": CUSTOMER_PHONE},
+        book(client, customer, artist),
+        book(client, customer, noor),
+    )
+    assert sorted(r.status_code for r in results) == [201, 409]
+    assert "requests waiting" in next(r for r in results if r.status_code == 409).json()["message"]
 
 
 async def test_start_must_be_a_bookable_hourly_slot(client, engine):
@@ -159,7 +185,7 @@ async def test_bookings_need_a_customer_account(client, engine):
 # --- artist side ----------------------------------------------------------------------------------
 
 
-async def test_artist_accepts_then_completes_after_the_start(client, engine, monkeypatch):
+async def test_artist_accepts_then_completes_after_the_start(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
     h = artist["headers"]
@@ -175,7 +201,7 @@ async def test_artist_accepts_then_completes_after_the_start(client, engine, mon
     assert [r["id"] for r in upcoming] == [b["id"]]
 
     assert (await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=h)).status_code == 409
-    monkeypatch.setattr(clock, "now", at(b["start_at"], 4))
+    travel(at(b["start_at"], 4))
     done = await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=h)
     assert done.json()["status"] == "completed"
 
@@ -187,19 +213,19 @@ async def test_artist_accepts_then_completes_after_the_start(client, engine, mon
     assert (await client.get(f"/api/v1/artists/{artist['id']}")).json()["completed_bookings"] == 1
 
 
-async def test_dashboard_lists_todays_schedule(client, engine, monkeypatch):
+async def test_dashboard_lists_todays_schedule(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist, slot(5, 14))).json()
     await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=artist["headers"])
-    monkeypatch.setattr(clock, "now", at(b["start_at"], -5))  # 9 AM IST that day
+    travel(at(b["start_at"], -5))  # 9 AM IST that day
     today = (await client.get("/api/v1/artists/me/dashboard", headers=artist["headers"])).json()["today"]
     assert [x["id"] for x in today] == [b["id"]]
 
 
-async def test_unanswered_requests_expire(client, engine, monkeypatch):
+async def test_unanswered_requests_expire(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
-    monkeypatch.setattr(clock, "now", at(b["expires_at"], 0.01))
+    travel(at(b["expires_at"], 0.01))
 
     shown = (await client.get(f"/api/v1/bookings/{b['id']}", headers=customer)).json()
     assert (shown["status"], shown["refund_due"]) == ("expired", True)
@@ -240,7 +266,7 @@ async def test_artist_bookings_need_an_approved_profile(client, engine):
 # --- cancelling and ownership ---------------------------------------------------------------------
 
 
-async def test_customer_cancellation_refunds_only_well_ahead(client, engine, monkeypatch):
+async def test_customer_cancellation_refunds_only_well_ahead(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     early = (await book(client, customer, artist, slot(10, 11))).json()
     r = (
@@ -255,14 +281,14 @@ async def test_customer_cancellation_refunds_only_well_ahead(client, engine, mon
 
     late = (await book(client, customer, artist, slot(10, 15))).json()
     await client.post(f"/api/v1/artists/me/bookings/{late['id']}/accept", headers=artist["headers"])
-    monkeypatch.setattr(clock, "now", at(late["start_at"], -24))  # a day before: inside the 72 h window
+    travel(at(late["start_at"], -24))  # a day before: inside the 72 h window
     r = (await client.post(f"/api/v1/bookings/{late['id']}/cancel", headers=customer, json={})).json()
     assert (r["status"], r["refund_due"]) == ("cancelled", False)
 
-    monkeypatch.undo()
+    travel.back()
     gone = (await book(client, customer, artist, slot(12, 11))).json()
     await client.post(f"/api/v1/artists/me/bookings/{gone['id']}/accept", headers=artist["headers"])
-    monkeypatch.setattr(clock, "now", at(gone["start_at"], 1))
+    travel(at(gone["start_at"], 1))
     assert (await client.post(f"/api/v1/bookings/{gone['id']}/cancel", headers=customer, json={})).status_code == 409
 
 
@@ -368,13 +394,13 @@ async def test_bad_cursors_and_far_dates_are_rejected_cleanly(client, engine):
     assert (await book(client, customer, artist, "9999-12-31T23:00:00+00:00")).status_code == 422
 
 
-async def test_a_request_close_to_its_start_must_be_answered_before_it(client, engine, monkeypatch):
+async def test_a_request_close_to_its_start_must_be_answered_before_it(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     start = slot(5, 11)
-    monkeypatch.setattr(clock, "now", at(start, -2))  # booked 2 h ahead: the 3 h window would run past the start
+    travel(at(start, -2))  # booked 2 h ahead: the 3 h window would run past the start
     b = (await book(client, customer, artist, start)).json()
     assert b["expires_at"] == b["start_at"]
-    monkeypatch.setattr(clock, "now", at(start, 0.5))
+    travel(at(start, 0.5))
     assert (
         await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=artist["headers"])
     ).status_code == 409

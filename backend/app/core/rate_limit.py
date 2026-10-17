@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import get_db
 from app.core.exceptions import RateLimitError
-from app.shared import clock
+from app.shared.clock import Clock, get_clock
 from app.shared.models import Base
 
 HIT_SQL = text(
@@ -45,9 +45,8 @@ class Limit:
     window_seconds: int
 
 
-async def hit(session: AsyncSession, key: str, limit: Limit) -> None:
+async def hit(session: AsyncSession, key: str, limit: Limit, now: datetime) -> None:
     """Count one hit on `key`; 429 `rate_limited` with Retry-After once the window's allowance is used."""
-    now = clock.now()
     window = timedelta(seconds=limit.window_seconds)
     count, started = (await session.execute(HIT_SQL, {"key": key, "now": now, "window_start": now - window})).one()
     await session.commit()
@@ -68,9 +67,12 @@ def limit_by_ip(scope: str, get_limit: Callable[..., Limit]):
     """
 
     async def dependency(
-        request: Request, limit: Limit = Depends(get_limit), session: AsyncSession = Depends(get_db)
+        request: Request,
+        limit: Limit = Depends(get_limit),
+        session: AsyncSession = Depends(get_db),
+        clock: Clock = Depends(get_clock),
     ) -> None:
-        await hit(session, f"{scope}:ip:{client_ip(request)}", limit)
+        await hit(session, f"{scope}:ip:{client_ip(request)}", limit, clock.now())
 
     return dependency
 
@@ -84,7 +86,8 @@ def limit_by_user(scope: str, get_limit: Callable[..., Limit]):
         user: User = Depends(get_current_user),
         limit: Limit = Depends(get_limit),
         session: AsyncSession = Depends(get_db),
+        clock: Clock = Depends(get_clock),
     ) -> None:
-        await hit(session, f"{scope}:user:{user.id}", limit)
+        await hit(session, f"{scope}:user:{user.id}", limit, clock.now())
 
     return dependency

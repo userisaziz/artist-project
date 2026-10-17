@@ -5,17 +5,22 @@ from app.artist.admin_service import AdminArtistService
 from app.artist.custom_service_review import CustomServiceReview
 from app.artist.service import ArtistService
 from app.core.database import get_db
+from app.shared.clock import Clock, get_clock
 from app.upload.service import ImageStorage, get_storage
 
 
 def get_artist_service(
-    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+    session: AsyncSession = Depends(get_db),
+    storage: ImageStorage = Depends(get_storage),
+    clock: Clock = Depends(get_clock),
 ) -> ArtistService:
-    return ArtistService(session, storage)
+    return ArtistService(session, storage, clock)
 
 
-def get_admin_artist_service(session: AsyncSession = Depends(get_db)) -> AdminArtistService:
-    return AdminArtistService(session)
+def get_admin_artist_service(
+    session: AsyncSession = Depends(get_db), clock: Clock = Depends(get_clock)
+) -> AdminArtistService:
+    return AdminArtistService(session, clock)
 
 
 def get_custom_service_review(session: AsyncSession = Depends(get_db)) -> CustomServiceReview:

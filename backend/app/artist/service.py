@@ -31,7 +31,7 @@ from app.catalog.models import Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.shared import clock
+from app.shared.clock import Clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 from app.upload.service import ImageStorage
 from app.user.models import User
@@ -42,9 +42,10 @@ EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
 
 
 class ArtistService:
-    def __init__(self, session: AsyncSession, storage: ImageStorage):
+    def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
         self.storage = storage
+        self.clock = clock
         self.artists = ArtistRepository(session)
         self.categories = CategoryRepository(session)
         self.templates = TemplateRepository(session)
@@ -324,7 +325,7 @@ class ArtistService:
         if missing:
             raise ValidationError("Profile is incomplete", missing=missing, min_photos=MIN_PHOTOS)
         profile.status = ArtistStatus.pending
-        profile.submitted_at = clock.now()
+        profile.submitted_at = self.clock.now()
         profile.rejection_reason = None
         await self.session.flush()
         return profile

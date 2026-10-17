@@ -42,6 +42,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.database import get_db
 from app.main import create_app
 from app.registry import Base
+from app.shared.clock import FixedClock, get_clock
 
 
 def apply_migrations(url: str) -> None:
@@ -89,6 +90,26 @@ def override(app):
             app.dependency_overrides.pop(dependency, None)
         else:
             app.dependency_overrides[dependency] = before
+
+
+class Travel:
+    """`travel(moment)` freezes the app's clock (a datetime, or a zero-arg callable returning one);
+    `travel.back()` returns to real time. Built on `override`, so it ends with the test."""
+
+    def __init__(self, override):
+        self._override = override
+
+    def __call__(self, moment) -> None:
+        at = moment() if callable(moment) else moment
+        self._override(get_clock, lambda: FixedClock(at))
+
+    def back(self) -> None:
+        self._override(get_clock, get_clock)
+
+
+@pytest.fixture
+def travel(override) -> Travel:
+    return Travel(override)
 
 
 @pytest_asyncio.fixture(scope="session")

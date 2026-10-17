@@ -4,8 +4,9 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
+from app.booking.dependencies import get_booking_service
 from app.booking.schemas import ArtistDashboard, BookingOut, BookingPage, ReasonIn
-from app.booking.service import BookingService, get_booking_service
+from app.booking.service import BookingService
 from app.core.auth import current_artist
 from app.shared.responses import errors
 from app.user.models import User

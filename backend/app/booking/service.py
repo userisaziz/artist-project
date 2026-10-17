@@ -8,33 +8,24 @@ customer must never see "requested" for a booking that wasn't saved.
 import secrets
 import uuid
 from datetime import date, datetime, time, timedelta
-from typing import Any, Literal, NamedTuple
+from typing import Any, Literal
 
-from fastapi import Depends
-from sqlalchemy import ColumnElement, Select, and_, func, not_, or_, select, update
+from sqlalchemy import ColumnElement, and_, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
-from app.booking.config import BookingSettings, get_booking_settings
+from app.booking.config import BookingSettings
 from app.booking.models import Booking
-from app.booking.schemas import (
-    BookingIn,
-)
-from app.core.database import get_db
+from app.booking.repository import BookingRepository, BookingRow
+from app.booking.schemas import BookingIn
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_window_open
-from app.review.models import PUBLIC_REVIEW, Review
-from app.shared import clock
-from app.shared.enums import (
-    ArtistServiceStatus,
-    ArtistStatus,
-    BookingStatus,
-    ReviewStatus,
-)
-from app.shared.pagination import keyset, split_page
-from app.upload.service import ImageStorage, get_storage
+from app.review.models import PUBLIC_REVIEW
+from app.shared.clock import Clock
+from app.shared.enums import ArtistStatus, BookingStatus
+from app.shared.pagination import split_page
+from app.upload.service import ImageStorage
 from app.user.models import User
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
@@ -48,31 +39,9 @@ def new_code() -> str:
     return "BK-" + "".join(secrets.choice(CODE_ALPHABET) for _ in range(6))
 
 
-def holds_slot(now: datetime) -> ColumnElement[bool]:
-    """Bookings that occupy their time: confirmed, or requested and still inside the answer window."""
-    return or_(
-        Booking.status == BookingStatus.confirmed,
-        and_(Booking.status == BookingStatus.requested, Booking.expires_at > now),
-    )
-
-
-async def busy_ranges(
-    session: AsyncSession, artist_id: uuid.UUID, start: datetime, end: datetime
-) -> list[tuple[datetime, datetime]]:
-    """The artist's slot-holding bookings that overlap [start, end)."""
-    rows = await session.execute(
-        select(Booking.start_at, Booking.end_at).where(
-            Booking.artist_id == artist_id, Booking.start_at < end, Booking.end_at > start, holds_slot(clock.now())
-        )
-    )
-    return [(s, e) for s, e in rows.all()]
-
-
 async def approved_artist_id(session: AsyncSession, user: User) -> uuid.UUID:
     """The caller's artist profile id; bookings and reviews open only once it's approved."""
-    artist = (
-        await session.execute(select(ArtistProfile.id, ArtistProfile.status).where(ArtistProfile.user_id == user.id))
-    ).one_or_none()
+    artist = await BookingRepository(session).artist_of(user.id)
     if artist is None:
         raise NotFoundError("No artist profile yet")
     if artist.status != ArtistStatus.approved:
@@ -80,40 +49,7 @@ async def approved_artist_id(session: AsyncSession, user: User) -> uuid.UUID:
     return artist.id
 
 
-class BookingRow(NamedTuple):
-    booking: Booking
-    business_name: str
-    photo_key: str | None
-    city: str
-    first_name: str | None
-    last_name: str | None
-    phone: str
-    review_id: uuid.UUID | None
-    review_rating: int | None
-    review_status: ReviewStatus | None
-
-
-def rows_query() -> Select:
-    return (
-        select(
-            Booking,
-            ArtistProfile.business_name,
-            ArtistProfile.photo_key,
-            ArtistProfile.city,
-            User.first_name,
-            User.last_name,
-            User.phone,
-            Review.id,
-            Review.rating,
-            Review.status,
-        )
-        .join(ArtistProfile, ArtistProfile.id == Booking.artist_id)
-        .join(User, User.id == Booking.customer_id)
-        .outerjoin(Review, Review.booking_id == Booking.id)  # at most one per booking
-    )
-
-
-def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> dict[str, Any]:
+def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetime) -> dict[str, Any]:
     """Customers never see the platform's margin or the artist's payout; only admins see the customer's phone.
     Shape is a plain dict; the route's response_model validates and serialises it."""
     b = row.booking
@@ -166,7 +102,7 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> dict[str,
         else None,
         "can_review": b.status == BookingStatus.completed
         and row.review_id is None
-        and review_window_open(b.completed_at, clock.now()),
+        and review_window_open(b.completed_at, now),
     }
 
 
@@ -180,55 +116,50 @@ def ist_month_start(now: datetime) -> datetime:
 
 
 class BookingService:
-    def __init__(self, session: AsyncSession, storage: ImageStorage, settings: BookingSettings):
+    def __init__(self, session: AsyncSession, storage: ImageStorage, settings: BookingSettings, clock: Clock):
         self.session = session
+        self.bookings = BookingRepository(session)
         self.storage = storage
         self.settings = settings
+        self.clock = clock
 
     # --- shared ---------------------------------------------------------------------------------
+
+    def out(self, row: BookingRow, view: View) -> dict[str, Any]:
+        return booking_out(row, self.storage, view, self.clock.now())
 
     async def expire_overdue(self, *scope: ColumnElement[bool]) -> None:
         """Mark requests past their answer window as expired (their deposit is due back).
         Committed at once, so reads don't hold these row locks until after the response."""
-        await self.session.execute(
-            update(Booking)
-            .where(Booking.status == BookingStatus.requested, Booking.expires_at <= clock.now(), *scope)
-            .values(status=BookingStatus.expired, refund_due=True)
-            .execution_options(synchronize_session=False)
-        )
+        await self.bookings.expire_overdue(self.clock.now(), *scope)
         await self.session.commit()
 
     async def page(
-        self, query: Select, column: InstrumentedAttribute, descending: bool, limit: int, cursor: str | None, view: View
+        self,
+        where: list[ColumnElement[bool]],
+        column: InstrumentedAttribute,
+        descending: bool,
+        limit: int,
+        cursor: str | None,
+        view: View,
     ) -> tuple[list[dict[str, Any]], str | None]:
-        rows = [
-            BookingRow(*r)
-            for r in (
-                await self.session.execute(
-                    keyset(query, column, Booking.id, descending=descending, cursor=cursor).limit(limit + 1)
-                )
-            ).all()
-        ]
+        rows = await self.bookings.page_rows(where, column, descending=descending, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (getattr(r.booking, column.key), r.booking.id))
-        return [booking_out(r, self.storage, view) for r in page], next_cursor
+        return [self.out(r, view) for r in page], next_cursor
 
     async def one(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> dict[str, Any]:
-        row = (await self.session.execute(rows_query().where(Booking.id == booking_id, *scope))).one_or_none()
+        row = await self.bookings.row(booking_id, *scope)
         if row is None:
             raise NotFoundError("Booking not found")
-        return booking_out(BookingRow(*row), self.storage, view)
+        return self.out(row, view)
 
     async def locked(self, booking_id: uuid.UUID, *scope: ColumnElement[bool]) -> Booking:
-        """The booking, row-locked so two people can't change it at once (e.g. accept vs cancel)."""
+        """The booking, row-locked so two people can't change it at once (e.g. accept vs cancel).
+
+        Not a `valid_booking_id` dependency on purpose: the lock must be taken in this transaction, and the
+        owner `scope` makes someone else's booking indistinguishable from a missing one (404, never 403)."""
         await self.expire_overdue(Booking.id == booking_id)
-        booking = (
-            await self.session.execute(
-                select(Booking)
-                .where(Booking.id == booking_id, *scope)
-                .with_for_update()
-                .execution_options(populate_existing=True)
-            )
-        ).scalar_one_or_none()
+        booking = await self.bookings.locked(booking_id, *scope)
         if booking is None:
             raise NotFoundError("Booking not found")
         return booking
@@ -245,35 +176,21 @@ class BookingService:
     # --- customer -------------------------------------------------------------------------------
 
     async def create(self, customer: User, data: BookingIn) -> dict[str, Any]:
-        now = clock.now()
+        now = self.clock.now()
         # Lock the artist row: concurrent requests for the same artist queue here, so the overlap check is reliable.
-        artist = (
-            await self.session.execute(
-                select(ArtistProfile.id, ArtistProfile.user_id)
-                .where(ArtistProfile.id == data.artist_id, ArtistProfile.status == ArtistStatus.approved)
-                .with_for_update()
-            )
-        ).one_or_none()
+        artist = await self.bookings.lock_approved_artist(data.artist_id)
         if artist is None:
             raise NotFoundError("Artist not found")
         if artist.user_id == customer.id:
             raise ValidationError("You can't book your own services")
-        service = (
-            await self.session.execute(
-                select(ArtistServiceItem).where(
-                    ArtistServiceItem.id == data.service_id,
-                    ArtistServiceItem.artist_id == artist.id,
-                    ArtistServiceItem.status == ArtistServiceStatus.approved,
-                )
-            )
-        ).scalar_one_or_none()
+        service = await self.bookings.approved_service(data.service_id, artist.id)
         if service is None:
             raise NotFoundError("Service not found")
 
         rules.check_bookable_start(data.start_at, now)
         await self._check_open_requests(customer, now)
         end = data.start_at + timedelta(minutes=service.duration_minutes)
-        if await busy_ranges(self.session, artist.id, data.start_at, end):
+        if await self.bookings.busy_ranges(artist.id, data.start_at, end, now):
             raise ConflictError("That time was just taken. Pick another slot.")
 
         p = rules.price(service.price_paise)
@@ -300,32 +217,24 @@ class BookingService:
             payment_provider=provider,
             expires_at=rules.accept_deadline(now, data.start_at),
         )
-        self.session.add(booking)
+        self.bookings.add(booking)
         await self.session.flush()
         return await self.save(booking.id, view="customer")
 
     async def _check_open_requests(self, customer: User, now: datetime) -> None:
+        # Lock the customer row too: their concurrent requests (to different artists) queue here,
+        # so two of them can't both pass the cap.
+        await self.bookings.lock_customer(customer.id)
         cap = self.settings.max_open_requests_per_customer
-        waiting = (
-            await self.session.execute(
-                select(func.count())
-                .select_from(Booking)
-                .where(
-                    Booking.customer_id == customer.id,
-                    Booking.status == BookingStatus.requested,
-                    Booking.expires_at > now,
-                )
-            )
-        ).scalar_one()
-        if waiting >= cap:
+        if await self.bookings.open_request_count(customer.id, now) >= cap:
             raise ConflictError(f"You have {cap} requests waiting for an answer. Wait for a reply or cancel one first.")
 
     async def customer_list(self, customer: User, scope: CustomerScope, limit: int, cursor: str | None):
         mine = Booking.customer_id == customer.id
         await self.expire_overdue(mine)
-        upcoming = and_(Booking.status.in_(OPEN), Booking.end_at > clock.now())
-        query = rows_query().where(mine, upcoming if scope == "upcoming" else not_(upcoming))
-        return await self.page(query, Booking.start_at, scope == "past", limit, cursor, view="customer")
+        upcoming = and_(Booking.status.in_(OPEN), Booking.end_at > self.clock.now())
+        where = [mine, upcoming if scope == "upcoming" else not_(upcoming)]
+        return await self.page(where, Booking.start_at, scope == "past", limit, cursor, view="customer")
 
     async def customer_get(self, customer: User, booking_id: uuid.UUID) -> dict[str, Any]:
         await self.expire_overdue(Booking.id == booking_id)
@@ -335,7 +244,7 @@ class BookingService:
         mine = Booking.customer_id == customer.id
         booking = await self.locked(booking_id, mine)
         self.require(booking, *OPEN)
-        now = clock.now()
+        now = self.clock.now()
         if now >= booking.start_at:
             raise ConflictError("This booking has already started")
         booking.status = BookingStatus.cancelled
@@ -361,22 +270,22 @@ class BookingService:
     ):
         theirs = Booking.artist_id == await self.artist_id(user)
         await self.expire_overdue(theirs)
-        query = rows_query().where(theirs)
+        where = [theirs]
         for day in (first, last):
             if day is not None:
-                rules.check_calendar_day(day, clock.now())
+                rules.check_calendar_day(day, self.clock.now())
         if first:
-            query = query.where(Booking.start_at >= rules.ist_day_bounds(first, first)[0])
+            where.append(Booking.start_at >= rules.ist_day_bounds(first, first)[0])
         if last:
-            query = query.where(Booking.start_at < rules.ist_day_bounds(last, last)[1])
+            where.append(Booking.start_at < rules.ist_day_bounds(last, last)[1])
         if scope == "requests":
-            query = query.where(Booking.status == BookingStatus.requested)
-            return await self.page(query, Booking.expires_at, False, limit, cursor, view="artist")
+            where.append(Booking.status == BookingStatus.requested)
+            return await self.page(where, Booking.expires_at, False, limit, cursor, view="artist")
         if scope == "upcoming":
-            query = query.where(Booking.status == BookingStatus.confirmed)
+            where.append(Booking.status == BookingStatus.confirmed)
         elif scope == "past":
-            query = query.where(Booking.status.not_in(OPEN))
-        return await self.page(query, Booking.start_at, scope == "past", limit, cursor, view="artist")
+            where.append(Booking.status.not_in(OPEN))
+        return await self.page(where, Booking.start_at, scope == "past", limit, cursor, view="artist")
 
     async def _artist_locked(self, user: User, booking_id: uuid.UUID) -> tuple[Booking, ColumnElement[bool]]:
         theirs = Booking.artist_id == await self.artist_id(user)
@@ -386,14 +295,14 @@ class BookingService:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.requested)
         booking.status = BookingStatus.confirmed
-        booking.responded_at = clock.now()
+        booking.responded_at = self.clock.now()
         return await self.save(booking_id, theirs, view="artist")
 
     async def decline(self, user: User, booking_id: uuid.UUID, reason: str | None) -> dict[str, Any]:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.requested)
         booking.status = BookingStatus.declined
-        booking.responded_at = clock.now()
+        booking.responded_at = self.clock.now()
         booking.decline_reason = clean_reason(reason)
         booking.refund_due = True
         return await self.save(booking_id, theirs, view="artist")
@@ -401,7 +310,7 @@ class BookingService:
     async def complete(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.confirmed)
-        now = clock.now()
+        now = self.clock.now()
         if now < booking.start_at:
             raise ConflictError("You can mark it completed once it has started")
         booking.status = BookingStatus.completed
@@ -411,48 +320,19 @@ class BookingService:
     async def dashboard(self, user: User) -> dict[str, Any]:
         theirs = Booking.artist_id == await self.artist_id(user)
         await self.expire_overdue(theirs)
-        now = clock.now()
-
-        async def count(*where: ColumnElement[bool]) -> int:
-            return (
-                await self.session.execute(select(func.count()).select_from(Booking).where(theirs, *where))
-            ).scalar_one()
-
+        now = self.clock.now()
         completed_this_month = and_(
             Booking.status == BookingStatus.completed, Booking.completed_at >= ist_month_start(now)
         )
-        earnings = (
-            await self.session.execute(
-                select(func.coalesce(func.sum(Booking.subtotal_paise - Booking.commission_paise), 0)).where(
-                    theirs, completed_this_month
-                )
-            )
-        ).scalar_one()
         day_start, day_end = rules.ist_day_bounds(rules.ist_today(now), rules.ist_today(now))
-        today_rows = (
-            await self.session.execute(
-                rows_query()
-                .where(
-                    theirs,
-                    Booking.start_at >= day_start,
-                    Booking.start_at < day_end,
-                    Booking.status.in_((BookingStatus.confirmed, BookingStatus.completed)),
-                )
-                .order_by(Booking.start_at)
-            )
-        ).all()
+        today_rows = await self.bookings.rows_starting_between(
+            day_start, day_end, theirs, Booking.status.in_((BookingStatus.confirmed, BookingStatus.completed))
+        )
         return {
-            "requests": await count(Booking.status == BookingStatus.requested),
-            "upcoming": await count(Booking.status == BookingStatus.confirmed),  # same rule as the Upcoming list
-            "completed_this_month": await count(completed_this_month),
-            "earnings_this_month_paise": earnings,
-            "today": [booking_out(BookingRow(*r), self.storage, "artist") for r in today_rows],
+            "requests": await self.bookings.count(Booking, theirs, Booking.status == BookingStatus.requested),
+            # same rule as the Upcoming list
+            "upcoming": await self.bookings.count(Booking, theirs, Booking.status == BookingStatus.confirmed),
+            "completed_this_month": await self.bookings.count(Booking, theirs, completed_this_month),
+            "earnings_this_month_paise": await self.bookings.artist_earnings(theirs, completed_this_month),
+            "today": [self.out(r, "artist") for r in today_rows],
         }
-
-
-def get_booking_service(
-    session: AsyncSession = Depends(get_db),
-    storage: ImageStorage = Depends(get_storage),
-    settings: BookingSettings = Depends(get_booking_settings),
-) -> BookingService:
-    return BookingService(session, storage, settings)

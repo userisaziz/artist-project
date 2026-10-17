@@ -15,7 +15,7 @@ from app.catalog.repository import (
     Usage,
 )
 from app.catalog.schemas import CategoryIn, CategoryPatch
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, ValidationError
 from app.shared.enums import CategoryStatus
 
 
@@ -46,12 +46,6 @@ class CategoryService:
 
     async def _usage_of(self, category: Category) -> Usage:
         return (await self.categories.usage(category.id)).get(category.id, Usage())
-
-    async def _get(self, category_id: int) -> Category:
-        category = await self.categories.get(category_id)
-        if category is None:
-            raise NotFoundError("Category not found")
-        return category
 
     async def _parent(self, parent_id: int) -> Category:
         parent = await self.categories.get(parent_id)
@@ -95,8 +89,7 @@ class CategoryService:
         await self.session.flush()
         return CategoryUsage(category, Usage())
 
-    async def update(self, category_id: int, body: CategoryPatch) -> CategoryUsage:
-        category = await self._get(category_id)
+    async def update(self, category: Category, body: CategoryPatch) -> CategoryUsage:
         data = body.model_dump(exclude_unset=True)
         moving = "parent_id" in data and data["parent_id"] != category.parent_id
         if moving:
@@ -117,8 +110,7 @@ class CategoryService:
         await self.session.flush()
         return CategoryUsage(category, await self._usage_of(category))
 
-    async def delete(self, category_id: int) -> None:
-        category = await self._get(category_id)
+    async def delete(self, category: Category) -> None:
         if any(await self._usage_of(category)):
             raise ConflictError("Category is in use; deactivate it instead")
         await self.categories.delete(category)

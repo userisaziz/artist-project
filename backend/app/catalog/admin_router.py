@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, Response
 from app.catalog.dependencies import (
     get_category_service,
     get_service_template_service,
+    valid_category_id,
+    valid_template_id,
 )
+from app.catalog.models import Category, ServiceTemplate
 from app.catalog.schemas import (
     AdminCategoryOut,
     AdminTemplateOut,
@@ -39,14 +42,18 @@ async def create_category(body: CategoryIn, service: CategoryService = Depends(g
     "/categories/{category_id}", response_model=AdminCategoryOut, summary="Edit or move a category", status_code=200
 )
 async def update_category(
-    category_id: int, body: CategoryPatch, service: CategoryService = Depends(get_category_service)
+    body: CategoryPatch,
+    category: Category = Depends(valid_category_id),
+    service: CategoryService = Depends(get_category_service),
 ) -> dict:
-    return category_out(await service.update(category_id, body))
+    return category_out(await service.update(category, body))
 
 
 @router.delete("/categories/{category_id}", status_code=204, summary="Delete an unused category")
-async def delete_category(category_id: int, service: CategoryService = Depends(get_category_service)) -> Response:
-    await service.delete(category_id)
+async def delete_category(
+    category: Category = Depends(valid_category_id), service: CategoryService = Depends(get_category_service)
+) -> Response:
+    await service.delete(category)
     return Response(status_code=204)
 
 
@@ -75,14 +82,17 @@ async def create_template(
     status_code=200,
 )
 async def update_template(
-    template_id: int, body: TemplatePatch, service: ServiceTemplateService = Depends(get_service_template_service)
+    body: TemplatePatch,
+    template: ServiceTemplate = Depends(valid_template_id),
+    service: ServiceTemplateService = Depends(get_service_template_service),
 ) -> dict:
-    return template_out(await service.update(template_id, body))
+    return template_out(await service.update(template, body))
 
 
 @router.delete("/service-templates/{template_id}", status_code=204, summary="Delete an unused service template")
 async def delete_template(
-    template_id: int, service: ServiceTemplateService = Depends(get_service_template_service)
+    template: ServiceTemplate = Depends(valid_template_id),
+    service: ServiceTemplateService = Depends(get_service_template_service),
 ) -> Response:
-    await service.delete(template_id)
+    await service.delete(template)
     return Response(status_code=204)

@@ -1,15 +1,13 @@
-"""Directory support: the IST business-day clock the availability window is computed on."""
+"""Directory support: IST business days counted from the real wall clock (tests move the app's clock with `travel`)."""
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
-
-from app.shared import clock
 
 IST = ZoneInfo("Asia/Kolkata")
 
 
 def ist_day(days: int) -> date:
-    return (clock.now().astimezone(IST) + timedelta(days=days)).date()
+    return (datetime.now(UTC).astimezone(IST) + timedelta(days=days)).date()
 
 
 def slot(days: int = 5, hour: int = 11) -> str:

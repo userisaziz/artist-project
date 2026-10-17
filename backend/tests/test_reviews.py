@@ -1,12 +1,11 @@
 """Review contract: customers rate completed bookings once; artists reply and report; admins moderate.
 Ratings show on the directory and storefront from public (published + flagged) reviews only."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.shared import clock
 from tests.support.artist import approved_artist
 from tests.support.auth import sign_in
 from tests.support.booking import at, book, setup
@@ -19,10 +18,10 @@ async def categories_seeded(engine):
     await seed_categories(engine)
 
 
-async def completed_booking(client, artist: dict, customer: dict, monkeypatch, day: int = 5) -> dict:
+async def completed_booking(client, artist: dict, customer: dict, travel, day: int = 5) -> dict:
     b = (await book(client, customer, artist, slot(day, 11))).json()
     await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=artist["headers"])
-    monkeypatch.setattr(clock, "now", at(b["start_at"], 4))
+    travel(at(b["start_at"], 4))
     done = await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=artist["headers"])
     assert done.status_code == 200
     return done.json()
@@ -34,13 +33,13 @@ async def review(client, customer: dict, booking_id: str, rating: int = 5, body:
     )
 
 
-async def test_customer_reviews_a_completed_booking_once(client, engine, monkeypatch):
+async def test_customer_reviews_a_completed_booking_once(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     async with engine.begin() as conn:
         await conn.execute(
             text("UPDATE user_account SET first_name='Priya', last_name='Srinivasan' WHERE phone='+919845080001'")
         )
-    b = await completed_booking(client, artist, customer, monkeypatch)
+    b = await completed_booking(client, artist, customer, travel)
     shown = (await client.get(f"/api/v1/bookings/{b['id']}", headers=customer)).json()
     assert (shown["can_review"], shown["review"]) == (True, None)
 
@@ -70,16 +69,16 @@ async def test_customer_reviews_a_completed_booking_once(client, engine, monkeyp
     assert (await client.get(f"/api/v1/artists/{artist['id']}")).json()["rating"] == 5.0
 
 
-async def test_only_completed_own_bookings_within_30_days(client, engine, monkeypatch):
+async def test_only_completed_own_bookings_within_30_days(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     open_one = (await book(client, customer, artist, slot(9, 11))).json()
     assert (await review(client, customer, open_one["id"])).status_code == 409
 
-    b = await completed_booking(client, artist, customer, monkeypatch)
+    b = await completed_booking(client, artist, customer, travel)
     stranger = await sign_in(client, "+919845080009", role="customer")
     assert (await review(client, stranger, b["id"])).status_code == 404
 
-    monkeypatch.setattr(clock, "now", at(b["completed_at"], 24 * 31))
+    travel(at(b["completed_at"], 24 * 31))
     late = await review(client, customer, b["id"])
     assert late.status_code == 409
     assert late.json()["message"] == "Reviews open for 30 days after the booking"
@@ -87,9 +86,9 @@ async def test_only_completed_own_bookings_within_30_days(client, engine, monkey
     assert (await review(client, customer, b["id"], rating=6)).status_code == 422
 
 
-async def test_contact_details_hide_a_review_from_the_public(client, engine, monkeypatch):
+async def test_contact_details_hide_a_review_from_the_public(client, engine, travel):
     admin, artist, customer = await setup(client, engine)
-    b = await completed_booking(client, artist, customer, monkeypatch)
+    b = await completed_booking(client, artist, customer, travel)
     r = (await review(client, customer, b["id"], 1, "Never showed up, call 98450 67890")).json()
     assert r["status"] == "hidden"
 
@@ -109,11 +108,11 @@ async def test_contact_details_hide_a_review_from_the_public(client, engine, mon
     assert (await client.get("/api/v1/admin/overview", headers=admin)).json()["flagged_reviews"] == 1
 
 
-async def test_artist_replies_and_reports(client, engine, monkeypatch):
+async def test_artist_replies_and_reports(client, engine, travel):
     admin, artist, customer = await setup(client, engine)
-    first = await completed_booking(client, artist, customer, monkeypatch, day=5)
-    monkeypatch.undo()
-    second = await completed_booking(client, artist, customer, monkeypatch, day=6)
+    first = await completed_booking(client, artist, customer, travel, day=5)
+    travel.back()
+    second = await completed_booking(client, artist, customer, travel, day=6)
     r1 = (await review(client, customer, first["id"], 5)).json()
     r2 = (await review(client, customer, second["id"], 2, "Half the design was missing")).json()
     h = artist["headers"]
@@ -149,9 +148,9 @@ async def test_artist_replies_and_reports(client, engine, monkeypatch):
     ).status_code == 404
 
 
-async def test_admin_decisions(client, engine, monkeypatch):
+async def test_admin_decisions(client, engine, travel):
     admin, artist, customer = await setup(client, engine)
-    b = await completed_booking(client, artist, customer, monkeypatch)
+    b = await completed_booking(client, artist, customer, travel)
     r = (await review(client, customer, b["id"], 1, "Total scam")).json()
     assert r["status"] == "hidden"
     url = f"/api/v1/admin/reviews/{r['id']}/decision"
@@ -177,12 +176,12 @@ async def test_admin_decisions(client, engine, monkeypatch):
     assert [x["id"] for x in by_status] == [r["id"]]
 
 
-async def test_review_pages_and_summary_math(client, engine, monkeypatch):
+async def test_review_pages_and_summary_math(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     ids = []
     for day, rating in ((5, 5), (6, 4), (7, 4)):
-        monkeypatch.undo()
-        b = await completed_booking(client, artist, customer, monkeypatch, day=day)
+        travel.back()
+        b = await completed_booking(client, artist, customer, travel, day=day)
         ids.append((await review(client, customer, b["id"], rating, None)).json()["id"])
 
     first = (await client.get(f"/api/v1/artists/{artist['id']}/reviews?limit=2")).json()
@@ -195,15 +194,15 @@ async def test_review_pages_and_summary_math(client, engine, monkeypatch):
 def test_window_helper_uses_completion_time():
     from app.review.filters import review_window_open
 
-    done = datetime(2026, 10, 1, 12, tzinfo=clock.now().tzinfo)
+    done = datetime(2026, 10, 1, 12, tzinfo=UTC)
     assert review_window_open(done, done + timedelta(days=30))
     assert not review_window_open(done, done + timedelta(days=30, seconds=1))
     assert not review_window_open(None, done)
 
 
-async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatch):
+async def test_follow_ups_from_the_review_code_review(client, engine, travel):
     admin, artist, customer = await setup(client, engine)
-    first = await completed_booking(client, artist, customer, monkeypatch, day=5)
+    first = await completed_booking(client, artist, customer, travel, day=5)
     hidden = (await review(client, customer, first["id"], 1, "call 98450 67890")).json()
     # Artists don't learn the rating of a review that isn't public.
     listed = (await client.get("/api/v1/artists/me/bookings?scope=past", headers=artist["headers"])).json()["items"]
@@ -229,8 +228,8 @@ async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatc
     assert bad.json()["message"] == "Replies can't include phone numbers, emails, links or blocked words"
 
     # Publishing a reported review clears the report.
-    monkeypatch.undo()
-    second = await completed_booking(client, artist, customer, monkeypatch, day=6)
+    travel.back()
+    second = await completed_booking(client, artist, customer, travel, day=6)
     r2 = (await review(client, customer, second["id"], 3)).json()
     await client.post(
         f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=artist["headers"], json={"reason": "Wrong artist"}

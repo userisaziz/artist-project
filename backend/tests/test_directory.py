@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.shared import clock
 from tests.support.artist import approved_artist, complete_profile
 from tests.support.auth import CUSTOMER_PHONE, admin_headers, sign_in
 from tests.support.catalog import categories, seed_categories
@@ -128,11 +127,11 @@ async def test_availability_blocks_overlapping_slots(client, engine):
     assert hours == {9: False, 10: False, 11: False, 12: False, 13: False, 14: True, 15: True, 16: True, 17: True}
 
 
-async def test_availability_respects_lead_time_and_range(client, engine, monkeypatch):
+async def test_availability_respects_lead_time_and_range(client, engine, travel):
     admin = await admin_headers(client, engine)
     ayesha = await approved_artist(client, engine, "+919845081001", admin)
     today = ist_day(0)
-    monkeypatch.setattr(clock, "now", lambda: datetime(today.year, today.month, today.day, 10, 30, tzinfo=IST))
+    travel(lambda: datetime(today.year, today.month, today.day, 10, 30, tzinfo=IST))
     url = f"/api/v1/artists/{ayesha['id']}/availability?service_id={ayesha['service_id']}&date="
 
     slots = (await client.get(url + today.isoformat())).json()["slots"]

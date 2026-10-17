@@ -33,7 +33,7 @@ from app.core.security import (
     hash_otp,
     hash_token,
 )
-from app.shared import clock
+from app.shared.clock import Clock
 from app.user.models import User
 from app.user.repository import UserRepository
 
@@ -44,6 +44,7 @@ class AuthService:
         session: AsyncSession,
         sms: SMSProvider,
         settings: AuthSettings,
+        clock: Clock,
         *,
         request_limit: Limit,
         verify_limit: Limit,
@@ -53,14 +54,15 @@ class AuthService:
         self.users = UserRepository(session)
         self.sms = sms
         self.settings = settings
+        self.clock = clock
         self.refresh_ttl = timedelta(days=get_settings().refresh_token_ttl_days)
         self.request_limit = request_limit
         self.verify_limit = verify_limit
 
     async def request_otp(self, phone: str) -> None:
-        await hit(self.session, f"otp_request:phone:{phone}", self.request_limit)
+        await hit(self.session, f"otp_request:phone:{phone}", self.request_limit, self.clock.now())
         await self.auth.lock_phone(phone)
-        now = clock.now()
+        now = self.clock.now()
         latest = await self.auth.latest_otp(phone)
         if latest and (now - latest.created_at).total_seconds() < self.settings.otp_resend_cooldown_seconds:
             raise RateLimitError("Please wait before requesting another code")
@@ -82,8 +84,8 @@ class AuthService:
         audit("auth.otp_requested", phone=mask_phone(phone))
 
     async def verify_otp(self, phone: str, code: str) -> tuple[User, str, str]:
-        await hit(self.session, f"otp_verify:phone:{phone}", self.verify_limit)
-        otp = await self.auth.latest_active_otp(phone, clock.now())
+        await hit(self.session, f"otp_verify:phone:{phone}", self.verify_limit, self.clock.now())
+        otp = await self.auth.latest_active_otp(phone, self.clock.now())
         if otp is None or otp.attempts >= self.settings.otp_max_attempts:
             audit("auth.otp_rejected", phone=mask_phone(phone), reason="no_active_code")
             raise AuthError("Invalid or expired code")
@@ -93,7 +95,7 @@ class AuthService:
             locked = otp.attempts >= self.settings.otp_max_attempts
             audit("auth.otp_rejected", phone=mask_phone(phone), reason="locked" if locked else "wrong_code")
             raise AuthError("Invalid or expired code")
-        otp.consumed_at = clock.now()
+        otp.consumed_at = self.clock.now()
 
         user = await self.users.by_phone(phone)
         is_new = user is None
@@ -112,7 +114,7 @@ class AuthService:
 
     async def refresh(self, refresh_token: str) -> tuple[User, str, str]:
         stored = await self._stored_refresh(refresh_token)
-        now = clock.now()
+        now = self.clock.now()
         if stored.revoked_at is not None:
             # A rotated token came back: someone else holds a copy. End every session from that sign-in.
             await self.auth.revoke_family(stored.family_id, now)
@@ -138,7 +140,7 @@ class AuthService:
             stored = await self._stored_refresh(refresh_token)
         except AuthError:
             return
-        await self.auth.revoke_family(stored.family_id, clock.now())
+        await self.auth.revoke_family(stored.family_id, self.clock.now())
         audit("auth.logged_out", user_id=str(stored.user_id))
 
     async def _stored_refresh(self, refresh_token: str) -> RefreshToken:
@@ -160,7 +162,7 @@ class AuthService:
                 user_id=user_id,
                 family_id=family_id,
                 token_hash=hash_token(token),
-                expires_at=clock.now() + self.refresh_ttl,
+                expires_at=self.clock.now() + self.refresh_ttl,
             )
         )
         return token

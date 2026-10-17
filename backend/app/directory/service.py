@@ -3,27 +3,18 @@
 import uuid
 from datetime import date, timedelta
 
-from fastapi import Depends
-from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import raiseload
 
-from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categories
+from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
-from app.booking.models import Booking
-from app.booking.service import busy_ranges
-from app.catalog.models import Category, ServiceTemplate
-from app.core.database import get_db
+from app.booking.repository import BookingRepository
 from app.core.exceptions import NotFoundError
+from app.directory.repository import DirectoryRepository
 from app.review.service import ratings_for
-from app.shared import clock
-from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
-from app.shared.pagination import keyset, split_page
-from app.shared.search import like_pattern
-from app.upload.service import ImageStorage, get_storage
-
-# Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.
-LISTED_AT = func.coalesce(ArtistProfile.reviewed_at, ArtistProfile.created_at)
+from app.shared.clock import Clock
+from app.shared.enums import ArtistServiceStatus
+from app.shared.pagination import split_page
+from app.upload.service import ImageStorage
 
 
 def _bookable(services: list[ArtistServiceItem]) -> list[ArtistServiceItem]:
@@ -31,9 +22,11 @@ def _bookable(services: list[ArtistServiceItem]) -> list[ArtistServiceItem]:
 
 
 class DirectoryService:
-    def __init__(self, session: AsyncSession, storage: ImageStorage):
+    def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
+        self.artists = DirectoryRepository(session)
         self.storage = storage
+        self.clock = clock
 
     def _card_fields(self, profile: ArtistProfile, ratings: dict[uuid.UUID, tuple[float, int]]) -> dict:
         prices = [s.price_paise for s in _bookable(profile.services)]
@@ -54,75 +47,18 @@ class DirectoryService:
     async def list(
         self, city: str | None, category_id: int | None, q: str | None, limit: int, cursor: str | None
     ) -> tuple[list[dict], str | None]:
-        """Most recently approved first; keyset paging on (approved-at, id). The public cards never need KYC."""
-        query = (
-            select(ArtistProfile, LISTED_AT)
-            .where(ArtistProfile.status == ArtistStatus.approved)
-            .options(raiseload(ArtistProfile.kyc))
-        )
-        if city:
-            query = query.where(ArtistProfile.city == city)
-        if category_id is not None:
-            query = query.where(
-                ArtistProfile.id.in_(
-                    select(artist_categories.c.artist_id).where(artist_categories.c.category_id == category_id)
-                )
-            )
-        if q and q.strip():
-            pattern = like_pattern(q)
-            offers_it = (
-                select(ArtistServiceItem.artist_id)
-                .outerjoin(ServiceTemplate, ServiceTemplate.id == ArtistServiceItem.template_id)
-                .where(
-                    ArtistServiceItem.status == ArtistServiceStatus.approved,
-                    or_(
-                        ArtistServiceItem.name.ilike(pattern, escape="\\"),
-                        ServiceTemplate.name.ilike(pattern, escape="\\"),
-                    ),
-                )
-            )
-            query = query.where(
-                or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it))
-            )
-        rows = (
-            await self.session.execute(
-                keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
-            )
-        ).all()
+        """Most recently approved first; keyset paging on (approved-at, id)."""
+        rows = await self.artists.approved_page(city, category_id, q, limit, cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
         ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
         return [self._card_fields(profile, ratings) for profile, _ in page], next_cursor
 
-    async def _approved(self, artist_id: uuid.UUID) -> ArtistProfile:
-        profile = (
-            await self.session.execute(
-                select(ArtistProfile)
-                .where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
-                .options(raiseload(ArtistProfile.kyc))
-            )
-        ).scalar_one_or_none()
-        if profile is None:
-            raise NotFoundError("Artist not found")
-        return profile
-
-    async def get(self, artist_id: uuid.UUID) -> dict:
-        profile = await self._approved(artist_id)
+    async def get(self, profile: ArtistProfile) -> dict:
+        """`profile` is an approved artist (resolved by the route's `valid_artist_id`)."""
         services = _bookable(profile.services)
         # Each service points at a subcategory (or, for older rows, straight at a top-level category).
-        own = {
-            c.id: c
-            for c in (
-                await self.session.execute(select(Category).where(Category.id.in_({s.category_id for s in services})))
-            ).scalars()
-        }
-        parents = {
-            c.id: c
-            for c in (
-                await self.session.execute(
-                    select(Category).where(Category.id.in_({c.parent_id for c in own.values() if c.parent_id}))
-                )
-            ).scalars()
-        }
+        own = await self.artists.categories(s.category_id for s in services)
+        parents = await self.artists.categories(c.parent_id for c in own.values() if c.parent_id)
 
         def refs(category_id: int) -> tuple[dict | None, dict | None]:
             cat = own.get(category_id)
@@ -133,13 +69,7 @@ class DirectoryService:
             parent = parents[cat.parent_id]
             return ({"id": parent.id, "name": parent.name}, {"id": cat.id, "name": cat.name})
 
-        completed = (
-            await self.session.execute(
-                select(func.count())
-                .select_from(Booking)
-                .where(Booking.artist_id == profile.id, Booking.status == BookingStatus.completed)
-            )
-        ).scalar_one()
+        completed = await self.artists.completed_bookings(profile.id)
         return {
             **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
             "bio": profile.bio,
@@ -167,16 +97,15 @@ class DirectoryService:
             "completed_bookings": completed,
         }
 
-    async def availability(self, artist_id: uuid.UUID, day: date, service_id: uuid.UUID) -> dict:
-        profile = await self._approved(artist_id)
+    async def availability(self, profile: ArtistProfile, day: date, service_id: uuid.UUID) -> dict:
         service = next((s for s in _bookable(profile.services) if s.id == service_id), None)
         if service is None:
             raise NotFoundError("Service not found")
-        now = clock.now()
+        now = self.clock.now()
         rules.check_bookable_day(day, now)
         length = timedelta(minutes=service.duration_minutes)
         starts = rules.slot_starts(day)
-        busy = await busy_ranges(self.session, profile.id, starts[0], starts[-1] + length)
+        busy = await BookingRepository(self.session).busy_ranges(profile.id, starts[0], starts[-1] + length, now)
         return {
             "date": day,
             "slots": [
@@ -188,9 +117,3 @@ class DirectoryService:
                 for s in starts
             ],
         }
-
-
-def get_directory_service(
-    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
-) -> DirectoryService:
-    return DirectoryService(session, storage)
