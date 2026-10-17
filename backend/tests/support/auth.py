@@ -28,7 +28,7 @@ async def sign_in(client, phone: str, role: str | None = "artist", engine=None) 
 
 async def request_and_read_code(client) -> str:
     response = await client.post("/api/v1/auth/otp/request", json={"phone": PHONE})
-    assert response.status_code == 204
+    assert response.status_code == 204, response.text
     return ConsoleSMSProvider.sent[-1][1].split()[-1]
 
 

@@ -23,3 +23,4 @@ extend-immutable-calls = [
 "app/models/**" = ["RUF012"]
 "*/models.py" = ["RUF012"]
 "*/config.py" = ["RUF012"]  # pydantic copies field defaults per instance
+"tests/conftest.py" = ["E402"]  # test env vars must be set before the app is imported

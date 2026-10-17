@@ -1,24 +1,26 @@
 """App factory: builds a fresh FastAPI instance per process (tests rely on this).
 
-Routes stay thin; this file only wires middleware, routers, and (later) the
-global exception handler.
+Routes stay thin; this file only wires settings, logging, middleware, error handlers and routers.
 """
 
-import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app import registry  # noqa: F401  (every model mapped before the first request)
 from app.auth.config import get_auth_settings
 from app.booking.config import get_booking_settings
 from app.catalog.config import get_catalog_settings
 from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.exceptions import AppError
+from app.core.database import engine
+from app.core.error_handlers import register_error_handlers
+from app.core.logging import configure_logging
+from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
+from app.health import router as health
 from app.review.config import get_review_settings
 from app.router import api_router
 from app.upload.config import get_upload_settings
@@ -32,45 +34,47 @@ SETTINGS_GETTERS = (
     get_review_settings,
     get_upload_settings,
 )
+CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID"]
+GZIP_MIN_BYTES = 1024
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    await engine.dispose()  # close pooled connections cleanly on shutdown
 
 
 def create_app() -> FastAPI:
     for load in SETTINGS_GETTERS:
         load()
     settings = get_settings()
-    # Our loggers (e.g. art_circle.sms) have no handler otherwise; console-mode OTPs would vanish.
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s | %(message)s")
-    # OpenAPI/docs are a local-and-staging convenience only (best-practices rule).
-    docs = "/docs" if settings.docs_enabled else None
+    configure_logging(settings.log_level, settings.use_json_logs)
     app = FastAPI(
         title="Art Circle API",
         version="0.1.0",
+        lifespan=lifespan,
         openapi_url="/openapi.json" if settings.docs_enabled else None,
-        docs_url=docs,
+        docs_url="/docs" if settings.docs_enabled else None,
         redoc_url="/redoc" if settings.docs_enabled else None,
     )
+    # Added innermost first. Request ids wrap all but the security headers, so even rejected requests get one.
+    app.add_middleware(GZipMiddleware, minimum_size=GZIP_MIN_BYTES)
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"] if settings.environment == "local" else settings.cors_origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=CORS_METHODS,
+        allow_headers=CORS_HEADERS,
+        expose_headers=["X-Request-ID", "Retry-After"],
     )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)  # outermost: even the last-resort 500 gets the headers
 
+    register_error_handlers(app)
+    app.include_router(health.router)
     app.include_router(api_router)
-
-    @app.exception_handler(AppError)
-    async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-        # Domain errors become the stable {code, message} contract the client branches on.
-        return JSONResponse(
-            status_code=exc.status_code, content={"code": exc.code, "message": exc.message, **exc.details}
-        )
-
-    @app.get("/health")
-    async def health(session: AsyncSession = Depends(get_db)):
-        # Proves the full chain: .env -> Settings -> async engine -> PostgreSQL.
-        await session.execute(text("SELECT 1"))
-        return {"status": "ok", "db": "ok"}
-
     return app
 
 

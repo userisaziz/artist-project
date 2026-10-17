@@ -6,6 +6,21 @@ engine — everything else (routing, services, SQL) runs for real.
 
 import os
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class DatabaseSettingsForTests(BaseSettings):
+    """Test-only configuration: the app's own settings never know about the test database."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    test_database_url: str
+
+
+settings = DatabaseSettingsForTests()
+
+
+# The app's own engine points at the test database too, so nothing a test does can reach the dev data.
+os.environ["DATABASE_URL"] = settings.test_database_url
 # Tests never touch a real SMS gateway, image host or payment, whatever .env says.
 # Must precede the cached settings getters.
 os.environ["ENVIRONMENT"] = "test"
@@ -21,23 +36,12 @@ import pytest_asyncio
 from alembic.command import upgrade
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.database import get_db
 from app.main import create_app
 from app.registry import Base
-
-
-class DatabaseSettingsForTests(BaseSettings):
-    """Test-only configuration: the app's own settings never know about the test database."""
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    test_database_url: str
-
-
-settings = DatabaseSettingsForTests()
 
 
 def apply_migrations(url: str) -> None:
@@ -71,15 +75,20 @@ async def app(engine):
 @pytest.fixture
 def override(app):
     """`override(dependency, replacement)` for one test; every override is removed afterwards."""
-    added = []
+    missing = object()
+    previous = {}
 
     def apply(dependency, replacement):
+        previous.setdefault(dependency, app.dependency_overrides.get(dependency, missing))
         app.dependency_overrides[dependency] = replacement
-        added.append(dependency)
 
     yield apply
-    for dependency in added:
-        app.dependency_overrides.pop(dependency, None)
+    # Restore, never just pop: get_db is itself overridden for the whole session to point at the test DB.
+    for dependency, before in previous.items():
+        if before is missing:
+            app.dependency_overrides.pop(dependency, None)
+        else:
+            app.dependency_overrides[dependency] = before
 
 
 @pytest_asyncio.fixture(scope="session")

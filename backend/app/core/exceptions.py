@@ -10,9 +10,10 @@ class AppError(Exception):
     code = "internal_error"
     message = "Internal server error"
 
-    def __init__(self, message: str | None = None, **details):
+    def __init__(self, message: str | None = None, *, headers: dict[str, str] | None = None, **details):
         self.message = message or self.__class__.message
         self.details = details  # extra body fields, e.g. submit's `missing` list
+        self.headers = headers  # e.g. Retry-After on 429
         super().__init__(self.message)
 
 
@@ -38,3 +39,7 @@ class ForbiddenError(AppError):
 
 class ValidationError(AppError):
     status_code, code, message = 422, "validation_error", "Invalid request"
+
+
+class ServiceUnavailableError(AppError):
+    status_code, code, message = 503, "service_unavailable", "Service temporarily unavailable. Please try again."

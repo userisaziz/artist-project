@@ -53,7 +53,9 @@ Global settings live in `app/core/config.py`; each domain keeps its own in `app/
 
 ## API
 
-Every route is under `/api/v1` except `/health`.
+Every route is under `/api/v1` except the probes: `/health/live` (process up, no database) and `/health/ready` (database reachable, `503` otherwise; `/health` is an alias).
+
+Every response carries an `X-Request-ID` header (a safe one sent by the client is kept) that also appears in every log line, plus security headers. Request bodies over 1 MB get `413`.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -115,7 +117,7 @@ Customers find approved artists and request a slot. The artist has 3 hours to an
 
 ### Error contract
 
-Domain errors return `{"code": "...", "message": "..."}`. Clients branch on `code` and never on `message`, so treat the codes as part of the API contract (`app/core/exceptions.py`):
+Every error returns `{"code": "...", "message": "..."}`: domain errors, unknown routes (`not_found`), validation failures (`validation_error`, with FastAPI's `detail` list kept alongside) and unexpected crashes (`internal_error` with the `request_id`, nothing internal leaked). Clients branch on `code` and never on `message`, so treat the codes as part of the API contract (`app/core/exceptions.py`):
 
 | Status | `code` | Example |
 |---|---|---|
