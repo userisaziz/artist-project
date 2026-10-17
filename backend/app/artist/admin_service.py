@@ -4,10 +4,10 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.models import AadhaarReveal, ArtistProfile
+from app.artist.repository import ArtistRepository
 from app.core.crypto import decrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError
-from app.models.artist.artist import AadhaarReveal, ArtistProfile
-from app.repositories.artist.artist import ArtistRepository
 from app.shared import clock
 from app.shared.enums import ArtistStatus
 from app.user.models import User

@@ -23,3 +23,4 @@ extend-immutable-calls = [
 [lint.per-file-ignores]
 # __mapper_args__/__table_args__ dicts are SQLAlchemy declarative idiom, not shared mutable state.
 "app/models/**" = ["RUF012"]
+"*/models.py" = ["RUF012"]

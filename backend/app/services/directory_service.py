@@ -8,12 +8,12 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
+from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categories
+from app.artist.schemas import NamedRef
 from app.catalog.models import Category, ServiceTemplate
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.models.artist.artist import ArtistProfile, ArtistServiceItem, artist_categories
 from app.models.booking import Booking
-from app.schemas.artist.artist import NamedRef
 from app.schemas.directory import (
     ArtistCard,
     ArtistPublic,

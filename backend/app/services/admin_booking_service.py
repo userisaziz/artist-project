@@ -7,8 +7,8 @@ from fastapi import Depends
 from sqlalchemy import ColumnElement, Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.core.database import get_db
-from app.models.artist.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import Review
 from app.schemas.booking import AdminOverview, BookingOut, WeekCount

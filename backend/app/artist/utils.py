@@ -1,13 +1,14 @@
 """Pure mappers from artist models to response schemas; image keys become URLs through `ImageStorage`."""
 
-from app.models.artist.artist import (
+from app.artist.aadhaar import mask_aadhaar_last4
+from app.artist.models import (
     ArtistKyc,
     ArtistProfile,
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.repositories.artist.artist import CustomServiceRow
-from app.schemas.artist.artist import (
+from app.artist.repository import CustomServiceRow
+from app.artist.schemas import (
     AdminArtistDetail,
     AdminArtistSummary,
     AdminCustomServiceOut,
@@ -20,7 +21,6 @@ from app.schemas.artist.artist import (
     PhotoOut,
     ServiceOut,
 )
-from app.services.artist.aadhaar import mask_aadhaar_last4
 from app.services.upload.storage import ImageStorage
 from app.user.models import User
 

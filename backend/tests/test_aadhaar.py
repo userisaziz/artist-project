@@ -2,8 +2,8 @@
 
 import pytest
 
+from app.artist.aadhaar import is_valid_aadhaar, mask_aadhaar_last4
 from app.core.crypto import decrypt_aadhaar, encrypt_aadhaar
-from app.services.artist.aadhaar import is_valid_aadhaar, mask_aadhaar_last4
 
 VALID = ["234123412346", "498765432102", "567812345678"]  # generated, not real people
 

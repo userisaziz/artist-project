@@ -10,9 +10,9 @@ from sqlalchemy import ColumnElement, Select, and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.models import ArtistProfile
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.artist.artist import ArtistProfile
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
 from app.schemas.review import (

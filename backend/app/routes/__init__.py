@@ -11,11 +11,11 @@ from app.api.v1 import (
     bookings,
     directory,
 )
+from app.artist import admin_router as artist_admin
+from app.artist import router as artist
 from app.auth import router as auth
 from app.catalog import admin_router as catalog_admin
 from app.catalog import router as catalog
-from app.routes.artist import admin as artist_admin
-from app.routes.artist import artist
 from app.routes.upload import upload
 from app.user import router as user
 

@@ -2,8 +2,8 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query
 
+from app.artist.schemas import RejectIn
 from app.core.auth import current_admin
-from app.schemas.artist.artist import RejectIn
 from app.schemas.booking import AdminBookingOut, AdminBookingPage, AdminOverview
 from app.services.admin_booking_service import (
     AdminBookingService,

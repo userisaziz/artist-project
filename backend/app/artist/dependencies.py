@@ -1,10 +1,10 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.admin_service import AdminArtistService
+from app.artist.custom_service_review import CustomServiceReview
+from app.artist.service import ArtistService
 from app.core.database import get_db
-from app.services.artist.admin import AdminArtistService
-from app.services.artist.artist import ArtistService
-from app.services.artist.custom_service_review import CustomServiceReview
 from app.services.upload.storage import ImageStorage, get_storage
 
 

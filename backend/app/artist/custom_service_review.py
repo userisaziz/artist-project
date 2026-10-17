@@ -4,8 +4,8 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.repository import ArtistRepository, CustomServiceRow
 from app.core.exceptions import ConflictError, NotFoundError
-from app.repositories.artist.artist import ArtistRepository, CustomServiceRow
 from app.shared.enums import ArtistServiceStatus
 
 
