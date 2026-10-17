@@ -28,8 +28,8 @@ from app.review.schemas import (
     ReviewSummary,
 )
 from app.shared import clock
-from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistStatus, BookingStatus, ReviewStatus
+from app.shared.pagination import keyset, split_page
 from app.user.models import User
 
 DECISIONS = {"publish": ReviewStatus.published, "hide": ReviewStatus.hidden, "remove": ReviewStatus.removed}
@@ -118,15 +118,10 @@ class ReviewService:
 
     async def _page(self, query: Select, limit: int, cursor: str | None) -> tuple[list[ReviewRow], str | None]:
         """Newest first; keyset on (created_at, id)."""
-        if cursor:
-            at, row_id = decode_cursor(cursor)
-            query = query.where(or_(Review.created_at < at, and_(Review.created_at == at, Review.id < row_id)))
         rows = [ReviewRow(*r) for r in (await self.session.execute(
-            query.order_by(Review.created_at.desc(), Review.id.desc()).limit(limit + 1)
+            keyset(query, Review.created_at, Review.id, descending=True, cursor=cursor).limit(limit + 1)
         )).all()]
-        page = rows[:limit]
-        last = page[-1].review if page else None
-        return page, encode_cursor(last.created_at, last.id) if len(rows) > limit else None
+        return split_page(rows, limit, lambda r: (r.review.created_at, r.review.id))
 
     async def _row(self, review_id: uuid.UUID, *scope: ColumnElement[bool]) -> ReviewRow:
         row = (await self.session.execute(rows_query().where(Review.id == review_id, *scope))).one_or_none()

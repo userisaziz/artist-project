@@ -34,13 +34,13 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_window_open
 from app.review.models import PUBLIC_REVIEW, Review
 from app.shared import clock
-from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import (
     ArtistServiceStatus,
     ArtistStatus,
     BookingStatus,
     ReviewStatus,
 )
+from app.shared.pagination import keyset, split_page
 from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
 
@@ -142,17 +142,6 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOu
     return AdminBookingOut(**fields) if admin else BookingOut(**fields)
 
 
-def keyset(query: Select, column: InstrumentedAttribute, descending: bool, cursor: str | None) -> Select:
-    """Order by (column, id) and continue after `cursor`, so new rows never shift pages."""
-    if cursor:
-        at, row_id = decode_cursor(cursor)
-        after = (or_(column < at, and_(column == at, Booking.id < row_id)) if descending
-                 else or_(column > at, and_(column == at, Booking.id > row_id)))
-        query = query.where(after)
-    order = (column.desc(), Booking.id.desc()) if descending else (column.asc(), Booking.id.asc())
-    return query.order_by(*order)
-
-
 def clean_reason(reason: str | None) -> str | None:
     return (reason or "").strip() or None
 
@@ -183,13 +172,9 @@ class BookingService:
     async def page(self, query: Select, column: InstrumentedAttribute, descending: bool, limit: int,
                    cursor: str | None, view: View) -> tuple[list[BookingOut], str | None]:
         rows = [BookingRow(*r) for r in (await self.session.execute(
-            keyset(query, column, descending, cursor).limit(limit + 1)
+            keyset(query, column, Booking.id, descending=descending, cursor=cursor).limit(limit + 1)
         )).all()]
-        page = rows[:limit]
-        next_cursor = None
-        if len(rows) > limit:
-            last = page[-1].booking
-            next_cursor = encode_cursor(getattr(last, column.key), last.id)
+        page, next_cursor = split_page(rows, limit, lambda r: (getattr(r.booking, column.key), r.booking.id))
         return [booking_out(r, self.storage, view) for r in page], next_cursor
 
     async def one(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> BookingOut:

@@ -4,7 +4,7 @@ import uuid
 from datetime import date, timedelta
 
 from fastapi import Depends
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
@@ -26,8 +26,8 @@ from app.directory.schemas import (
 )
 from app.review.service import ratings_for
 from app.shared import clock
-from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.shared.pagination import keyset, split_page
 from app.shared.search import like_pattern
 from app.upload.service import ImageStorage, get_storage
 
@@ -81,14 +81,10 @@ class DirectoryService:
                 ))
             )
             query = query.where(or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it)))
-        if cursor:
-            at, artist_id = decode_cursor(cursor)
-            query = query.where(or_(LISTED_AT < at, and_(LISTED_AT == at, ArtistProfile.id < artist_id)))
         rows = (await self.session.execute(
-            query.order_by(LISTED_AT.desc(), ArtistProfile.id.desc()).limit(limit + 1)
+            keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
         )).all()
-        page = rows[:limit]
-        next_cursor = encode_cursor(page[-1][1], page[-1][0].id) if len(rows) > limit else None
+        page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
         ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
         return [ArtistCard(**self._card_fields(profile, ratings)) for profile, _ in page], next_cursor
 
