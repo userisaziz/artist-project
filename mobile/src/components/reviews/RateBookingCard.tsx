@@ -9,7 +9,8 @@ import { errorMessage } from '../../core/api/error-message';
 import { usePostReview } from '../../hooks/reviews/reviews';
 import { StarPicker } from './StarPicker';
 import { Stars } from './Stars';
-import type { Booking, StarRating } from '../../core/api/types';
+import type { Booking } from '../../types/bookings/bookings';
+import type { StarRating } from '../../types/reviews/reviews';
 
 const MAX_TEXT = 1000;
 export const BEING_CHECKED = 'Thanks! Your review is being checked before it appears.';

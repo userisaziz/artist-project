@@ -6,7 +6,7 @@ import { Card } from '../common/Card';
 import { useTheme } from '../../core/theme/theme-provider';
 import { reviewMeta } from '../../utils/reviews/format';
 import { Stars } from './Stars';
-import type { Review } from '../../core/api/types';
+import type { Review } from '../../types/reviews/reviews';
 
 interface ReviewCardProps {
   review: Review;

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as artistApi from '../../api/artist-onboarding/artist-onboarding';
 import * as catalogApi from '../../api/catalog/catalog';
-import type { ArtistProfile } from '../../core/api/types';
+import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
 import { useAuth } from '../../context/auth/auth-provider';
 
 // Keyed by user id, so a different account never sees a cached profile.

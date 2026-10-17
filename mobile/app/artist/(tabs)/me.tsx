@@ -14,7 +14,7 @@ import { useArtistProfile } from '../../../src/hooks/artist-onboarding/artist-on
 import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/hooks/reviews/reviews';
 import { formatAverage } from '../../../src/utils/reviews/format';
-import type { ReviewSummary } from '../../../src/core/api/types';
+import type { ReviewSummary } from '../../../src/types/reviews/reviews';
 
 const COVER_HEIGHT = 170;
 

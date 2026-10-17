@@ -9,7 +9,7 @@ import { customerName } from '../../utils/bookings/status';
 import { formatWhen } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
 import { Countdown } from './Countdown';
-import type { Booking } from '../../core/api/types';
+import type { Booking } from '../../types/bookings/bookings';
 
 const MAX_REASON = 500;
 

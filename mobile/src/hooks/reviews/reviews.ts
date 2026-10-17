@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as reviewsApi from '../../api/reviews/reviews';
-import type { ArtistReview, Booking, PostedReview, ReviewInput } from '../../core/api/types';
+import type { Booking } from '../../types/bookings/bookings';
+import type { ArtistReview, PostedReview, ReviewInput } from '../../types/reviews/reviews';
 import { useAuth } from '../../context/auth/auth-provider';
 import { bookingKeys } from '../bookings/bookings';
 import { directoryKeys } from '../directory/directory';

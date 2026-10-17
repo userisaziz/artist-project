@@ -5,7 +5,7 @@ import { Avatar } from '../common/Avatar';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
 import { ratingShort } from '../../utils/reviews/format';
-import type { ArtistCard } from '../../core/api/types';
+import type { ArtistCard } from '../../types/directory/directory';
 
 interface ArtistCardViewProps {
   artist: ArtistCard;

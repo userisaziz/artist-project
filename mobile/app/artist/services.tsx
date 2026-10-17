@@ -14,7 +14,7 @@ import { CustomServiceSheet } from '../../src/components/artist-services/CustomS
 import { formatDuration, formatPrice } from '../../src/utils/common/format';
 import { addCustomService, deleteCustomService, updateCustomService } from '../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../src/core/api/error-message';
-import type { ServiceItem } from '../../src/core/api/types';
+import type { ServiceItem } from '../../src/types/artist-onboarding/artist-onboarding';
 
 /** The open sheet: adding, or editing one custom service. */
 type SheetState = { mode: 'add' } | { mode: 'edit'; service: ServiceItem };

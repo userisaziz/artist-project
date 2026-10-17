@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { transport } from '../../core/api/client';
 import { MockTransport } from '../../mocks/transport';
 import { ratingLong } from '../../utils/reviews/format';
-import type { Review, ReviewPage } from '../../core/api/types';
+import type { Review, ReviewPage } from '../../types/reviews/reviews';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();

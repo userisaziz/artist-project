@@ -11,7 +11,7 @@ import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useCustomerBookings } from '../../../src/hooks/bookings/bookings';
 import { STATUS_PILL } from '../../../src/utils/bookings/status';
 import { formatWhen } from '../../../src/utils/common/time';
-import type { Booking, CustomerBookingScope } from '../../../src/core/api/types';
+import type { Booking, CustomerBookingScope } from '../../../src/types/bookings/bookings';
 
 const SCOPES: { key: CustomerBookingScope; label: string }[] = [
   { key: 'upcoming', label: 'Upcoming' },

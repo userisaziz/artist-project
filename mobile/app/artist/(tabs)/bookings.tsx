@@ -10,7 +10,7 @@ import { useNow } from '../../../src/hooks/common/use-now';
 import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
 import { RequestCard } from '../../../src/components/bookings/RequestCard';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
-import type { ArtistBookingScope, Booking } from '../../../src/core/api/types';
+import type { ArtistBookingScope, Booking } from '../../../src/types/bookings/bookings';
 
 const EMPTY: Record<ArtistBookingScope, string> = {
   requests: 'No requests waiting for you.',

@@ -1,4 +1,4 @@
-import type { BookingStatus } from '../core/api/types';
+import type { BookingStatus } from '../types/bookings/bookings';
 import type { User } from '../types/auth/auth';
 import type { MockArtists, MockProfile } from './artist-onboarding/artist-onboarding';
 import type { MockBookings, MockBooking } from './bookings/bookings';

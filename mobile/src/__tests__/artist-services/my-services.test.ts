@@ -1,5 +1,6 @@
 import { CUSTOM_STATUS_PILL, groupMyServices, groupTitle } from '../../utils/artist-services/my-services';
-import type { CatalogCategory, ServiceItem } from '../../core/api/types';
+import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
+import type { CatalogCategory } from '../../types/catalog/catalog';
 
 const tree: CatalogCategory[] = [
   { id: 1, slug: 'mehendi', name: 'Mehendi', subcategories: [{ id: 101, slug: 'mehendi-bridal', name: 'Bridal', services: [] }, { id: 102, slug: 'mehendi-arabic', name: 'Arabic', services: [] }] },

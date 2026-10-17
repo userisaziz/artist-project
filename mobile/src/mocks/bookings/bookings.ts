@@ -1,4 +1,6 @@
-import type { Booking, BookingReview, BookingStatus, CancelledBy, ServiceItem } from '../../core/api/types';
+import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
+import type { Booking, BookingStatus, CancelledBy } from '../../types/bookings/bookings';
+import type { BookingReview } from '../../types/reviews/reviews';
 import type { User } from '../../types/auth/auth';
 import type { TransportResponse } from '../../core/api/transport';
 import type { MockArtists, MockProfile } from '../artist-onboarding/artist-onboarding';

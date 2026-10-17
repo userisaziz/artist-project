@@ -1,5 +1,9 @@
 import { MockTransport } from '../../mocks/transport';
-import type { ArtistCard, ArtistDashboard, ArtistPublic, Availability, Booking, CatalogCategory, Page, UploadTicket } from '../../core/api/types';
+import type { Page } from '../../core/api/types';
+import type { UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistDashboard, Booking } from '../../types/bookings/bookings';
+import type { CatalogCategory } from '../../types/catalog/catalog';
+import type { ArtistCard, ArtistPublic, Availability } from '../../types/directory/directory';
 import { addDays, istDateKey, istDayStart } from '../../utils/common/time';
 
 const HOUR = 3600_000;

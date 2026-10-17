@@ -1,5 +1,5 @@
 import { request } from '../../core/api/client';
-import type { CatalogCategory } from '../../core/api/types';
+import type { CatalogCategory } from '../../types/catalog/catalog';
 
 // Public catalog (backend api/v1/catalog.py): no auth.
 export function listCategories() {

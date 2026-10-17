@@ -14,7 +14,7 @@ import { categoryLine } from './ArtistCardView';
 import { useArtistPublic } from '../../hooks/directory/directory';
 import { StorefrontReviews } from '../reviews/StorefrontReviews';
 import { formatAverage, ratingLong, reviewCountLabel } from '../../utils/reviews/format';
-import type { PublicService } from '../../core/api/types';
+import type { PublicService } from '../../types/directory/directory';
 
 interface StorefrontProps {
   artistId: string;

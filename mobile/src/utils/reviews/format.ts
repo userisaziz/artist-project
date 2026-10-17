@@ -1,4 +1,4 @@
-import type { ArtistReview, Review } from '../../core/api/types';
+import type { ArtistReview, Review } from '../../types/reviews/reviews';
 import type { PillTone } from '../../components/common/StatusPill';
 import { formatMonthShort } from '../common/time';
 

@@ -1,5 +1,6 @@
 import type { Transport, TransportRequest, TransportResponse } from '../core/api/transport';
-import type { Booking, ReviewInput } from '../core/api/types';
+import type { Booking } from '../types/bookings/bookings';
+import type { ReviewInput } from '../types/reviews/reviews';
 import type { User } from '../types/auth/auth';
 import { MockAuth } from './auth/auth';
 import { handleAccount, isAccountRoute } from './account/account';

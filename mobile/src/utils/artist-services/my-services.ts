@@ -1,4 +1,5 @@
-import type { CatalogCategory, ServiceItem, ServiceStatus } from '../../core/api/types';
+import type { ServiceItem, ServiceStatus } from '../../types/artist-onboarding/artist-onboarding';
+import type { CatalogCategory } from '../../types/catalog/catalog';
 import type { PillTone } from '../../components/common/StatusPill';
 
 /** "Mehendi › Bridal"; a row pointing at a top-level category (from before subcategories) reads "Mehendi". */

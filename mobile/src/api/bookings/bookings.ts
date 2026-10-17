@@ -1,6 +1,7 @@
 import { request } from '../../core/api/client';
 import { withQuery } from '../../core/api/query-string';
-import type { ArtistBookingScope, ArtistDashboard, Booking, BookingInput, CustomerBookingScope, Page } from '../../core/api/types';
+import type { Page } from '../../core/api/types';
+import type { ArtistBookingScope, ArtistDashboard, Booking, BookingInput, CustomerBookingScope } from '../../types/bookings/bookings';
 
 // Customer bookings (spec §1.4, customer role).
 export function createBooking(body: BookingInput) {

@@ -8,7 +8,7 @@ import { useArtistBookingsInRange } from '../../../src/hooks/bookings/bookings';
 import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
-import type { Booking } from '../../../src/core/api/types';
+import type { Booking } from '../../../src/types/bookings/bookings';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const SHOWN: Booking['status'][] = ['requested', 'confirmed', 'completed']; // ended-without-service bookings hold no time

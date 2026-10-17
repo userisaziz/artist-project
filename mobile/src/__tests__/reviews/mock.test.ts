@@ -1,6 +1,11 @@
 import { MockTransport } from '../../mocks/transport';
 import { summarize } from '../../mocks/reviews/reviews';
-import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistReview, Booking, CatalogCategory, Page, PostedReview, Review, ReviewPage } from '../../core/api/types';
+import type { Page } from '../../core/api/types';
+import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
+import type { Booking } from '../../types/bookings/bookings';
+import type { CatalogCategory } from '../../types/catalog/catalog';
+import type { ArtistCard, ArtistPublic } from '../../types/directory/directory';
+import type { ArtistReview, PostedReview, Review, ReviewPage } from '../../types/reviews/reviews';
 
 const DAY = 24 * 3600_000;
 const PRIYA = '+15550009999';

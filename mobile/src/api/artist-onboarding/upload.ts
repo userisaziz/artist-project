@@ -4,7 +4,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { transport } from '../../core/api/client';
 import { MockTransport } from '../../mocks/transport';
 import { ApiError } from '../../core/api/types';
-import type { PhotoInput, UploadPurpose, UploadTicket } from '../../core/api/types';
+import type { PhotoInput, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
 import * as artistApi from './artist-onboarding';
 
 const MAX_EDGE = 2048; // spec §2: longest side

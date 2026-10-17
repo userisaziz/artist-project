@@ -1,4 +1,4 @@
-import type { ArtistReview, BookingReview, PostedReview, Review, ReviewFlag, ReviewStatus, ReviewSummary } from '../../core/api/types';
+import type { ArtistReview, BookingReview, PostedReview, Review, ReviewFlag, ReviewStatus, ReviewSummary } from '../../types/reviews/reviews';
 import type { User } from '../../types/auth/auth';
 import type { TransportResponse } from '../../core/api/transport';
 import type { MockBooking } from '../bookings/bookings';

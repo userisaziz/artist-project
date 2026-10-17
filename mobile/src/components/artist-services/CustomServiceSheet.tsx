@@ -7,7 +7,9 @@ import { BottomSheet } from '../common/BottomSheet';
 import { Chip } from '../common/Chip';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
-import type { CatalogCategory, CustomServiceInput, ServiceItem } from '../../core/api/types';
+import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
+import type { CustomServiceInput } from '../../types/artist-services/artist-services';
+import type { CatalogCategory } from '../../types/catalog/catalog';
 
 const MAX_NAME = 120; // backend CustomServiceIn
 const MAX_RUPEES = 1_000_000; // price_paise ≤ 100 000 000

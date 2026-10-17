@@ -13,7 +13,7 @@ import { reviewStatusPill } from '../../src/utils/reviews/format';
 import { ReviewCard } from '../../src/components/reviews/ReviewCard';
 import { ReviewSummaryView } from '../../src/components/reviews/ReviewSummaryView';
 import { TextSheet } from '../../src/components/reviews/TextSheet';
-import type { ArtistReview } from '../../src/core/api/types';
+import type { ArtistReview } from '../../src/types/reviews/reviews';
 
 const MAX_REPLY = 500;
 const MAX_REASON = 500;

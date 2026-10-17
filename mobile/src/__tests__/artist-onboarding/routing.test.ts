@@ -1,5 +1,5 @@
 import { artistHref, artistStage, resumeStep } from '../../utils/artist-onboarding/routing';
-import type { ArtistProfile } from '../../core/api/types';
+import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
 
 const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
   id: 'a', status: 'draft', business_name: 'B', city: 'Pune', bio: null, photo_key: 'k', photo_url: 'u',

@@ -3,7 +3,7 @@ import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatAverage, reviewCountLabel } from '../../utils/reviews/format';
 import { Stars } from './Stars';
-import type { ReviewSummary } from '../../core/api/types';
+import type { ReviewSummary } from '../../types/reviews/reviews';
 
 const ROWS = ['5', '4', '3', '2', '1'] as const;
 const BAR_HEIGHT = 6;

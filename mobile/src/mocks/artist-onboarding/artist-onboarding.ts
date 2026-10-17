@@ -1,4 +1,7 @@
-import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistStatus, CatalogCategory, Category, NamedRef, PublicService, ServiceItem, ServiceTemplate, UploadPurpose } from '../../core/api/types';
+import type { NamedRef } from '../../core/api/types';
+import type { ArtistProfile, ArtistStatus, ServiceItem, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
+import type { CatalogCategory, Category, ServiceTemplate } from '../../types/catalog/catalog';
+import type { ArtistCard, ArtistPublic, PublicService } from '../../types/directory/directory';
 import type { TransportResponse } from '../../core/api/transport';
 import { isValidAadhaar } from '../../utils/artist-onboarding/aadhaar';
 import { PORTFOLIO_SIZE, seedAvatarUrl, seedPhotoUrl } from '../directory/seed';

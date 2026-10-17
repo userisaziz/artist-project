@@ -11,7 +11,7 @@ import { useArtistProfile, useArtistWrite } from '../../../src/hooks/artist-onbo
 import { pickImages, uploadImage } from '../../../src/api/artist-onboarding/upload';
 import { formatAadhaar, isValidAadhaar } from '../../../src/utils/artist-onboarding/aadhaar';
 import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
-import type { KycInput } from '../../../src/core/api/types';
+import type { KycInput } from '../../../src/types/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 
 const INVALID = 'That doesn’t look like a valid Aadhaar number.';

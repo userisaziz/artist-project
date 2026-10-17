@@ -1,5 +1,6 @@
 import { MockTransport } from '../../mocks/transport';
-import type { ArtistProfile, CatalogCategory, UploadPurpose, UploadTicket } from '../../core/api/types';
+import type { ArtistProfile, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
+import type { CatalogCategory } from '../../types/catalog/catalog';
 
 let logSpy: jest.SpyInstance;
 beforeEach(() => { logSpy = jest.spyOn(console, 'log').mockImplementation(() => {}); });

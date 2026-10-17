@@ -1,4 +1,4 @@
-import type { BookingStatus } from '../../core/api/types';
+import type { BookingStatus } from '../../types/bookings/bookings';
 import type { PillTone } from '../../components/common/StatusPill';
 
 /** Spec §2 Bookings tab pills. */

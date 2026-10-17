@@ -6,7 +6,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { STATUS_PILL, customerName } from '../../utils/bookings/status';
 import { formatDay, formatTime, istDateKey } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
-import type { Booking } from '../../core/api/types';
+import type { Booking } from '../../types/bookings/bookings';
 
 interface AgendaRowProps {
   booking: Booking;

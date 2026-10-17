@@ -21,7 +21,7 @@ import { formatPrice } from '../../../src/utils/common/format';
 import { cancelBooking } from '../../../src/api/bookings/bookings';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { RateBookingCard } from '../../../src/components/reviews/RateBookingCard';
-import type { Booking } from '../../../src/core/api/types';
+import type { Booking } from '../../../src/types/bookings/bookings';
 
 /** What happened to the deposit once a booking has ended without the service. */
 function refundLine(b: Booking): string | null {
