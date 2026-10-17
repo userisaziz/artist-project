@@ -3,7 +3,7 @@
 from sqlalchemy import text
 
 from app.core.crypto import decrypt_aadhaar
-from app.services.upload.storage import FakeStorage
+from app.upload.service import FakeStorage
 from tests.test_artists import (  # noqa: F401  (autouse fixture)
     categories_seeded,
     complete_profile,

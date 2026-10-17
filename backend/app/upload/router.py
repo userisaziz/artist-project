@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from app.controllers.upload import upload as controller
 from app.core.auth import current_artist
-from app.schemas.upload.upload import UploadOut, UploadRequest
-from app.services.upload.storage import ImageStorage, get_storage
+from app.upload.schemas import UploadOut, UploadRequest
+from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -15,4 +14,4 @@ async def upload_signature(
     user: User = Depends(current_artist),
     storage: ImageStorage = Depends(get_storage),
 ) -> UploadOut:
-    return controller.upload_signature(body, user, storage)
+    return UploadOut(**storage.upload_params(user.id, body.purpose))

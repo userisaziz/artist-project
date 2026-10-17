@@ -21,7 +21,7 @@ from app.artist.schemas import (
     PhotoOut,
     ServiceOut,
 )
-from app.services.upload.storage import ImageStorage
+from app.upload.service import ImageStorage
 from app.user.models import User
 
 

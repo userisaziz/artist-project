@@ -24,11 +24,11 @@ from app.schemas.directory import (
 )
 from app.services.booking_service import busy_ranges
 from app.services.review_service import ratings_for
-from app.services.upload.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.shared.search import like_pattern
+from app.upload.service import ImageStorage, get_storage
 from app.utils import booking_rules as rules
 
 # Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.

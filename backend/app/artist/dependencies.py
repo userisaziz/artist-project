@@ -5,7 +5,7 @@ from app.artist.admin_service import AdminArtistService
 from app.artist.custom_service_review import CustomServiceReview
 from app.artist.service import ArtistService
 from app.core.database import get_db
-from app.services.upload.storage import ImageStorage, get_storage
+from app.upload.service import ImageStorage, get_storage
 
 
 def get_artist_service(

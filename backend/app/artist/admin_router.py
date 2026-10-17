@@ -21,8 +21,8 @@ from app.artist.schemas import (
 )
 from app.artist.utils import admin_detail_out, custom_service_out, summary_out
 from app.core.auth import current_admin
-from app.services.upload.storage import ImageStorage, get_storage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
+from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])

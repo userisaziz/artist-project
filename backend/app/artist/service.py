@@ -31,9 +31,9 @@ from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.core.config import get_settings
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.services.upload.storage import ImageStorage
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
+from app.upload.service import ImageStorage
 from app.user.models import User
 
 MIN_PHOTOS = 6

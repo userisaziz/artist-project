@@ -14,10 +14,10 @@ from app.models.review import Review
 from app.schemas.booking import AdminOverview, BookingOut, WeekCount
 from app.services.booking_service import OPEN, BookingService, rows_query
 from app.services.review_service import needs_moderation
-from app.services.upload.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.shared.search import like_pattern
+from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
 from app.utils import booking_rules as rules
 

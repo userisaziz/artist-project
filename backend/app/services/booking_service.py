@@ -31,7 +31,6 @@ from app.schemas.booking import (
     BookingOut,
     BookingReview,
 )
-from app.services.upload.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import (
@@ -40,6 +39,7 @@ from app.shared.enums import (
     BookingStatus,
     ReviewStatus,
 )
+from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
 from app.utils import booking_rules as rules
 from app.utils.review_filter import review_window_open
