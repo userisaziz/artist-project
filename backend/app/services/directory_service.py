@@ -12,8 +12,7 @@ from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem, artist_categories
 from app.models.booking import Booking
-from app.models.category import Category
-from app.models.service_template import ServiceTemplate
+from app.modules.catalog.models import Category, ServiceTemplate
 from app.modules.uploads.storage import ImageStorage, get_storage
 from app.schemas.artist import NamedRef
 from app.schemas.directory import (

@@ -3,18 +3,17 @@ from fastapi import APIRouter
 from app.api.v1 import (
     admin,
     admin_bookings,
-    admin_categories,
     admin_custom_services,
     admin_reviews,
-    admin_service_templates,
     artist_bookings,
     artist_reviews,
     artists,
     bookings,
-    catalog,
     directory,
 )
 from app.modules.auth import router as auth
+from app.modules.catalog import admin_router as catalog_admin
+from app.modules.catalog import router as catalog
 from app.modules.uploads import router as uploads
 from app.modules.users import router as users
 
@@ -31,6 +30,5 @@ api_router.include_router(bookings.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin_bookings.router)
 api_router.include_router(admin_reviews.router)
-api_router.include_router(admin_categories.router)
-api_router.include_router(admin_service_templates.router)
+api_router.include_router(catalog_admin.router)
 api_router.include_router(admin_custom_services.router)

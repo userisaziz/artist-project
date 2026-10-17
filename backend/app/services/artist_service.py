@@ -22,8 +22,7 @@ from app.models.artist import (
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.models.category import Category
-from app.models.service_template import ServiceTemplate
+from app.modules.catalog.models import Category, ServiceTemplate
 from app.modules.uploads.storage import ImageStorage, get_storage
 from app.modules.users.models import User
 from app.schemas.artist import (
