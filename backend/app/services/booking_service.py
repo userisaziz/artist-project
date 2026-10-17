@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
-from app.models.review import Review
+from app.models.review import PUBLIC_REVIEW, Review
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingCustomer,
@@ -111,6 +111,8 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOu
     b = row.booking
     admin = view == "admin"
     margin_hidden = view == "customer"
+    # The artist sees a review only once it's public; the reviewer and admins see it in any state.
+    show_review = row.review_id is not None and (view != "artist" or row.review_status in PUBLIC_REVIEW)
     customer = (
         AdminBookingCustomer(id=b.customer_id, first_name=row.first_name, last_name=row.last_name, phone=row.phone)
         if admin
@@ -131,7 +133,7 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOu
         "responded_at": b.responded_at, "cancelled_at": b.cancelled_at, "completed_at": b.completed_at,
         "decline_reason": b.decline_reason, "cancel_reason": b.cancel_reason, "cancelled_by": b.cancelled_by,
         "refund_due": b.refund_due, "created_at": b.created_at,
-        "review": BookingReview(id=row.review_id, rating=row.review_rating, status=row.review_status) if row.review_id else None,
+        "review": BookingReview(id=row.review_id, rating=row.review_rating, status=row.review_status) if show_review else None,
         "can_review": b.status == BookingStatus.completed and row.review_id is None
         and review_window_open(b.completed_at, clock.now()),
     }

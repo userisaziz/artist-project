@@ -168,3 +168,44 @@ def test_window_helper_uses_completion_time():
     assert review_window_open(done, done + timedelta(days=30))
     assert not review_window_open(done, done + timedelta(days=30, seconds=1))
     assert not review_window_open(None, done)
+
+
+async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatch):
+    admin, artist, customer = await setup(client, engine)
+    first = await completed_booking(client, artist, customer, monkeypatch, day=5)
+    hidden = (await review(client, customer, first["id"], 1, "call 98450 67890")).json()
+    # Artists don't learn the rating of a review that isn't public.
+    listed = (await client.get("/api/v1/artists/me/bookings?scope=past", headers=artist["headers"])).json()["items"]
+    assert listed[0]["review"] is None
+
+    url = f"/api/v1/admin/reviews/{hidden['id']}/decision"
+    noted = (await client.post(url, headers=admin, json={"decision": "hide", "note": "Phone number"})).json()
+    assert noted["moderator_note"] == "Phone number"
+    kept = (await client.post(url, headers=admin, json={"decision": "hide"})).json()
+    assert kept["moderator_note"] == "Phone number"  # omitted: unchanged
+    cleared = (await client.post(url, headers=admin, json={"decision": "publish", "note": ""})).json()
+    assert cleared["moderator_note"] is None
+    listed = (await client.get("/api/v1/artists/me/bookings?scope=past", headers=artist["headers"])).json()["items"]
+    assert listed[0]["review"]["rating"] == 1  # public now
+
+    # Replies can't carry contact details either.
+    bad = await client.put(f"/api/v1/artists/me/reviews/{hidden['id']}/reply", headers=artist["headers"],
+                           json={"text": "Sorry! WhatsApp me on 98450 12345"})
+    assert bad.status_code == 422
+    assert bad.json()["message"] == "Replies can't include phone numbers, emails, links or blocked words"
+
+    # Publishing a reported review clears the report.
+    monkeypatch.undo()
+    second = await completed_booking(client, artist, customer, monkeypatch, day=6)
+    r2 = (await review(client, customer, second["id"], 3)).json()
+    await client.post(f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=artist["headers"], json={"reason": "Wrong artist"})
+    published = (await client.post(f"/api/v1/admin/reviews/{r2['id']}/decision", headers=admin, json={"decision": "publish"})).json()
+    assert (published["flag"], published["report_reason"]) == (None, None)
+
+
+def test_averages_round_half_up():
+    from app.services.review_service import one_decimal
+
+    assert one_decimal(4.25) == 4.3
+    assert one_decimal(4.75) == 4.8
+    assert one_decimal(17 / 4) == 4.3

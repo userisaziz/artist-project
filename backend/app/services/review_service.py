@@ -2,13 +2,14 @@
 admins moderate. Ratings are computed from public reviews on read (no stored counters)."""
 
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 from typing import NamedTuple
 
 from sqlalchemy import ColumnElement, Select, and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
@@ -30,6 +31,11 @@ from app.utils.enums import ArtistStatus, BookingStatus, ReviewStatus
 from app.utils.review_filter import review_flag, review_window_open
 
 DECISIONS = {"publish": ReviewStatus.published, "hide": ReviewStatus.hidden, "remove": ReviewStatus.removed}
+
+
+def one_decimal(value: Decimal | float) -> float:
+    """Averages to one decimal, half up (4.25 → 4.3), the way people read ratings."""
+    return float(Decimal(str(value)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
 def reviewer_name(first: str | None, last: str | None) -> str:
@@ -91,7 +97,7 @@ async def ratings_for(session: AsyncSession, artist_ids: list[uuid.UUID]) -> dic
         .where(Review.artist_id.in_(artist_ids), Review.status.in_(PUBLIC_REVIEW))
         .group_by(Review.artist_id)
     )
-    return {artist_id: (round(float(avg), 1), count) for artist_id, avg, count in rows.all()}
+    return {artist_id: (one_decimal(avg), count) for artist_id, avg, count in rows.all()}
 
 
 def needs_moderation() -> ColumnElement[bool]:
@@ -142,7 +148,7 @@ class ReviewService:
             .group_by(Review.rating)
         )).all())
         total = sum(counts.values())
-        average = round(sum(r * n for r, n in counts.items()) / total, 1) if total else None
+        average = one_decimal(Decimal(sum(r * n for r, n in counts.items())) / total) if total else None
         return ReviewSummary(average=average, count=total, distribution={str(r): counts.get(r, 0) for r in (5, 4, 3, 2, 1)})
 
     # --- customer -------------------------------------------------------------------------------
@@ -198,6 +204,8 @@ class ReviewService:
         return await self._locked(review_id, theirs), theirs
 
     async def reply(self, user: User, review_id: uuid.UUID, text: str) -> OwnReviewOut:
+        if review_flag(text):
+            raise ValidationError("Replies can't include phone numbers, emails, links or blocked words")
         review, theirs = await self._artist_review(user, review_id)
         review.reply = text.strip() or None
         review.replied_at = clock.now() if review.reply else None
@@ -230,7 +238,9 @@ class ReviewService:
         review.status = DECISIONS[decision]
         if review.status == ReviewStatus.published:
             review.flag = None
-        review.moderator_note = (note or "").strip() or review.moderator_note
+            review.report_reason = None
+        if note is not None:  # omitted keeps the note; an empty one clears it
+            review.moderator_note = note.strip() or None
         review.moderated_by = admin.id
         review.moderated_at = clock.now()
         await self.session.commit()
