@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Response
 from app.auth.dependencies import get_auth_service
 from app.auth.schemas import OTPRequest, OTPVerify, RefreshRequest, TokenPair
 from app.auth.service import AuthService
-from app.schemas.user.user import UserOut
+from app.user.schemas import UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

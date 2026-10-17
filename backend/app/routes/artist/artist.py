@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends
 from app.controllers.artist import artist as controller
 from app.controllers.artist.dependencies import get_artist_service
 from app.core.auth import current_artist
-from app.models.user.user import User
 from app.schemas.artist.artist import (
     ArtistProfileOut,
     CustomServiceIn,
@@ -18,6 +17,7 @@ from app.schemas.artist.artist import (
     ServicePatch,
 )
 from app.services.artist.artist import ArtistService
+from app.user.models import User
 
 # Every write returns the whole profile, so the app re-renders from one response.
 router = APIRouter(prefix="/artists/me", tags=["artists"])

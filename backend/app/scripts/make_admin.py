@@ -10,9 +10,9 @@ import re
 import sys
 
 from app.core.database import SessionLocal, engine
-from app.models.user.user import User
-from app.repositories.user.user import UserRepository
 from app.shared.enums import UserRole
+from app.user.models import User
+from app.user.repository import UserRepository
 
 
 async def make_admin(phone: str) -> str:

@@ -11,7 +11,6 @@ from app.controllers.artist.dependencies import (
     get_custom_service_review,
 )
 from app.core.auth import current_admin
-from app.models.user.user import User
 from app.schemas.artist.artist import (
     AdminArtistDetail,
     AdminArtistPage,
@@ -23,6 +22,7 @@ from app.schemas.artist.artist import (
 from app.services.artist.admin import AdminArtistService
 from app.services.artist.custom_service_review import CustomServiceReview
 from app.services.upload.storage import ImageStorage, get_storage
+from app.user.models import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

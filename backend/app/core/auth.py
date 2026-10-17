@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions import AuthError, ForbiddenError
 from app.core.security import decode_token
-from app.models.user.user import User
-from app.repositories.user.user import UserRepository
 from app.shared.enums import UserRole
+from app.user.models import User
+from app.user.repository import UserRepository
 
 bearer_scheme = HTTPBearer(auto_error=True)
 

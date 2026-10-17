@@ -19,7 +19,6 @@ from app.models.artist.artist import (
     PortfolioPhoto,
 )
 from app.models.catalog.catalog import Category, ServiceTemplate
-from app.models.user.user import User
 from app.repositories.artist.artist import ArtistRepository
 from app.repositories.catalog.catalog import CategoryRepository, TemplateRepository
 from app.schemas.artist.artist import (
@@ -35,6 +34,7 @@ from app.services.artist.aadhaar import is_valid_aadhaar
 from app.services.upload.storage import ImageStorage
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
+from app.user.models import User
 
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30

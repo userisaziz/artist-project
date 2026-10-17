@@ -9,7 +9,6 @@ from app.controllers.artist.presenters import (
     custom_service_out,
     summary_out,
 )
-from app.models.user.user import User
 from app.schemas.artist.artist import (
     AdminArtistDetail,
     AdminArtistPage,
@@ -21,6 +20,7 @@ from app.services.artist.admin import AdminArtistService
 from app.services.artist.custom_service_review import CustomServiceReview
 from app.services.upload.storage import ImageStorage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
+from app.user.models import User
 
 
 async def list_artists(

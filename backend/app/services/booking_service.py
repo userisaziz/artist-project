@@ -21,7 +21,6 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
-from app.models.user.user import User
 from app.schemas.booking import (
     AdminBookingCustomer,
     AdminBookingOut,
@@ -41,6 +40,7 @@ from app.shared.enums import (
     BookingStatus,
     ReviewStatus,
 )
+from app.user.models import User
 from app.utils import booking_rules as rules
 from app.utils.review_filter import review_window_open
 

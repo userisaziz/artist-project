@@ -25,9 +25,9 @@ from app.core.security import (
     hash_otp,
     hash_token,
 )
-from app.models.user.user import User
-from app.repositories.user.user import UserRepository
 from app.shared import clock
+from app.user.models import User
+from app.user.repository import UserRepository
 
 
 class AuthService:

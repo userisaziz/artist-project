@@ -15,7 +15,6 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist.artist import ArtistProfile
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
-from app.models.user.user import User
 from app.schemas.review import (
     AdminReviewOut,
     OwnReviewOut,
@@ -30,6 +29,7 @@ from app.services.booking_service import approved_artist_id
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistStatus, BookingStatus, ReviewStatus
+from app.user.models import User
 from app.utils.review_filter import review_flag, review_window_open
 
 DECISIONS = {"publish": ReviewStatus.published, "hide": ReviewStatus.hidden, "remove": ReviewStatus.removed}

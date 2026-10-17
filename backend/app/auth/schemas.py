@@ -2,7 +2,7 @@ import re
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.schemas.user.user import UserOut
+from app.user.schemas import UserOut
 
 PHONE_RE = re.compile(r"^\+[1-9]\d{6,14}$")  # E.164
 

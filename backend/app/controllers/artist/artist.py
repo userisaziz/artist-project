@@ -3,7 +3,6 @@
 import uuid
 
 from app.controllers.artist.presenters import profile_out
-from app.models.user.user import User
 from app.schemas.artist.artist import (
     ArtistProfileOut,
     CustomServiceIn,
@@ -16,6 +15,7 @@ from app.schemas.artist.artist import (
     ServicePatch,
 )
 from app.services.artist.artist import ArtistService
+from app.user.models import User
 
 
 async def get_my_profile(user: User, service: ArtistService) -> ArtistProfileOut:

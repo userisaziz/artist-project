@@ -17,7 +17,7 @@ from app.routes.artist import artist
 from app.routes.catalog import admin as catalog_admin
 from app.routes.catalog import catalog
 from app.routes.upload import upload
-from app.routes.user import user
+from app.user import router as user
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)

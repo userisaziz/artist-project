@@ -3,10 +3,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError
-from app.models.user.user import User
-from app.repositories.user.user import UserRepository
-from app.schemas.user.user import AccountDetails, RoleChoice
 from app.shared.enums import UserRole
+from app.user.models import User
+from app.user.repository import UserRepository
+from app.user.schemas import AccountDetails, RoleChoice
 
 
 class UserService:

@@ -1,18 +1,17 @@
 from fastapi import APIRouter, Depends
 
-from app.controllers.user import user as controller
-from app.controllers.user.dependencies import get_user_service
 from app.core.auth import get_current_user
-from app.models.user.user import User
-from app.schemas.user.user import AccountDetails, RoleChoice, UserOut
-from app.services.user.user import UserService
+from app.user.dependencies import get_user_service
+from app.user.models import User
+from app.user.schemas import AccountDetails, RoleChoice, UserOut
+from app.user.service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserOut)
 async def get_me(user: User = Depends(get_current_user)) -> UserOut:
-    return controller.get_me(user)
+    return UserOut.model_validate(user)
 
 
 @router.patch("/me", response_model=UserOut)
@@ -21,7 +20,7 @@ async def update_me(
     user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
 ) -> UserOut:
-    return await controller.update_me(body, user, service)
+    return UserOut.model_validate(await service.update_details(user, body))
 
 
 @router.put("/me/role", response_model=UserOut)
@@ -30,4 +29,4 @@ async def choose_role(
     user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
 ) -> UserOut:
-    return await controller.choose_role(body, user, service)
+    return UserOut.model_validate(await service.choose_role(user, body))

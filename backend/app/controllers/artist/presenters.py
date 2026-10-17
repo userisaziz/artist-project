@@ -6,7 +6,6 @@ from app.models.artist.artist import (
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.models.user.user import User
 from app.repositories.artist.artist import CustomServiceRow
 from app.schemas.artist.artist import (
     AdminArtistDetail,
@@ -23,6 +22,7 @@ from app.schemas.artist.artist import (
 )
 from app.services.artist.aadhaar import mask_aadhaar_last4
 from app.services.upload.storage import ImageStorage
+from app.user.models import User
 
 
 def service_out(item: ArtistServiceItem) -> ServiceOut:
