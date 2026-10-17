@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
 import { dateTime, istDateTime, rupees } from '@/lib/format'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
-import { cn } from '@/lib/utils'
 import type { BookingStatus } from '@/lib/types'
 import { useBookings } from './queries'
 import { BookingStatusPill } from './BookingStatusPill'
@@ -16,7 +16,7 @@ import { BOOKING_STATUSES, customerName, isBookingStatus } from './status'
 
 const SEARCH_DEBOUNCE_MS = 300
 const COLUMNS = 6
-const CHIPS: { value: BookingStatus | null; label: string }[] = [{ value: null, label: 'All' }, ...BOOKING_STATUSES]
+const CHIPS: Chip<BookingStatus | null>[] = [{ value: null, label: 'All' }, ...BOOKING_STATUSES]
 
 /** Every booking on the platform, newest first, filtered by status and searchable by code, phone or artist. */
 export function BookingsPage() {
@@ -33,25 +33,7 @@ export function BookingsPage() {
     <>
       <PageHeader title="Bookings" subtitle="All service bookings, live and past." />
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2">
-          {CHIPS.map((c) => {
-            const active = c.value === status
-            return (
-              <button
-                key={c.label}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setParams(c.value ? { status: c.value } : {})}
-                className={cn(
-                  'rounded-full border px-3 py-1 text-sm font-medium transition-colors',
-                  active ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:bg-muted',
-                )}
-              >
-                {c.label}
-              </button>
-            )
-          })}
-        </div>
+        <FilterChips chips={CHIPS} value={status} onChange={(next) => setParams(next ? { status: next } : {})} />
         <div className="relative ml-auto w-full max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input

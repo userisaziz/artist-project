@@ -198,5 +198,36 @@ export interface AdminOverview {
   cancelled_30d: number
   pending_artists: number
   pending_custom_services: number
+  flagged_reviews: number // reviews in `flagged`, waiting for a moderator
   bookings_by_week: { week_start: string; count: number }[] // 12 entries, oldest first; week_start is a YYYY-MM-DD date
 }
+
+/** published and flagged are public; hidden and removed are not. removed is final. */
+export type ReviewModerationStatus = 'published' | 'flagged' | 'hidden' | 'removed'
+
+/** Why a review needs a moderator: the auto-filter (contact_info, blocked_word) or the artist's report. */
+export type ReviewFlag = 'contact_info' | 'blocked_word' | 'artist_report'
+
+export type ReviewDecision = 'publish' | 'hide' | 'remove'
+
+/** AdminReviewOut: the public review plus moderation state and who it is between. */
+export interface AdminReview {
+  id: string
+  rating: number // 1–5
+  text: string | null
+  reviewer_name: string // "Priya S."
+  service_name: string
+  created_at: string
+  reply: string | null
+  replied_at: string | null
+  status: ReviewModerationStatus
+  flag: ReviewFlag | null
+  report_reason: string | null
+  moderator_note: string | null
+  moderated_at: string | null // null: no moderator has decided on it yet
+  artist: { id: string; business_name: string }
+  customer: { id: string; name: string | null; phone: string }
+  booking: { id: string; code: string; service_name: string }
+}
+
+export type ReviewPage = Page<AdminReview>

@@ -30,3 +30,8 @@ const dayMonth = new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', day: 'numer
 
 /** A YYYY-MM-DD calendar date (no time, so read as UTC to keep the day): "12 Oct". */
 export const shortDate = (date: string) => dayMonth.format(new Date(date))
+
+const monthOfYear = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' })
+
+/** "Oct 2026", in IST. */
+export const monthYear = (iso: string) => monthOfYear.format(new Date(iso))

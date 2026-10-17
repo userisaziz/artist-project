@@ -1,8 +1,9 @@
 import { NavLink, Outlet } from 'react-router'
-import { BadgeCheck, CalendarCheck, LayoutDashboard, LayoutGrid, ListChecks, LogOut } from 'lucide-react'
+import { BadgeCheck, CalendarCheck, LayoutDashboard, LayoutGrid, ListChecks, LogOut, MessageSquareWarning } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePendingCount } from '@/features/artists/queries'
 import { useCustomServicePendingCount } from '@/features/custom-services/queries'
+import { useReviewPendingCount } from '@/features/reviews/queries'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
@@ -12,13 +13,18 @@ const NAV = [
   { to: '/artists', label: 'Verification', icon: BadgeCheck, badge: 'artists' },
   { to: '/custom-services', label: 'Custom services', icon: ListChecks, badge: 'customServices' },
   { to: '/bookings', label: 'Bookings', icon: CalendarCheck, badge: null },
+  { to: '/reviews', label: 'Reviews', icon: MessageSquareWarning, badge: 'reviews' },
   { to: '/categories', label: 'Catalog', icon: LayoutGrid, badge: null },
 ] as const
 
 /** The design's admin console frame: a white sidebar on the blush page. */
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const pending = { artists: usePendingCount().data, customServices: useCustomServicePendingCount().data }
+  const pending = {
+    artists: usePendingCount().data,
+    customServices: useCustomServicePendingCount().data,
+    reviews: useReviewPendingCount().data,
+  }
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Admin'
 
   return (

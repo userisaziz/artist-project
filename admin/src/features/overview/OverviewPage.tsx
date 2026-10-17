@@ -53,19 +53,33 @@ export function OverviewPage() {
   )
 }
 
+interface Kpi {
+  label: string
+  value: string | undefined
+  title?: string
+  foot?: string
+  to?: string // the card links there
+}
+
 function Kpis({ overview: o }: { overview: AdminOverview | undefined }) {
-  const cards = [
+  const cards: Kpi[] = [
     { label: 'Gross bookings (30d)', value: o && rupeesShort(o.gross_paise_30d), title: o && rupees(o.gross_paise_30d) },
     { label: 'Bookings (30d)', value: o && count.format(o.bookings_30d), foot: o && `${count.format(o.completed_30d)} completed · ${count.format(o.cancelled_30d)} cancelled` },
     { label: 'Awaiting artist', value: o && count.format(o.awaiting_artist), foot: 'Requests not yet answered' },
     { label: 'Pending verification', value: o && count.format(o.pending_artists), foot: o && `${count.format(o.pending_custom_services)} custom services to review` },
+    { label: 'Flagged reviews', value: o && count.format(o.flagged_reviews), foot: 'Waiting for a moderator', to: '/reviews' },
   ]
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
       {cards.map((c) => (
-        <Card key={c.label}>
+        <Card key={c.label} className={c.to && 'relative transition-colors hover:bg-muted/40'}>
           <CardContent>
-            <div className="text-xs text-muted-foreground">{c.label}</div>
+            {c.to ? (
+              // The link's overlay makes the whole card clickable.
+              <Link to={c.to} className="text-xs text-muted-foreground after:absolute after:inset-0 hover:text-foreground">{c.label}</Link>
+            ) : (
+              <div className="text-xs text-muted-foreground">{c.label}</div>
+            )}
             {c.value === undefined ? (
               <Skeleton className="mt-2 h-8 w-24" />
             ) : (

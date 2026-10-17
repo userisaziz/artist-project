@@ -1,8 +1,8 @@
 import type { BookingStatus } from '@/lib/types'
 
-const AMBER = 'bg-[#FDF0DC] text-[#9A6514]'
-const GREEN = 'bg-[#E3F1E7] text-[#2F6B47]'
-const RED = 'bg-[#FBE3E3] text-[#A33A3A]'
+export const AMBER = 'bg-[#FDF0DC] text-[#9A6514]'
+export const GREEN = 'bg-[#E3F1E7] text-[#2F6B47]'
+export const RED = 'bg-[#FBE3E3] text-[#A33A3A]'
 export const NEUTRAL = 'bg-[#F2EEF0] text-[#6E5262]'
 
 /** In the order the list's filter chips show them. */
