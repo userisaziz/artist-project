@@ -37,6 +37,10 @@ All settings live in `app/core/config.py` (pydantic-settings). If a required val
 | `DEBUG` | `true` | Allows CORS from every origin when true |
 | `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output; `fast2sms` sends real SMS |
 | `FAST2SMS_API_KEY` | empty | Required when `SMS_PROVIDER=fast2sms` |
+| `PAYMENT_PROVIDER` | `mock` | Only `mock` so far, and it runs only with `DEBUG=true` (see Directory and bookings) |
+| `PLATFORM_FEE_PAISE`, `PLATFORM_FEE_WAIVED_FROM_PAISE`, `DEPOSIT_PERCENT`, `COMMISSION_PERCENT` | `9900`, `2500000`, `30`, `10` | Booking money; changes apply to new bookings only |
+| `BOOKING_ACCEPT_HOURS`, `FREE_CANCEL_HOURS`, `MAX_OPEN_REQUESTS_PER_CUSTOMER` | `3`, `72`, `3` | Booking rules |
+| `SLOT_FIRST_HOUR`, `SLOT_LAST_HOUR`, `BOOKING_LEAD_HOURS`, `BOOKING_HORIZON_DAYS` | `9`, `17`, `2`, `60` | Hourly IST start times, earliest start from now, how far ahead |
 | `AADHAAR_ENCRYPTION_KEY` | required | Fernet key that encrypts stored Aadhaar numbers; the app won't start without it. Generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing it makes stored Aadhaar numbers unrecoverable, so back it up. |
 
 > `.env.example` ships with `SMS_PROVIDER=fast2sms`. For local development, set it to `console` and read codes from the uvicorn log (`[console-sms] to=+91... | Your Art Circle code is 123456`).
@@ -77,6 +81,31 @@ Categories and subcategories have a `status`: `draft` (new ones start here; admi
 Anything in use (a category with artists, services, subcategories or templates; a template an artist offers) can only be hidden, not deleted.
 
 > **Fill in the catalog before artists onboard.** During onboarding, artists can only add services from the admin's list. If a category has no subcategories and services, artists in it can't add a service and can't submit their profile.
+
+### Directory and bookings
+
+Customers find approved artists and request a slot. The artist has 3 hours to answer.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/artists` | none | Approved artists, `?city=&category_id=&q=&limit=&cursor=` → `{items, next_cursor}` |
+| GET | `/artists/{id}` | none | Public profile: approved services, portfolio, completed bookings. Never KYC or phone. |
+| GET | `/artists/{id}/availability` | none | `?date=YYYY-MM-DD&service_id=` → hourly IST slots with `available` |
+| POST | `/bookings` | customer | `{artist_id, service_id, start_at, address, note?}`; the deposit is taken (mocked) |
+| GET | `/bookings` · `/bookings/{id}` | customer | Own bookings, `?scope=upcoming\|past` |
+| POST | `/bookings/{id}/cancel` | customer | `{reason?}`. The deposit is refunded when cancelled 72 h or more ahead. |
+| GET | `/artists/me/bookings` | approved artist | `?scope=requests\|upcoming\|past`, or `?from=&to=` (IST dates) for the calendar |
+| POST | `/artists/me/bookings/{id}/accept` · `/decline` · `/complete` | approved artist | Decline takes `{reason?}`; complete only after the start |
+| GET | `/artists/me/dashboard` | approved artist | Request and upcoming counts, this month's earnings, today's schedule |
+| GET | `/admin/bookings` · `/admin/bookings/{id}` | admin | `?status=&q=` (code, customer phone or artist name) |
+| POST | `/admin/bookings/{id}/cancel` | admin | `{reason}`; the deposit is always refunded |
+| GET | `/admin/overview` | admin | 30-day KPIs and bookings per week for the admin Overview |
+
+**Lifecycle:** `requested` → `confirmed` → `completed`, or `declined`, `expired` or `cancelled`. A request that gets no answer within 3 hours, or by its start time if that comes first, expires the next time anyone reads it. Overlapping requests for one artist are refused (`409 conflict`), and a customer can have at most 3 unanswered requests.
+
+**Money:** all amounts are integer paise and are copied onto the booking. A booking costs the service price plus a ₹99 platform fee, which is waived from ₹25,000. The customer pays a 30% deposit up front, rounded to the rupee. The commission is 10% of the service price, and customers never see it.
+
+> **Payments are mocked.** With `PAYMENT_PROVIDER=mock`, the deposit counts as paid and no money moves. The app refuses to start with the mock provider unless `DEBUG=true`, so it can't reach production. A real gateway is a later increment.
 
 ### Error contract
 

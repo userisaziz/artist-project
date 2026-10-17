@@ -2,7 +2,11 @@
 
 A marketplace connecting customers with artists (mehendi, makeup, and similar services). Customers browse and book; artists offer their services.
 
-Current state: phone + OTP sign-in, account sign-up, and a one-time role choice (customer or artist). Each role lands on a placeholder home screen.
+Current state:
+- **Everyone:** phone + OTP sign-in, then sign-up and a role choice.
+- **Artists:** onboard with services from the admin's catalog and Aadhaar verification. Once approved, they answer booking requests, see their calendar and earnings, and mark bookings completed.
+- **Customers:** browse approved artists and book a slot with a deposit. Payment is mocked for now.
+- **Admins** (`admin/`, the web console): verify artists, build the catalog, review custom services, and watch and cancel bookings from Overview and Bookings.
 
 ## Repository layout
 
@@ -41,6 +45,9 @@ The mobile app can run on its own against an in-memory mock API (`EXPO_PUBLIC_US
 
 ```
 welcome → login (phone) → otp → signup (name, email) → choose-role → customer | artist home
+
+customer: home / explore → artist storefront → date & time → review & pay → booking requested → bookings
+artist:   onboarding → in review → (approved) home · bookings (requests / upcoming / past) · calendar · me
 ```
 
 The server is the source of truth for routing. The app reads `is_onboarded`, `first_name`, and `role` from `/api/v1/users/me` and sends the user to the right area.
