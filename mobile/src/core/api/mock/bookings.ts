@@ -1,4 +1,5 @@
-import type { Booking, BookingReview, BookingStatus, CancelledBy, ServiceItem, User } from '../types';
+import type { Booking, BookingReview, BookingStatus, CancelledBy, ServiceItem } from '../types';
+import type { User } from '../../../features/auth/types';
 import type { TransportResponse } from '../transport';
 import type { MockArtists, MockProfile } from './artist';
 import { ACCEPT_WINDOW_HOURS, isBookableDate, isSlotFree, priceBreakdown, refundDueOnCustomerCancel, slotStarts } from '../../../bookings/pricing';

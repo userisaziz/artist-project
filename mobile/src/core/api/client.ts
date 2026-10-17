@@ -2,15 +2,17 @@ import type { Transport, TransportRequest } from './transport';
 import { RealTransport } from './real-transport';
 import { MockTransport } from './mock/transport';
 import { ApiError } from './types';
-import type { TokenPair } from './types';
 
 /** THE parallel-build seam: one line decides mock vs real for the whole app. */
 export const transport: Transport =
   process.env.EXPO_PUBLIC_USE_MOCKS === 'true' ? new MockTransport() : new RealTransport();
 
+/** What the client needs back from a refresh; the auth feature's TokenPair satisfies it. */
+export interface RefreshedSession { access_token: string }
+
 export interface SessionBridge {
   getAccessToken: () => string | null;
-  refreshSession: () => Promise<TokenPair | null>; // must return null on failure, never throw
+  refreshSession: () => Promise<RefreshedSession | null>; // must return null on failure, never throw
 }
 let bridge: SessionBridge | null = null;
 export function configureSessionBridge(b: SessionBridge | null) { bridge = b; }

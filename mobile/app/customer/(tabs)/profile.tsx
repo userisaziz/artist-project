@@ -7,7 +7,7 @@ import { Avatar } from '../../../src/core/components/Avatar';
 import { formatPhone } from '../../../src/core/components/PhoneInput';
 import { MenuRow } from '../../../src/core/components/MenuRow';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/auth/auth-provider';
+import { useAuth } from '../../../src/features/auth/auth-provider';
 import { errorMessage } from '../../../src/core/api/error-message';
 
 // Spec §2 Profile tab: name and phone, My bookings, the artist side (PUT /users/me/role), Log out.

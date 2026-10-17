@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as bookingsApi from '../api/endpoints/bookings';
 import type { ArtistBookingScope, Booking, CustomerBookingScope } from '../core/api/types';
-import { useAuth } from '../auth/auth-provider';
+import { useAuth } from '../features/auth/auth-provider';
 import { directoryKeys } from '../directory/queries';
 
 const PAGE_SIZE = 20;

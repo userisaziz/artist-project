@@ -9,7 +9,7 @@ import { Avatar } from '../../../src/core/components/Avatar';
 import { Card } from '../../../src/core/components/Card';
 import { MenuRow } from '../../../src/core/components/MenuRow';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/auth/auth-provider';
+import { useAuth } from '../../../src/features/auth/auth-provider';
 import { useArtistProfile } from '../../../src/artist/queries';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/reviews/queries';

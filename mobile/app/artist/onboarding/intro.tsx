@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from '../../../src/core/components/AppText';
 import { AppButton } from '../../../src/core/components/AppButton';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/auth/auth-provider';
+import { useAuth } from '../../../src/features/auth/auth-provider';
 
 const ARTIST_PHOTO = require('../../../assets/hero/role-artist.webp');
 const WELCOME_PHOTO = require('../../../assets/hero/welcome.webp');

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import type { TokenPair } from '../core/api/types';
+import type { TokenPair } from './types';
 
 const ACCESS_KEY = 'ac.access_token';
 const REFRESH_KEY = 'ac.refresh_token';

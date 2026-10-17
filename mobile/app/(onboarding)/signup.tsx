@@ -5,7 +5,7 @@ import { AppText } from '../../src/core/components/AppText';
 import { AppButton } from '../../src/core/components/AppButton';
 import { AppTextField } from '../../src/core/components/AppTextField';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/auth/auth-provider';
+import { useAuth } from '../../src/features/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 

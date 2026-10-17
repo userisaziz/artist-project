@@ -8,7 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from '../../src/core/components/AppText';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/auth/auth-provider';
+import { useAuth } from '../../src/features/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
 
 const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // design's role-client.jpg

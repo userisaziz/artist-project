@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as artistApi from '../api/endpoints/artist';
 import * as catalogApi from '../api/endpoints/catalog';
 import type { ArtistProfile } from '../core/api/types';
-import { useAuth } from '../auth/auth-provider';
+import { useAuth } from '../features/auth/auth-provider';
 
 // Keyed by user id, so a different account never sees a cached profile.
 const artistKey = (userId: string | undefined) => ['artist', 'me', userId] as const;

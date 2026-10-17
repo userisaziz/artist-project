@@ -6,7 +6,7 @@ import { AppButton } from '../../src/core/components/AppButton';
 import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
 import { PhoneInput } from '../../src/core/components/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/auth/auth-provider';
+import { useAuth } from '../../src/features/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/; // same rule the backend enforces

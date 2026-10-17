@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from '../../../src/core/components/AppText';
 import { ErrorView, LoadingView, EmptyView } from '../../../src/core/components/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/auth/auth-provider';
+import { useAuth } from '../../../src/features/auth/auth-provider';
 import { useCategories } from '../../../src/artist/queries';
 import { useArtistList } from '../../../src/directory/queries';
 import { ArtistCardView } from '../../../src/directory/ArtistCardView';

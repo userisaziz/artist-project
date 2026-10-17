@@ -1,32 +1,21 @@
 import type { Transport, TransportRequest, TransportResponse } from '../transport';
-import type { Booking, ReviewInput, TokenPair, User, UserRole } from '../types';
+import type { Booking, ReviewInput } from '../types';
+import type { User } from '../../../features/auth/types';
+import { MockAuth } from '../../../features/auth/mock';
+import { handleAccount, isAccountRoute } from '../../../features/account/mock';
 import { CATALOG, CITIES, MockArtists } from './artist';
 import { MockBookings } from './bookings';
 import { MockReviews } from './reviews';
 import { handleDirectory } from './directory';
 import { seedMarketplace } from './seed';
 import { parseQuery } from '../query-string';
+import { err, ok } from './respond';
 import { availability } from '../../../bookings/pricing';
 import { addDays, istDateKey } from '../../lib/time';
 
-interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
-interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }
-
-const PHONE_RE = /^\+[1-9]\d{6,14}$/;            // same as backend schemas/auth.py
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROLE_ORDER: UserRole[] = ['customer', 'artist', 'admin']; // backend UserOut sorts roles in this order
-const ACCOUNT_ROUTES = new Set(['PATCH /users/me', 'PUT /users/me/role']); // all need a Bearer token
-const RESEND_COOLDOWN_MS = 60_000;               // OTP_RESEND_COOLDOWN_SECONDS
-const OTP_TTL_MS = 5 * 60_000;                   // OTP_TTL_MINUTES
-const MAX_ATTEMPTS = 5;                          // OTP_MAX_ATTEMPTS
-const REFRESH_TTL_MS = 7 * 24 * 3600_000;        // REFRESH_TOKEN_TTL_DAYS
 const SEARCH_DAYS = 60;                           // requestBooking looks this far ahead for a free slot
 const DAY_MS = 24 * 3600_000;
 const REVIEW_PATH = /^\/bookings\/([^/]+)\/review$/;
-
-const err = (code: string, message: string, status: number): TransportResponse => ({ status, json: { code, message } });
-const ok = (json: unknown): TransportResponse => ({ status: 200, json });
-const noContent: TransportResponse = { status: 204, json: null };
 
 export class MockTransport implements Transport {
   onOtpGenerated?: (phone: string, code: string) => void;
@@ -40,11 +29,17 @@ export class MockTransport implements Transport {
   private offset = 0; // test-only skew added to the wall clock
   /** The mock clock: the wall clock plus whatever advanceTime() added. */
   get now() { return Date.now() + this.offset; }
-  private otps: MockOtp[] = [];
-  private refreshes: MockRefresh[] = [];
   private users = new Map<string, User>();
-  private accessTokens = new Map<string, string>(); // access token → user id
   private seq = 0;
+  private auth = new MockAuth({
+    users: this.users,
+    newToken: (kind) => this.fakeToken(kind),
+    now: () => this.now,
+    onOtp: (phone, code) => {
+      this.lastOtp = { phone, code };
+      this.onOtpGenerated?.(phone, code);
+    },
+  });
   private bookings: MockBookings = new MockBookings({
     artists: this.artists,
     userById: (id) => [...this.users.values()].find((u) => u.id === id),
@@ -138,9 +133,8 @@ export class MockTransport implements Transport {
     const { path, query } = parseQuery(fullPath);
     const data = (body ?? {}) as Record<string, string>;
     const payload = (body ?? {}) as Record<string, unknown>;
-    if (path === '/auth/otp/request') return this.otpRequest(data.phone ?? '');
-    if (path === '/auth/otp/verify') return this.otpVerify(data.phone ?? '', data.code ?? '');
-    if (path === '/auth/refresh') return this.refresh(data.refresh_token ?? '');
+    const auth = this.auth.handle(path, data);
+    if (auth) return auth;
     if (method === 'GET' && path === '/categories') return ok(CATALOG);
     if (method === 'GET' && path === '/cities') return ok(CITIES);
     if (path === '/uploads/signature' || path.startsWith('/artists/me')) {
@@ -161,11 +155,10 @@ export class MockTransport implements Transport {
       if (review) return this.reviews.post(user, review[1], payload);
       return this.bookings.customer(user, method, path, query, payload);
     }
-    if (ACCOUNT_ROUTES.has(`${method} ${path}`)) {
+    if (isAccountRoute(method, path)) {
       const user = this.userFor(headers);
       if (!user) return err('auth_error', 'Authentication failed', 401);
-      if (path === '/users/me') return this.updateMe(user, payload);
-      return this.chooseRole(user, data.role);
+      return handleAccount(this.users, user, path, payload);
     }
     return err('not_found', `Mock has no handler for ${path}`, 404); // loud: contract drift surfaces, never silent
   }
@@ -178,83 +171,12 @@ export class MockTransport implements Transport {
     return this.reviews.artist(profile.id, method, path, query, payload);
   }
 
-  private otpRequest(phone: string): TransportResponse {
-    if (!PHONE_RE.test(phone)) return err('validation_error', 'phone must be E.164 format, e.g. +15550001111', 422);
-    const latest = [...this.otps].reverse().find((o) => o.phone === phone);
-    if (latest && this.now - latest.createdAt < RESEND_COOLDOWN_MS) {
-      return err('rate_limited', 'Please wait before requesting another code', 429);
-    }
-    for (const o of this.otps) if (o.phone === phone && !o.consumed) o.consumed = true;
-    const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
-    if (__DEV__) console.log('mock://otp', phone, code);
-    this.otps.push({ phone, code, createdAt: this.now, expiresAt: this.now + OTP_TTL_MS, attempts: 0, consumed: false });
-    this.lastOtp = { phone, code };
-    this.onOtpGenerated?.(phone, code);
-    return noContent;
-  }
-
-  private otpVerify(phone: string, code: string): TransportResponse {
-    const otp = [...this.otps].reverse().find((o) => o.phone === phone && !o.consumed && o.expiresAt > this.now);
-    if (!otp || otp.attempts >= MAX_ATTEMPTS) return err('auth_error', 'Invalid or expired code', 401);
-    if (otp.code !== code) { otp.attempts += 1; return err('auth_error', 'Invalid or expired code', 401); }
-    otp.consumed = true;
-    let user = this.users.get(phone);
-    if (!user) {  // JIT registration, same as backend verify_otp (seeded artists and customers already exist)
-      user = {
-        id: this.fakeToken('user'), phone, is_phone_verified: true, roles: [], active_role: null,
-        first_name: null, last_name: null, email: null, whatsapp_booking_updates: true, is_onboarded: false,
-      };
-      this.users.set(phone, user);
-    }
-    return ok(this.issuePair(user));
-  }
-
-  private refresh(token: string): TransportResponse {
-    const row = this.refreshes.find((r) => r.token === token);
-    if (!row || row.revoked || row.expiresAt < this.now) return err('auth_error', 'Refresh token expired or revoked', 401);
-    row.revoked = true; // rotation
-    const user = [...this.users.values()].find((u) => u.id === row.userId);
-    if (!user) return err('auth_error', 'Refresh token expired or revoked', 401);
-    return ok(this.issuePair(user));
-  }
-
   private userFor(headers?: Record<string, string>): User | undefined {
-    const id = this.accessTokens.get((headers?.Authorization ?? '').replace(/^Bearer /, ''));
-    return [...this.users.values()].find((u) => u.id === id);
+    return this.auth.userFor(headers);
   }
 
   private save(user: User): User {
     this.users.set(user.phone, user);
     return user;
-  }
-
-  private updateMe(user: User, b: Record<string, unknown>): TransportResponse {
-    const email = typeof b.email === 'string' && b.email.trim() ? b.email.trim() : null;
-    if (typeof b.first_name !== 'string' || !b.first_name.trim()) return err('validation_error', 'first_name is required', 422);
-    if (email && !EMAIL_RE.test(email)) return err('validation_error', 'email is not a valid address', 422);
-    const taken = email && [...this.users.values()].some((u) => u.id !== user.id && u.email?.toLowerCase() === email.toLowerCase());
-    if (taken) return err('conflict', 'That email is already in use', 409);
-    return ok(this.save({
-      ...user,
-      first_name: b.first_name.trim(),
-      last_name: typeof b.last_name === 'string' && b.last_name.trim() ? b.last_name.trim() : null,
-      email,
-      whatsapp_booking_updates: b.whatsapp_booking_updates !== false,
-    }));
-  }
-
-  /** Same rules as backend UserService.choose_role: grant the role if new, then show that side (also "switch side"). */
-  private chooseRole(user: User, role: string | undefined): TransportResponse {
-    if (role !== 'customer' && role !== 'artist') return err('validation_error', 'role must be customer or artist', 422);
-    const roles = ROLE_ORDER.filter((r) => r === role || user.roles.includes(r));
-    return ok(this.save({ ...user, roles, active_role: role, is_onboarded: true }));
-  }
-
-  private issuePair(user: User): TokenPair {
-    const refreshToken = this.fakeToken('refresh');
-    this.refreshes.push({ token: refreshToken, userId: user.id, expiresAt: this.now + REFRESH_TTL_MS, revoked: false });
-    const accessToken = this.fakeToken('access');
-    this.accessTokens.set(accessToken, user.id);
-    return { access_token: accessToken, refresh_token: refreshToken, token_type: 'bearer', user };
   }
 }

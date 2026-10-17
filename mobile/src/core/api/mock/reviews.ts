@@ -1,4 +1,5 @@
-import type { ArtistReview, BookingReview, PostedReview, Review, ReviewFlag, ReviewStatus, ReviewSummary, User } from '../types';
+import type { ArtistReview, BookingReview, PostedReview, Review, ReviewFlag, ReviewStatus, ReviewSummary } from '../types';
+import type { User } from '../../../features/auth/types';
 import type { TransportResponse } from '../transport';
 import type { MockBooking } from './bookings';
 import { reviewFlag } from '../../../reviews/filter';

@@ -7,7 +7,7 @@ import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
 import { OtpInput } from '../../src/core/components/OtpInput';
 import { formatPhone } from '../../src/core/components/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth, useMockOtpListener } from '../../src/auth/auth-provider';
+import { useAuth, useMockOtpListener } from '../../src/features/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 

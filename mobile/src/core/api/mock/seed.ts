@@ -1,4 +1,5 @@
-import type { BookingStatus, User } from '../types';
+import type { BookingStatus } from '../types';
+import type { User } from '../../../features/auth/types';
 import type { MockArtists, MockProfile } from './artist';
 import type { MockBookings, MockBooking } from './bookings';
 import type { MockReviews, SeedReview } from './reviews';

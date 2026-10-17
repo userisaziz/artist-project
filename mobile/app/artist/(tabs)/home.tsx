@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from '../../../src/core/components/AppText';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/auth/auth-provider';
+import { useAuth } from '../../../src/features/auth/auth-provider';
 import { useArtistBookings, useArtistDashboard } from '../../../src/bookings/queries';
 import { formatLongDay, greeting, istDateKey } from '../../../src/core/lib/time';
 import { useNow } from '../../../src/core/hooks/use-now';

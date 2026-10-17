@@ -1,5 +1,5 @@
 import { request } from '../../core/api/client';
-import type { TokenPair } from '../../core/api/types';
+import type { TokenPair } from './types';
 
 // Mirrors the backend contract table (spec §3) — keep paths/statuses in lockstep with backend plan Tasks 3–4.
 export function requestOtp(phone: string) {
