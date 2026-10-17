@@ -16,8 +16,7 @@ from app.booking.service import busy_ranges
 from app.catalog.models import Category, ServiceTemplate
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.review.service import ratings_for
-from app.schemas.directory import (
+from app.directory.schemas import (
     ArtistCard,
     ArtistPublic,
     AvailabilityOut,
@@ -25,6 +24,7 @@ from app.schemas.directory import (
     PublicService,
     Slot,
 )
+from app.review.service import ratings_for
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
