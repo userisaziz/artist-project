@@ -1,3 +1,5 @@
+# Runtime dependencies (ranges). Exact, tested versions are pinned in requirements.lock:
+# install with `pip install -r requirements.lock`; regenerate it when this file changes (see README).
 fastapi>=0.115
 uvicorn[standard]>=0.30
 sqlalchemy[asyncio]>=2.0.36
@@ -8,7 +10,4 @@ pydantic-settings>=2.6
 email-validator>=2.2
 PyJWT>=2.10
 httpx>=0.27
-pytest>=8.3
-pytest-asyncio>=0.26
-ruff>=0.8
 cryptography>=43

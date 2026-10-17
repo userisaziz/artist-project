@@ -1,0 +1,6 @@
+# Test and lint tools on top of the runtime lock.
+-r requirements.lock
+pytest>=8.3
+pytest-asyncio>=0.26
+pytest-cov>=6.0
+ruff>=0.8

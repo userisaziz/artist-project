@@ -1,0 +1,12 @@
+# Coverage gate for `pytest --cov=app` (CI runs it; locally: .venv/bin/pytest --cov=app).
+[run]
+branch = true
+source = app
+
+[report]
+fail_under = 90
+skip_empty = true
+exclude_also =
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    \.\.\.$
