@@ -40,16 +40,20 @@ class DirectoryService:
         cover = profile.photos[0].storage_key if profile.photos else None
         rating, review_count = ratings.get(profile.id, (None, 0))
         return {
-            "rating": rating, "review_count": review_count,
-            "id": profile.id, "business_name": profile.business_name, "city": profile.city,
+            "rating": rating,
+            "review_count": review_count,
+            "id": profile.id,
+            "business_name": profile.business_name,
+            "city": profile.city,
             "photo_url": self.storage.url(profile.photo_key, "card") if profile.photo_key else None,
             "cover_url": self.storage.url(cover, "card") if cover else None,
             "categories": [{"id": c.id, "name": c.name} for c in profile.categories],
             "from_price_paise": min(prices) if prices else None,
         }
 
-    async def list(self, city: str | None, category_id: int | None, q: str | None,
-                   limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
+    async def list(
+        self, city: str | None, category_id: int | None, q: str | None, limit: int, cursor: str | None
+    ) -> tuple[list[dict], str | None]:
         """Most recently approved first; keyset paging on (approved-at, id). The public cards never need KYC."""
         query = (
             select(ArtistProfile, LISTED_AT)
@@ -59,32 +63,44 @@ class DirectoryService:
         if city:
             query = query.where(ArtistProfile.city == city)
         if category_id is not None:
-            query = query.where(ArtistProfile.id.in_(
-                select(artist_categories.c.artist_id).where(artist_categories.c.category_id == category_id)
-            ))
+            query = query.where(
+                ArtistProfile.id.in_(
+                    select(artist_categories.c.artist_id).where(artist_categories.c.category_id == category_id)
+                )
+            )
         if q and q.strip():
             pattern = like_pattern(q)
             offers_it = (
                 select(ArtistServiceItem.artist_id)
                 .outerjoin(ServiceTemplate, ServiceTemplate.id == ArtistServiceItem.template_id)
-                .where(ArtistServiceItem.status == ArtistServiceStatus.approved, or_(
-                    ArtistServiceItem.name.ilike(pattern, escape="\\"), ServiceTemplate.name.ilike(pattern, escape="\\"),
-                ))
+                .where(
+                    ArtistServiceItem.status == ArtistServiceStatus.approved,
+                    or_(
+                        ArtistServiceItem.name.ilike(pattern, escape="\\"),
+                        ServiceTemplate.name.ilike(pattern, escape="\\"),
+                    ),
+                )
             )
-            query = query.where(or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it)))
-        rows = (await self.session.execute(
-            keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
-        )).all()
+            query = query.where(
+                or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it))
+            )
+        rows = (
+            await self.session.execute(
+                keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
+            )
+        ).all()
         page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
         ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
         return [self._card_fields(profile, ratings) for profile, _ in page], next_cursor
 
     async def _approved(self, artist_id: uuid.UUID) -> ArtistProfile:
-        profile = (await self.session.execute(
-            select(ArtistProfile)
-            .where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
-            .options(raiseload(ArtistProfile.kyc))
-        )).scalar_one_or_none()
+        profile = (
+            await self.session.execute(
+                select(ArtistProfile)
+                .where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
+                .options(raiseload(ArtistProfile.kyc))
+            )
+        ).scalar_one_or_none()
         if profile is None:
             raise NotFoundError("Artist not found")
         return profile
@@ -93,12 +109,20 @@ class DirectoryService:
         profile = await self._approved(artist_id)
         services = _bookable(profile.services)
         # Each service points at a subcategory (or, for older rows, straight at a top-level category).
-        own = {c.id: c for c in (await self.session.execute(
-            select(Category).where(Category.id.in_({s.category_id for s in services}))
-        )).scalars()}
-        parents = {c.id: c for c in (await self.session.execute(
-            select(Category).where(Category.id.in_({c.parent_id for c in own.values() if c.parent_id}))
-        )).scalars()}
+        own = {
+            c.id: c
+            for c in (
+                await self.session.execute(select(Category).where(Category.id.in_({s.category_id for s in services})))
+            ).scalars()
+        }
+        parents = {
+            c.id: c
+            for c in (
+                await self.session.execute(
+                    select(Category).where(Category.id.in_({c.parent_id for c in own.values() if c.parent_id}))
+                )
+            ).scalars()
+        }
 
         def refs(category_id: int) -> tuple[dict | None, dict | None]:
             cat = own.get(category_id)
@@ -109,22 +133,34 @@ class DirectoryService:
             parent = parents[cat.parent_id]
             return ({"id": parent.id, "name": parent.name}, {"id": cat.id, "name": cat.name})
 
-        completed = (await self.session.execute(
-            select(func.count()).select_from(Booking).where(
-                Booking.artist_id == profile.id, Booking.status == BookingStatus.completed
+        completed = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(Booking)
+                .where(Booking.artist_id == profile.id, Booking.status == BookingStatus.completed)
             )
-        )).scalar_one()
+        ).scalar_one()
         return {
             **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
             "bio": profile.bio,
             "photos": [
-                {"id": p.id, "url": self.storage.url(p.storage_key, "full"),
-                 "thumb_url": self.storage.url(p.storage_key, "thumb")} for p in profile.photos
+                {
+                    "id": p.id,
+                    "url": self.storage.url(p.storage_key, "full"),
+                    "thumb_url": self.storage.url(p.storage_key, "thumb"),
+                }
+                for p in profile.photos
             ],
             "services": [
-                {"id": s.id, "name": s.display_name, "description": s.description, "price_paise": s.price_paise,
-                 "duration_minutes": s.duration_minutes, "category": refs(s.category_id)[0],
-                 "subcategory": refs(s.category_id)[1]}
+                {
+                    "id": s.id,
+                    "name": s.display_name,
+                    "description": s.description,
+                    "price_paise": s.price_paise,
+                    "duration_minutes": s.duration_minutes,
+                    "category": refs(s.category_id)[0],
+                    "subcategory": refs(s.category_id)[1],
+                }
                 for s in services
             ],
             "member_since": profile.reviewed_at,
@@ -141,11 +177,17 @@ class DirectoryService:
         length = timedelta(minutes=service.duration_minutes)
         starts = rules.slot_starts(day)
         busy = await busy_ranges(self.session, profile.id, starts[0], starts[-1] + length)
-        return {"date": day, "slots": [
-            {"start_at": s, "available": rules.is_after_lead_time(s, now)
-             and not any(b_start < s + length and b_end > s for b_start, b_end in busy)}
-            for s in starts
-        ]}
+        return {
+            "date": day,
+            "slots": [
+                {
+                    "start_at": s,
+                    "available": rules.is_after_lead_time(s, now)
+                    and not any(b_start < s + length and b_end > s for b_start, b_end in busy),
+                }
+                for s in starts
+            ],
+        }
 
 
 def get_directory_service(

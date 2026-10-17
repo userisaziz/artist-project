@@ -20,7 +20,9 @@ class AdminArtistService:
         self.artists = ArtistRepository(session)
         self.users = UserRepository(session)
 
-    async def list(self, status: ArtistStatus, limit: int, cursor: str | None) -> tuple[list[ArtistProfile], str | None]:
+    async def list(
+        self, status: ArtistStatus, limit: int, cursor: str | None
+    ) -> tuple[list[ArtistProfile], str | None]:
         """Oldest submission first; keyset paging on (submitted_at, id) so new submissions never shift pages."""
         return await self.artists.page_by_status(status, limit, cursor)
 
@@ -31,7 +33,9 @@ class AdminArtistService:
         owner = await self.users.get(profile.user_id)
         return profile, owner
 
-    async def _decide(self, admin: User, artist_id: uuid.UUID, status: ArtistStatus, reason: str | None) -> tuple[ArtistProfile, User]:
+    async def _decide(
+        self, admin: User, artist_id: uuid.UUID, status: ArtistStatus, reason: str | None
+    ) -> tuple[ArtistProfile, User]:
         profile, owner = await self.get(artist_id)
         if profile.status != ArtistStatus.pending:
             raise ConflictError(f"Profile is {profile.status.value}, not pending")

@@ -94,16 +94,18 @@ async def list_custom_services(
     return AdminCustomServicePage(items=[custom_service_out(row) for row in items], next_cursor=next_cursor)
 
 
-@router.post("/custom-services/{service_id}/approve", response_model=AdminCustomServiceOut,
-             dependencies=[Depends(current_admin)])
+@router.post(
+    "/custom-services/{service_id}/approve", response_model=AdminCustomServiceOut, dependencies=[Depends(current_admin)]
+)
 async def approve_custom_service(
     service_id: uuid.UUID, review: CustomServiceReview = Depends(get_custom_service_review)
 ) -> AdminCustomServiceOut:
     return custom_service_out(await review.approve(service_id))
 
 
-@router.post("/custom-services/{service_id}/reject", response_model=AdminCustomServiceOut,
-             dependencies=[Depends(current_admin)])
+@router.post(
+    "/custom-services/{service_id}/reject", response_model=AdminCustomServiceOut, dependencies=[Depends(current_admin)]
+)
 async def reject_custom_service(
     service_id: uuid.UUID, body: RejectIn, review: CustomServiceReview = Depends(get_custom_service_review)
 ) -> AdminCustomServiceOut:

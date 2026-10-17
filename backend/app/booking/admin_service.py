@@ -32,11 +32,13 @@ class AdminBookingService(BookingService):
             query = query.where(Booking.status == status)
         if q and q.strip():
             pattern = like_pattern(q)
-            query = query.where(or_(
-                Booking.code.ilike(pattern, escape="\\"),
-                User.phone.ilike(pattern, escape="\\"),
-                ArtistProfile.business_name.ilike(pattern, escape="\\"),
-            ))
+            query = query.where(
+                or_(
+                    Booking.code.ilike(pattern, escape="\\"),
+                    User.phone.ilike(pattern, escape="\\"),
+                    ArtistProfile.business_name.ilike(pattern, escape="\\"),
+                )
+            )
         return await self.page(query, Booking.created_at, True, limit, cursor, view="admin")
 
     async def get(self, booking_id: uuid.UUID) -> dict:
@@ -60,11 +62,13 @@ class AdminBookingService(BookingService):
         await self.expire_overdue()
         now = clock.now()
         since = now - timedelta(days=30)
-        gross = (await self.session.execute(
-            select(func.coalesce(func.sum(Booking.total_paise), 0)).where(
-                Booking.created_at >= since, Booking.status.not_in((BookingStatus.declined, BookingStatus.expired))
+        gross = (
+            await self.session.execute(
+                select(func.coalesce(func.sum(Booking.total_paise), 0)).where(
+                    Booking.created_at >= since, Booking.status.not_in((BookingStatus.declined, BookingStatus.expired))
+                )
             )
-        )).scalar_one()
+        ).scalar_one()
         return {
             "gross_paise_30d": gross,
             "bookings_30d": await self._count(Booking, Booking.created_at >= since),
@@ -73,7 +77,8 @@ class AdminBookingService(BookingService):
             "cancelled_30d": await self._count(Booking, Booking.cancelled_at >= since),
             "pending_artists": await self._count(ArtistProfile, ArtistProfile.status == ArtistStatus.pending),
             "pending_custom_services": await self._count(
-                ArtistServiceItem, ArtistServiceItem.template_id.is_(None),
+                ArtistServiceItem,
+                ArtistServiceItem.template_id.is_(None),
                 ArtistServiceItem.status == ArtistServiceStatus.pending,
             ),
             "flagged_reviews": await self._count(Review, needs_moderation()),

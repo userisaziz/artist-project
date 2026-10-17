@@ -29,7 +29,9 @@ async def kyc_body(client, headers, number="234123412346") -> dict:
 async def test_save_kyc_encrypts_and_returns_only_last4(client, engine):
     headers = await sign_in(client, PHONE)
     await complete_profile(client, headers, kyc=False)
-    response = await client.put("/api/v1/artists/me/kyc", headers=headers, json=await kyc_body(client, headers, "2341 2341 2346"))
+    response = await client.put(
+        "/api/v1/artists/me/kyc", headers=headers, json=await kyc_body(client, headers, "2341 2341 2346")
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["kyc"] == {"aadhaar_last4": "2346"}
@@ -46,7 +48,9 @@ async def test_save_kyc_encrypts_and_returns_only_last4(client, engine):
 async def test_kyc_rejects_bad_numbers_and_keys(client):
     headers = await sign_in(client, PHONE)
     await complete_profile(client, headers, kyc=False)
-    bad = await client.put("/api/v1/artists/me/kyc", headers=headers, json=await kyc_body(client, headers, "234123412347"))
+    bad = await client.put(
+        "/api/v1/artists/me/kyc", headers=headers, json=await kyc_body(client, headers, "234123412347")
+    )
     assert bad.status_code == 422
     assert bad.json() == {"code": "validation_error", "message": "Invalid Aadhaar number"}
 

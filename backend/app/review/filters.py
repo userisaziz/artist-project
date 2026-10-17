@@ -7,12 +7,16 @@ from app.core.config import get_settings
 
 # Phone-shaped groups only, so dates ("15-10-2026 11:00") and lists of prices don't trip the filter.
 CONTACT_PATTERNS = (
-    re.compile(r"(?<![\d-])(?:\+?91[\s.-]?)?\(?[6-9]\d{4}\)?[\s.-]?\d{5}(?!\d)"),  # Indian mobiles: 98450 67890, (98450) 12345
+    re.compile(
+        r"(?<![\d-])(?:\+?91[\s.-]?)?\(?[6-9]\d{4}\)?[\s.-]?\d{5}(?!\d)"
+    ),  # Indian mobiles: 98450 67890, (98450) 12345
     re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}\b"),  # other 3-3-4 numbers: (555) 123-4567
     re.compile(r"\d{10,}"),  # any long unbroken digit run
     re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"),  # emails
     re.compile(r"(?<![\w.])@[A-Za-z0-9_.]{2,}"),  # @handles
-    re.compile(r"https?://|\bwww\.|\b[\w-]+\.(?:com|in|me|co|net|org|io|app|link)\b", re.IGNORECASE),  # links, bare domains
+    re.compile(
+        r"https?://|\bwww\.|\b[\w-]+\.(?:com|in|me|co|net|org|io|app|link)\b", re.IGNORECASE
+    ),  # links, bare domains
 )
 
 

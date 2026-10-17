@@ -66,8 +66,11 @@ class ArtistService:
         wanted = set(ids)
         kept = {c.id for c in current}
         found = await self.categories.top_level_by_ids(wanted)
-        allowed = [c for c in found
-                   if c.status == CategoryStatus.active or (c.status == CategoryStatus.inactive and c.id in kept)]
+        allowed = [
+            c
+            for c in found
+            if c.status == CategoryStatus.active or (c.status == CategoryStatus.inactive and c.id in kept)
+        ]
         if len(allowed) != len(wanted):
             raise ValidationError("Unknown category")
         return sorted(allowed, key=lambda c: c.sort_order)
@@ -81,7 +84,9 @@ class ArtistService:
         categories = await self._categories(body.category_ids, profile.categories if profile else [])
         if profile is None:
             # Empty collections up front: a new object has nothing loaded, and async can't lazy-load later.
-            profile = ArtistProfile(user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[], kyc=None)
+            profile = ArtistProfile(
+                user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[], kyc=None
+            )
             self.artists.add(profile)
         elif profile.status not in EDITABLE:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
@@ -105,8 +110,13 @@ class ArtistService:
         template = await self.templates.get(template_id)
         subcategory = await self.categories.get(template.subcategory_id) if template else None
         parent = await self.categories.get(subcategory.parent_id) if subcategory and subcategory.parent_id else None
-        if not (template and template.is_active and subcategory.status == CategoryStatus.active
-                and parent and parent.status == CategoryStatus.active):
+        if not (
+            template
+            and template.is_active
+            and subcategory.status == CategoryStatus.active
+            and parent
+            and parent.status == CategoryStatus.active
+        ):
             raise ValidationError("Unknown service")
         if parent.id not in {c.id for c in profile.categories}:
             raise ValidationError("Pick that category on your profile first")
@@ -117,15 +127,17 @@ class ArtistService:
         template = await self._template(profile, body.template_id)
         if any(s.template_id == template.id for s in profile.services):
             raise ConflictError("You've already added this service")
-        profile.services.append(ArtistServiceItem(
-            template=template,
-            category_id=template.subcategory_id,
-            price_paise=body.price_paise,
-            duration_minutes=body.duration_minutes,
-            description=body.description,
-            status=ArtistServiceStatus.approved,
-            sort_order=self._next_service_order(profile),
-        ))
+        profile.services.append(
+            ArtistServiceItem(
+                template=template,
+                category_id=template.subcategory_id,
+                price_paise=body.price_paise,
+                duration_minutes=body.duration_minutes,
+                description=body.description,
+                status=ArtistServiceStatus.approved,
+                sort_order=self._next_service_order(profile),
+            )
+        )
         await self.session.flush()
         return profile
 
@@ -162,7 +174,12 @@ class ArtistService:
     async def _subcategory(self, subcategory_id: int) -> Category:
         subcategory = await self.categories.get(subcategory_id)
         parent = await self.categories.get(subcategory.parent_id) if subcategory and subcategory.parent_id else None
-        if not (subcategory and subcategory.status == CategoryStatus.active and parent and parent.status == CategoryStatus.active):
+        if not (
+            subcategory
+            and subcategory.status == CategoryStatus.active
+            and parent
+            and parent.status == CategoryStatus.active
+        ):
             raise ValidationError("Unknown subcategory")
         return subcategory
 
@@ -178,15 +195,17 @@ class ArtistService:
         name = body.name.strip()
         if not name:
             raise ValidationError("Name is required")
-        profile.services.append(ArtistServiceItem(
-            category_id=body.subcategory_id,
-            name=name,
-            price_paise=body.price_paise,
-            duration_minutes=body.duration_minutes,
-            description=body.description,
-            status=ArtistServiceStatus.pending,
-            sort_order=self._next_service_order(profile),
-        ))
+        profile.services.append(
+            ArtistServiceItem(
+                category_id=body.subcategory_id,
+                name=name,
+                price_paise=body.price_paise,
+                duration_minutes=body.duration_minutes,
+                description=body.description,
+                status=ArtistServiceStatus.pending,
+                sort_order=self._next_service_order(profile),
+            )
+        )
         await self.session.flush()
         return profile
 
@@ -226,10 +245,14 @@ class ArtistService:
             raise ConflictError("Photo already added")
         if len(profile.photos) >= MAX_PHOTOS:
             raise ValidationError(f"A portfolio holds at most {MAX_PHOTOS} photos")
-        profile.photos.append(PortfolioPhoto(
-            storage_key=body.key, width=body.width, height=body.height,
-            sort_order=max((p.sort_order for p in profile.photos), default=-1) + 1,
-        ))
+        profile.photos.append(
+            PortfolioPhoto(
+                storage_key=body.key,
+                width=body.width,
+                height=body.height,
+                sort_order=max((p.sort_order for p in profile.photos), default=-1) + 1,
+            )
+        )
         await self.session.flush()
         return profile
 
@@ -266,8 +289,12 @@ class ArtistService:
         if body.front_key == body.back_key:
             raise ValidationError("Front and back must be different photos")
 
-        fields = {"aadhaar_encrypted": encrypt_aadhaar(number), "aadhaar_last4": number[-4:],
-                  "front_key": body.front_key, "back_key": body.back_key}
+        fields = {
+            "aadhaar_encrypted": encrypt_aadhaar(number),
+            "aadhaar_last4": number[-4:],
+            "front_key": body.front_key,
+            "back_key": body.back_key,
+        }
         stale: list[str] = []
         if profile.kyc is None:
             profile.kyc = ArtistKyc(**fields)

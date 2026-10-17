@@ -44,10 +44,16 @@ async def test_save_profile_creates_a_draft_and_returns_urls(client):
     headers = await sign_in(client, ARTIST_PHONE)
     cats = await categories(client)
     photo_key = await upload_key(client, headers, "artist_photo")
-    response = await client.put("/api/v1/artists/me/profile", headers=headers, json={
-        "business_name": "  Ayesha Mehendi Art ", "city": "Bangalore",
-        "category_ids": [cats["makeup"], cats["mehendi"]], "photo_key": photo_key,
-    })
+    response = await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={
+            "business_name": "  Ayesha Mehendi Art ",
+            "city": "Bangalore",
+            "category_ids": [cats["makeup"], cats["mehendi"]],
+            "photo_key": photo_key,
+        },
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "draft"
@@ -61,9 +67,12 @@ async def test_profile_rejects_unknown_city_category_and_foreign_keys(client):
     headers = await sign_in(client, ARTIST_PHONE)
     cats = await categories(client)
     base = {"business_name": "A", "city": "Bangalore", "category_ids": [cats["mehendi"]]}
-    for patch in ({"city": "Atlantis"}, {"category_ids": [9999]},
-                  {"photo_key": f"artists/{uuid.uuid4()}/artist_photo/{'a' * 20}"},  # someone else's folder
-                  {"photo_key": await upload_key(client, headers, "portfolio")}):    # wrong purpose
+    for patch in (
+        {"city": "Atlantis"},
+        {"category_ids": [9999]},
+        {"photo_key": f"artists/{uuid.uuid4()}/artist_photo/{'a' * 20}"},  # someone else's folder
+        {"photo_key": await upload_key(client, headers, "portfolio")},
+    ):  # wrong purpose
         response = await client.put("/api/v1/artists/me/profile", headers=headers, json={**base, **patch})
         assert response.status_code == 422, patch
         assert response.json()["code"] == "validation_error"
@@ -73,12 +82,23 @@ async def test_profile_accepts_top_level_categories_only(client, engine):
     headers = await sign_in(client, ARTIST_PHONE)
     cats = await categories(client)
     async with engine.begin() as conn:
-        sub_id = (await conn.execute(text(
-            "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
-        ), {"p": cats["mehendi"]})).scalar_one()
-    response = await client.put("/api/v1/artists/me/profile", headers=headers, json={
-        "business_name": "A", "city": "Bangalore", "category_ids": [sub_id],
-    })
+        sub_id = (
+            await conn.execute(
+                text(
+                    "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
+                ),
+                {"p": cats["mehendi"]},
+            )
+        ).scalar_one()
+    response = await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={
+            "business_name": "A",
+            "city": "Bangalore",
+            "category_ids": [sub_id],
+        },
+    )
     assert response.status_code == 422
     assert response.json()["message"] == "Unknown category"
 
@@ -96,27 +116,51 @@ async def test_changing_the_profile_photo_deletes_the_old_one(client):
 async def test_service_crud(client):
     headers = await sign_in(client, ARTIST_PHONE)
     cats, tpl = await categories(client), await templates(client)
-    await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "A", "city": "Pune", "category_ids": [cats["makeup"]]})
-    added = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "template_id": tpl["Party Makeup"], "price_paise": 300000, "duration_minutes": 90,
-    })
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Pune", "category_ids": [cats["makeup"]]},
+    )
+    added = await client.post(
+        "/api/v1/artists/me/services",
+        headers=headers,
+        json={
+            "template_id": tpl["Party Makeup"],
+            "price_paise": 300000,
+            "duration_minutes": 90,
+        },
+    )
     assert added.status_code == 201
     service = added.json()["services"][0]
     assert service | {"id": None, "category_id": None, "subcategory_id": None} == {
-        "id": None, "category_id": None, "subcategory_id": None, "template_id": tpl["Party Makeup"],
-        "name": "Party Makeup", "price_paise": 300000, "duration_minutes": 90, "description": None,
-        "status": "approved", "rejection_reason": None,
+        "id": None,
+        "category_id": None,
+        "subcategory_id": None,
+        "template_id": tpl["Party Makeup"],
+        "name": "Party Makeup",
+        "price_paise": 300000,
+        "duration_minutes": 90,
+        "description": None,
+        "status": "approved",
+        "rejection_reason": None,
     }
     assert service["subcategory_id"] == service["category_id"] != cats["makeup"]  # stored on the subcategory
 
-    patched = await client.patch(f"/api/v1/artists/me/services/{service['id']}", headers=headers,
-                                 json={"price_paise": 350000, "name": "Renamed"})  # the name isn't editable
+    patched = await client.patch(
+        f"/api/v1/artists/me/services/{service['id']}", headers=headers, json={"price_paise": 350000, "name": "Renamed"}
+    )  # the name isn't editable
     assert patched.json()["services"][0]["price_paise"] == 350000
     assert patched.json()["services"][0]["name"] == "Party Makeup"
 
-    free = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "template_id": tpl["Party Makeup"], "price_paise": 0, "duration_minutes": 30,
-    })
+    free = await client.post(
+        "/api/v1/artists/me/services",
+        headers=headers,
+        json={
+            "template_id": tpl["Party Makeup"],
+            "price_paise": 0,
+            "duration_minutes": 30,
+        },
+    )
     assert free.status_code == 422
 
     missing = await client.delete(f"/api/v1/artists/me/services/{uuid.uuid4()}", headers=headers)
@@ -128,16 +172,26 @@ async def test_service_crud(client):
 async def test_services_need_a_profile_first(client):
     headers = await sign_in(client, ARTIST_PHONE)
     tpl = await templates(client)
-    response = await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "template_id": tpl["Party Makeup"], "price_paise": 100, "duration_minutes": 30,
-    })
+    response = await client.post(
+        "/api/v1/artists/me/services",
+        headers=headers,
+        json={
+            "template_id": tpl["Party Makeup"],
+            "price_paise": 100,
+            "duration_minutes": 30,
+        },
+    )
     assert response.status_code == 404
 
 
 async def test_services_come_from_the_admin_list(client, engine):
     headers = await sign_in(client, ARTIST_PHONE)
     cats, tpl = await categories(client), await templates(client)
-    await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]})
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]},
+    )
     url = "/api/v1/artists/me/services"
 
     def body(template_id: int) -> dict:
@@ -146,14 +200,21 @@ async def test_services_come_from_the_admin_list(client, engine):
     unknown = await client.post(url, headers=headers, json=body(999999))
     assert (unknown.status_code, unknown.json()["message"]) == (422, "Unknown service")
     other_category = await client.post(url, headers=headers, json=body(tpl["Party Makeup"]))
-    assert (other_category.status_code, other_category.json()["message"]) == (422, "Pick that category on your profile first")
+    assert (other_category.status_code, other_category.json()["message"]) == (
+        422,
+        "Pick that category on your profile first",
+    )
     assert (await client.post(url, headers=headers, json=body(tpl["Bridal Classic"]))).status_code == 201
     again = await client.post(url, headers=headers, json=body(tpl["Bridal Classic"]))
     assert (again.status_code, again.json()["code"]) == (409, "conflict")
 
     async with engine.begin() as conn:  # the admin renames one template and hides another
-        await conn.execute(text("UPDATE service_templates SET name = 'Bridal Royal' WHERE id = :i"), {"i": tpl["Bridal Classic"]})
-        await conn.execute(text("UPDATE service_templates SET is_active = false WHERE id = :i"), {"i": tpl["Bridal Full Arms"]})
+        await conn.execute(
+            text("UPDATE service_templates SET name = 'Bridal Royal' WHERE id = :i"), {"i": tpl["Bridal Classic"]}
+        )
+        await conn.execute(
+            text("UPDATE service_templates SET is_active = false WHERE id = :i"), {"i": tpl["Bridal Full Arms"]}
+        )
     mine = (await client.get("/api/v1/artists/me", headers=headers)).json()
     assert [s["name"] for s in mine["services"]] == ["Bridal Royal"]
     hidden = await client.post(url, headers=headers, json=body(tpl["Bridal Full Arms"]))
@@ -176,14 +237,20 @@ async def test_photos_add_reorder_delete(client):
     assert [p["id"] for p in after.json()["photos"]] == [ids[2], ids[0]]
     assert removed_key in FakeStorage.deleted
 
-    dupe = await client.post("/api/v1/artists/me/photos", headers=headers, json={"key": body["photos"][0]["key"], "width": 1, "height": 1})
+    dupe = await client.post(
+        "/api/v1/artists/me/photos", headers=headers, json={"key": body["photos"][0]["key"], "width": 1, "height": 1}
+    )
     assert dupe.status_code == 409
 
 
 async def test_submit_lists_what_is_missing(client):
     headers = await sign_in(client, ARTIST_PHONE)
     cats = await categories(client)
-    await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "A", "city": "Pune", "category_ids": [cats["decor"]]})
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Pune", "category_ids": [cats["decor"]]},
+    )
     response = await client.post("/api/v1/artists/me/submit", headers=headers)
     assert response.status_code == 422
     assert response.json()["code"] == "validation_error"
@@ -200,7 +267,11 @@ async def test_submit_moves_to_pending_and_locks_edits(client):
     assert submitted.json()["submitted_at"] is not None
 
     cats = await categories(client)
-    locked = await client.put("/api/v1/artists/me/profile", headers=headers, json={"business_name": "B", "city": "Pune", "category_ids": [cats["decor"]]})
+    locked = await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "B", "city": "Pune", "category_ids": [cats["decor"]]},
+    )
     assert locked.status_code == 409
     assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 409
 
@@ -218,5 +289,7 @@ async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(c
     newcomer = await sign_in(client, "+919845011119")
     inactive = await client.put("/api/v1/artists/me/profile", headers=newcomer, json=body)
     assert (inactive.status_code, inactive.json()["message"]) == (422, "Unknown category")
-    draft = await client.put("/api/v1/artists/me/profile", headers=headers, json={**body, "category_ids": [cats["mehendi"], cats["hair"]]})
+    draft = await client.put(
+        "/api/v1/artists/me/profile", headers=headers, json={**body, "category_ids": [cats["mehendi"], cats["hair"]]}
+    )
     assert draft.status_code == 422

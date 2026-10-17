@@ -28,7 +28,9 @@ async def list_categories(service: CategoryService = Depends(get_category_servic
 
 
 @router.post("/categories", response_model=AdminCategoryOut, status_code=201)
-async def create_category(body: CategoryIn, service: CategoryService = Depends(get_category_service)) -> AdminCategoryOut:
+async def create_category(
+    body: CategoryIn, service: CategoryService = Depends(get_category_service)
+) -> AdminCategoryOut:
     return category_out(await service.create(body))
 
 

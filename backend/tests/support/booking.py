@@ -14,10 +14,17 @@ def at(when: str, hours: float = 0):
 
 
 async def book(client, customer: dict, artist: dict, start: str | None = None, **extra):
-    return await client.post("/api/v1/bookings", headers=customer, json={
-        "artist_id": artist["id"], "service_id": artist["service_id"], "start_at": start or slot(),
-        "address": "12 1st Block, Koramangala", **extra,
-    })
+    return await client.post(
+        "/api/v1/bookings",
+        headers=customer,
+        json={
+            "artist_id": artist["id"],
+            "service_id": artist["service_id"],
+            "start_at": start or slot(),
+            "address": "12 1st Block, Koramangala",
+            **extra,
+        },
+    )
 
 
 async def setup(client, engine) -> tuple[dict, dict, dict]:

@@ -32,8 +32,17 @@ async def test_directory_lists_only_approved_artists(client, engine):
     assert card["categories"] == [{"id": (await categories(client))["mehendi"], "name": "Mehendi"}]
     assert card["cover_url"].startswith("https://fake.storage/card/")
     assert card["photo_url"].startswith("https://fake.storage/card/")
-    assert set(card) == {"id", "business_name", "city", "photo_url", "cover_url", "categories", "from_price_paise",
-                         "rating", "review_count"}
+    assert set(card) == {
+        "id",
+        "business_name",
+        "city",
+        "photo_url",
+        "cover_url",
+        "categories",
+        "from_price_paise",
+        "rating",
+        "review_count",
+    }
     assert (card["rating"], card["review_count"]) == (None, 0)
     assert body["next_cursor"] is None
 
@@ -65,9 +74,16 @@ async def test_artist_detail_shows_only_public_parts(client, engine):
     ayesha = await approved_artist(client, engine, "+919845081001", admin)
     cats = await categories(client)
     sub = next(c for c in (await client.get("/api/v1/categories")).json() if c["slug"] == "makeup")["subcategories"][0]
-    pending = await client.post("/api/v1/artists/me/custom-services", headers=ayesha["headers"], json={
-        "subcategory_id": sub["id"], "name": "Glitter add-on", "price_paise": 50000, "duration_minutes": 30,
-    })
+    pending = await client.post(
+        "/api/v1/artists/me/custom-services",
+        headers=ayesha["headers"],
+        json={
+            "subcategory_id": sub["id"],
+            "name": "Glitter add-on",
+            "price_paise": 50000,
+            "duration_minutes": 30,
+        },
+    )
     assert pending.status_code == 201
 
     detail = (await client.get(f"/api/v1/artists/{ayesha['id']}")).json()
@@ -90,13 +106,22 @@ async def test_availability_blocks_overlapping_slots(client, engine):
     admin = await admin_headers(client, engine)
     ayesha = await approved_artist(client, engine, "+919845081001", admin)
     customer = await sign_in(client, CUSTOMER_PHONE, role="customer")
-    booked = await client.post("/api/v1/bookings", headers=customer, json={
-        "artist_id": ayesha["id"], "service_id": ayesha["service_id"], "start_at": slot(5, 11), "address": "Koramangala",
-    })
+    booked = await client.post(
+        "/api/v1/bookings",
+        headers=customer,
+        json={
+            "artist_id": ayesha["id"],
+            "service_id": ayesha["service_id"],
+            "start_at": slot(5, 11),
+            "address": "Koramangala",
+        },
+    )
     assert booked.status_code == 201
 
     day = ist_day(5)
-    body = (await client.get(f"/api/v1/artists/{ayesha['id']}/availability?date={day}&service_id={ayesha['service_id']}")).json()
+    body = (
+        await client.get(f"/api/v1/artists/{ayesha['id']}/availability?date={day}&service_id={ayesha['service_id']}")
+    ).json()
     assert body["date"] == day.isoformat()
     hours = {datetime.fromisoformat(s["start_at"]).astimezone(IST).hour: s["available"] for s in body["slots"]}
     # A 3 h service: 09–12 and 10–13 run into the 11–14 booking; 14:00 onwards is free.
@@ -116,7 +141,9 @@ async def test_availability_respects_lead_time_and_range(client, engine, monkeyp
 
     assert (await client.get(url + (today - timedelta(days=1)).isoformat())).status_code == 422
     assert (await client.get(url + (today + timedelta(days=61)).isoformat())).status_code == 422
-    assert (await client.get(f"/api/v1/artists/{ayesha['id']}/availability?date={today}&service_id={uuid.uuid4()}")).status_code == 404
+    assert (
+        await client.get(f"/api/v1/artists/{ayesha['id']}/availability?date={today}&service_id={uuid.uuid4()}")
+    ).status_code == 404
 
 
 async def test_directory_hides_artists_and_services_admins_withdrew(client, engine):

@@ -54,8 +54,11 @@ class ServiceTemplateService:
         if sort_order is None:
             sort_order = await self.templates.next_sort_order(body.subcategory_id)
         template = ServiceTemplate(
-            subcategory_id=body.subcategory_id, name=name, description=body.description,
-            sort_order=sort_order, is_active=body.is_active,
+            subcategory_id=body.subcategory_id,
+            name=name,
+            description=body.description,
+            sort_order=sort_order,
+            is_active=body.is_active,
         )
         self.templates.add(template)
         await self.session.flush()

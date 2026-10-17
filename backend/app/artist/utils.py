@@ -27,17 +27,29 @@ from app.user.models import User
 
 def service_out(item: ArtistServiceItem) -> ServiceOut:
     return ServiceOut(
-        id=item.id, category_id=item.category_id, subcategory_id=item.category_id, template_id=item.template_id,
-        name=item.display_name, price_paise=item.price_paise, duration_minutes=item.duration_minutes,
-        description=item.description, status=item.status, rejection_reason=item.rejection_reason,
+        id=item.id,
+        category_id=item.category_id,
+        subcategory_id=item.category_id,
+        template_id=item.template_id,
+        name=item.display_name,
+        price_paise=item.price_paise,
+        duration_minutes=item.duration_minutes,
+        description=item.description,
+        status=item.status,
+        rejection_reason=item.rejection_reason,
     )
 
 
 def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> PhotoOut:
     key = photo.storage_key
     return PhotoOut(
-        id=photo.id, key=key, width=photo.width, height=photo.height,
-        thumb_url=storage.url(key, "thumb"), card_url=storage.url(key, "card"), full_url=storage.url(key, "full"),
+        id=photo.id,
+        key=key,
+        width=photo.width,
+        height=photo.height,
+        thumb_url=storage.url(key, "thumb"),
+        card_url=storage.url(key, "card"),
+        full_url=storage.url(key, "full"),
     )
 
 
@@ -92,10 +104,16 @@ def admin_detail_out(profile: ArtistProfile, owner: User, storage: ImageStorage)
 def custom_service_out(row: CustomServiceRow) -> AdminCustomServiceOut:
     item, business_name, subcategory, parent = row
     return AdminCustomServiceOut(
-        id=item.id, artist_id=item.artist_id, business_name=business_name,
+        id=item.id,
+        artist_id=item.artist_id,
+        business_name=business_name,
         category=NamedRef(id=parent.id, name=parent.name) if parent else None,
         subcategory=NamedRef(id=subcategory.id, name=subcategory.name),
-        name=item.name, price_paise=item.price_paise, duration_minutes=item.duration_minutes,
-        description=item.description, status=item.status, rejection_reason=item.rejection_reason,
+        name=item.name,
+        price_paise=item.price_paise,
+        duration_minutes=item.duration_minutes,
+        description=item.description,
+        status=item.status,
+        rejection_reason=item.rejection_reason,
         created_at=item.created_at,
     )

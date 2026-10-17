@@ -23,7 +23,9 @@ def test_cloudinary_upload_form_pins_the_key():
     assert form["key"].startswith(f"artists/{owner}/portfolio/")
     signed = {k: form["fields"][k] for k in ("public_id", "timestamp", "allowed_formats")}
     assert form["fields"]["signature"] == storage.sign(signed)
-    assert storage.url(form["key"], "thumb").startswith("https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,w_240")
+    assert storage.url(form["key"], "thumb").startswith(
+        "https://res.cloudinary.com/demo/image/upload/c_fill,g_auto,w_240"
+    )
 
 
 def test_owns_rejects_other_folders_and_tricks():

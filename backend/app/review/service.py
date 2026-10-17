@@ -52,8 +52,15 @@ class ReviewRow(NamedTuple):
 
 def rows_query() -> Select:
     return (
-        select(Review, Booking.service_name, Booking.code, User.first_name, User.last_name, User.phone,
-               ArtistProfile.business_name)
+        select(
+            Review,
+            Booking.service_name,
+            Booking.code,
+            User.first_name,
+            User.last_name,
+            User.phone,
+            ArtistProfile.business_name,
+        )
         .join(Booking, Booking.id == Review.booking_id)
         .join(User, User.id == Review.customer_id)
         .join(ArtistProfile, ArtistProfile.id == Review.artist_id)
@@ -64,8 +71,14 @@ def public_fields(row: ReviewRow) -> dict:
     """The public shape of a review, as a plain dict; routes' response_models finish the job."""
     r = row.review
     return {
-        "id": r.id, "rating": r.rating, "text": r.text, "reviewer_name": reviewer_name(row.first_name, row.last_name),
-        "service_name": row.service_name, "created_at": r.created_at, "reply": r.reply, "replied_at": r.replied_at,
+        "id": r.id,
+        "rating": r.rating,
+        "text": r.text,
+        "reviewer_name": reviewer_name(row.first_name, row.last_name),
+        "service_name": row.service_name,
+        "created_at": r.created_at,
+        "reply": r.reply,
+        "replied_at": r.replied_at,
     }
 
 
@@ -78,7 +91,9 @@ def admin_out(row: ReviewRow) -> dict:
     r = row.review
     full_name = " ".join(n for n in (row.first_name, row.last_name) if n) or None
     return {
-        **own_out(row), "moderator_note": r.moderator_note, "moderated_at": r.moderated_at,
+        **own_out(row),
+        "moderator_note": r.moderator_note,
+        "moderated_at": r.moderated_at,
         "artist": {"id": r.artist_id, "business_name": row.business_name},
         "customer": {"id": r.customer_id, "name": full_name, "phone": row.phone},
         "booking": {"id": r.booking_id, "code": row.code, "service_name": row.service_name},
@@ -113,9 +128,14 @@ class ReviewService:
 
     async def _page(self, query: Select, limit: int, cursor: str | None) -> tuple[list[ReviewRow], str | None]:
         """Newest first; keyset on (created_at, id)."""
-        rows = [ReviewRow(*r) for r in (await self.session.execute(
-            keyset(query, Review.created_at, Review.id, descending=True, cursor=cursor).limit(limit + 1)
-        )).all()]
+        rows = [
+            ReviewRow(*r)
+            for r in (
+                await self.session.execute(
+                    keyset(query, Review.created_at, Review.id, descending=True, cursor=cursor).limit(limit + 1)
+                )
+            ).all()
+        ]
         return split_page(rows, limit, lambda r: (r.review.created_at, r.review.id))
 
     async def _row(self, review_id: uuid.UUID, *scope: ColumnElement[bool]) -> ReviewRow:
@@ -125,30 +145,42 @@ class ReviewService:
         return ReviewRow(*row)
 
     async def _locked(self, review_id: uuid.UUID, *scope: ColumnElement[bool]) -> Review:
-        review = (await self.session.execute(
-            select(Review).where(Review.id == review_id, *scope).with_for_update()
-            .execution_options(populate_existing=True)
-        )).scalar_one_or_none()
+        review = (
+            await self.session.execute(
+                select(Review)
+                .where(Review.id == review_id, *scope)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
         if review is None:
             raise NotFoundError("Review not found")
         return review
 
     async def summary(self, artist_id: uuid.UUID) -> ReviewSummary:
-        counts = dict((await self.session.execute(
-            select(Review.rating, func.count())
-            .where(Review.artist_id == artist_id, Review.status.in_(PUBLIC_REVIEW))
-            .group_by(Review.rating)
-        )).all())
+        counts = dict(
+            (
+                await self.session.execute(
+                    select(Review.rating, func.count())
+                    .where(Review.artist_id == artist_id, Review.status.in_(PUBLIC_REVIEW))
+                    .group_by(Review.rating)
+                )
+            ).all()
+        )
         total = sum(counts.values())
         average = one_decimal(Decimal(sum(r * n for r, n in counts.items())) / total) if total else None
-        return ReviewSummary(average=average, count=total, distribution={str(r): counts.get(r, 0) for r in (5, 4, 3, 2, 1)})
+        return ReviewSummary(
+            average=average, count=total, distribution={str(r): counts.get(r, 0) for r in (5, 4, 3, 2, 1)}
+        )
 
     # --- customer -------------------------------------------------------------------------------
 
     async def create(self, customer: User, booking_id: uuid.UUID, data: ReviewIn) -> dict:
-        booking = (await self.session.execute(
-            select(Booking).where(Booking.id == booking_id, Booking.customer_id == customer.id).with_for_update()
-        )).scalar_one_or_none()
+        booking = (
+            await self.session.execute(
+                select(Booking).where(Booking.id == booking_id, Booking.customer_id == customer.id).with_for_update()
+            )
+        ).scalar_one_or_none()
         if booking is None:
             raise NotFoundError("Booking not found")
         if booking.status != BookingStatus.completed:
@@ -160,8 +192,13 @@ class ReviewService:
 
         flag = review_flag(data.text)
         review = Review(
-            booking_id=booking.id, artist_id=booking.artist_id, customer_id=customer.id, rating=data.rating,
-            text=data.text, status=ReviewStatus.hidden if flag else ReviewStatus.published, flag=flag,
+            booking_id=booking.id,
+            artist_id=booking.artist_id,
+            customer_id=customer.id,
+            rating=data.rating,
+            text=data.text,
+            status=ReviewStatus.hidden if flag else ReviewStatus.published,
+            flag=flag,
         )
         self.session.add(review)
         try:
@@ -192,7 +229,9 @@ class ReviewService:
         return [own_out(r) for r in rows], next_cursor, await self.summary(artist_id)
 
     async def _artist_review(self, user: User, review_id: uuid.UUID) -> tuple[Review, ColumnElement[bool]]:
-        theirs = and_(Review.artist_id == await approved_artist_id(self.session, user), Review.status != ReviewStatus.removed)
+        theirs = and_(
+            Review.artist_id == await approved_artist_id(self.session, user), Review.status != ReviewStatus.removed
+        )
         return await self._locked(review_id, theirs), theirs
 
     async def reply(self, user: User, review_id: uuid.UUID, text: str) -> dict:

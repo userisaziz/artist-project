@@ -21,17 +21,30 @@ async def makeup_bridal(client, headers) -> tuple[dict, dict]:
 async def test_template_crud(client, engine):
     headers = await admin_headers(client, engine)
     _, bridal = await makeup_bridal(client, headers)
-    hd = await create_template(client, headers, subcategory_id=bridal["id"], name=" HD Bridal Makeup ", description="Long-wear HD base")
+    hd = await create_template(
+        client, headers, subcategory_id=bridal["id"], name=" HD Bridal Makeup ", description="Long-wear HD base"
+    )
     assert hd | {"id": 0} == {
-        "id": 0, "subcategory_id": bridal["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base",
-        "sort_order": 0, "is_active": True, "artist_count": 0,
+        "id": 0,
+        "subcategory_id": bridal["id"],
+        "name": "HD Bridal Makeup",
+        "description": "Long-wear HD base",
+        "sort_order": 0,
+        "is_active": True,
+        "artist_count": 0,
     }
     airbrush = await create_template(client, headers, subcategory_id=bridal["id"], name="Airbrush Bridal")
     assert airbrush["sort_order"] == 1
 
-    patched = await client.patch(f"{TEMPLATES}/{hd['id']}", headers=headers, json={"name": "HD Bridal", "description": None, "is_active": False})
+    patched = await client.patch(
+        f"{TEMPLATES}/{hd['id']}", headers=headers, json={"name": "HD Bridal", "description": None, "is_active": False}
+    )
     assert patched.status_code == 200
-    assert (patched.json()["name"], patched.json()["description"], patched.json()["is_active"]) == ("HD Bridal", None, False)
+    assert (patched.json()["name"], patched.json()["description"], patched.json()["is_active"]) == (
+        "HD Bridal",
+        None,
+        False,
+    )
 
     listed = (await client.get(f"{TEMPLATES}?subcategory_id={bridal['id']}", headers=headers)).json()
     assert [t["name"] for t in listed] == ["HD Bridal", "Airbrush Bridal"]
@@ -47,7 +60,9 @@ async def test_templates_sit_under_subcategories_with_unique_names(client, engin
     makeup, bridal = await makeup_bridal(client, headers)
     template = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup")
 
-    dupe = await client.post(TEMPLATES, headers=headers, json={"subcategory_id": bridal["id"], "name": "hd bridal makeup"})
+    dupe = await client.post(
+        TEMPLATES, headers=headers, json={"subcategory_id": bridal["id"], "name": "hd bridal makeup"}
+    )
     assert dupe.status_code == 409
     top_level = await client.post(TEMPLATES, headers=headers, json={"subcategory_id": makeup["id"], "name": "Party"})
     assert top_level.status_code == 422
@@ -69,7 +84,9 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
     makeup = await create_category(client, headers, name="Makeup", status="active")
     bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"], status="active")
     party = await create_category(client, headers, name="Party", parent_id=makeup["id"], status="inactive")
-    hd = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup", description="Long-wear HD base")
+    hd = await create_template(
+        client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup", description="Long-wear HD base"
+    )
     await create_template(client, headers, subcategory_id=bridal["id"], name="Old look", is_active=False)
     await create_template(client, headers, subcategory_id=party["id"], name="Party glam")
     hair = await create_category(client, headers, name="Hair", status="inactive")
@@ -78,13 +95,21 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
     await create_category(client, headers, name="Nails")  # draft: never public
 
     tree = (await client.get("/api/v1/categories")).json()
-    assert tree == [{
-        "id": makeup["id"], "slug": "makeup", "name": "Makeup",
-        "subcategories": [{
-            "id": bridal["id"], "slug": "makeup-bridal", "name": "Bridal",
-            "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
-        }],
-    }]
+    assert tree == [
+        {
+            "id": makeup["id"],
+            "slug": "makeup",
+            "name": "Makeup",
+            "subcategories": [
+                {
+                    "id": bridal["id"],
+                    "slug": "makeup-bridal",
+                    "name": "Bridal",
+                    "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
+                }
+            ],
+        }
+    ]
 
 
 async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engine):
@@ -92,7 +117,11 @@ async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engi
     artist = await sign_in(client, "+919845030001")
     await complete_profile(client, artist, photos=0, kyc=False)
     headers = await admin_headers(client, engine)
-    sub_id = next(c["id"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi-bridal")
+    sub_id = next(
+        c["id"]
+        for c in (await client.get("/api/v1/admin/categories", headers=headers)).json()
+        if c["slug"] == "mehendi-bridal"
+    )
     listed = (await client.get(f"{TEMPLATES}?subcategory_id={sub_id}", headers=headers)).json()
     classic = next(t for t in listed if t["name"] == "Bridal Classic")
     assert classic["artist_count"] == 1

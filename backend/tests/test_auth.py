@@ -61,6 +61,7 @@ async def test_refresh_rotation_revokes_old_token(client):
 async def test_expired_code_is_rejected(client, engine):
     code = await request_and_read_code(client)
     from sqlalchemy import text
+
     async with engine.begin() as conn:
         await conn.execute(text("UPDATE otp_codes SET expires_at = now() - interval '1 minute'"))
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})

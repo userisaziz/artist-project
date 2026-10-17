@@ -1,7 +1,5 @@
 # Backend lint gate (rules: .qoder/rules/fastapi-best-practices.md — "Lint").
-# `ruff check app tests` must be clean before every commit.
-# `ruff format` is intentionally NOT gated yet: a one-off reformat of 70+ files
-# would bury the module-first restructure diff. Revisit after that lands.
+# Both `ruff check .` and `ruff format --check .` must pass before every commit (pre-commit + CI).
 
 line-length = 120
 

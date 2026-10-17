@@ -36,7 +36,9 @@ async def accept_booking(
 
 @router.post("/bookings/{booking_id}/decline", response_model=BookingOut)
 async def decline_booking(
-    booking_id: uuid.UUID, body: ReasonIn, user: User = Depends(current_artist),
+    booking_id: uuid.UUID,
+    body: ReasonIn,
+    user: User = Depends(current_artist),
     bookings: BookingService = Depends(get_booking_service),
 ) -> BookingOut:
     return await bookings.decline(user, booking_id, body.reason)

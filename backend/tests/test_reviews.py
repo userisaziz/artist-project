@@ -29,13 +29,17 @@ async def completed_booking(client, artist: dict, customer: dict, monkeypatch, d
 
 
 async def review(client, customer: dict, booking_id: str, rating: int = 5, body: str | None = "Beautiful bridal work"):
-    return await client.post(f"/api/v1/bookings/{booking_id}/review", headers=customer, json={"rating": rating, "text": body})
+    return await client.post(
+        f"/api/v1/bookings/{booking_id}/review", headers=customer, json={"rating": rating, "text": body}
+    )
 
 
 async def test_customer_reviews_a_completed_booking_once(client, engine, monkeypatch):
     _, artist, customer = await setup(client, engine)
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE users SET first_name='Priya', last_name='Srinivasan' WHERE phone='+919845080001'"))
+        await conn.execute(
+            text("UPDATE users SET first_name='Priya', last_name='Srinivasan' WHERE phone='+919845080001'")
+        )
     b = await completed_booking(client, artist, customer, monkeypatch)
     shown = (await client.get(f"/api/v1/bookings/{b['id']}", headers=customer)).json()
     assert (shown["can_review"], shown["review"]) == (True, None)
@@ -44,7 +48,12 @@ async def test_customer_reviews_a_completed_booking_once(client, engine, monkeyp
     assert response.status_code == 201
     r = response.json()
     assert (r["rating"], r["text"], r["reviewer_name"], r["service_name"], r["status"]) == (
-        5, "Beautiful bridal work", "Priya S.", "Bridal Classic", "published")
+        5,
+        "Beautiful bridal work",
+        "Priya S.",
+        "Bridal Classic",
+        "published",
+    )
 
     again = await review(client, customer, b["id"], 4)
     assert again.status_code == 409
@@ -116,14 +125,28 @@ async def test_artist_replies_and_reports(client, engine, monkeypatch):
     cleared = await client.put(f"/api/v1/artists/me/reviews/{r1['id']}/reply", headers=h, json={"text": ""})
     assert cleared.json()["reply"] is None
 
-    reported = await client.post(f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=h, json={"reason": "Customer changed the design on the day"})
+    reported = await client.post(
+        f"/api/v1/artists/me/reviews/{r2['id']}/report",
+        headers=h,
+        json={"reason": "Customer changed the design on the day"},
+    )
     assert (reported.json()["status"], reported.json()["flag"]) == ("flagged", "artist_report")
-    assert (await client.post(f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=h, json={"reason": "again"})).status_code == 409
-    assert len((await client.get(f"/api/v1/artists/{artist['id']}/reviews")).json()["items"]) == 2  # flagged stays public
+    assert (
+        await client.post(f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=h, json={"reason": "again"})
+    ).status_code == 409
+    assert (
+        len((await client.get(f"/api/v1/artists/{artist['id']}/reviews")).json()["items"]) == 2
+    )  # flagged stays public
 
     other = await approved_artist(client, engine, "+919845091002", admin, name="Henna by Noor")
-    assert (await client.put(f"/api/v1/artists/me/reviews/{r1['id']}/reply", headers=other["headers"], json={"text": "x"})).status_code == 404
-    assert (await client.post(f"/api/v1/artists/me/reviews/{r1['id']}/report", headers=other["headers"], json={"reason": "x"})).status_code == 404
+    assert (
+        await client.put(f"/api/v1/artists/me/reviews/{r1['id']}/reply", headers=other["headers"], json={"text": "x"})
+    ).status_code == 404
+    assert (
+        await client.post(
+            f"/api/v1/artists/me/reviews/{r1['id']}/report", headers=other["headers"], json={"reason": "x"}
+        )
+    ).status_code == 404
 
 
 async def test_admin_decisions(client, engine, monkeypatch):
@@ -134,7 +157,11 @@ async def test_admin_decisions(client, engine, monkeypatch):
     url = f"/api/v1/admin/reviews/{r['id']}/decision"
 
     published = (await client.post(url, headers=admin, json={"decision": "publish", "note": "Fair complaint"})).json()
-    assert (published["status"], published["flag"], published["moderator_note"]) == ("published", None, "Fair complaint")
+    assert (published["status"], published["flag"], published["moderator_note"]) == (
+        "published",
+        None,
+        "Fair complaint",
+    )
     assert published["moderated_at"] is not None
     assert (await client.get(f"/api/v1/artists/{artist['id']}/reviews")).json()["summary"]["count"] == 1
 
@@ -193,8 +220,11 @@ async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatc
     assert listed[0]["review"]["rating"] == 1  # public now
 
     # Replies can't carry contact details either.
-    bad = await client.put(f"/api/v1/artists/me/reviews/{hidden['id']}/reply", headers=artist["headers"],
-                           json={"text": "Sorry! WhatsApp me on 98450 12345"})
+    bad = await client.put(
+        f"/api/v1/artists/me/reviews/{hidden['id']}/reply",
+        headers=artist["headers"],
+        json={"text": "Sorry! WhatsApp me on 98450 12345"},
+    )
     assert bad.status_code == 422
     assert bad.json()["message"] == "Replies can't include phone numbers, emails, links or blocked words"
 
@@ -202,8 +232,12 @@ async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatc
     monkeypatch.undo()
     second = await completed_booking(client, artist, customer, monkeypatch, day=6)
     r2 = (await review(client, customer, second["id"], 3)).json()
-    await client.post(f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=artist["headers"], json={"reason": "Wrong artist"})
-    published = (await client.post(f"/api/v1/admin/reviews/{r2['id']}/decision", headers=admin, json={"decision": "publish"})).json()
+    await client.post(
+        f"/api/v1/artists/me/reviews/{r2['id']}/report", headers=artist["headers"], json={"reason": "Wrong artist"}
+    )
+    published = (
+        await client.post(f"/api/v1/admin/reviews/{r2['id']}/decision", headers=admin, json={"decision": "publish"})
+    ).json()
     assert (published["flag"], published["report_reason"]) == (None, None)
 
 

@@ -13,16 +13,19 @@ def test_valid_numbers_pass(number):
     assert is_valid_aadhaar(number)
 
 
-@pytest.mark.parametrize("number", [
-    "234123412347",   # checksum off by one
-    "034123412346",   # leading 0
-    "134123412346",   # leading 1
-    "23412341234",    # 11 digits
-    "2341234123460",  # 13 digits
-    "2341 2341 2346", # spaces are stripped by the service, not here
-    "23412341234a",
-    "",
-])
+@pytest.mark.parametrize(
+    "number",
+    [
+        "234123412347",  # checksum off by one
+        "034123412346",  # leading 0
+        "134123412346",  # leading 1
+        "23412341234",  # 11 digits
+        "2341234123460",  # 13 digits
+        "2341 2341 2346",  # spaces are stripped by the service, not here
+        "23412341234a",
+        "",
+    ],
+)
 def test_invalid_numbers_fail(number):
     assert not is_valid_aadhaar(number)
 

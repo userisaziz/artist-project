@@ -9,7 +9,6 @@ SLUG = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 
 
 class TemplateOut(ORMModel):
-
     id: int
     name: str
     description: str | None = None
@@ -48,7 +47,6 @@ class CategoryPatch(APIModel):
 
 
 class AdminCategoryOut(ORMModel):
-
     id: int
     slug: str
     name: str

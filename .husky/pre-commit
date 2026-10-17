@@ -13,7 +13,7 @@ fi
 
 if echo "$changed" | grep -q '^backend/'; then
   if [ -x backend/.venv/bin/ruff ]; then
-    (cd backend && .venv/bin/ruff check app tests) || exit 1
+    (cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check .) || exit 1
   else
     echo "pre-commit: backend/.venv/bin/ruff missing — run backend deps install to enable the Python lint gate" >&2
   fi

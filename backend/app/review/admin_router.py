@@ -25,7 +25,9 @@ async def list_reviews(
 
 @router.post("/{review_id}/decision", response_model=AdminReviewOut)
 async def decide_review(
-    review_id: uuid.UUID, body: DecisionIn, admin: User = Depends(current_admin),
+    review_id: uuid.UUID,
+    body: DecisionIn,
+    admin: User = Depends(current_admin),
     reviews: ReviewService = Depends(get_review_service),
 ) -> AdminReviewOut:
     return await reviews.decide(admin, review_id, body.decision, body.note)

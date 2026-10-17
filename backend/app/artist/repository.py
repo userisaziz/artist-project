@@ -50,8 +50,13 @@ class ArtistRepository:
         self, status: ArtistStatus, limit: int, cursor: str | None
     ) -> tuple[list[ArtistProfile], str | None]:
         """Oldest submission first; keyset on (submitted_at, id)."""
-        query = keyset(select(ArtistProfile).where(ArtistProfile.status == status),
-                       ArtistProfile.submitted_at, ArtistProfile.id, descending=False, cursor=cursor)
+        query = keyset(
+            select(ArtistProfile).where(ArtistProfile.status == status),
+            ArtistProfile.submitted_at,
+            ArtistProfile.id,
+            descending=False,
+            cursor=cursor,
+        )
         rows = (await self.session.scalars(query.limit(limit + 1))).all()
         return split_page(rows, limit, lambda p: (p.submitted_at, p.id))
 
@@ -59,8 +64,13 @@ class ArtistRepository:
         self, status: ArtistServiceStatus, limit: int, cursor: str | None
     ) -> tuple[list[CustomServiceRow], str | None]:
         """Oldest first; keyset on (created_at, id)."""
-        query = keyset(_custom_services().where(ArtistServiceItem.status == status),
-                       ArtistServiceItem.created_at, ArtistServiceItem.id, descending=False, cursor=cursor)
+        query = keyset(
+            _custom_services().where(ArtistServiceItem.status == status),
+            ArtistServiceItem.created_at,
+            ArtistServiceItem.id,
+            descending=False,
+            cursor=cursor,
+        )
         rows = [CustomServiceRow(*r) for r in (await self.session.execute(query.limit(limit + 1))).all()]
         return split_page(rows, limit, lambda r: (r.item.created_at, r.item.id))
 

@@ -24,7 +24,9 @@ async def list_my_reviews(
 
 @router.put("/{review_id}/reply", response_model=OwnReviewOut)
 async def reply_to_review(
-    review_id: uuid.UUID, body: ReplyIn, user: User = Depends(current_artist),
+    review_id: uuid.UUID,
+    body: ReplyIn,
+    user: User = Depends(current_artist),
     reviews: ReviewService = Depends(get_review_service),
 ) -> OwnReviewOut:
     return await reviews.reply(user, review_id, body.text)
@@ -32,7 +34,9 @@ async def reply_to_review(
 
 @router.post("/{review_id}/report", response_model=OwnReviewOut)
 async def report_review(
-    review_id: uuid.UUID, body: ReportIn, user: User = Depends(current_artist),
+    review_id: uuid.UUID,
+    body: ReportIn,
+    user: User = Depends(current_artist),
     reviews: ReviewService = Depends(get_review_service),
 ) -> OwnReviewOut:
     return await reviews.report(user, review_id, body.reason)

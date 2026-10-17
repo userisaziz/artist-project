@@ -1,4 +1,5 @@
 """Accounts: the users table and the roles each account holds (user_roles, migration #4)."""
+
 import uuid
 from datetime import datetime
 

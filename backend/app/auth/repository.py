@@ -27,9 +27,9 @@ class AuthRepository:
         )
 
     async def unconsumed_otps(self, phone: str) -> Sequence[OtpCode]:
-        return (await self.session.scalars(
-            select(OtpCode).where(OtpCode.phone == phone, OtpCode.consumed_at.is_(None))
-        )).all()
+        return (
+            await self.session.scalars(select(OtpCode).where(OtpCode.phone == phone, OtpCode.consumed_at.is_(None)))
+        ).all()
 
     async def refresh_token_by_hash(self, token_hash: str) -> RefreshToken | None:
         return await self.session.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))

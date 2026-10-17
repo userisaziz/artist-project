@@ -19,7 +19,10 @@ async def sign_in(client, phone: str, role: str | None = "artist", engine=None) 
         await client.put("/api/v1/users/me/role", headers=headers, json={"role": role})
     elif role == "admin":
         async with engine.begin() as conn:
-            await conn.execute(text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users WHERE phone=:p"), {"p": phone})
+            await conn.execute(
+                text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users WHERE phone=:p"),
+                {"p": phone},
+            )
     return headers
 
 

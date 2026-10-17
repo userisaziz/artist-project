@@ -11,8 +11,12 @@ from tests.support.catalog import create_category, seed_categories
 
 async def test_admin_endpoints_refuse_non_admins(client):
     headers = await sign_in(client, "+919845011112", role="artist")
-    for method, path in (("get", "/api/v1/admin/categories"), ("get", "/api/v1/admin/artists"),
-                         ("get", "/api/v1/admin/service-templates?subcategory_id=1"), ("get", "/api/v1/admin/custom-services")):
+    for method, path in (
+        ("get", "/api/v1/admin/categories"),
+        ("get", "/api/v1/admin/artists"),
+        ("get", "/api/v1/admin/service-templates?subcategory_id=1"),
+        ("get", "/api/v1/admin/custom-services"),
+    ):
         response = await getattr(client, method)(path, headers=headers)
         assert response.status_code == 403
         assert response.json()["code"] == "forbidden"
@@ -20,11 +24,21 @@ async def test_admin_endpoints_refuse_non_admins(client):
 
 async def test_create_category_derives_slug_and_order(client, engine):
     headers = await admin_headers(client, engine)
-    first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup", "status": "active"})
+    first = await client.post(
+        "/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup", "status": "active"}
+    )
     assert first.status_code == 201
     assert first.json() | {"id": 0} == {
-        "id": 0, "slug": "bridal-makeup", "name": "Bridal Makeup", "sort_order": 0, "status": "active",
-        "parent_id": None, "artist_count": 0, "service_count": 0, "child_count": 0, "template_count": 0,
+        "id": 0,
+        "slug": "bridal-makeup",
+        "name": "Bridal Makeup",
+        "sort_order": 0,
+        "status": "active",
+        "parent_id": None,
+        "artist_count": 0,
+        "service_count": 0,
+        "child_count": 0,
+        "template_count": 0,
     }
     second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art"})
     assert second.json()["sort_order"] == 1
@@ -32,7 +46,10 @@ async def test_create_category_derives_slug_and_order(client, engine):
 
     public = (await client.get("/api/v1/categories")).json()
     assert [c["slug"] for c in public] == ["bridal-makeup"]  # drafts stay admin-only
-    assert [c["slug"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json()] == ["bridal-makeup", "nail-art"]
+    assert [c["slug"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json()] == [
+        "bridal-makeup",
+        "nail-art",
+    ]
 
 
 async def test_category_names_and_slugs_are_unique(client, engine):
@@ -47,7 +64,9 @@ async def test_category_names_and_slugs_are_unique(client, engine):
 async def test_update_and_delete_category(client, engine):
     headers = await admin_headers(client, engine)
     created = (await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Decor"})).json()
-    patched = await client.patch(f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "status": "inactive"})
+    patched = await client.patch(
+        f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "status": "inactive"}
+    )
     assert patched.json()["name"] == "Event Decor"
     assert patched.json()["slug"] == "decor"  # slug is stable unless set explicitly
     assert patched.json()["status"] == "inactive"
@@ -61,7 +80,9 @@ async def test_category_in_use_cannot_be_deleted(client, engine):
     artist = await sign_in(client, "+919845011113")
     await complete_profile(client, artist, photos=0)
     headers = await admin_headers(client, engine)
-    mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
+    mehendi = next(
+        c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi"
+    )
     assert (mehendi["artist_count"], mehendi["service_count"], mehendi["child_count"]) == (1, 0, 1)
     response = await client.delete(f"/api/v1/admin/categories/{mehendi['id']}", headers=headers)
     assert response.status_code == 409
@@ -75,7 +96,9 @@ async def test_subcategories_sit_under_a_top_level_category(client, engine):
     assert bridal["parent_id"] == makeup["id"]
     assert bridal["sort_order"] == 0  # ordered among its siblings
 
-    too_deep = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "HD", "parent_id": bridal["id"]})
+    too_deep = await client.post(
+        "/api/v1/admin/categories", headers=headers, json={"name": "HD", "parent_id": bridal["id"]}
+    )
     assert too_deep.status_code == 422
     assert too_deep.json()["code"] == "validation_error"
     no_parent = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "HD", "parent_id": 9999})
@@ -83,7 +106,8 @@ async def test_subcategories_sit_under_a_top_level_category(client, engine):
 
     listed = (await client.get("/api/v1/admin/categories", headers=headers)).json()
     assert [(c["slug"], c["parent_id"], c["child_count"]) for c in listed] == [
-        ("makeup", None, 1), ("makeup-bridal", makeup["id"], 0),
+        ("makeup", None, 1),
+        ("makeup-bridal", makeup["id"], 0),
     ]
 
 
@@ -94,7 +118,9 @@ async def test_subcategory_names_are_unique_per_parent(client, engine):
     await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
     other = await create_category(client, headers, name="Bridal", parent_id=mehendi["id"])  # another parent is fine
     assert other["slug"] == "mehendi-bridal"
-    dupe = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "bridal", "parent_id": makeup["id"]})
+    dupe = await client.post(
+        "/api/v1/admin/categories", headers=headers, json={"name": "bridal", "parent_id": makeup["id"]}
+    )
     assert dupe.status_code == 409
 
 
@@ -142,7 +168,9 @@ async def test_category_in_use_cannot_go_back_to_draft(client, engine):
     artist = await sign_in(client, "+919845011114")
     await complete_profile(client, artist, photos=0)
     headers = await admin_headers(client, engine)
-    mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
+    mehendi = next(
+        c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi"
+    )
     url = f"/api/v1/admin/categories/{mehendi['id']}"
     draft = await client.patch(url, headers=headers, json={"status": "draft"})
     assert (draft.status_code, draft.json()["code"]) == (409, "conflict")
@@ -194,7 +222,9 @@ async def test_approve(client, engine):
     assert approved.json()["reviewed_at"] is not None
     assert (await client.get("/api/v1/artists/me", headers=artist)).json()["status"] == "approved"
     assert (await client.post(f"/api/v1/admin/artists/{artist_id}/approve", headers=headers)).status_code == 409
-    assert (await client.get("/api/v1/admin/artists?status=approved", headers=headers)).json()["items"][0]["id"] == artist_id
+    assert (await client.get("/api/v1/admin/artists?status=approved", headers=headers)).json()["items"][0][
+        "id"
+    ] == artist_id
 
 
 async def test_reject_then_edit_and_resubmit(client, engine):
@@ -205,13 +235,17 @@ async def test_reject_then_edit_and_resubmit(client, engine):
 
     no_reason = await client.post(f"/api/v1/admin/artists/{artist_id}/reject", headers=headers, json={"reason": ""})
     assert no_reason.status_code == 422
-    rejected = await client.post(f"/api/v1/admin/artists/{artist_id}/reject", headers=headers, json={"reason": "Photos are blurry"})
+    rejected = await client.post(
+        f"/api/v1/admin/artists/{artist_id}/reject", headers=headers, json={"reason": "Photos are blurry"}
+    )
     assert rejected.json()["status"] == "rejected"
 
     mine = (await client.get("/api/v1/artists/me", headers=artist)).json()
     assert mine["rejection_reason"] == "Photos are blurry"
     photo_id = mine["photos"][0]["id"]
-    assert (await client.delete(f"/api/v1/artists/me/photos/{photo_id}", headers=artist)).status_code == 200  # editable again
+    assert (
+        await client.delete(f"/api/v1/artists/me/photos/{photo_id}", headers=artist)
+    ).status_code == 200  # editable again
     assert (await client.post("/api/v1/artists/me/submit", headers=artist)).status_code == 422  # now 5 photos
 
     await complete_profile(client, artist, photos=1)
@@ -253,9 +287,11 @@ async def test_reveal_returns_the_number_and_logs_it(client, engine):
     assert response.json() == {"aadhaar_number": "234123412346"}
     assert response.headers["cache-control"] == "no-store"
     async with engine.connect() as conn:
-        rows = (await conn.execute(sql_text(
-            "SELECT r.artist_id::text, u.phone FROM aadhaar_reveals r JOIN users u ON u.id = r.admin_id"
-        ))).all()
+        rows = (
+            await conn.execute(
+                sql_text("SELECT r.artist_id::text, u.phone FROM aadhaar_reveals r JOIN users u ON u.id = r.admin_id")
+            )
+        ).all()
     assert [(r[0], r[1]) for r in rows] == [(artist_id, ADMIN_PHONE)]
 
 

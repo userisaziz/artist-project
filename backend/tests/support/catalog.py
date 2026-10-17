@@ -2,8 +2,14 @@
 
 from sqlalchemy import text
 
-CATEGORIES = [("mehendi", "Mehendi"), ("makeup", "Makeup"), ("hair", "Hair"),
-              ("photography", "Photography"), ("decor", "Decor"), ("tattoo", "Tattoo")]
+CATEGORIES = [
+    ("mehendi", "Mehendi"),
+    ("makeup", "Makeup"),
+    ("hair", "Hair"),
+    ("photography", "Photography"),
+    ("decor", "Decor"),
+    ("tattoo", "Tattoo"),
+]
 
 
 async def seed_categories(engine) -> None:
@@ -12,19 +18,31 @@ async def seed_categories(engine) -> None:
     async with engine.begin() as conn:
         ids = {}
         for i, (slug, name) in enumerate(CATEGORIES):
-            ids[slug] = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"),
-                {"s": slug, "n": name, "i": i},
-            )).scalar_one()
-        for parent, slug, name, services in (("mehendi", "mehendi-bridal", "Bridal", ("Bridal Classic", "Bridal Full Arms")),
-                                             ("makeup", "makeup-party", "Party", ("Party Makeup",))):
-            sub = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"),
-                {"s": slug, "n": name, "p": ids[parent]},
-            )).scalar_one()
+            ids[slug] = (
+                await conn.execute(
+                    text(
+                        "INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"
+                    ),
+                    {"s": slug, "n": name, "i": i},
+                )
+            ).scalar_one()
+        for parent, slug, name, services in (
+            ("mehendi", "mehendi-bridal", "Bridal", ("Bridal Classic", "Bridal Full Arms")),
+            ("makeup", "makeup-party", "Party", ("Party Makeup",)),
+        ):
+            sub = (
+                await conn.execute(
+                    text(
+                        "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"
+                    ),
+                    {"s": slug, "n": name, "p": ids[parent]},
+                )
+            ).scalar_one()
             for i, service in enumerate(services):
-                await conn.execute(text("INSERT INTO service_templates (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
-                                   {"s": sub, "n": service, "i": i})
+                await conn.execute(
+                    text("INSERT INTO service_templates (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
+                    {"s": sub, "n": service, "i": i},
+                )
 
 
 async def categories(client) -> dict[str, int]:

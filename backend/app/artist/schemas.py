@@ -12,7 +12,6 @@ from app.shared.schemas import APIModel, ORMModel
 
 
 class CategoryOut(ORMModel):
-
     id: int
     slug: str
     name: str
@@ -129,7 +128,6 @@ class RejectIn(APIModel):
 
 
 class ArtistOwner(ORMModel):
-
     id: uuid.UUID
     phone: str
     first_name: str | None

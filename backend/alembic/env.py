@@ -2,11 +2,11 @@ import asyncio
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import context
 from app.core.config import get_settings
 from app.registry import Base  # every module's models, so the metadata is complete
 
@@ -19,7 +19,9 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(
+        url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"}
+    )
     with context.begin_transaction():
         context.run_migrations()
 

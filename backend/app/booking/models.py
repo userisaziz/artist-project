@@ -24,7 +24,9 @@ class Booking(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     code: Mapped[str] = mapped_column(String(12), unique=True, nullable=False)  # human id, e.g. BK-7F3K2Q
-    customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
     artist_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("artist_profiles.id"), nullable=False, index=True
     )
@@ -38,8 +40,11 @@ class Booking(Base, TimestampMixin):
     address: Mapped[str] = mapped_column(String(300), nullable=False)
     note: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[BookingStatus] = mapped_column(
-        booking_status_enum, default=BookingStatus.requested, server_default=sa.text("'requested'"),
-        nullable=False, index=True,
+        booking_status_enum,
+        default=BookingStatus.requested,
+        server_default=sa.text("'requested'"),
+        nullable=False,
+        index=True,
     )
     subtotal_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     platform_fee_paise: Mapped[int] = mapped_column(Integer, nullable=False)

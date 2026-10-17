@@ -110,8 +110,13 @@ class CloudinaryStorage(ImageStorage):
     def private_url(self, key: str, expires_in: int = 300) -> str:
         # Cloudinary "download" endpoint for private assets (the SDK's private_download_url).
         now = int(time.time())
-        params = {"public_id": key, "format": "jpg", "type": "private",
-                  "timestamp": str(now), "expires_at": str(now + expires_in)}
+        params = {
+            "public_id": key,
+            "format": "jpg",
+            "type": "private",
+            "timestamp": str(now),
+            "expires_at": str(now + expires_in),
+        }
         query = urlencode({**params, "api_key": self.api_key, "signature": self.sign(params)})
         return f"https://api.cloudinary.com/v1_1/{self.cloud_name}/image/download?{query}"
 

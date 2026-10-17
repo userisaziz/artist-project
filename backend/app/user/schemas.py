@@ -8,7 +8,6 @@ from app.shared.schemas import APIModel, ORMModel
 
 
 class UserOut(ORMModel):
-
     id: uuid.UUID
     phone: str
     roles: list[UserRole]  # every role the account holds, e.g. ["customer", "artist", "admin"]

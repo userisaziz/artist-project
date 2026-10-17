@@ -19,9 +19,16 @@ async def test_new_user_is_not_onboarded(client):
 
 async def test_update_details_saves_name(client):
     headers = await _login(client)
-    response = await client.patch("/api/v1/users/me", headers=headers, json={
-        "first_name": "Asha", "last_name": "Rao", "email": "asha@example.com", "whatsapp_booking_updates": False,
-    })
+    response = await client.patch(
+        "/api/v1/users/me",
+        headers=headers,
+        json={
+            "first_name": "Asha",
+            "last_name": "Rao",
+            "email": "asha@example.com",
+            "whatsapp_booking_updates": False,
+        },
+    )
     assert response.status_code == 200
     assert response.json()["first_name"] == "Asha"
     assert response.json()["whatsapp_booking_updates"] is False
@@ -33,7 +40,10 @@ async def test_choose_role_onboards_and_switching_adds_the_other_side(client):
     response = await client.put("/api/v1/users/me/role", headers=headers, json={"role": "artist"})
     assert response.status_code == 200
     assert response.json() | {"id": None} == response.json() | {
-        "id": None, "roles": ["artist"], "active_role": "artist", "is_onboarded": True,
+        "id": None,
+        "roles": ["artist"],
+        "active_role": "artist",
+        "is_onboarded": True,
     }
 
     switched = (await client.put("/api/v1/users/me/role", headers=headers, json={"role": "customer"})).json()
@@ -47,6 +57,7 @@ async def test_choose_role_onboards_and_switching_adds_the_other_side(client):
 
 async def test_admin_keeps_admin_when_picking_app_roles(client, engine):
     from sqlalchemy import text
+
     headers = await _login(client)
     async with engine.begin() as conn:
         await conn.execute(text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users"))

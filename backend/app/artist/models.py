@@ -58,7 +58,9 @@ class ArtistProfile(Base, TimestampMixin):
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
     # selectin: async sessions can't lazy-load, and every read of a profile needs all three.
-    categories: Mapped[list[Category]] = relationship(secondary=artist_categories, lazy="selectin", order_by=Category.sort_order)
+    categories: Mapped[list[Category]] = relationship(
+        secondary=artist_categories, lazy="selectin", order_by=Category.sort_order
+    )
     services: Mapped[list["ArtistServiceItem"]] = relationship(
         lazy="selectin", order_by="ArtistServiceItem.sort_order", cascade="all, delete-orphan"
     )

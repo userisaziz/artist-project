@@ -35,14 +35,18 @@ async def list_my_bookings(
 
 @router.get("/{booking_id}", response_model=BookingOut)
 async def get_my_booking(
-    booking_id: uuid.UUID, user: User = Depends(current_customer), bookings: BookingService = Depends(get_booking_service)
+    booking_id: uuid.UUID,
+    user: User = Depends(current_customer),
+    bookings: BookingService = Depends(get_booking_service),
 ) -> BookingOut:
     return await bookings.customer_get(user, booking_id)
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingOut)
 async def cancel_my_booking(
-    booking_id: uuid.UUID, body: ReasonIn, user: User = Depends(current_customer),
+    booking_id: uuid.UUID,
+    body: ReasonIn,
+    user: User = Depends(current_customer),
     bookings: BookingService = Depends(get_booking_service),
 ) -> BookingOut:
     return await bookings.customer_cancel(user, booking_id, body.reason)
@@ -50,7 +54,9 @@ async def cancel_my_booking(
 
 @router.post("/{booking_id}/review", response_model=OwnReviewOut, status_code=201)
 async def review_my_booking(
-    booking_id: uuid.UUID, body: ReviewIn, user: User = Depends(current_customer),
+    booking_id: uuid.UUID,
+    body: ReviewIn,
+    user: User = Depends(current_customer),
     reviews: ReviewService = Depends(get_review_service),
 ) -> OwnReviewOut:
     return await reviews.create(user, booking_id, body)

@@ -31,19 +31,25 @@ class CategoryRepository:
 
     async def all_ordered(self) -> Sequence[Category]:
         """Top-level categories first, then by sort order."""
-        return (await self.session.scalars(
-            select(Category).order_by(Category.parent_id.nulls_first(), Category.sort_order, Category.id)
-        )).all()
+        return (
+            await self.session.scalars(
+                select(Category).order_by(Category.parent_id.nulls_first(), Category.sort_order, Category.id)
+            )
+        ).all()
 
     async def active_ordered(self) -> Sequence[Category]:
-        return (await self.session.scalars(
-            select(Category).where(Category.status == CategoryStatus.active).order_by(Category.sort_order, Category.id)
-        )).all()
+        return (
+            await self.session.scalars(
+                select(Category)
+                .where(Category.status == CategoryStatus.active)
+                .order_by(Category.sort_order, Category.id)
+            )
+        ).all()
 
     async def top_level_by_ids(self, ids: Iterable[int]) -> Sequence[Category]:
-        return (await self.session.scalars(
-            select(Category).where(Category.id.in_(ids), Category.parent_id.is_(None))
-        )).all()
+        return (
+            await self.session.scalars(select(Category).where(Category.id.in_(ids), Category.parent_id.is_(None)))
+        ).all()
 
     async def by_ids(self, ids: Iterable[int]) -> list[Category]:
         return list((await self.session.execute(select(Category).where(Category.id.in_(ids)))).scalars())
@@ -53,7 +59,9 @@ class CategoryRepository:
         queries = (
             select(artist_categories.c.category_id, func.count()).group_by(artist_categories.c.category_id),
             select(ArtistServiceItem.category_id, func.count()).group_by(ArtistServiceItem.category_id),
-            select(Category.parent_id, func.count()).where(Category.parent_id.is_not(None)).group_by(Category.parent_id),
+            select(Category.parent_id, func.count())
+            .where(Category.parent_id.is_not(None))
+            .group_by(Category.parent_id),
             select(ServiceTemplate.subcategory_id, func.count()).group_by(ServiceTemplate.subcategory_id),
         )
         counts = []
@@ -92,16 +100,22 @@ class TemplateRepository:
         return await self.session.get(ServiceTemplate, template_id)
 
     async def for_subcategory(self, subcategory_id: int) -> Sequence[ServiceTemplate]:
-        return (await self.session.scalars(
-            select(ServiceTemplate).where(ServiceTemplate.subcategory_id == subcategory_id)
-            .order_by(ServiceTemplate.sort_order, ServiceTemplate.id)
-        )).all()
+        return (
+            await self.session.scalars(
+                select(ServiceTemplate)
+                .where(ServiceTemplate.subcategory_id == subcategory_id)
+                .order_by(ServiceTemplate.sort_order, ServiceTemplate.id)
+            )
+        ).all()
 
     async def active_ordered(self) -> Sequence[ServiceTemplate]:
-        return (await self.session.scalars(
-            select(ServiceTemplate).where(ServiceTemplate.is_active.is_(True))
-            .order_by(ServiceTemplate.sort_order, ServiceTemplate.id)
-        )).all()
+        return (
+            await self.session.scalars(
+                select(ServiceTemplate)
+                .where(ServiceTemplate.is_active.is_(True))
+                .order_by(ServiceTemplate.sort_order, ServiceTemplate.id)
+            )
+        ).all()
 
     async def artist_counts(self, template_id: int | None = None) -> dict[int, int]:
         """template id → how many artists offer it."""
@@ -124,8 +138,9 @@ class TemplateRepository:
 
     async def next_sort_order(self, subcategory_id: int) -> int:
         return await self.session.scalar(
-            select(func.coalesce(func.max(ServiceTemplate.sort_order) + 1, 0))
-            .where(ServiceTemplate.subcategory_id == subcategory_id)
+            select(func.coalesce(func.max(ServiceTemplate.sort_order) + 1, 0)).where(
+                ServiceTemplate.subcategory_id == subcategory_id
+            )
         )
 
     def add(self, template: ServiceTemplate) -> None:
