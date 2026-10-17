@@ -19,6 +19,7 @@ from app.services.booking_service import BookingService
 from app.services.category_service import CategoryService
 from app.services.custom_service_review import CustomServiceReview
 from app.services.directory_service import DirectoryService
+from app.services.review_service import ReviewService
 from app.services.service_template_service import ServiceTemplateService
 from app.services.storage import ImageStorage, get_storage
 from app.services.user_service import UserService
@@ -106,3 +107,7 @@ def get_directory_service(
     session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
 ) -> DirectoryService:
     return DirectoryService(session, storage)
+
+
+def get_review_service(session: AsyncSession = Depends(get_db)) -> ReviewService:
+    return ReviewService(session)

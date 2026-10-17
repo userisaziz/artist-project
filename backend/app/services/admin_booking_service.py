@@ -7,9 +7,11 @@ from sqlalchemy import ColumnElement, Date, cast, func, or_, select
 
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
+from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import AdminOverview, BookingOut, WeekCount
 from app.services.booking_service import OPEN, BookingService, rows_query
+from app.services.review_service import needs_moderation
 from app.utils import booking_rules as rules
 from app.utils import clock
 from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
@@ -71,6 +73,7 @@ class AdminBookingService(BookingService):
                 ArtistServiceItem, ArtistServiceItem.template_id.is_(None),
                 ArtistServiceItem.status == ArtistServiceStatus.pending,
             ),
+            flagged_reviews=await self._count(Review, needs_moderation()),
             bookings_by_week=await self._weeks(now),
         )
 

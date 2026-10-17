@@ -22,6 +22,7 @@ from app.schemas.directory import (
     Slot,
 )
 from app.services.booking_service import busy_ranges
+from app.services.review_service import ratings_for
 from app.services.storage import ImageStorage
 from app.utils import booking_rules as rules
 from app.utils import clock
@@ -42,10 +43,12 @@ class DirectoryService:
         self.session = session
         self.storage = storage
 
-    def _card_fields(self, profile: ArtistProfile) -> dict:
+    def _card_fields(self, profile: ArtistProfile, ratings: dict[uuid.UUID, tuple[float, int]]) -> dict:
         prices = [s.price_paise for s in _bookable(profile.services)]
         cover = profile.photos[0].storage_key if profile.photos else None
+        rating, review_count = ratings.get(profile.id, (None, 0))
         return {
+            "rating": rating, "review_count": review_count,
             "id": profile.id, "business_name": profile.business_name, "city": profile.city,
             "photo_url": self.storage.url(profile.photo_key, "card") if profile.photo_key else None,
             "cover_url": self.storage.url(cover, "card") if cover else None,
@@ -85,11 +88,14 @@ class DirectoryService:
         )).all()
         page = rows[:limit]
         next_cursor = encode_cursor(page[-1][1], page[-1][0].id) if len(rows) > limit else None
-        return [ArtistCard(**self._card_fields(profile)) for profile, _ in page], next_cursor
+        ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
+        return [ArtistCard(**self._card_fields(profile, ratings)) for profile, _ in page], next_cursor
 
     async def _approved(self, artist_id: uuid.UUID) -> ArtistProfile:
         profile = (await self.session.execute(
-            select(ArtistProfile).where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
+            select(ArtistProfile)
+            .where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
+            .options(raiseload(ArtistProfile.kyc))
         )).scalar_one_or_none()
         if profile is None:
             raise NotFoundError("Artist not found")
@@ -121,7 +127,7 @@ class DirectoryService:
             )
         )).scalar_one()
         return ArtistPublic(
-            **self._card_fields(profile),
+            **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
             bio=profile.bio,
             photos=[PublicPhoto(id=p.id, url=self.storage.url(p.storage_key, "full"),
                                 thumb_url=self.storage.url(p.storage_key, "thumb")) for p in profile.photos],

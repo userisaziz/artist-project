@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.utils.enums import BookingStatus
+from app.utils.enums import BookingStatus, ReviewStatus
 
 
 class BookingIn(BaseModel):
@@ -52,6 +52,12 @@ class AdminBookingCustomer(BookingCustomer):
     phone: str
 
 
+class BookingReview(BaseModel):
+    id: uuid.UUID
+    rating: int
+    status: ReviewStatus
+
+
 class BookingOut(BaseModel):
     id: uuid.UUID
     code: str
@@ -81,6 +87,8 @@ class BookingOut(BaseModel):
     cancelled_by: str | None
     refund_due: bool | None
     created_at: datetime
+    review: BookingReview | None
+    can_review: bool  # completed, within the review window, not reviewed yet
 
 
 class AdminBookingOut(BookingOut):
@@ -118,4 +126,5 @@ class AdminOverview(BaseModel):
     cancelled_30d: int
     pending_artists: int
     pending_custom_services: int
+    flagged_reviews: int  # flagged, or auto-hidden with no moderator decision yet
     bookings_by_week: list[WeekCount]

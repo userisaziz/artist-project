@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     booking_lead_hours: int = 2  # earliest bookable start, from now
     booking_horizon_days: int = 60
     max_open_requests_per_customer: int = 3  # unanswered requests at once, so one account can't squat on slots
+    # Reviews (Increment 6): open this long after completion; these phrases hide a review for moderation.
+    review_window_days: int = 30
+    review_blocked_words: list[str] = ["scam", "fraud", "call me", "whatsapp me"]
     # Deposit payments. "mock" marks the deposit paid with no gateway: dev only (see _no_mock_payments_in_production).
     payment_provider: str = "mock"
     # CORS origins when DEBUG=false (the admin web app).

@@ -61,7 +61,9 @@ async def test_directory_lists_only_approved_artists(client, engine):
     assert card["categories"] == [{"id": (await categories(client))["mehendi"], "name": "Mehendi"}]
     assert card["cover_url"].startswith("https://fake.storage/card/")
     assert card["photo_url"].startswith("https://fake.storage/card/")
-    assert set(card) == {"id", "business_name", "city", "photo_url", "cover_url", "categories", "from_price_paise"}
+    assert set(card) == {"id", "business_name", "city", "photo_url", "cover_url", "categories", "from_price_paise",
+                         "rating", "review_count"}
+    assert (card["rating"], card["review_count"]) == (None, 0)
     assert body["next_cursor"] is None
 
 

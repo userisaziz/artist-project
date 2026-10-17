@@ -17,7 +17,7 @@ from tests.test_artists import categories, seed_categories, sign_in
 EXPECTED_TABLES = {
     "users", "otp_codes", "refresh_tokens", "alembic_version",
     "categories", "artist_profiles", "artist_categories", "artist_services", "portfolio_photos",
-    "artist_kyc", "aadhaar_reveals", "service_templates", "bookings",
+    "artist_kyc", "aadhaar_reveals", "service_templates", "bookings", "reviews",
 }
 
 

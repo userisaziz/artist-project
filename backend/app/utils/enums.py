@@ -43,3 +43,12 @@ class BookingStatus(str, enum.Enum):
     expired = "expired"
     cancelled = "cancelled"
     completed = "completed"
+
+
+class ReviewStatus(str, enum.Enum):
+    """published and flagged are public; hidden waits for a moderator out of sight; removed is final."""
+
+    published = "published"
+    flagged = "flagged"
+    hidden = "hidden"
+    removed = "removed"

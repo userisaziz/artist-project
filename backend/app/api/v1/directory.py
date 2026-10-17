@@ -3,9 +3,11 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.dependencies import get_directory_service
+from app.core.dependencies import get_directory_service, get_review_service
 from app.schemas.directory import ArtistCardPage, ArtistPublic, AvailabilityOut
+from app.schemas.review import ReviewPage
 from app.services.directory_service import DirectoryService
+from app.services.review_service import ReviewService
 
 # Public: no sign-in needed to browse artists. Registered after the /artists/me routers so "me" never reads as an id.
 router = APIRouter(prefix="/artists", tags=["directory"])
@@ -37,3 +39,14 @@ async def get_availability(
     directory: DirectoryService = Depends(get_directory_service),
 ) -> AvailabilityOut:
     return await directory.availability(artist_id, date, service_id)
+
+
+@router.get("/{artist_id}/reviews", response_model=ReviewPage)
+async def list_artist_reviews(
+    artist_id: uuid.UUID,
+    limit: int = Query(10, ge=1, le=50),
+    cursor: str | None = None,
+    reviews: ReviewService = Depends(get_review_service),
+) -> ReviewPage:
+    items, next_cursor, summary = await reviews.public_list(artist_id, limit, cursor)
+    return ReviewPage(items=items, next_cursor=next_cursor, summary=summary)

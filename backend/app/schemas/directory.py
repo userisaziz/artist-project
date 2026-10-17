@@ -16,6 +16,8 @@ class ArtistCard(BaseModel):
     cover_url: str | None  # first portfolio photo
     categories: list[NamedRef]
     from_price_paise: int | None  # cheapest approved service
+    rating: float | None  # average of public reviews, one decimal; None until the first one
+    review_count: int
 
 
 class ArtistCardPage(BaseModel):

@@ -3,10 +3,16 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.dependencies import current_customer, get_booking_service
+from app.core.dependencies import (
+    current_customer,
+    get_booking_service,
+    get_review_service,
+)
 from app.models.user import User
 from app.schemas.booking import BookingIn, BookingOut, BookingPage, ReasonIn
+from app.schemas.review import OwnReviewOut, ReviewIn
 from app.services.booking_service import BookingService
+from app.services.review_service import ReviewService
 
 # A customer's own bookings. Someone else's booking reads as 404, never 403, so ids can't be probed.
 router = APIRouter(prefix="/bookings", tags=["bookings"])
@@ -44,3 +50,11 @@ async def cancel_my_booking(
     bookings: BookingService = Depends(get_booking_service),
 ) -> BookingOut:
     return await bookings.customer_cancel(user, booking_id, body.reason)
+
+
+@router.post("/{booking_id}/review", response_model=OwnReviewOut, status_code=201)
+async def review_my_booking(
+    booking_id: uuid.UUID, body: ReviewIn, user: User = Depends(current_customer),
+    reviews: ReviewService = Depends(get_review_service),
+) -> OwnReviewOut:
+    return await reviews.create(user, booking_id, body)

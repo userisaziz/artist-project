@@ -18,6 +18,7 @@ from app.core.config import get_settings
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
+from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import (
     AdminBookingCustomer,
@@ -27,12 +28,19 @@ from app.schemas.booking import (
     BookingCustomer,
     BookingIn,
     BookingOut,
+    BookingReview,
 )
 from app.services.storage import ImageStorage
 from app.utils import booking_rules as rules
 from app.utils import clock
 from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.utils.enums import (
+    ArtistServiceStatus,
+    ArtistStatus,
+    BookingStatus,
+    ReviewStatus,
+)
+from app.utils.review_filter import review_window_open
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
 OPEN = (BookingStatus.requested, BookingStatus.confirmed)
@@ -63,6 +71,18 @@ async def busy_ranges(session: AsyncSession, artist_id: uuid.UUID, start: dateti
     return [(s, e) for s, e in rows.all()]
 
 
+async def approved_artist_id(session: AsyncSession, user: User) -> uuid.UUID:
+    """The caller's artist profile id; bookings and reviews open only once it's approved."""
+    artist = (await session.execute(
+        select(ArtistProfile.id, ArtistProfile.status).where(ArtistProfile.user_id == user.id)
+    )).one_or_none()
+    if artist is None:
+        raise NotFoundError("No artist profile yet")
+    if artist.status != ArtistStatus.approved:
+        raise ConflictError("Bookings open once your profile is approved")
+    return artist.id
+
+
 class BookingRow(NamedTuple):
     booking: Booking
     business_name: str
@@ -71,14 +91,18 @@ class BookingRow(NamedTuple):
     first_name: str | None
     last_name: str | None
     phone: str
+    review_id: uuid.UUID | None
+    review_rating: int | None
+    review_status: ReviewStatus | None
 
 
 def rows_query() -> Select:
     return (
         select(Booking, ArtistProfile.business_name, ArtistProfile.photo_key, ArtistProfile.city,
-               User.first_name, User.last_name, User.phone)
+               User.first_name, User.last_name, User.phone, Review.id, Review.rating, Review.status)
         .join(ArtistProfile, ArtistProfile.id == Booking.artist_id)
         .join(User, User.id == Booking.customer_id)
+        .outerjoin(Review, Review.booking_id == Booking.id)  # at most one per booking
     )
 
 
@@ -107,6 +131,9 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOu
         "responded_at": b.responded_at, "cancelled_at": b.cancelled_at, "completed_at": b.completed_at,
         "decline_reason": b.decline_reason, "cancel_reason": b.cancel_reason, "cancelled_by": b.cancelled_by,
         "refund_due": b.refund_due, "created_at": b.created_at,
+        "review": BookingReview(id=row.review_id, rating=row.review_rating, status=row.review_status) if row.review_id else None,
+        "can_review": b.status == BookingStatus.completed and row.review_id is None
+        and review_window_open(b.completed_at, clock.now()),
     }
     return AdminBookingOut(**fields) if admin else BookingOut(**fields)
 
@@ -268,14 +295,7 @@ class BookingService:
     # --- artist ---------------------------------------------------------------------------------
 
     async def artist_id(self, user: User) -> uuid.UUID:
-        artist = (await self.session.execute(
-            select(ArtistProfile.id, ArtistProfile.status).where(ArtistProfile.user_id == user.id)
-        )).one_or_none()
-        if artist is None:
-            raise NotFoundError("No artist profile yet")
-        if artist.status != ArtistStatus.approved:
-            raise ConflictError("Bookings open once your profile is approved")
-        return artist.id
+        return await approved_artist_id(self.session, user)
 
     async def artist_list(self, user: User, scope: ArtistScope | None, first: date | None, last: date | None,
                           limit: int, cursor: str | None):
