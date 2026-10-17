@@ -12,7 +12,7 @@ from app.registry import Base  # every module's models, so the metadata is compl
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)  # keep the app's loggers alive
 
 url = config.get_main_option("sqlalchemy.url") or os.environ.get("DATABASE_URL") or get_settings().database_url
 target_metadata = Base.metadata

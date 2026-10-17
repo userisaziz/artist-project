@@ -1,4 +1,4 @@
-"""Sign-in state: one-time codes (sha256/HMAC hex only, never plaintext) and revocable refresh tokens (migration #1)."""
+"""Sign-in state: one-time codes (sha256/HMAC hex only, never plaintext) and revocable refresh-token families."""
 
 import uuid
 from datetime import datetime
@@ -32,6 +32,8 @@ class RefreshToken(Base, TimestampMixin):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False
     )
+    # Every token rotated from one sign-in shares a family: replaying a revoked one revokes them all.
+    family_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

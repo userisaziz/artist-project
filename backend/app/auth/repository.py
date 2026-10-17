@@ -1,9 +1,10 @@
 """Queries over one-time codes and refresh tokens."""
 
+import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import OtpCode, RefreshToken
@@ -33,6 +34,21 @@ class AuthRepository:
 
     async def refresh_token_by_hash(self, token_hash: str) -> RefreshToken | None:
         return await self.session.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+
+    async def lock_phone(self, phone: str) -> None:
+        """Serialise sign-in work for one phone until the transaction ends (cooldown checks can't race)."""
+        await self.session.execute(select(func.pg_advisory_xact_lock(func.hashtext("otp:" + phone))))
+
+    async def revoke_family(self, family_id: uuid.UUID, now: datetime) -> None:
+        await self.session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.family_id == family_id, RefreshToken.revoked_at.is_(None))
+            .values(revoked_at=now)
+            .execution_options(synchronize_session=False)
+        )
+
+    async def delete(self, row: OtpCode) -> None:
+        await self.session.delete(row)
 
     def add(self, row: OtpCode | RefreshToken) -> None:
         self.session.add(row)
