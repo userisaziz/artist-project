@@ -3,12 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.artist.schemas import RejectIn
-from app.core.auth import current_admin
-from app.schemas.booking import AdminBookingOut, AdminBookingPage, AdminOverview
-from app.services.admin_booking_service import (
+from app.booking.admin_service import (
     AdminBookingService,
     get_admin_booking_service,
 )
+from app.booking.schemas import AdminBookingOut, AdminBookingPage, AdminOverview
+from app.core.auth import current_admin
 from app.shared.enums import BookingStatus
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(current_admin)])

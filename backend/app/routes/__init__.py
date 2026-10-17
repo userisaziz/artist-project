@@ -3,19 +3,17 @@ otherwise "me" would be read as an artist id."""
 
 from fastapi import APIRouter
 
-from app.api.v1 import (
-    admin_bookings,
-    admin_reviews,
-    artist_bookings,
-    artist_reviews,
-    bookings,
-    directory,
-)
+from app.api.v1 import directory
 from app.artist import admin_router as artist_admin
 from app.artist import router as artist
 from app.auth import router as auth
+from app.booking import admin_router as admin_bookings
+from app.booking import artist_router as artist_bookings
+from app.booking import router as bookings
 from app.catalog import admin_router as catalog_admin
 from app.catalog import router as catalog
+from app.review import admin_router as admin_reviews
+from app.review import artist_router as artist_reviews
 from app.upload import router as upload
 from app.user import router as user
 

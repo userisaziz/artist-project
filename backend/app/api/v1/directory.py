@@ -3,10 +3,10 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 
+from app.review.schemas import ReviewPage
+from app.review.service import ReviewService, get_review_service
 from app.schemas.directory import ArtistCardPage, ArtistPublic, AvailabilityOut
-from app.schemas.review import ReviewPage
 from app.services.directory_service import DirectoryService, get_directory_service
-from app.services.review_service import ReviewService, get_review_service
 
 # Public: no sign-in needed to browse artists. Registered after the /artists/me routers so "me" never reads as an id.
 router = APIRouter(prefix="/artists", tags=["directory"])

@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.utils.review_filter import review_flag
+from app.review.filters import review_flag
 
 
 @pytest.mark.parametrize("text", [

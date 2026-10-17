@@ -3,11 +3,11 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
+from app.booking.schemas import BookingIn, BookingOut, BookingPage, ReasonIn
+from app.booking.service import BookingService, get_booking_service
 from app.core.auth import current_customer
-from app.schemas.booking import BookingIn, BookingOut, BookingPage, ReasonIn
-from app.schemas.review import OwnReviewOut, ReviewIn
-from app.services.booking_service import BookingService, get_booking_service
-from app.services.review_service import ReviewService, get_review_service
+from app.review.schemas import OwnReviewOut, ReviewIn
+from app.review.service import ReviewService, get_review_service
 from app.user.models import User
 
 # A customer's own bookings. Someone else's booking reads as 404, never 403, so ids can't be probed.

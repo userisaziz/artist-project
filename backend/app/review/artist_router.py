@@ -3,8 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import current_artist
-from app.schemas.review import OwnReviewOut, OwnReviewPage, ReplyIn, ReportIn
-from app.services.review_service import ReviewService, get_review_service
+from app.review.schemas import OwnReviewOut, OwnReviewPage, ReplyIn, ReportIn
+from app.review.service import ReviewService, get_review_service
 from app.user.models import User
 
 # An approved artist's reviews: read all but removed ones, reply once (editable), report one.

@@ -16,12 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
-from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.booking import Booking
-from app.models.review import PUBLIC_REVIEW, Review
-from app.schemas.booking import (
+from app.booking import rules
+from app.booking.models import Booking
+from app.booking.schemas import (
     AdminBookingCustomer,
     AdminBookingOut,
     ArtistDashboard,
@@ -31,6 +28,11 @@ from app.schemas.booking import (
     BookingOut,
     BookingReview,
 )
+from app.core.config import get_settings
+from app.core.database import get_db
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.review.filters import review_window_open
+from app.review.models import PUBLIC_REVIEW, Review
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import (
@@ -41,8 +43,6 @@ from app.shared.enums import (
 )
 from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
-from app.utils import booking_rules as rules
-from app.utils.review_filter import review_window_open
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
 OPEN = (BookingStatus.requested, BookingStatus.confirmed)

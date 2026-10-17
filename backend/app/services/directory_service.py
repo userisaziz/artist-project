@@ -10,10 +10,13 @@ from sqlalchemy.orm import raiseload
 
 from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categories
 from app.artist.schemas import NamedRef
+from app.booking import rules
+from app.booking.models import Booking
+from app.booking.service import busy_ranges
 from app.catalog.models import Category, ServiceTemplate
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.models.booking import Booking
+from app.review.service import ratings_for
 from app.schemas.directory import (
     ArtistCard,
     ArtistPublic,
@@ -22,14 +25,11 @@ from app.schemas.directory import (
     PublicService,
     Slot,
 )
-from app.services.booking_service import busy_ranges
-from app.services.review_service import ratings_for
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.shared.search import like_pattern
 from app.upload.service import ImageStorage, get_storage
-from app.utils import booking_rules as rules
 
 # Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.
 LISTED_AT = func.coalesce(ArtistProfile.reviewed_at, ArtistProfile.created_at)

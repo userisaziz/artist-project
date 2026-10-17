@@ -8,18 +8,18 @@ from sqlalchemy import ColumnElement, Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
+from app.booking import rules
+from app.booking.models import Booking
+from app.booking.schemas import AdminOverview, BookingOut, WeekCount
+from app.booking.service import OPEN, BookingService, rows_query
 from app.core.database import get_db
-from app.models.booking import Booking
-from app.models.review import Review
-from app.schemas.booking import AdminOverview, BookingOut, WeekCount
-from app.services.booking_service import OPEN, BookingService, rows_query
-from app.services.review_service import needs_moderation
+from app.review.models import Review
+from app.review.service import needs_moderation
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.shared.search import like_pattern
 from app.upload.service import ImageStorage, get_storage
 from app.user.models import User
-from app.utils import booking_rules as rules
 
 WEEKS = 12
 

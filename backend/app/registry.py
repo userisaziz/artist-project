@@ -2,8 +2,9 @@
 
 from app.artist import models as artist_models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
+from app.booking import models as booking_models  # noqa: F401
 from app.catalog import models as catalog_models  # noqa: F401
-from app.models import booking, review  # noqa: F401
+from app.review import models as review_models  # noqa: F401
 from app.shared.models import Base
 from app.user import models as user_models  # noqa: F401
 

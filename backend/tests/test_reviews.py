@@ -162,7 +162,7 @@ async def test_review_pages_and_summary_math(client, engine, monkeypatch):
 
 
 def test_window_helper_uses_completion_time():
-    from app.utils.review_filter import review_window_open
+    from app.review.filters import review_window_open
 
     done = datetime(2026, 10, 1, 12, tzinfo=clock.now().tzinfo)
     assert review_window_open(done, done + timedelta(days=30))
@@ -204,7 +204,7 @@ async def test_follow_ups_from_the_review_code_review(client, engine, monkeypatc
 
 
 def test_averages_round_half_up():
-    from app.services.review_service import one_decimal
+    from app.review.service import one_decimal
 
     assert one_decimal(4.25) == 4.3
     assert one_decimal(4.75) == 4.8

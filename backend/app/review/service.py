@@ -11,11 +11,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile
+from app.booking.models import Booking
+from app.booking.service import approved_artist_id
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.booking import Booking
-from app.models.review import PUBLIC_REVIEW, Review
-from app.schemas.review import (
+from app.review.filters import review_flag, review_window_open
+from app.review.models import PUBLIC_REVIEW, Review
+from app.review.schemas import (
     AdminReviewOut,
     OwnReviewOut,
     RefOut,
@@ -25,12 +27,10 @@ from app.schemas.review import (
     ReviewOut,
     ReviewSummary,
 )
-from app.services.booking_service import approved_artist_id
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistStatus, BookingStatus, ReviewStatus
 from app.user.models import User
-from app.utils.review_filter import review_flag, review_window_open
 
 DECISIONS = {"publish": ReviewStatus.published, "hide": ReviewStatus.hidden, "remove": ReviewStatus.removed}
 
