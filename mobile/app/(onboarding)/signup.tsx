@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
-import { AppText } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
-import { AppTextField } from '../../src/core/components/AppTextField';
+import { FormScreen, FormHeading } from '../../src/components/common/FormScreen';
+import { AppText } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
+import { AppTextField } from '../../src/components/common/AppTextField';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/features/auth/auth-provider';
+import { useAuth } from '../../src/context/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 

@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { AppText } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
-import { useArtistProfile } from '../../src/artist/queries';
-import { artistStage } from '../../src/artist/routing';
-import { ArtistFlowContext } from '../../src/artist/flow-context';
+import { AppText } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
+import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { artistStage } from '../../src/utils/artist-onboarding/routing';
+import { ArtistFlowContext } from '../../src/context/artist-onboarding/flow-context';
 import { errorMessage } from '../../src/core/api/error-message';
 
 // Artist area. The root guards the folder (role === 'artist'); inside it, the cached

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AppText } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
-import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
-import { OtpInput } from '../../src/core/components/OtpInput';
-import { formatPhone } from '../../src/core/components/PhoneInput';
+import { AppText } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
+import { FormScreen, FormHeading } from '../../src/components/common/FormScreen';
+import { OtpInput } from '../../src/components/common/OtpInput';
+import { formatPhone } from '../../src/components/common/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth, useMockOtpListener } from '../../src/features/auth/auth-provider';
+import { useAuth, useMockOtpListener } from '../../src/context/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 

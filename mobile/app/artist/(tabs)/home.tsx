@@ -1,17 +1,17 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../../src/core/components/AppText';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText, Accent } from '../../../src/components/common/AppText';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/features/auth/auth-provider';
-import { useArtistBookings, useArtistDashboard } from '../../../src/bookings/queries';
-import { formatLongDay, greeting, istDateKey } from '../../../src/core/lib/time';
-import { useNow } from '../../../src/core/hooks/use-now';
-import { formatPrice } from '../../../src/core/lib/format';
-import { useArtistBookingActions } from '../../../src/artist/bookings/actions';
-import { RequestCard } from '../../../src/artist/bookings/RequestCard';
-import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
+import { useAuth } from '../../../src/context/auth/auth-provider';
+import { useArtistBookings, useArtistDashboard } from '../../../src/hooks/bookings/bookings';
+import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';
+import { useNow } from '../../../src/hooks/common/use-now';
+import { formatPrice } from '../../../src/utils/common/format';
+import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
+import { RequestCard } from '../../../src/components/bookings/RequestCard';
+import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 
 const HOME_REQUESTS = 2;
 

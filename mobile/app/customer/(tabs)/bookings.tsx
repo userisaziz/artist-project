@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/core/components/AppText';
-import { Avatar } from '../../../src/core/components/Avatar';
-import { Segmented } from '../../../src/core/components/Segmented';
-import { StatusPill } from '../../../src/core/components/StatusPill';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText } from '../../../src/components/common/AppText';
+import { Avatar } from '../../../src/components/common/Avatar';
+import { Segmented } from '../../../src/components/common/Segmented';
+import { StatusPill } from '../../../src/components/common/StatusPill';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useCustomerBookings } from '../../../src/bookings/queries';
-import { STATUS_PILL } from '../../../src/bookings/status';
-import { formatWhen } from '../../../src/core/lib/time';
+import { useCustomerBookings } from '../../../src/hooks/bookings/bookings';
+import { STATUS_PILL } from '../../../src/utils/bookings/status';
+import { formatWhen } from '../../../src/utils/common/time';
 import type { Booking, CustomerBookingScope } from '../../../src/core/api/types';
 
 const SCOPES: { key: CustomerBookingScope; label: string }[] = [

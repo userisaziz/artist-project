@@ -2,12 +2,12 @@ import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
+import { AppText, Accent } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/features/auth/auth-provider';
-import { useArtistProfile } from '../../src/artist/queries';
-import { useArtistFlow } from '../../src/artist/flow-context';
+import { useAuth } from '../../src/context/auth/auth-provider';
+import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistFlow } from '../../src/context/artist-onboarding/flow-context';
 
 // Atelier hi-fi "onbDone": the review timeline. A rejection shows the admin's reason and "Edit and resubmit" instead.
 export default function InReviewScreen() {

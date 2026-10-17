@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/core/components/AppText';
-import { Avatar } from '../../../src/core/components/Avatar';
-import { formatPhone } from '../../../src/core/components/PhoneInput';
-import { MenuRow } from '../../../src/core/components/MenuRow';
+import { AppText } from '../../../src/components/common/AppText';
+import { Avatar } from '../../../src/components/common/Avatar';
+import { formatPhone } from '../../../src/components/common/PhoneInput';
+import { MenuRow } from '../../../src/components/common/MenuRow';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/features/auth/auth-provider';
+import { useAuth } from '../../../src/context/auth/auth-provider';
 import { errorMessage } from '../../../src/core/api/error-message';
 
 // Spec §2 Profile tab: name and phone, My bookings, the artist side (PUT /users/me/role), Log out.

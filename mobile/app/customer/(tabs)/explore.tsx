@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { FlatList, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/core/components/AppText';
-import { Chip } from '../../../src/core/components/Chip';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText } from '../../../src/components/common/AppText';
+import { Chip } from '../../../src/components/common/Chip';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useCategories } from '../../../src/artist/queries';
-import { useArtistList } from '../../../src/directory/queries';
-import { useDebounced } from '../../../src/core/hooks/use-debounced';
-import { ArtistCardView } from '../../../src/directory/ArtistCardView';
+import { useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistList } from '../../../src/hooks/directory/directory';
+import { useDebounced } from '../../../src/hooks/common/use-debounced';
+import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
 
 const SEARCH_DEBOUNCE_MS = 300;
 

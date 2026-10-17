@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/core/components/AppText';
-import { Segmented } from '../../../src/core/components/Segmented';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText } from '../../../src/components/common/AppText';
+import { Segmented } from '../../../src/components/common/Segmented';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistBookings } from '../../../src/bookings/queries';
-import { useNow } from '../../../src/core/hooks/use-now';
-import { useArtistBookingActions } from '../../../src/artist/bookings/actions';
-import { RequestCard } from '../../../src/artist/bookings/RequestCard';
-import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
+import { useArtistBookings } from '../../../src/hooks/bookings/bookings';
+import { useNow } from '../../../src/hooks/common/use-now';
+import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
+import { RequestCard } from '../../../src/components/bookings/RequestCard';
+import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 import type { ArtistBookingScope, Booking } from '../../../src/core/api/types';
 
 const EMPTY: Record<ArtistBookingScope, string> = {

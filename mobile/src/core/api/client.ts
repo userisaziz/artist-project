@@ -1,6 +1,6 @@
 import type { Transport, TransportRequest } from './transport';
 import { RealTransport } from './real-transport';
-import { MockTransport } from './mock/transport';
+import { MockTransport } from '../../mocks/transport';
 import { ApiError } from './types';
 
 /** THE parallel-build seam: one line decides mock vs real for the whole app. */

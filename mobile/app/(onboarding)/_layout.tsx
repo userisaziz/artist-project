@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useAuth } from '../../src/features/auth/auth-provider';
+import { useAuth } from '../../src/context/auth/auth-provider';
 
 // Authenticated but not yet onboarded. The root gate hands this group the whole subtree;
 // within it, exactly one guard is true so the stack always lands on one step:

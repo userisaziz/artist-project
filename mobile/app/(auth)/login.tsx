@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AppText } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
-import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
-import { PhoneInput } from '../../src/core/components/PhoneInput';
+import { AppText } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
+import { FormScreen, FormHeading } from '../../src/components/common/FormScreen';
+import { PhoneInput } from '../../src/components/common/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/features/auth/auth-provider';
+import { useAuth } from '../../src/context/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/; // same rule the backend enforces

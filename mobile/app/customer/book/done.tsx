@@ -2,16 +2,16 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../../src/core/components/AppText';
-import { AppButton } from '../../../src/core/components/AppButton';
-import { Card } from '../../../src/core/components/Card';
-import { InfoRow } from '../../../src/core/components/InfoRow';
-import { ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText, Accent } from '../../../src/components/common/AppText';
+import { AppButton } from '../../../src/components/common/AppButton';
+import { Card } from '../../../src/components/common/Card';
+import { InfoRow } from '../../../src/components/common/InfoRow';
+import { ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useBooking } from '../../../src/bookings/queries';
-import { ACCEPT_WINDOW_HOURS } from '../../../src/bookings/pricing';
-import { formatWhen } from '../../../src/core/lib/time';
-import { formatPrice } from '../../../src/core/lib/format';
+import { useBooking } from '../../../src/hooks/bookings/bookings';
+import { ACCEPT_WINDOW_HOURS } from '../../../src/utils/bookings/pricing';
+import { formatWhen } from '../../../src/utils/common/time';
+import { formatPrice } from '../../../src/utils/common/format';
 
 // Spec §2 Booking requested.
 export default function BookingRequested() {

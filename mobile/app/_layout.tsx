@@ -5,10 +5,10 @@ import type { ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, PlusJakartaSans_600SemiBold_Italic, PlusJakartaSans_500Medium_Italic, PlusJakartaSans_700Bold, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider, useTheme } from '../src/core/theme/theme-provider';
-import { AuthProvider, useAuth } from '../src/features/auth/auth-provider';
-import { destination } from '../src/features/auth/routing';
-import { AppText } from '../src/core/components/AppText';
-import { AppButton } from '../src/core/components/AppButton';
+import { AuthProvider, useAuth } from '../src/context/auth/auth-provider';
+import { destination } from '../src/utils/auth/routing';
+import { AppText } from '../src/components/common/AppText';
+import { AppButton } from '../src/components/common/AppButton';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../src/core/api/query-client';
 

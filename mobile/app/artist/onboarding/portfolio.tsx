@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
-import { AppText } from '../../../src/core/components/AppText';
-import { AppButton } from '../../../src/core/components/AppButton';
+import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
+import { AppText } from '../../../src/components/common/AppText';
+import { AppButton } from '../../../src/components/common/AppButton';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistProfile, useArtistWrite } from '../../../src/artist/queries';
-import { pickImages, uploadImage } from '../../../src/artist/upload';
-import * as artistApi from '../../../src/api/endpoints/artist';
+import { useArtistProfile, useArtistWrite } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { pickImages, uploadImage } from '../../../src/api/artist-onboarding/upload';
+import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 
 const MIN_PHOTOS = 6;  // backend artist_service.MIN_PHOTOS

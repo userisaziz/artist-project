@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
-import { AppText } from '../../../src/core/components/AppText';
-import { AppButton } from '../../../src/core/components/AppButton';
-import { AddServiceSheet } from '../../../src/artist/AddServiceSheet';
+import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
+import { AppText } from '../../../src/components/common/AppText';
+import { AppButton } from '../../../src/components/common/AppButton';
+import { AddServiceSheet } from '../../../src/components/artist-onboarding/AddServiceSheet';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistProfile, useArtistWrite, useCategories } from '../../../src/artist/queries';
-import { formatDuration, formatPrice } from '../../../src/core/lib/format';
-import * as artistApi from '../../../src/api/endpoints/artist';
+import { useArtistProfile, useArtistWrite, useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { formatDuration, formatPrice } from '../../../src/utils/common/format';
+import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 import type { CatalogCategory } from '../../../src/core/api/types';
 

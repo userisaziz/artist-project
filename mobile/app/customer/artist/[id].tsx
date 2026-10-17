@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Storefront } from '../../../src/directory/Storefront';
+import { Storefront } from '../../../src/components/directory/Storefront';
 
 // Spec §2 Artist storefront; "Check availability" opens Date & time for the selected package, "See all reviews" the reviews.
 export default function ArtistStorefrontScreen() {

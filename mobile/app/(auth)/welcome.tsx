@@ -3,8 +3,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../src/core/components/AppText';
-import { AppButton } from '../../src/core/components/AppButton';
+import { AppText, Accent } from '../../src/components/common/AppText';
+import { AppButton } from '../../src/components/common/AppButton';
 import { useTheme } from '../../src/core/theme/theme-provider';
 
 // Atelier hi-fi "Welcome" (v4): welcome2 photo across the top 640pt, blush fade, copy + buttons at the bottom.

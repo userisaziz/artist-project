@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
-import { useArtistProfile } from '../../src/artist/queries';
-import { useArtistFlow } from '../../src/artist/flow-context';
-import { artistHref } from '../../src/artist/routing';
+import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistFlow } from '../../src/context/artist-onboarding/flow-context';
+import { artistHref } from '../../src/utils/artist-onboarding/routing';
 
 // `/artist` hub: forwards to the one area the artist layout is showing (same rule as its guards).
 export default function ArtistIndex() {

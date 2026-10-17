@@ -2,10 +2,10 @@ import { Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../../src/core/components/AppText';
-import { AppButton } from '../../../src/core/components/AppButton';
+import { AppText, Accent } from '../../../src/components/common/AppText';
+import { AppButton } from '../../../src/components/common/AppButton';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/features/auth/auth-provider';
+import { useAuth } from '../../../src/context/auth/auth-provider';
 
 const ARTIST_PHOTO = require('../../../assets/hero/role-artist.webp');
 const WELCOME_PHOTO = require('../../../assets/hero/welcome.webp');

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/core/components/AppText';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { AppText } from '../../../src/components/common/AppText';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistBookingsInRange } from '../../../src/bookings/queries';
-import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/core/lib/time';
-import { useNow } from '../../../src/core/hooks/use-now';
-import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
+import { useArtistBookingsInRange } from '../../../src/hooks/bookings/bookings';
+import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/utils/common/time';
+import { useNow } from '../../../src/hooks/common/use-now';
+import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 import type { Booking } from '../../../src/core/api/types';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];

@@ -2,15 +2,15 @@ import { FlatList, Pressable, ScrollView, View, useWindowDimensions } from 'reac
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../../src/core/components/AppText';
-import { ErrorView, LoadingView, EmptyView } from '../../../src/core/components/StateViews';
+import { AppText, Accent } from '../../../src/components/common/AppText';
+import { ErrorView, LoadingView, EmptyView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useAuth } from '../../../src/features/auth/auth-provider';
-import { useCategories } from '../../../src/artist/queries';
-import { useArtistList } from '../../../src/directory/queries';
-import { ArtistCardView } from '../../../src/directory/ArtistCardView';
-import { formatLongDay, greeting, istDateKey } from '../../../src/core/lib/time';
-import { useNow } from '../../../src/core/hooks/use-now';
+import { useAuth } from '../../../src/context/auth/auth-provider';
+import { useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistList } from '../../../src/hooks/directory/directory';
+import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
+import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';
+import { useNow } from '../../../src/hooks/common/use-now';
 
 const HERO_SLIDES = [
   { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: 'https://picsum.photos/seed/atelier-hero-bridal/900/600' },
