@@ -1,11 +1,11 @@
 import { Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
-import { AppText } from '../components/AppText';
-import { Avatar } from '../components/Avatar';
-import { useTheme } from '../theme/theme-provider';
-import { formatPrice } from '../artist/format';
+import { AppText } from '../core/components/AppText';
+import { Avatar } from '../core/components/Avatar';
+import { useTheme } from '../core/theme/theme-provider';
+import { formatPrice } from '../core/lib/format';
 import { ratingShort } from '../reviews/format';
-import type { ArtistCard } from '../api/types';
+import type { ArtistCard } from '../core/api/types';
 
 interface ArtistCardViewProps {
   artist: ArtistCard;

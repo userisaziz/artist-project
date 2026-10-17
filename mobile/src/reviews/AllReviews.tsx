@@ -1,8 +1,8 @@
 import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BackHeader } from '../components/BackHeader';
-import { EmptyView, ErrorView, LoadingView } from '../components/StateViews';
-import { useTheme } from '../theme/theme-provider';
+import { BackHeader } from '../core/components/BackHeader';
+import { EmptyView, ErrorView, LoadingView } from '../core/components/StateViews';
+import { useTheme } from '../core/theme/theme-provider';
 import { useArtistPublic } from '../directory/queries';
 import { usePublicReviews } from './queries';
 import { ReviewCard } from './ReviewCard';

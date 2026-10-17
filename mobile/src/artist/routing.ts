@@ -1,4 +1,4 @@
-import type { ArtistProfile } from '../api/types';
+import type { ArtistProfile } from '../core/api/types';
 
 /** Which artist area to show. Drives both the artist layout guards and the `/artist` hub. */
 export type ArtistStage = 'onboarding' | 'review' | 'live';

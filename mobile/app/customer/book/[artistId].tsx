@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
-import { BackHeader } from '../../../src/components/BackHeader';
-import { ErrorView, LoadingView, EmptyView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
+import { BackHeader } from '../../../src/core/components/BackHeader';
+import { ErrorView, LoadingView, EmptyView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistPublic, useAvailability } from '../../../src/directory/queries';
 import { useBookingFlow } from '../../../src/bookings/flow-context';
-import { addDays, dayParts, formatDay, formatTime, formatWhen, istDateKey } from '../../../src/bookings/time';
-import { formatPrice, formatDuration } from '../../../src/artist/format';
-import { useNow } from '../../../src/bookings/use-now';
+import { addDays, dayParts, formatDay, formatTime, formatWhen, istDateKey } from '../../../src/core/lib/time';
+import { formatPrice, formatDuration } from '../../../src/core/lib/format';
+import { useNow } from '../../../src/core/hooks/use-now';
 
 const STRIP_DAYS = 14;
 

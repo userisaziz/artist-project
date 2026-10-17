@@ -1,5 +1,5 @@
-import { lightTheme } from '../theme/themes/light';
-import { palette } from '../theme/tokens/palette';
+import { lightTheme } from '../themes/light';
+import { palette } from '../tokens/palette';
 
 it('assigns every semantic color role', () => {
   const roles = Object.keys(lightTheme.colors);

@@ -1,5 +1,5 @@
-import type { BookingStatus } from '../api/types';
-import type { PillTone } from '../components/StatusPill';
+import type { BookingStatus } from '../core/api/types';
+import type { PillTone } from '../core/components/StatusPill';
 
 /** Spec §2 Bookings tab pills. */
 export const STATUS_PILL: Record<BookingStatus, { label: string; tone: PillTone }> = {

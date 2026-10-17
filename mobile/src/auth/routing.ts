@@ -1,4 +1,4 @@
-import type { User } from '../api/types';
+import type { User } from '../core/api/types';
 
 /** Which top-level area a user belongs to. Drives both the root gate guards and the `/` redirect hub. */
 export type Destination = 'auth' | 'onboarding' | 'customer' | 'artist';

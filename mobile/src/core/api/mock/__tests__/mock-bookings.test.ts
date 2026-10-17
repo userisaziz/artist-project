@@ -1,6 +1,6 @@
-import { MockTransport } from '../mock/transport';
-import type { ArtistCard, ArtistDashboard, ArtistPublic, Availability, Booking, CatalogCategory, Page, UploadTicket } from '../types';
-import { addDays, istDateKey, istDayStart } from '../../bookings/time';
+import { MockTransport } from '../transport';
+import type { ArtistCard, ArtistDashboard, ArtistPublic, Availability, Booking, CatalogCategory, Page, UploadTicket } from '../../types';
+import { addDays, istDateKey, istDayStart } from '../../../lib/time';
 
 const HOUR = 3600_000;
 const PRIYA = '+15550009999'; // the mock's seeded, approved artist

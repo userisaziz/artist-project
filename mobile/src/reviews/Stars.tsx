@@ -1,6 +1,6 @@
 import type { TextStyle } from 'react-native';
-import { AppText } from '../components/AppText';
-import { useTheme } from '../theme/theme-provider';
+import { AppText } from '../core/components/AppText';
+import { useTheme } from '../core/theme/theme-provider';
 import { starString } from './format';
 
 interface StarsProps {

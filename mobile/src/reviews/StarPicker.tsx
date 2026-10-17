@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
-import { AppText } from '../components/AppText';
-import { useTheme } from '../theme/theme-provider';
-import type { StarRating } from '../api/types';
+import { AppText } from '../core/components/AppText';
+import { useTheme } from '../core/theme/theme-provider';
+import type { StarRating } from '../core/api/types';
 
 const VALUES: StarRating[] = [1, 2, 3, 4, 5];
 const STAR_SIZE = 34;

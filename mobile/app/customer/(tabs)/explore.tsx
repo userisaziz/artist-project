@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { FlatList, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { Chip } from '../../../src/components/Chip';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { Chip } from '../../../src/core/components/Chip';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useCategories } from '../../../src/artist/queries';
 import { useArtistList } from '../../../src/directory/queries';
-import { useDebounced } from '../../../src/directory/use-debounced';
+import { useDebounced } from '../../../src/core/hooks/use-debounced';
 import { ArtistCardView } from '../../../src/directory/ArtistCardView';
 
 const SEARCH_DEBOUNCE_MS = 300;

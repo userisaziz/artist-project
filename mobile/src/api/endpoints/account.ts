@@ -1,5 +1,5 @@
-import { request } from '../client';
-import type { AccountDetails, ChosenRole, User } from '../types';
+import { request } from '../../core/api/client';
+import type { AccountDetails, ChosenRole, User } from '../../core/api/types';
 
 // Each call returns the updated User so the gate can re-route at once.
 export function updateMe(details: AccountDetails) {

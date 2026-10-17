@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../components/AppText';
-import { fieldBorder } from '../components/FieldHalo';
-import { useTheme } from '../theme/theme-provider';
+import { AppText } from '../core/components/AppText';
+import { fieldBorder } from '../core/components/FieldHalo';
+import { useTheme } from '../core/theme/theme-provider';
 
 /** Field-styled button that opens a bottom-sheet list of the supported cities. */
 export function CityField({ value, cities, onChange }: { value: string | null; cities: string[]; onChange: (city: string) => void }) {

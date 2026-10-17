@@ -3,18 +3,18 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
-import { Avatar } from '../../../src/components/Avatar';
-import { Card } from '../../../src/components/Card';
-import { MenuRow } from '../../../src/components/MenuRow';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
+import { Avatar } from '../../../src/core/components/Avatar';
+import { Card } from '../../../src/core/components/Card';
+import { MenuRow } from '../../../src/core/components/MenuRow';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/auth/auth-provider';
 import { useArtistProfile } from '../../../src/artist/queries';
-import { errorMessage } from '../../../src/api/error-message';
+import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/reviews/queries';
 import { formatAverage } from '../../../src/reviews/format';
-import type { ReviewSummary } from '../../../src/api/types';
+import type { ReviewSummary } from '../../../src/core/api/types';
 
 const COVER_HEIGHT = 170;
 

@@ -1,6 +1,6 @@
-import { request } from '../client';
-import { withQuery } from '../query-string';
-import type { ArtistReview, PostedReview, Review, ReviewInput, ReviewPage } from '../types';
+import { request } from '../../core/api/client';
+import { withQuery } from '../../core/api/query-string';
+import type { ArtistReview, PostedReview, Review, ReviewInput, ReviewPage } from '../../core/api/types';
 
 // Reviews (spec Increment 6 §1.2).
 

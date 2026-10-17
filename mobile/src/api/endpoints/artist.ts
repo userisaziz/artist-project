@@ -1,6 +1,6 @@
-import { request } from '../client';
-import { ApiError } from '../types';
-import type { ArtistProfile, CustomServiceInput, CustomServicePatch, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../types';
+import { request } from '../../core/api/client';
+import { ApiError } from '../../core/api/types';
+import type { ArtistProfile, CustomServiceInput, CustomServicePatch, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../../core/api/types';
 
 // Mirrors backend api/v1/artists.py + uploads.py. Every write returns the whole profile.
 

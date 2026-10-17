@@ -2,15 +2,15 @@ import { FlatList, Pressable, ScrollView, View, useWindowDimensions } from 'reac
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../../src/components/AppText';
-import { ErrorView, LoadingView, EmptyView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText, Accent } from '../../../src/core/components/AppText';
+import { ErrorView, LoadingView, EmptyView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/auth/auth-provider';
 import { useCategories } from '../../../src/artist/queries';
 import { useArtistList } from '../../../src/directory/queries';
 import { ArtistCardView } from '../../../src/directory/ArtistCardView';
-import { formatLongDay, greeting, istDateKey } from '../../../src/bookings/time';
-import { useNow } from '../../../src/bookings/use-now';
+import { formatLongDay, greeting, istDateKey } from '../../../src/core/lib/time';
+import { useNow } from '../../../src/core/hooks/use-now';
 
 const HERO_SLIDES = [
   { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: 'https://picsum.photos/seed/atelier-hero-bridal/900/600' },

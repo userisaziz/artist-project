@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
-import { useTheme } from '../../src/theme/theme-provider';
-import { AppText } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
+import { useTheme } from '../../src/core/theme/theme-provider';
+import { AppText } from '../../src/core/components/AppText';
+import { AppButton } from '../../src/core/components/AppButton';
 import { useArtistProfile } from '../../src/artist/queries';
 import { artistStage } from '../../src/artist/routing';
 import { ArtistFlowContext } from '../../src/artist/flow-context';
-import { errorMessage } from '../../src/api/error-message';
+import { errorMessage } from '../../src/core/api/error-message';
 
 // Artist area. The root guards the folder (role === 'artist'); inside it, the cached
 // GET /artists/me picks exactly one area, like the root gate. `index` is the always-mounted

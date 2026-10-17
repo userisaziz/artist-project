@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../src/components/AppText';
-import { useTheme } from '../../src/theme/theme-provider';
+import { AppText, Accent } from '../../src/core/components/AppText';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/auth/auth-provider';
-import { errorMessage } from '../../src/api/error-message';
+import { errorMessage } from '../../src/core/api/error-message';
 
 const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // design's role-client.jpg
 const ARTIST_PHOTO = require('../../assets/hero/role-artist.webp');     // design's role-creator.jpg

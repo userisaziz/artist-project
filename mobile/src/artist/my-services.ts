@@ -1,5 +1,5 @@
-import type { CatalogCategory, ServiceItem, ServiceStatus } from '../api/types';
-import type { PillTone } from '../components/StatusPill';
+import type { CatalogCategory, ServiceItem, ServiceStatus } from '../core/api/types';
+import type { PillTone } from '../core/components/StatusPill';
 
 /** "Mehendi › Bridal"; a row pointing at a top-level category (from before subcategories) reads "Mehendi". */
 export function groupTitle(tree: CatalogCategory[], subcategoryId: number): string {

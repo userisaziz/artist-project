@@ -1,12 +1,12 @@
 import { View } from 'react-native';
 import type { ReactNode } from 'react';
-import { AppText } from '../components/AppText';
-import { Avatar } from '../components/Avatar';
-import { Card } from '../components/Card';
-import { useTheme } from '../theme/theme-provider';
+import { AppText } from '../core/components/AppText';
+import { Avatar } from '../core/components/Avatar';
+import { Card } from '../core/components/Card';
+import { useTheme } from '../core/theme/theme-provider';
 import { reviewMeta } from './format';
 import { Stars } from './Stars';
-import type { Review } from '../api/types';
+import type { Review } from '../core/api/types';
 
 interface ReviewCardProps {
   review: Review;

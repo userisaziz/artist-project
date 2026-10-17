@@ -1,4 +1,4 @@
-import { MockTransport } from '../mock/transport';
+import { MockTransport } from '../transport';
 
 const PHONE = '+15550001111';
 

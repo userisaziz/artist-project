@@ -1,9 +1,9 @@
 import type { Booking, BookingReview, BookingStatus, CancelledBy, ServiceItem, User } from '../types';
 import type { TransportResponse } from '../transport';
 import type { MockArtists, MockProfile } from './artist';
-import { ACCEPT_WINDOW_HOURS, isBookableDate, isSlotFree, priceBreakdown, refundDueOnCustomerCancel, slotStarts } from '../../bookings/pricing';
-import type { Busy, PriceBreakdown } from '../../bookings/pricing';
-import { addDays, istDateKey, istDayStart } from '../../bookings/time';
+import { ACCEPT_WINDOW_HOURS, isBookableDate, isSlotFree, priceBreakdown, refundDueOnCustomerCancel, slotStarts } from '../../../bookings/pricing';
+import type { Busy, PriceBreakdown } from '../../../bookings/pricing';
+import { addDays, istDateKey, istDayStart } from '../../lib/time';
 
 // Same rules as backend services/booking_service.py (spec §1.2, §1.4, §1.5) — keep them in lockstep.
 

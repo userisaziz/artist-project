@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 
 // Intro → Profile → Services → Portfolio → Identity. The artist layout guards the whole group; steps
 // navigate with push (forward) and dismissTo (back), so a resumed step can still go back.

@@ -1,5 +1,5 @@
 import { availability, isBookableDate, overlaps, priceBreakdown, refundDueOnCustomerCancel, slotStarts } from '../pricing';
-import { istDayStart } from '../time';
+import { istDayStart } from '../../core/lib/time';
 
 const HOUR = 3600_000;
 

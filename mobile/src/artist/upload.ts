@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { transport } from '../api/client';
-import { MockTransport } from '../api/mock/transport';
-import { ApiError } from '../api/types';
-import type { PhotoInput, UploadPurpose, UploadTicket } from '../api/types';
+import { transport } from '../core/api/client';
+import { MockTransport } from '../core/api/mock/transport';
+import { ApiError } from '../core/api/types';
+import type { PhotoInput, UploadPurpose, UploadTicket } from '../core/api/types';
 import * as artistApi from '../api/endpoints/artist';
 
 const MAX_EDGE = 2048; // spec §2: longest side

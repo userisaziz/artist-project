@@ -3,8 +3,8 @@ import type { MockArtists, MockProfile } from './artist';
 import type { MockBookings, MockBooking } from './bookings';
 import type { MockReviews, SeedReview } from './reviews';
 import { SEED_ARTISTS, SEED_CUSTOMERS } from './directory-seed';
-import { ACCEPT_WINDOW_HOURS, priceBreakdown } from '../../bookings/pricing';
-import { addDays, istDateKey, istDayStart } from '../../bookings/time';
+import { ACCEPT_WINDOW_HOURS, priceBreakdown } from '../../../bookings/pricing';
+import { addDays, istDateKey, istDayStart } from '../../lib/time';
 
 const HOUR_MS = 3600_000;
 const DAY_MS = 24 * HOUR_MS;

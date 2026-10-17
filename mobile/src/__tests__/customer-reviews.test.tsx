@@ -1,9 +1,9 @@
 import { renderRouter, screen, fireEvent } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
-import { transport } from '../api/client';
-import { MockTransport } from '../api/mock/transport';
+import { transport } from '../core/api/client';
+import { MockTransport } from '../core/api/mock/transport';
 import { ratingLong } from '../reviews/format';
-import type { Review, ReviewPage } from '../api/types';
+import type { Review, ReviewPage } from '../core/api/types';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();

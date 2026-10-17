@@ -1,12 +1,12 @@
 import { View } from 'react-native';
-import { AppText } from '../../components/AppText';
-import { AppButton } from '../../components/AppButton';
-import { StatusPill } from '../../components/StatusPill';
-import { useTheme } from '../../theme/theme-provider';
+import { AppText } from '../../core/components/AppText';
+import { AppButton } from '../../core/components/AppButton';
+import { StatusPill } from '../../core/components/StatusPill';
+import { useTheme } from '../../core/theme/theme-provider';
 import { STATUS_PILL, customerName } from '../../bookings/status';
-import { formatDay, formatTime, istDateKey } from '../../bookings/time';
-import { formatMaybePrice } from '../format';
-import type { Booking } from '../../api/types';
+import { formatDay, formatTime, istDateKey } from '../../core/lib/time';
+import { formatMaybePrice } from '../../core/lib/format';
+import type { Booking } from '../../core/api/types';
 
 interface AgendaRowProps {
   booking: Booking;

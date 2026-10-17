@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistBookingsInRange } from '../../../src/bookings/queries';
-import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/bookings/time';
-import { useNow } from '../../../src/bookings/use-now';
+import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/core/lib/time';
+import { useNow } from '../../../src/core/hooks/use-now';
 import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
-import type { Booking } from '../../../src/api/types';
+import type { Booking } from '../../../src/core/api/types';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const SHOWN: Booking['status'][] = ['requested', 'confirmed', 'completed']; // ended-without-service bookings hold no time

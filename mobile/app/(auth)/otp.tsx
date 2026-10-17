@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AppText } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
-import { FormScreen, FormHeading } from '../../src/components/FormScreen';
-import { OtpInput } from '../../src/components/OtpInput';
-import { formatPhone } from '../../src/components/PhoneInput';
-import { useTheme } from '../../src/theme/theme-provider';
+import { AppText } from '../../src/core/components/AppText';
+import { AppButton } from '../../src/core/components/AppButton';
+import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
+import { OtpInput } from '../../src/core/components/OtpInput';
+import { formatPhone } from '../../src/core/components/PhoneInput';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth, useMockOtpListener } from '../../src/auth/auth-provider';
-import { ApiError } from '../../src/api/types';
-import { errorMessage } from '../../src/api/error-message';
+import { ApiError } from '../../src/core/api/types';
+import { errorMessage } from '../../src/core/api/error-message';
 
 const RESEND_SECONDS = 60;
 

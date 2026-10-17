@@ -1,8 +1,8 @@
 import { renderRouter, screen, waitFor, fireEvent } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
 import { act } from 'react';
-import { transport } from '../api/client';
-import { queryClient } from '../api/query-client';
+import { transport } from '../core/api/client';
+import { queryClient } from '../core/api/query-client';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();

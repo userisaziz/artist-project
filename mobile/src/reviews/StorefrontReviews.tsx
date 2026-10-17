@@ -1,8 +1,8 @@
 import { View } from 'react-native';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { EmptyView, ErrorView, LoadingView } from '../components/StateViews';
-import { useTheme } from '../theme/theme-provider';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { EmptyView, ErrorView, LoadingView } from '../core/components/StateViews';
+import { useTheme } from '../core/theme/theme-provider';
 import { useReviewPreview } from './queries';
 import { ReviewCard } from './ReviewCard';
 import { ReviewSummaryView } from './ReviewSummaryView';

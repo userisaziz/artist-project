@@ -1,9 +1,9 @@
 import { View } from 'react-native';
-import { AppText } from '../components/AppText';
-import { useTheme } from '../theme/theme-provider';
+import { AppText } from '../core/components/AppText';
+import { useTheme } from '../core/theme/theme-provider';
 import { formatAverage, reviewCountLabel } from './format';
 import { Stars } from './Stars';
-import type { ReviewSummary } from '../api/types';
+import type { ReviewSummary } from '../core/api/types';
 
 const ROWS = ['5', '4', '3', '2', '1'] as const;
 const BAR_HEIGHT = 6;

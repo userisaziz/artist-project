@@ -1,5 +1,5 @@
-import { transport } from '../../api/client';
-import { MockTransport } from '../../api/mock/transport';
+import { transport } from '../../core/api/client';
+import { MockTransport } from '../../core/api/mock/transport';
 import { postToStorage, uploadImage } from '../upload';
 
 const mockResize = jest.fn();

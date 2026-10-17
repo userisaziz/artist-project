@@ -1,6 +1,6 @@
 import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistStatus, CatalogCategory, Category, NamedRef, PublicService, ServiceItem, ServiceTemplate, UploadPurpose } from '../types';
 import type { TransportResponse } from '../transport';
-import { isValidAadhaar } from '../../artist/aadhaar';
+import { isValidAadhaar } from '../../../artist/aadhaar';
 import { PORTFOLIO_SIZE, seedAvatarUrl, seedPhotoUrl } from './directory-seed';
 import type { SeedArtist } from './directory-seed';
 

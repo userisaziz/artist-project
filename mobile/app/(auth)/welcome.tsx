@@ -3,9 +3,9 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
-import { useTheme } from '../../src/theme/theme-provider';
+import { AppText, Accent } from '../../src/core/components/AppText';
+import { AppButton } from '../../src/core/components/AppButton';
+import { useTheme } from '../../src/core/theme/theme-provider';
 
 // Atelier hi-fi "Welcome" (v4): welcome2 photo across the top 640pt, blush fade, copy + buttons at the bottom.
 const HERO = require('../../assets/hero/welcome.webp');

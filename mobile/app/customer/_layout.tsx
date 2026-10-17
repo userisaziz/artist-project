@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useTheme } from '../../src/theme/theme-provider';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { BookingFlowProvider } from '../../src/bookings/flow-context';
 
 // Customer area. Guarded at the root (role === 'customer'), so anything mounted here is customer-only.

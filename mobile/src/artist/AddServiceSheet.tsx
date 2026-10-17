@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { AppTextField } from '../components/AppTextField';
-import { Chip } from '../components/Chip';
-import { useTheme } from '../theme/theme-provider';
-import { errorMessage } from '../api/error-message';
-import type { CatalogCategory, ServiceInput } from '../api/types';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { AppTextField } from '../core/components/AppTextField';
+import { Chip } from '../core/components/Chip';
+import { useTheme } from '../core/theme/theme-provider';
+import { errorMessage } from '../core/api/error-message';
+import type { CatalogCategory, ServiceInput } from '../core/api/types';
 
 const MAX_RUPEES = 1_000_000; // backend ServiceIn: price_paise ≤ 100 000 000
 const MAX_MINUTES = 1440;

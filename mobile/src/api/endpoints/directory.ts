@@ -1,6 +1,6 @@
-import { request } from '../client';
-import { withQuery } from '../query-string';
-import type { ArtistCard, ArtistPublic, Availability, Page } from '../types';
+import { request } from '../../core/api/client';
+import { withQuery } from '../../core/api/query-string';
+import type { ArtistCard, ArtistPublic, Availability, Page } from '../../core/api/types';
 
 // Public artist directory (spec §1.3): no auth.
 export interface DirectoryFilter {

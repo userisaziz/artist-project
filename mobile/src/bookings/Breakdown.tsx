@@ -1,7 +1,7 @@
 import { View } from 'react-native';
-import { InfoRow } from '../components/InfoRow';
-import { useTheme } from '../theme/theme-provider';
-import { formatPrice } from '../artist/format';
+import { InfoRow } from '../core/components/InfoRow';
+import { useTheme } from '../core/theme/theme-provider';
+import { formatPrice } from '../core/lib/format';
 import { DEPOSIT_PERCENT } from './pricing';
 import type { PriceBreakdown } from './pricing';
 

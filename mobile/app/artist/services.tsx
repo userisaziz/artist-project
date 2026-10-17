@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
-import { BackHeader } from '../../src/components/BackHeader';
-import { Card } from '../../src/components/Card';
-import { StatusPill } from '../../src/components/StatusPill';
-import { EmptyView } from '../../src/components/StateViews';
-import { useTheme } from '../../src/theme/theme-provider';
+import { AppText } from '../../src/core/components/AppText';
+import { AppButton } from '../../src/core/components/AppButton';
+import { BackHeader } from '../../src/core/components/BackHeader';
+import { Card } from '../../src/core/components/Card';
+import { StatusPill } from '../../src/core/components/StatusPill';
+import { EmptyView } from '../../src/core/components/StateViews';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { useArtistProfile, useArtistWrite, useCategories } from '../../src/artist/queries';
 import { CUSTOM_STATUS_PILL, groupMyServices } from '../../src/artist/my-services';
 import { CustomServiceSheet } from '../../src/artist/CustomServiceSheet';
-import { formatDuration, formatPrice } from '../../src/artist/format';
+import { formatDuration, formatPrice } from '../../src/core/lib/format';
 import { addCustomService, deleteCustomService, updateCustomService } from '../../src/api/endpoints/artist';
-import { errorMessage } from '../../src/api/error-message';
-import type { ServiceItem } from '../../src/api/types';
+import { errorMessage } from '../../src/core/api/error-message';
+import type { ServiceItem } from '../../src/core/api/types';
 
 /** The open sheet: adding, or editing one custom service. */
 type SheetState = { mode: 'add' } | { mode: 'edit'; service: ServiceItem };

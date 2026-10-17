@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { AppTextField } from '../components/AppTextField';
-import { BottomSheet } from '../components/BottomSheet';
-import { useTheme } from '../theme/theme-provider';
-import { errorMessage } from '../api/error-message';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { AppTextField } from '../core/components/AppTextField';
+import { BottomSheet } from '../core/components/BottomSheet';
+import { useTheme } from '../core/theme/theme-provider';
+import { errorMessage } from '../core/api/error-message';
 
 interface TextSheetProps {
   title: string;

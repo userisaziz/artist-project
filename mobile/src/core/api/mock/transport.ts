@@ -6,8 +6,8 @@ import { MockReviews } from './reviews';
 import { handleDirectory } from './directory';
 import { seedMarketplace } from './seed';
 import { parseQuery } from '../query-string';
-import { availability } from '../../bookings/pricing';
-import { addDays, istDateKey } from '../../bookings/time';
+import { availability } from '../../../bookings/pricing';
+import { addDays, istDateKey } from '../../lib/time';
 
 interface MockOtp { phone: string; code: string; createdAt: number; expiresAt: number; attempts: number; consumed: boolean }
 interface MockRefresh { token: string; userId: string; expiresAt: number; revoked: boolean }

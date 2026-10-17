@@ -1,6 +1,6 @@
 // Booking money and slot rules (spec Decisions + §1.2). Shared by the mock API and the screens, and kept in
 // lockstep with backend app/core/config.py: the server is the source of truth, these only preview and mirror it.
-import { istDateKey, istDayStart } from './time';
+import { istDateKey, istDayStart } from '../core/lib/time';
 
 export const PLATFORM_FEE_PAISE = 9_900;          // ₹99
 export const FEE_WAIVER_FROM_PAISE = 2_500_000;   // fee waived at ₹25,000 and up

@@ -1,6 +1,6 @@
-import { MockTransport } from '../mock/transport';
-import { summarize } from '../mock/reviews';
-import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistReview, Booking, CatalogCategory, Page, PostedReview, Review, ReviewPage } from '../types';
+import { MockTransport } from '../transport';
+import { summarize } from '../reviews';
+import type { ArtistCard, ArtistProfile, ArtistPublic, ArtistReview, Booking, CatalogCategory, Page, PostedReview, Review, ReviewPage } from '../../types';
 
 const DAY = 24 * 3600_000;
 const PRIYA = '+15550009999';

@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AccountDetails, ChosenRole, TokenPair, User } from '../api/types';
-import { configureSessionBridge, transport } from '../api/client';
+import type { AccountDetails, ChosenRole, TokenPair, User } from '../core/api/types';
+import { configureSessionBridge, transport } from '../core/api/client';
 import * as authApi from '../api/endpoints/auth';
 import * as accountApi from '../api/endpoints/account';
 import { sessionStore } from './session-store';
-import { MockTransport } from '../api/mock/transport';
-import { queryClient } from '../api/query-client';
+import { MockTransport } from '../core/api/mock/transport';
+import { queryClient } from '../core/api/query-client';
 
 type AuthStatus = 'restoring' | 'unauthenticated' | 'authenticated';
 

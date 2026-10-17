@@ -2,8 +2,8 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-
 import { Text, Pressable } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { AuthProvider, useAuth, useMockOtpListener } from '../auth-provider';
-import { transport } from '../../api/client';
-import { MockTransport } from '../../api/mock/transport';
+import { transport } from '../../core/api/client';
+import { MockTransport } from '../../core/api/mock/transport';
 import * as authApi from '../../api/endpoints/auth';
 
 jest.mock('expo-secure-store', () => {

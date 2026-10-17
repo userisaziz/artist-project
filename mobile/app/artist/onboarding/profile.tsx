@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/components/FormScreen';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
-import { AppTextField } from '../../../src/components/AppTextField';
-import { Chip } from '../../../src/components/Chip';
+import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
+import { AppTextField } from '../../../src/core/components/AppTextField';
+import { Chip } from '../../../src/core/components/Chip';
 import { CityField } from '../../../src/artist/CityField';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistProfile, useArtistWrite, useCategories, useCities } from '../../../src/artist/queries';
 import { useArtistFlow } from '../../../src/artist/flow-context';
 import { pickImages, uploadImage } from '../../../src/artist/upload';
 import * as artistApi from '../../../src/api/endpoints/artist';
-import { errorMessage } from '../../../src/api/error-message';
+import { errorMessage } from '../../../src/core/api/error-message';
 
 const MAX_CATEGORIES = 6; // backend ProfileIn.category_ids max_length
 

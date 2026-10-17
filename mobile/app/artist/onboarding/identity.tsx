@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/components/FormScreen';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
-import { AppTextField } from '../../../src/components/AppTextField';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
+import { AppTextField } from '../../../src/core/components/AppTextField';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistProfile, useArtistWrite } from '../../../src/artist/queries';
 import { pickImages, uploadImage } from '../../../src/artist/upload';
 import { formatAadhaar, isValidAadhaar } from '../../../src/artist/aadhaar';
 import * as artistApi from '../../../src/api/endpoints/artist';
-import type { KycInput } from '../../../src/api/types';
-import { errorMessage } from '../../../src/api/error-message';
+import type { KycInput } from '../../../src/core/api/types';
+import { errorMessage } from '../../../src/core/api/error-message';
 
 const INVALID = 'That doesn’t look like a valid Aadhaar number.';
 

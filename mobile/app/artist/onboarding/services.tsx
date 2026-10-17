@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/components/FormScreen';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
+import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
 import { AddServiceSheet } from '../../../src/artist/AddServiceSheet';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistProfile, useArtistWrite, useCategories } from '../../../src/artist/queries';
-import { formatDuration, formatPrice } from '../../../src/artist/format';
+import { formatDuration, formatPrice } from '../../../src/core/lib/format';
 import * as artistApi from '../../../src/api/endpoints/artist';
-import { errorMessage } from '../../../src/api/error-message';
-import type { CatalogCategory } from '../../../src/api/types';
+import { errorMessage } from '../../../src/core/api/error-message';
+import type { CatalogCategory } from '../../../src/core/api/types';
 
 // Step 2 of 4 (not drawn in the design; follows the Profile step): the artist's service menu.
 export default function ServicesStep() {

@@ -3,7 +3,7 @@ import type { MockArtists } from './artist';
 import type { MockBookings } from './bookings';
 import type { MockReviews } from './reviews';
 import { CATALOG } from './artist';
-import { availability, isBookableDate } from '../../bookings/pricing';
+import { availability, isBookableDate } from '../../../bookings/pricing';
 
 // Public directory (spec §1.3), same rules as backend api/v1/directory.py: approved artists only, no auth.
 

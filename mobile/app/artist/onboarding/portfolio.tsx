@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { FormScreen, FormHeading } from '../../../src/components/FormScreen';
-import { AppText } from '../../../src/components/AppText';
-import { AppButton } from '../../../src/components/AppButton';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { FormScreen, FormHeading } from '../../../src/core/components/FormScreen';
+import { AppText } from '../../../src/core/components/AppText';
+import { AppButton } from '../../../src/core/components/AppButton';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistProfile, useArtistWrite } from '../../../src/artist/queries';
 import { pickImages, uploadImage } from '../../../src/artist/upload';
 import * as artistApi from '../../../src/api/endpoints/artist';
-import { errorMessage } from '../../../src/api/error-message';
+import { errorMessage } from '../../../src/core/api/error-message';
 
 const MIN_PHOTOS = 6;  // backend artist_service.MIN_PHOTOS
 const MAX_PHOTOS = 30; // backend artist_service.MAX_PHOTOS

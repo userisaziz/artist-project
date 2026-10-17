@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { FormScreen, FormHeading } from '../../src/components/FormScreen';
-import { AppText } from '../../src/components/AppText';
-import { AppButton } from '../../src/components/AppButton';
-import { AppTextField } from '../../src/components/AppTextField';
-import { useTheme } from '../../src/theme/theme-provider';
+import { FormScreen, FormHeading } from '../../src/core/components/FormScreen';
+import { AppText } from '../../src/core/components/AppText';
+import { AppButton } from '../../src/core/components/AppButton';
+import { AppTextField } from '../../src/core/components/AppTextField';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/auth/auth-provider';
-import { ApiError } from '../../src/api/types';
-import { errorMessage } from '../../src/api/error-message';
+import { ApiError } from '../../src/core/api/types';
+import { errorMessage } from '../../src/core/api/error-message';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // same rule as the mock / backend contract
 const BAD_EMAIL = 'Enter a valid email, or leave it empty.';

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../src/components/AppText';
-import { BackHeader } from '../../src/components/BackHeader';
-import { StatusPill } from '../../src/components/StatusPill';
-import { EmptyView, ErrorView, LoadingView } from '../../src/components/StateViews';
-import { useTheme } from '../../src/theme/theme-provider';
+import { AppText } from '../../src/core/components/AppText';
+import { BackHeader } from '../../src/core/components/BackHeader';
+import { StatusPill } from '../../src/core/components/StatusPill';
+import { EmptyView, ErrorView, LoadingView } from '../../src/core/components/StateViews';
+import { useTheme } from '../../src/core/theme/theme-provider';
 import { useArtistProfile } from '../../src/artist/queries';
 import { replyToReview, reportReview } from '../../src/api/endpoints/reviews';
 import { useMyReviews, useMyReviewWrite } from '../../src/reviews/queries';
@@ -13,7 +13,7 @@ import { reviewStatusPill } from '../../src/reviews/format';
 import { ReviewCard } from '../../src/reviews/ReviewCard';
 import { ReviewSummaryView } from '../../src/reviews/ReviewSummaryView';
 import { TextSheet } from '../../src/reviews/TextSheet';
-import type { ArtistReview } from '../../src/api/types';
+import type { ArtistReview } from '../../src/core/api/types';
 
 const MAX_REPLY = 500;
 const MAX_REASON = 500;

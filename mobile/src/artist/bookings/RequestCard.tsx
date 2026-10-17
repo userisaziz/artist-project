@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { AppText } from '../../components/AppText';
-import { AppButton } from '../../components/AppButton';
-import { AppTextField } from '../../components/AppTextField';
-import { Avatar } from '../../components/Avatar';
-import { useTheme } from '../../theme/theme-provider';
+import { AppText } from '../../core/components/AppText';
+import { AppButton } from '../../core/components/AppButton';
+import { AppTextField } from '../../core/components/AppTextField';
+import { Avatar } from '../../core/components/Avatar';
+import { useTheme } from '../../core/theme/theme-provider';
 import { customerName } from '../../bookings/status';
-import { formatWhen } from '../../bookings/time';
-import { formatMaybePrice } from '../format';
+import { formatWhen } from '../../core/lib/time';
+import { formatMaybePrice } from '../../core/lib/format';
 import { Countdown } from './Countdown';
-import type { Booking } from '../../api/types';
+import type { Booking } from '../../core/api/types';
 
 const MAX_REASON = 500;
 

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import * as bookingsApi from '../../api/endpoints/bookings';
-import { errorMessage } from '../../api/error-message';
+import { errorMessage } from '../../core/api/error-message';
 import { useBookingWrite } from '../../bookings/queries';
 
 type Action = { kind: 'accept' } | { kind: 'decline'; reason: string | null } | { kind: 'complete' };

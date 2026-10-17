@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { Segmented } from '../../../src/components/Segmented';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { Segmented } from '../../../src/core/components/Segmented';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistBookings } from '../../../src/bookings/queries';
-import { useNow } from '../../../src/bookings/use-now';
+import { useNow } from '../../../src/core/hooks/use-now';
 import { useArtistBookingActions } from '../../../src/artist/bookings/actions';
 import { RequestCard } from '../../../src/artist/bookings/RequestCard';
 import { AgendaRow } from '../../../src/artist/bookings/AgendaRow';
-import type { ArtistBookingScope, Booking } from '../../../src/api/types';
+import type { ArtistBookingScope, Booking } from '../../../src/core/api/types';
 
 const EMPTY: Record<ArtistBookingScope, string> = {
   requests: 'No requests waiting for you.',

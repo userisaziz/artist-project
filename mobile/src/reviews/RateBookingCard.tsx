@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { AppTextField } from '../components/AppTextField';
-import { Card } from '../components/Card';
-import { useTheme } from '../theme/theme-provider';
-import { errorMessage } from '../api/error-message';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { AppTextField } from '../core/components/AppTextField';
+import { Card } from '../core/components/Card';
+import { useTheme } from '../core/theme/theme-provider';
+import { errorMessage } from '../core/api/error-message';
 import { usePostReview } from './queries';
 import { StarPicker } from './StarPicker';
 import { Stars } from './Stars';
-import type { Booking, StarRating } from '../api/types';
+import type { Booking, StarRating } from '../core/api/types';
 
 const MAX_TEXT = 1000;
 export const BEING_CHECKED = 'Thanks! Your review is being checked before it appears.';

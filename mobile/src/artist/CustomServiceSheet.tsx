@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { AppTextField } from '../components/AppTextField';
-import { BottomSheet } from '../components/BottomSheet';
-import { Chip } from '../components/Chip';
-import { useTheme } from '../theme/theme-provider';
-import { errorMessage } from '../api/error-message';
-import type { CatalogCategory, CustomServiceInput, ServiceItem } from '../api/types';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { AppTextField } from '../core/components/AppTextField';
+import { BottomSheet } from '../core/components/BottomSheet';
+import { Chip } from '../core/components/Chip';
+import { useTheme } from '../core/theme/theme-provider';
+import { errorMessage } from '../core/api/error-message';
+import type { CatalogCategory, CustomServiceInput, ServiceItem } from '../core/api/types';
 
 const MAX_NAME = 120; // backend CustomServiceIn
 const MAX_RUPEES = 1_000_000; // price_paise ≤ 100 000 000

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { useTheme } from '../../../src/theme/theme-provider';
-import { TabIcon } from '../../../src/components/TabIcon';
-import type { TabIconName } from '../../../src/components/TabIcon';
+import { useTheme } from '../../../src/core/theme/theme-provider';
+import { TabIcon } from '../../../src/core/components/TabIcon';
+import type { TabIconName } from '../../../src/core/components/TabIcon';
 
 const TABS: { name: string; title: string; icon: TabIconName }[] = [
   { name: 'home', title: 'Home', icon: 'home' },

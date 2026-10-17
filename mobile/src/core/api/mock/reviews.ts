@@ -1,7 +1,7 @@
 import type { ArtistReview, BookingReview, PostedReview, Review, ReviewFlag, ReviewStatus, ReviewSummary, User } from '../types';
 import type { TransportResponse } from '../transport';
 import type { MockBooking } from './bookings';
-import { reviewFlag } from '../../reviews/filter';
+import { reviewFlag } from '../../../reviews/filter';
 
 // Reviews (spec Increment 6 §1.2–§1.3), same rules as backend services/review_service.py — keep them in lockstep.
 

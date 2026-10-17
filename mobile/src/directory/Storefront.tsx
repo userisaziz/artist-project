@@ -2,19 +2,19 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../components/AppText';
-import { AppButton } from '../components/AppButton';
-import { Avatar } from '../components/Avatar';
-import { BackHeader } from '../components/BackHeader';
-import { ErrorView, LoadingView } from '../components/StateViews';
-import { useTheme } from '../theme/theme-provider';
-import { formatDuration, formatPrice } from '../artist/format';
-import { formatMonthShort } from '../bookings/time';
+import { AppText } from '../core/components/AppText';
+import { AppButton } from '../core/components/AppButton';
+import { Avatar } from '../core/components/Avatar';
+import { BackHeader } from '../core/components/BackHeader';
+import { ErrorView, LoadingView } from '../core/components/StateViews';
+import { useTheme } from '../core/theme/theme-provider';
+import { formatDuration, formatPrice } from '../core/lib/format';
+import { formatMonthShort } from '../core/lib/time';
 import { categoryLine } from './ArtistCardView';
 import { useArtistPublic } from './queries';
 import { StorefrontReviews } from '../reviews/StorefrontReviews';
 import { formatAverage, ratingLong, reviewCountLabel } from '../reviews/format';
-import type { PublicService } from '../api/types';
+import type { PublicService } from '../core/api/types';
 
 interface StorefrontProps {
   artistId: string;

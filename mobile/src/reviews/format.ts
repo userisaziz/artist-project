@@ -1,6 +1,6 @@
-import type { ArtistReview, Review } from '../api/types';
-import type { PillTone } from '../components/StatusPill';
-import { formatMonthShort } from '../bookings/time';
+import type { ArtistReview, Review } from '../core/api/types';
+import type { PillTone } from '../core/components/StatusPill';
+import { formatMonthShort } from '../core/lib/time';
 
 const MAX_STARS = 5;
 

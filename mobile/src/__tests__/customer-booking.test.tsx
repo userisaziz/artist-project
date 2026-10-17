@@ -1,10 +1,10 @@
 import { renderRouter, screen, fireEvent, waitFor } from 'expo-router/testing-library';
 import * as SecureStore from 'expo-secure-store';
-import { transport } from '../api/client';
-import { MockTransport } from '../api/mock/transport';
+import { transport } from '../core/api/client';
+import { MockTransport } from '../core/api/mock/transport';
 import { priceBreakdown } from '../bookings/pricing';
-import { addDays, formatDay, istDateKey, istDayStart } from '../bookings/time';
-import { formatPrice } from '../artist/format';
+import { addDays, formatDay, istDateKey, istDayStart } from '../core/lib/time';
+import { formatPrice } from '../core/lib/format';
 
 jest.mock('expo-secure-store', () => {
   const store = new Map<string, string>();

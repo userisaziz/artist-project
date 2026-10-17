@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../../../src/components/AppText';
-import { Avatar } from '../../../src/components/Avatar';
-import { Segmented } from '../../../src/components/Segmented';
-import { StatusPill } from '../../../src/components/StatusPill';
-import { EmptyView, ErrorView, LoadingView } from '../../../src/components/StateViews';
-import { useTheme } from '../../../src/theme/theme-provider';
+import { AppText } from '../../../src/core/components/AppText';
+import { Avatar } from '../../../src/core/components/Avatar';
+import { Segmented } from '../../../src/core/components/Segmented';
+import { StatusPill } from '../../../src/core/components/StatusPill';
+import { EmptyView, ErrorView, LoadingView } from '../../../src/core/components/StateViews';
+import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useCustomerBookings } from '../../../src/bookings/queries';
 import { STATUS_PILL } from '../../../src/bookings/status';
-import { formatWhen } from '../../../src/bookings/time';
-import type { Booking, CustomerBookingScope } from '../../../src/api/types';
+import { formatWhen } from '../../../src/core/lib/time';
+import type { Booking, CustomerBookingScope } from '../../../src/core/api/types';
 
 const SCOPES: { key: CustomerBookingScope; label: string }[] = [
   { key: 'upcoming', label: 'Upcoming' },
