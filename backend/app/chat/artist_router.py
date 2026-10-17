@@ -35,6 +35,15 @@ async def list_conversations(
     return {"items": items, "next_cursor": next_cursor}
 
 
+@router.get("/{conversation_id}", response_model=ConversationOut, status_code=200, summary="One conversation")
+async def get_conversation(
+    conversation: Conversation = Depends(valid_artist_conversation),
+    participant: Participant = Depends(artist_participant),
+    chats: ChatService = Depends(get_chat_service),
+) -> dict:
+    return await chats.get(participant, conversation)
+
+
 @router.get(
     "/{conversation_id}/messages", response_model=MessagePage, status_code=200, summary="Messages, newest first"
 )

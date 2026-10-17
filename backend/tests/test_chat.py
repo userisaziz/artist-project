@@ -219,3 +219,18 @@ async def test_chat_needs_the_matching_role(client, engine):
 
     assert (await client.get("/api/v1/conversations")).status_code in (401, 403)
     assert (await client.get("/api/v1/artists/me/conversations", headers=customer)).status_code == 403
+
+
+async def test_each_side_reads_one_conversation_from_its_own_view(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    rival = await approved_artist(client, engine, "+919845091002", admin, name="Meher by Riya")
+    c = (await open_chat(client, customer, artist["id"])).json()
+
+    mine = await client.get(f"/api/v1/conversations/{c['id']}", headers=customer)
+    theirs = await client.get(f"/api/v1/artists/me/conversations/{c['id']}", headers=artist["headers"])
+    other = await client.get(f"/api/v1/artists/me/conversations/{c['id']}", headers=rival["headers"])
+
+    assert mine.status_code == 200
+    assert mine.json()["counterpart"]["name"] == "Ayesha Mehendi Art"
+    assert theirs.json()["counterpart"]["name"] == "Atelier customer"
+    assert other.status_code == 404

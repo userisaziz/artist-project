@@ -107,6 +107,9 @@ class ChatService:
             raise NotFoundError("Conversation not found")
         return conversation
 
+    async def get(self, participant: Participant, conversation: Conversation) -> dict[str, Any]:
+        return await self._out(participant, conversation.id)
+
     async def open_with_artist(self, participant: Participant, artist_id: uuid.UUID) -> dict[str, Any]:
         owner = await self.chats.approved_artist_owner(artist_id)
         if owner is None:
