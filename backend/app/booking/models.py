@@ -17,7 +17,7 @@ class Booking(Base, TimestampMixin):
     """Service name, duration and every money figure are copied in at request time:
     later edits to the service or to fee settings never change an existing booking."""
 
-    __tablename__ = "bookings"
+    __tablename__ = "booking"
     __mapper_args__ = {"eager_defaults": True}
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -25,13 +25,13 @@ class Booking(Base, TimestampMixin):
     )
     code: Mapped[str] = mapped_column(String(12), unique=True, nullable=False)  # human id, e.g. BK-7F3K2Q
     customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False, index=True
     )
     artist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_profiles.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("artist_profile.id"), nullable=False, index=True
     )
     service_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_services.id", ondelete="SET NULL")
+        UUID(as_uuid=True), ForeignKey("artist_service_item.id", ondelete="SET NULL")
     )
     service_name: Mapped[str] = mapped_column(String(120), nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -63,13 +63,13 @@ class Booking(Base, TimestampMixin):
     refund_due: Mapped[bool | None] = mapped_column(Boolean)
 
     __table_args__ = (
-        sa.Index("ix_bookings_artist_start", "artist_id", "start_at"),
+        sa.Index("ix_booking_artist_start", "artist_id", "start_at"),
         sa.CheckConstraint(
             "subtotal_paise >= 0 AND platform_fee_paise >= 0 AND total_paise >= 0 "
             "AND deposit_paise >= 0 AND commission_paise >= 0",
-            name="ck_bookings_money_non_negative",
+            name="money_non_negative",
         ),
-        sa.CheckConstraint("end_at > start_at", name="ck_bookings_end_after_start"),
+        sa.CheckConstraint("end_at > start_at", name="end_after_start"),
     )
 
     @property

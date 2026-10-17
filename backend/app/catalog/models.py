@@ -10,11 +10,11 @@ from app.shared.models import Base
 
 
 class Category(Base):
-    __tablename__ = "categories"
+    __tablename__ = "catalog_category"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # NULL = top-level category; set = subcategory. Only two levels (enforced in CategoryService).
-    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.id"), index=True)
+    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("catalog_category.id"), index=True)
     slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -29,11 +29,16 @@ class Category(Base):
 class ServiceTemplate(Base):
     """A service artists can pick during onboarding; each artist sets their own price and duration."""
 
-    __tablename__ = "service_templates"
+    __tablename__ = "catalog_service_template"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    subcategory_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
+    subcategory_id: Mapped[int] = mapped_column(Integer, ForeignKey("catalog_category.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # One name per subcategory, case-insensitively.
+    __table_args__ = (
+        sa.Index("uq_catalog_service_template_subcategory_name", "subcategory_id", sa.text("lower(name)"), unique=True),
+    )

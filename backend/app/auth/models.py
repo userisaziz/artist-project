@@ -12,7 +12,7 @@ from app.shared.models import Base, TimestampMixin
 
 
 class OtpCode(Base, TimestampMixin):
-    __tablename__ = "otp_codes"
+    __tablename__ = "auth_otp_code"
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
@@ -24,13 +24,13 @@ class OtpCode(Base, TimestampMixin):
 
 
 class RefreshToken(Base, TimestampMixin):
-    __tablename__ = "refresh_tokens"
+    __tablename__ = "auth_refresh_token"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

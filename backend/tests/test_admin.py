@@ -289,7 +289,9 @@ async def test_reveal_returns_the_number_and_logs_it(client, engine):
     async with engine.connect() as conn:
         rows = (
             await conn.execute(
-                sql_text("SELECT r.artist_id::text, u.phone FROM aadhaar_reveals r JOIN users u ON u.id = r.admin_id")
+                sql_text(
+                    "SELECT r.artist_id::text, u.phone FROM artist_aadhaar_reveal r JOIN user_account u ON u.id = r.admin_id"
+                )
             )
         ).all()
     assert [(r[0], r[1]) for r in rows] == [(artist_id, ADMIN_PHONE)]
@@ -310,4 +312,4 @@ async def test_reveal_is_admin_only_and_needs_kyc(client, engine):
     missing = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=headers)
     assert missing.status_code == 404
     async with engine.connect() as conn:  # a failed reveal leaves no audit row
-        assert (await conn.execute(sql_text("SELECT count(*) FROM aadhaar_reveals"))).scalar() == 0
+        assert (await conn.execute(sql_text("SELECT count(*) FROM artist_aadhaar_reveal"))).scalar() == 0

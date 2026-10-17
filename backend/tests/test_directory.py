@@ -150,6 +150,6 @@ async def test_directory_hides_artists_and_services_admins_withdrew(client, engi
     admin = await admin_headers(client, engine)
     ayesha = await approved_artist(client, engine, "+919845081001", admin)
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE artist_profiles SET status='rejected' WHERE id=:i"), {"i": ayesha["id"]})
+        await conn.execute(text("UPDATE artist_profile SET status='rejected' WHERE id=:i"), {"i": ayesha["id"]})
     assert (await client.get("/api/v1/artists")).json()["items"] == []
     assert (await client.get(f"/api/v1/artists/{ayesha['id']}")).status_code == 404

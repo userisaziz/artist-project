@@ -20,7 +20,7 @@ async def sign_in(client, phone: str, role: str | None = "artist", engine=None) 
     elif role == "admin":
         async with engine.begin() as conn:
             await conn.execute(
-                text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users WHERE phone=:p"),
+                text("INSERT INTO user_role_grant (user_id, role) SELECT id, 'admin' FROM user_account WHERE phone=:p"),
                 {"p": phone},
             )
     return headers

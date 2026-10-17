@@ -74,7 +74,7 @@ async def test_platform_fee_is_waived_from_25000(client, engine):
     _, artist, customer = await setup(client, engine)
     async with engine.begin() as conn:
         await conn.execute(
-            text("UPDATE artist_services SET price_paise=2500000 WHERE id=:i"), {"i": artist["service_id"]}
+            text("UPDATE artist_service_item SET price_paise=2500000 WHERE id=:i"), {"i": artist["service_id"]}
         )
     b = (await book(client, customer, artist)).json()
     assert (b["platform_fee_paise"], b["total_paise"], b["deposit_paise"]) == (0, 2500000, 750000)
@@ -131,11 +131,13 @@ async def test_cannot_book_an_unbookable_service(client, engine):
     assert (await book(client, customer, {"id": artist["id"], "service_id": noor["service_id"]})).status_code == 404
 
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE artist_services SET status='pending' WHERE id=:i"), {"i": artist["service_id"]})
+        await conn.execute(
+            text("UPDATE artist_service_item SET status='pending' WHERE id=:i"), {"i": artist["service_id"]}
+        )
     assert (await book(client, customer, artist)).status_code == 404
 
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE artist_profiles SET status='rejected' WHERE id=:i"), {"i": noor["id"]})
+        await conn.execute(text("UPDATE artist_profile SET status='rejected' WHERE id=:i"), {"i": noor["id"]})
     assert (await book(client, customer, noor)).status_code == 404
 
 

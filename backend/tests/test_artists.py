@@ -85,7 +85,7 @@ async def test_profile_accepts_top_level_categories_only(client, engine):
         sub_id = (
             await conn.execute(
                 text(
-                    "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
+                    "INSERT INTO catalog_category (slug, name, sort_order, parent_id, status) VALUES ('mehendi-arabic', 'Arabic', 0, :p, 'active') RETURNING id"
                 ),
                 {"p": cats["mehendi"]},
             )
@@ -210,10 +210,11 @@ async def test_services_come_from_the_admin_list(client, engine):
 
     async with engine.begin() as conn:  # the admin renames one template and hides another
         await conn.execute(
-            text("UPDATE service_templates SET name = 'Bridal Royal' WHERE id = :i"), {"i": tpl["Bridal Classic"]}
+            text("UPDATE catalog_service_template SET name = 'Bridal Royal' WHERE id = :i"),
+            {"i": tpl["Bridal Classic"]},
         )
         await conn.execute(
-            text("UPDATE service_templates SET is_active = false WHERE id = :i"), {"i": tpl["Bridal Full Arms"]}
+            text("UPDATE catalog_service_template SET is_active = false WHERE id = :i"), {"i": tpl["Bridal Full Arms"]}
         )
     mine = (await client.get("/api/v1/artists/me", headers=headers)).json()
     assert [s["name"] for s in mine["services"]] == ["Bridal Royal"]
@@ -282,8 +283,10 @@ async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(c
     body = {"business_name": "A", "city": "Pune", "category_ids": [cats["mehendi"]]}
     assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE categories SET status = 'inactive' WHERE id = :i"), {"i": cats["mehendi"]})
-        await conn.execute(text("UPDATE categories SET status = 'draft' WHERE id = :i"), {"i": cats["hair"]})
+        await conn.execute(
+            text("UPDATE catalog_category SET status = 'inactive' WHERE id = :i"), {"i": cats["mehendi"]}
+        )
+        await conn.execute(text("UPDATE catalog_category SET status = 'draft' WHERE id = :i"), {"i": cats["hair"]})
 
     assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=body)).status_code == 200  # kept
     newcomer = await sign_in(client, "+919845011119")

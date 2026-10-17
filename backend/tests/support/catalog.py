@@ -21,7 +21,7 @@ async def seed_categories(engine) -> None:
             ids[slug] = (
                 await conn.execute(
                     text(
-                        "INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"
+                        "INSERT INTO catalog_category (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"
                     ),
                     {"s": slug, "n": name, "i": i},
                 )
@@ -33,14 +33,14 @@ async def seed_categories(engine) -> None:
             sub = (
                 await conn.execute(
                     text(
-                        "INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"
+                        "INSERT INTO catalog_category (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"
                     ),
                     {"s": slug, "n": name, "p": ids[parent]},
                 )
             ).scalar_one()
             for i, service in enumerate(services):
                 await conn.execute(
-                    text("INSERT INTO service_templates (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
+                    text("INSERT INTO catalog_service_template (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
                     {"s": sub, "n": service, "i": i},
                 )
 

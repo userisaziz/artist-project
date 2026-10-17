@@ -23,15 +23,15 @@ from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.models import Base, TimestampMixin
 
 artist_categories = Table(
-    "artist_categories",
+    "artist_category",
     Base.metadata,
-    Column("artist_id", UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), primary_key=True),
-    Column("category_id", Integer, ForeignKey("categories.id"), primary_key=True),
+    Column("artist_id", UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True),
+    Column("category_id", Integer, ForeignKey("catalog_category.id"), primary_key=True),
 )
 
 
 class ArtistProfile(Base, TimestampMixin):
-    __tablename__ = "artist_profiles"
+    __tablename__ = "artist_profile"
     # Fetch server defaults (status, timestamps) via RETURNING: async sessions can't lazy-load them after flush.
     __mapper_args__ = {"eager_defaults": True}
 
@@ -39,7 +39,7 @@ class ArtistProfile(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     business_name: Mapped[str] = mapped_column(String(120), nullable=False)
     city: Mapped[str] = mapped_column(String(60), nullable=False)
@@ -55,7 +55,7 @@ class ArtistProfile(Base, TimestampMixin):
     rejection_reason: Mapped[str | None] = mapped_column(String(500))
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"))
 
     # selectin: async sessions can't lazy-load, and every read of a profile needs all three.
     categories: Mapped[list[Category]] = relationship(
@@ -69,11 +69,13 @@ class ArtistProfile(Base, TimestampMixin):
     )
     kyc: Mapped["ArtistKyc | None"] = relationship(lazy="selectin", uselist=False, cascade="all, delete-orphan")
 
+    __table_args__ = (sa.Index("ix_artist_profile_status_submitted", "status", "submitted_at", "id"),)
+
 
 class ArtistServiceItem(Base, TimestampMixin):
     """A bookable service on an artist's menu (named *Item* so it never clashes with service-layer classes)."""
 
-    __tablename__ = "artist_services"
+    __tablename__ = "artist_service_item"
     # Fetch server defaults (status, timestamps) via RETURNING: async sessions can't lazy-load them after flush.
     __mapper_args__ = {"eager_defaults": True}
 
@@ -81,11 +83,11 @@ class ArtistServiceItem(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     artist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), nullable=False, index=True
     )
     # Template rows: the template's subcategory. Custom rows: the chosen subcategory. Pre-#6 rows: a top-level category.
-    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False)
-    template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("service_templates.id"), index=True)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("catalog_category.id"), nullable=False)
+    template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("catalog_service_template.id"), index=True)
     name: Mapped[str | None] = mapped_column(String(120))  # NULL for template rows: the template's name is used
     price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -101,9 +103,9 @@ class ArtistServiceItem(Base, TimestampMixin):
     template: Mapped[ServiceTemplate | None] = relationship(lazy="selectin")
 
     __table_args__ = (
-        sa.CheckConstraint("price_paise > 0", name="ck_artist_services_price_positive"),
-        sa.CheckConstraint("duration_minutes > 0", name="ck_artist_services_duration_positive"),
-        sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="ck_artist_services_name_or_template"),
+        sa.CheckConstraint("price_paise > 0", name="price_positive"),
+        sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
+        sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="name_or_template"),
     )
 
     @property
@@ -113,7 +115,7 @@ class ArtistServiceItem(Base, TimestampMixin):
 
 
 class PortfolioPhoto(Base):
-    __tablename__ = "portfolio_photos"
+    __tablename__ = "artist_portfolio_photo"
     # Fetch server defaults (status, timestamps) via RETURNING: async sessions can't lazy-load them after flush.
     __mapper_args__ = {"eager_defaults": True}
 
@@ -121,7 +123,7 @@ class PortfolioPhoto(Base):
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     artist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), nullable=False, index=True
     )
     storage_key: Mapped[str] = mapped_column(String(255), nullable=False)
     width: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -137,7 +139,7 @@ class ArtistKyc(Base, TimestampMixin):
     __mapper_args__ = {"eager_defaults": True}
 
     artist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), primary_key=True
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True
     )
     aadhaar_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     aadhaar_last4: Mapped[str] = mapped_column(String(4), nullable=False)
@@ -148,14 +150,14 @@ class ArtistKyc(Base, TimestampMixin):
 class AadhaarReveal(Base):
     """Audit trail: which admin decrypted which artist's Aadhaar number, and when."""
 
-    __tablename__ = "aadhaar_reveals"
+    __tablename__ = "artist_aadhaar_reveal"
     __mapper_args__ = {"eager_defaults": True}
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
     artist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("artist_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    admin_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    admin_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False)
     revealed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -26,6 +26,27 @@ def upgrade() -> None:
     # autogenerate forgets CREATE TYPE for enums; the column below references it, so create it first.
     user_role = postgresql.ENUM("customer", "artist", "admin", name="user_role", create_type=False)
     user_role.create(op.get_bind(), checkfirst=True)
+    # `users` predates these migrations (the first databases already had it), so this revision only ever
+    # added to it. Create it when missing, so an empty database can be migrated from scratch.
+    op.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            email varchar(255) UNIQUE,
+            phone varchar(20) NOT NULL UNIQUE,
+            password_hash text,
+            first_name varchar(100),
+            last_name varchar(100),
+            avatar_url text,
+            is_email_verified boolean NOT NULL DEFAULT false,
+            is_phone_verified boolean NOT NULL DEFAULT false,
+            is_active boolean NOT NULL DEFAULT true,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            whatsapp_booking_updates boolean NOT NULL DEFAULT true
+        )
+        """
+    )
     op.create_table(
         "otp_codes",
         sa.Column("id", sa.UUID(), server_default=sa.text("gen_random_uuid()"), nullable=False),

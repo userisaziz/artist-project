@@ -15,7 +15,7 @@ user_role_enum = Enum(UserRole, name="user_role", values_callable=lambda e: [m.v
 
 
 class User(Base, TimestampMixin):
-    __tablename__ = "users"
+    __tablename__ = "user_account"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
@@ -37,7 +37,7 @@ class User(Base, TimestampMixin):
     # Every role the account holds; selectin because async sessions can't lazy-load.
     role_grants: Mapped[list["UserRoleGrant"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
 
-    __table_args__ = (sa.CheckConstraint("active_role <> 'admin'", name="ck_users_active_role_not_admin"),)
+    __table_args__ = (sa.CheckConstraint("active_role <> 'admin'", name="active_role_not_admin"),)
 
     @property
     def roles(self) -> set[UserRole]:
@@ -55,10 +55,10 @@ class User(Base, TimestampMixin):
 class UserRoleGrant(Base):
     """One role an account holds. A user can be customer, artist and admin at once."""
 
-    __tablename__ = "user_roles"
+    __tablename__ = "user_role_grant"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
     )
     role: Mapped[UserRole] = mapped_column(user_role_enum, primary_key=True)
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

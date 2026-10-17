@@ -69,7 +69,7 @@ async def test_editing_a_custom_service_resubmits_it(client, engine):
     service_id = next(s["id"] for s in added.json()["services"] if s["template_id"] is None)
     async with engine.begin() as conn:
         await conn.execute(
-            text("UPDATE artist_services SET status = 'rejected', rejection_reason = 'Too vague' WHERE id = :i"),
+            text("UPDATE artist_service_item SET status = 'rejected', rejection_reason = 'Too vague' WHERE id = :i"),
             {"i": service_id},
         )
 

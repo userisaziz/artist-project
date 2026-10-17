@@ -68,7 +68,7 @@ Every response carries an `X-Request-ID` header (a safe one sent by the client i
 | PUT | `/users/me/role` | Bearer | `{role: "customer" \| "artist"}`. Can be called once; sets `is_onboarded=true`. |
 | PUT | `/artists/me/kyc` | Bearer (artist) | Aadhaar verification: `{aadhaar_number, front_key, back_key}`. The number is validated and stored encrypted; the keys come from `/uploads/signature` with `purpose: "aadhaar"`. |
 | POST | `/uploads/signature` | Bearer | With `purpose: "aadhaar"`, signs an upload of an Aadhaar image to private storage. |
-| POST | `/admin/artists/{id}/kyc/reveal` | Bearer (admin) | Returns `{aadhaar_number}` in full. Admin-only. Each call is logged in `aadhaar_reveals`, and the response is `Cache-Control: no-store`. |
+| POST | `/admin/artists/{id}/kyc/reveal` | Bearer (admin) | Returns `{aadhaar_number}` in full. Admin-only. Each call is logged in `artist_aadhaar_reveal`, and the response is `Cache-Control: no-store`. |
 
 ### Catalog and services
 

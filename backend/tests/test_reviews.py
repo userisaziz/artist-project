@@ -38,7 +38,7 @@ async def test_customer_reviews_a_completed_booking_once(client, engine, monkeyp
     _, artist, customer = await setup(client, engine)
     async with engine.begin() as conn:
         await conn.execute(
-            text("UPDATE users SET first_name='Priya', last_name='Srinivasan' WHERE phone='+919845080001'")
+            text("UPDATE user_account SET first_name='Priya', last_name='Srinivasan' WHERE phone='+919845080001'")
         )
     b = await completed_booking(client, artist, customer, monkeypatch)
     shown = (await client.get(f"/api/v1/bookings/{b['id']}", headers=customer)).json()

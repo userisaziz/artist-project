@@ -60,7 +60,7 @@ async def test_admin_keeps_admin_when_picking_app_roles(client, engine):
 
     headers = await _login(client)
     async with engine.begin() as conn:
-        await conn.execute(text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users"))
+        await conn.execute(text("INSERT INTO user_role_grant (user_id, role) SELECT id, 'admin' FROM user_account"))
     me = (await client.get("/api/v1/users/me", headers=headers)).json()
     assert me["roles"] == ["admin"]
     assert me["is_onboarded"] is False  # admin alone doesn't pick a mobile side

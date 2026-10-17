@@ -63,6 +63,6 @@ async def test_expired_code_is_rejected(client, engine):
     from sqlalchemy import text
 
     async with engine.begin() as conn:
-        await conn.execute(text("UPDATE otp_codes SET expires_at = now() - interval '1 minute'"))
+        await conn.execute(text("UPDATE auth_otp_code SET expires_at = now() - interval '1 minute'"))
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})
     assert response.status_code == 401

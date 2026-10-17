@@ -1,13 +1,26 @@
-"""Declarative base + shared timestamp columns."""
+"""Declarative base + shared timestamp columns.
+
+Constraint and index names follow one explicit convention (never SQLAlchemy's defaults), so
+migrations name things deterministically: ix_<table>_<column>, uq_<table>_<column>,
+ck_<table>_<name>, fk_<table>_<column>_<referred table>, pk_<table>.
+"""
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
 
 
 class Base(DeclarativeBase):
-    pass
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 class TimestampMixin:

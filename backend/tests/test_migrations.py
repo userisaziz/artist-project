@@ -15,20 +15,21 @@ from tests.support.auth import sign_in
 from tests.support.catalog import categories, seed_categories
 
 EXPECTED_TABLES = {
-    "users",
-    "otp_codes",
-    "refresh_tokens",
+    "user_account",
+    "user_role_grant",
+    "auth_otp_code",
+    "auth_refresh_token",
     "alembic_version",
-    "categories",
-    "artist_profiles",
-    "artist_categories",
-    "artist_services",
-    "portfolio_photos",
+    "catalog_category",
+    "artist_profile",
+    "artist_category",
+    "artist_service_item",
+    "artist_portfolio_photo",
     "artist_kyc",
-    "aadhaar_reveals",
-    "service_templates",
-    "bookings",
-    "reviews",
+    "artist_aadhaar_reveal",
+    "catalog_service_template",
+    "booking",
+    "review",
 }
 
 
@@ -59,19 +60,19 @@ async def test_existing_services_become_approved_custom_rows(client, engine):
     async with engine.begin() as conn:
         await conn.execute(
             sa.text(
-                "INSERT INTO artist_services (artist_id, category_id, name, price_paise, duration_minutes, sort_order) "
+                "INSERT INTO artist_service_item (artist_id, category_id, name, price_paise, duration_minutes, sort_order) "
                 "VALUES (:a, :c, 'Old service', 100, 30, 0)"
             ),
             {"a": profile["id"], "c": cats["mehendi"]},
         )
-        row = (await conn.execute(sa.text("SELECT status, template_id, name FROM artist_services"))).one()
+        row = (await conn.execute(sa.text("SELECT status, template_id, name FROM artist_service_item"))).one()
     assert tuple(row) == ("approved", None, "Old service")
 
     with pytest.raises(sa.exc.IntegrityError):  # a row needs a template or its own name
         async with engine.begin() as conn:
             await conn.execute(
                 sa.text(
-                    "INSERT INTO artist_services (artist_id, category_id, price_paise, duration_minutes, sort_order) "
+                    "INSERT INTO artist_service_item (artist_id, category_id, price_paise, duration_minutes, sort_order) "
                     "VALUES (:a, :c, 100, 30, 1)"
                 ),
                 {"a": profile["id"], "c": cats["mehendi"]},
@@ -87,3 +88,45 @@ def test_catalog_migration_round_trips():
     # The enum type was dropped and recreated with a new OID; pooled asyncpg connections cache the old one.
     # Drop the pool without closing (closing needs the event loop) so later tests get fresh connections.
     test_engine.sync_engine.dispose(close=False)
+
+
+def _schema_diff(connection) -> list:
+    from alembic.autogenerate import compare_metadata
+    from alembic.migration import MigrationContext
+
+    from app.registry import Base
+
+    context = MigrationContext.configure(connection, opts={"compare_type": True})
+    return compare_metadata(context, Base.metadata)
+
+
+async def test_models_and_migrations_agree(engine):
+    """`alembic check` in test form: the migrated schema is exactly what the models declare."""
+    async with engine.connect() as conn:
+        diff = await conn.run_sync(_schema_diff)
+    assert diff == []
+
+
+async def test_every_constraint_and_index_follows_the_naming_convention(engine):
+    """Names come from app.shared.models.NAMING_CONVENTION, never Postgres defaults (`*_pkey`, `*_fkey`, `*_key`)."""
+    async with engine.connect() as conn:
+        constraints = (
+            await conn.execute(
+                sa.text(
+                    "SELECT conrelid::regclass::text, conname, contype::text FROM pg_constraint "
+                    "WHERE connamespace = 'public'::regnamespace AND conrelid::regclass::text <> 'alembic_version'"
+                )
+            )
+        ).all()
+        indexes = (
+            await conn.execute(
+                sa.text(
+                    "SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'public' "
+                    "AND tablename <> 'alembic_version' AND indexname NOT IN (SELECT conname FROM pg_constraint)"
+                )
+            )
+        ).all()
+    prefix = {"p": "pk_", "u": "uq_", "f": "fk_", "c": "ck_"}
+    bad = [name for table, name, kind in constraints if not name.startswith(f"{prefix[kind]}{table}")]
+    bad += [name for table, name in indexes if not name.startswith((f"ix_{table}_", f"uq_{table}_"))]
+    assert bad == []
