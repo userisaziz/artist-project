@@ -9,21 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
 from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categories
-from app.artist.schemas import NamedRef
 from app.booking import rules
 from app.booking.models import Booking
 from app.booking.service import busy_ranges
 from app.catalog.models import Category, ServiceTemplate
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.directory.schemas import (
-    ArtistCard,
-    ArtistPublic,
-    AvailabilityOut,
-    PublicPhoto,
-    PublicService,
-    Slot,
-)
 from app.review.service import ratings_for
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
@@ -53,12 +44,12 @@ class DirectoryService:
             "id": profile.id, "business_name": profile.business_name, "city": profile.city,
             "photo_url": self.storage.url(profile.photo_key, "card") if profile.photo_key else None,
             "cover_url": self.storage.url(cover, "card") if cover else None,
-            "categories": [NamedRef(id=c.id, name=c.name) for c in profile.categories],
+            "categories": [{"id": c.id, "name": c.name} for c in profile.categories],
             "from_price_paise": min(prices) if prices else None,
         }
 
     async def list(self, city: str | None, category_id: int | None, q: str | None,
-                   limit: int, cursor: str | None) -> tuple[list[ArtistCard], str | None]:
+                   limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
         """Most recently approved first; keyset paging on (approved-at, id). The public cards never need KYC."""
         query = (
             select(ArtistProfile, LISTED_AT)
@@ -86,7 +77,7 @@ class DirectoryService:
         )).all()
         page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
         ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
-        return [ArtistCard(**self._card_fields(profile, ratings)) for profile, _ in page], next_cursor
+        return [self._card_fields(profile, ratings) for profile, _ in page], next_cursor
 
     async def _approved(self, artist_id: uuid.UUID) -> ArtistProfile:
         profile = (await self.session.execute(
@@ -98,7 +89,7 @@ class DirectoryService:
             raise NotFoundError("Artist not found")
         return profile
 
-    async def get(self, artist_id: uuid.UUID) -> ArtistPublic:
+    async def get(self, artist_id: uuid.UUID) -> dict:
         profile = await self._approved(artist_id)
         services = _bookable(profile.services)
         # Each service points at a subcategory (or, for older rows, straight at a top-level category).
@@ -109,36 +100,38 @@ class DirectoryService:
             select(Category).where(Category.id.in_({c.parent_id for c in own.values() if c.parent_id}))
         )).scalars()}
 
-        def refs(category_id: int) -> tuple[NamedRef | None, NamedRef | None]:
+        def refs(category_id: int) -> tuple[dict | None, dict | None]:
             cat = own.get(category_id)
             if cat is None:
                 return None, None
             if cat.parent_id is None:
-                return NamedRef(id=cat.id, name=cat.name), None
+                return {"id": cat.id, "name": cat.name}, None
             parent = parents[cat.parent_id]
-            return NamedRef(id=parent.id, name=parent.name), NamedRef(id=cat.id, name=cat.name)
+            return ({"id": parent.id, "name": parent.name}, {"id": cat.id, "name": cat.name})
 
         completed = (await self.session.execute(
             select(func.count()).select_from(Booking).where(
                 Booking.artist_id == profile.id, Booking.status == BookingStatus.completed
             )
         )).scalar_one()
-        return ArtistPublic(
+        return {
             **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
-            bio=profile.bio,
-            photos=[PublicPhoto(id=p.id, url=self.storage.url(p.storage_key, "full"),
-                                thumb_url=self.storage.url(p.storage_key, "thumb")) for p in profile.photos],
-            services=[
-                PublicService(id=s.id, name=s.display_name, description=s.description, price_paise=s.price_paise,
-                              duration_minutes=s.duration_minutes, category=refs(s.category_id)[0],
-                              subcategory=refs(s.category_id)[1])
+            "bio": profile.bio,
+            "photos": [
+                {"id": p.id, "url": self.storage.url(p.storage_key, "full"),
+                 "thumb_url": self.storage.url(p.storage_key, "thumb")} for p in profile.photos
+            ],
+            "services": [
+                {"id": s.id, "name": s.display_name, "description": s.description, "price_paise": s.price_paise,
+                 "duration_minutes": s.duration_minutes, "category": refs(s.category_id)[0],
+                 "subcategory": refs(s.category_id)[1]}
                 for s in services
             ],
-            member_since=profile.reviewed_at,
-            completed_bookings=completed,
-        )
+            "member_since": profile.reviewed_at,
+            "completed_bookings": completed,
+        }
 
-    async def availability(self, artist_id: uuid.UUID, day: date, service_id: uuid.UUID) -> AvailabilityOut:
+    async def availability(self, artist_id: uuid.UUID, day: date, service_id: uuid.UUID) -> dict:
         profile = await self._approved(artist_id)
         service = next((s for s in _bookable(profile.services) if s.id == service_id), None)
         if service is None:
@@ -148,11 +141,11 @@ class DirectoryService:
         length = timedelta(minutes=service.duration_minutes)
         starts = rules.slot_starts(day)
         busy = await busy_ranges(self.session, profile.id, starts[0], starts[-1] + length)
-        return AvailabilityOut(date=day, slots=[
-            Slot(start_at=s, available=rules.is_after_lead_time(s, now)
-                 and not any(b_start < s + length and b_end > s for b_start, b_end in busy))
+        return {"date": day, "slots": [
+            {"start_at": s, "available": rules.is_after_lead_time(s, now)
+             and not any(b_start < s + length and b_end > s for b_start, b_end in busy)}
             for s in starts
-        ])
+        ]}
 
 
 def get_directory_service(

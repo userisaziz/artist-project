@@ -18,13 +18,7 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_flag, review_window_open
 from app.review.models import PUBLIC_REVIEW, Review
 from app.review.schemas import (
-    AdminReviewOut,
-    OwnReviewOut,
-    RefOut,
-    ReviewBooking,
-    ReviewCustomer,
     ReviewIn,
-    ReviewOut,
     ReviewSummary,
 )
 from app.shared import clock
@@ -66,28 +60,29 @@ def rows_query() -> Select:
     )
 
 
-def public_out(row: ReviewRow) -> ReviewOut:
+def public_fields(row: ReviewRow) -> dict:
+    """The public shape of a review, as a plain dict; routes' response_models finish the job."""
     r = row.review
-    return ReviewOut(
-        id=r.id, rating=r.rating, text=r.text, reviewer_name=reviewer_name(row.first_name, row.last_name),
-        service_name=row.service_name, created_at=r.created_at, reply=r.reply, replied_at=r.replied_at,
-    )
+    return {
+        "id": r.id, "rating": r.rating, "text": r.text, "reviewer_name": reviewer_name(row.first_name, row.last_name),
+        "service_name": row.service_name, "created_at": r.created_at, "reply": r.reply, "replied_at": r.replied_at,
+    }
 
 
-def own_out(row: ReviewRow) -> OwnReviewOut:
+def own_out(row: ReviewRow) -> dict:
     r = row.review
-    return OwnReviewOut(**public_out(row).model_dump(), status=r.status, flag=r.flag, report_reason=r.report_reason)
+    return {**public_fields(row), "status": r.status, "flag": r.flag, "report_reason": r.report_reason}
 
 
-def admin_out(row: ReviewRow) -> AdminReviewOut:
+def admin_out(row: ReviewRow) -> dict:
     r = row.review
     full_name = " ".join(n for n in (row.first_name, row.last_name) if n) or None
-    return AdminReviewOut(
-        **own_out(row).model_dump(), moderator_note=r.moderator_note, moderated_at=r.moderated_at,
-        artist=RefOut(id=r.artist_id, business_name=row.business_name),
-        customer=ReviewCustomer(id=r.customer_id, name=full_name, phone=row.phone),
-        booking=ReviewBooking(id=r.booking_id, code=row.code, service_name=row.service_name),
-    )
+    return {
+        **own_out(row), "moderator_note": r.moderator_note, "moderated_at": r.moderated_at,
+        "artist": {"id": r.artist_id, "business_name": row.business_name},
+        "customer": {"id": r.customer_id, "name": full_name, "phone": row.phone},
+        "booking": {"id": r.booking_id, "code": row.code, "service_name": row.service_name},
+    }
 
 
 async def ratings_for(session: AsyncSession, artist_ids: list[uuid.UUID]) -> dict[uuid.UUID, tuple[float, int]]:
@@ -150,7 +145,7 @@ class ReviewService:
 
     # --- customer -------------------------------------------------------------------------------
 
-    async def create(self, customer: User, booking_id: uuid.UUID, data: ReviewIn) -> OwnReviewOut:
+    async def create(self, customer: User, booking_id: uuid.UUID, data: ReviewIn) -> dict:
         booking = (await self.session.execute(
             select(Booking).where(Booking.id == booking_id, Booking.customer_id == customer.id).with_for_update()
         )).scalar_one_or_none()
@@ -186,7 +181,7 @@ class ReviewService:
             raise NotFoundError("Artist not found")
         query = rows_query().where(Review.artist_id == artist_id, Review.status.in_(PUBLIC_REVIEW))
         rows, next_cursor = await self._page(query, limit, cursor)
-        return [public_out(r) for r in rows], next_cursor, await self.summary(artist_id)
+        return [public_fields(r) for r in rows], next_cursor, await self.summary(artist_id)
 
     # --- artist ---------------------------------------------------------------------------------
 
@@ -200,7 +195,7 @@ class ReviewService:
         theirs = and_(Review.artist_id == await approved_artist_id(self.session, user), Review.status != ReviewStatus.removed)
         return await self._locked(review_id, theirs), theirs
 
-    async def reply(self, user: User, review_id: uuid.UUID, text: str) -> OwnReviewOut:
+    async def reply(self, user: User, review_id: uuid.UUID, text: str) -> dict:
         if review_flag(text):
             raise ValidationError("Replies can't include phone numbers, emails, links or blocked words")
         review, theirs = await self._artist_review(user, review_id)
@@ -209,7 +204,7 @@ class ReviewService:
         await self.session.commit()
         return own_out(await self._row(review_id, theirs))
 
-    async def report(self, user: User, review_id: uuid.UUID, reason: str) -> OwnReviewOut:
+    async def report(self, user: User, review_id: uuid.UUID, reason: str) -> dict:
         review, theirs = await self._artist_review(user, review_id)
         if review.status != ReviewStatus.published:
             raise ConflictError("Only published reviews can be reported")
@@ -228,7 +223,7 @@ class ReviewService:
         rows, next_cursor = await self._page(query, limit, cursor)
         return [admin_out(r) for r in rows], next_cursor
 
-    async def decide(self, admin: User, review_id: uuid.UUID, decision: str, note: str | None) -> AdminReviewOut:
+    async def decide(self, admin: User, review_id: uuid.UUID, decision: str, note: str | None) -> dict:
         review = await self._locked(review_id)
         if review.status == ReviewStatus.removed:
             raise ConflictError("This review was removed")

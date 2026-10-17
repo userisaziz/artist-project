@@ -8,7 +8,7 @@ customer must never see "requested" for a booking that wasn't saved.
 import secrets
 import uuid
 from datetime import date, datetime, time, timedelta
-from typing import Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 from fastapi import Depends
 from sqlalchemy import ColumnElement, Select, and_, func, not_, or_, select, update
@@ -19,14 +19,7 @@ from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
 from app.booking.models import Booking
 from app.booking.schemas import (
-    AdminBookingCustomer,
-    AdminBookingOut,
-    ArtistDashboard,
-    BookingArtist,
-    BookingCustomer,
     BookingIn,
-    BookingOut,
-    BookingReview,
 )
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -108,25 +101,25 @@ def rows_query() -> Select:
     )
 
 
-def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOut:
-    """Customers never see the platform's margin or the artist's payout; only admins see the customer's phone."""
+def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> dict[str, Any]:
+    """Customers never see the platform's margin or the artist's payout; only admins see the customer's phone.
+    Shape is a plain dict; the route's response_model validates and serialises it."""
     b = row.booking
     admin = view == "admin"
     margin_hidden = view == "customer"
     # The artist sees a review only once it's public; the reviewer and admins see it in any state.
     show_review = row.review_id is not None and (view != "artist" or row.review_status in PUBLIC_REVIEW)
-    customer = (
-        AdminBookingCustomer(id=b.customer_id, first_name=row.first_name, last_name=row.last_name, phone=row.phone)
-        if admin
-        else BookingCustomer(id=b.customer_id, first_name=row.first_name, last_name=row.last_name)
-    )
-    fields = {
+    customer = {
+        "id": b.customer_id, "first_name": row.first_name, "last_name": row.last_name,
+        **({"phone": row.phone} if admin else {}),
+    }
+    return {
         "id": b.id, "code": b.code, "status": b.status, "start_at": b.start_at, "end_at": b.end_at, "address": b.address, "note": b.note,
         "service_name": b.service_name, "duration_minutes": b.duration_minutes,
-        "artist": BookingArtist(
-            id=b.artist_id, business_name=row.business_name, city=row.city,
-            photo_url=storage.url(row.photo_key, "thumb") if row.photo_key else None,
-        ),
+        "artist": {
+            "id": b.artist_id, "business_name": row.business_name, "city": row.city,
+            "photo_url": storage.url(row.photo_key, "thumb") if row.photo_key else None,
+        },
         "customer": customer,
         "subtotal_paise": b.subtotal_paise, "platform_fee_paise": b.platform_fee_paise, "total_paise": b.total_paise,
         "deposit_paise": b.deposit_paise, "balance_paise": b.balance_paise,
@@ -135,11 +128,10 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View) -> BookingOu
         "responded_at": b.responded_at, "cancelled_at": b.cancelled_at, "completed_at": b.completed_at,
         "decline_reason": b.decline_reason, "cancel_reason": b.cancel_reason, "cancelled_by": b.cancelled_by,
         "refund_due": b.refund_due, "created_at": b.created_at,
-        "review": BookingReview(id=row.review_id, rating=row.review_rating, status=row.review_status) if show_review else None,
+        "review": {"id": row.review_id, "rating": row.review_rating, "status": row.review_status} if show_review else None,
         "can_review": b.status == BookingStatus.completed and row.review_id is None
         and review_window_open(b.completed_at, clock.now()),
     }
-    return AdminBookingOut(**fields) if admin else BookingOut(**fields)
 
 
 def clean_reason(reason: str | None) -> str | None:
@@ -170,14 +162,14 @@ class BookingService:
         await self.session.commit()
 
     async def page(self, query: Select, column: InstrumentedAttribute, descending: bool, limit: int,
-                   cursor: str | None, view: View) -> tuple[list[BookingOut], str | None]:
+                   cursor: str | None, view: View) -> tuple[list[dict[str, Any]], str | None]:
         rows = [BookingRow(*r) for r in (await self.session.execute(
             keyset(query, column, Booking.id, descending=descending, cursor=cursor).limit(limit + 1)
         )).all()]
         page, next_cursor = split_page(rows, limit, lambda r: (getattr(r.booking, column.key), r.booking.id))
         return [booking_out(r, self.storage, view) for r in page], next_cursor
 
-    async def one(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> BookingOut:
+    async def one(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> dict[str, Any]:
         row = (await self.session.execute(rows_query().where(Booking.id == booking_id, *scope))).one_or_none()
         if row is None:
             raise NotFoundError("Booking not found")
@@ -198,13 +190,13 @@ class BookingService:
         if booking.status not in allowed:
             raise ConflictError(f"This booking is already {booking.status.value}")
 
-    async def save(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> BookingOut:
+    async def save(self, booking_id: uuid.UUID, *scope: ColumnElement[bool], view: View) -> dict[str, Any]:
         await self.session.commit()
         return await self.one(booking_id, *scope, view=view)
 
     # --- customer -------------------------------------------------------------------------------
 
-    async def create(self, customer: User, data: BookingIn) -> BookingOut:
+    async def create(self, customer: User, data: BookingIn) -> dict[str, Any]:
         now = clock.now()
         # Lock the artist row: concurrent requests for the same artist queue here, so the overlap check is reliable.
         artist = (await self.session.execute(
@@ -263,11 +255,11 @@ class BookingService:
         query = rows_query().where(mine, upcoming if scope == "upcoming" else not_(upcoming))
         return await self.page(query, Booking.start_at, scope == "past", limit, cursor, view="customer")
 
-    async def customer_get(self, customer: User, booking_id: uuid.UUID) -> BookingOut:
+    async def customer_get(self, customer: User, booking_id: uuid.UUID) -> dict[str, Any]:
         await self.expire_overdue(Booking.id == booking_id)
         return await self.one(booking_id, Booking.customer_id == customer.id, view="customer")
 
-    async def customer_cancel(self, customer: User, booking_id: uuid.UUID, reason: str | None) -> BookingOut:
+    async def customer_cancel(self, customer: User, booking_id: uuid.UUID, reason: str | None) -> dict[str, Any]:
         mine = Booking.customer_id == customer.id
         booking = await self.locked(booking_id, mine)
         self.require(booking, *OPEN)
@@ -311,14 +303,14 @@ class BookingService:
         theirs = Booking.artist_id == await self.artist_id(user)
         return await self.locked(booking_id, theirs), theirs
 
-    async def accept(self, user: User, booking_id: uuid.UUID) -> BookingOut:
+    async def accept(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.requested)
         booking.status = BookingStatus.confirmed
         booking.responded_at = clock.now()
         return await self.save(booking_id, theirs, view="artist")
 
-    async def decline(self, user: User, booking_id: uuid.UUID, reason: str | None) -> BookingOut:
+    async def decline(self, user: User, booking_id: uuid.UUID, reason: str | None) -> dict[str, Any]:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.requested)
         booking.status = BookingStatus.declined
@@ -327,7 +319,7 @@ class BookingService:
         booking.refund_due = True
         return await self.save(booking_id, theirs, view="artist")
 
-    async def complete(self, user: User, booking_id: uuid.UUID) -> BookingOut:
+    async def complete(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
         booking, theirs = await self._artist_locked(user, booking_id)
         self.require(booking, BookingStatus.confirmed)
         now = clock.now()
@@ -337,7 +329,7 @@ class BookingService:
         booking.completed_at = now
         return await self.save(booking_id, theirs, view="artist")
 
-    async def dashboard(self, user: User) -> ArtistDashboard:
+    async def dashboard(self, user: User) -> dict[str, Any]:
         theirs = Booking.artist_id == await self.artist_id(user)
         await self.expire_overdue(theirs)
         now = clock.now()
@@ -357,13 +349,13 @@ class BookingService:
                 Booking.status.in_((BookingStatus.confirmed, BookingStatus.completed)),
             ).order_by(Booking.start_at)
         )).all()
-        return ArtistDashboard(
-            requests=await count(Booking.status == BookingStatus.requested),
-            upcoming=await count(Booking.status == BookingStatus.confirmed),  # same rule as the Upcoming list
-            completed_this_month=await count(completed_this_month),
-            earnings_this_month_paise=earnings,
-            today=[booking_out(BookingRow(*r), self.storage, "artist") for r in today_rows],
-        )
+        return {
+            "requests": await count(Booking.status == BookingStatus.requested),
+            "upcoming": await count(Booking.status == BookingStatus.confirmed),  # same rule as the Upcoming list
+            "completed_this_month": await count(completed_this_month),
+            "earnings_this_month_paise": earnings,
+            "today": [booking_out(BookingRow(*r), self.storage, "artist") for r in today_rows],
+        }
 
 
 def get_booking_service(
