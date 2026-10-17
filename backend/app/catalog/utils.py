@@ -2,15 +2,15 @@
 
 from collections import defaultdict
 
-from app.schemas.catalog.catalog import (
+from app.catalog.schemas import (
     AdminCategoryOut,
     AdminTemplateOut,
     CatalogCategoryOut,
     SubcategoryOut,
     TemplateOut,
 )
-from app.services.catalog.catalog import Catalog, CategoryUsage
-from app.services.catalog.template import TemplateUsage
+from app.catalog.service import Catalog, CategoryUsage
+from app.catalog.template import TemplateUsage
 
 
 def category_out(row: CategoryUsage) -> AdminCategoryOut:

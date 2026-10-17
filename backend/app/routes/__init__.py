@@ -12,10 +12,10 @@ from app.api.v1 import (
     directory,
 )
 from app.auth import router as auth
+from app.catalog import admin_router as catalog_admin
+from app.catalog import router as catalog
 from app.routes.artist import admin as artist_admin
 from app.routes.artist import artist
-from app.routes.catalog import admin as catalog_admin
-from app.routes.catalog import catalog
 from app.routes.upload import upload
 from app.user import router as user
 

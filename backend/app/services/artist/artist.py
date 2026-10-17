@@ -9,6 +9,8 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.catalog.models import Category, ServiceTemplate
+from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.core.config import get_settings
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
@@ -18,9 +20,7 @@ from app.models.artist.artist import (
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.models.catalog.catalog import Category, ServiceTemplate
 from app.repositories.artist.artist import ArtistRepository
-from app.repositories.catalog.catalog import CategoryRepository, TemplateRepository
 from app.schemas.artist.artist import (
     CustomServiceIn,
     CustomServicePatch,

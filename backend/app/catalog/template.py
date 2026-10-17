@@ -5,10 +5,10 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.catalog.models import Category, ServiceTemplate
+from app.catalog.repository import CategoryRepository, TemplateRepository
+from app.catalog.schemas import TemplateIn, TemplatePatch
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.catalog.catalog import Category, ServiceTemplate
-from app.repositories.catalog.catalog import CategoryRepository, TemplateRepository
-from app.schemas.catalog.catalog import TemplateIn, TemplatePatch
 
 
 class TemplateUsage(NamedTuple):

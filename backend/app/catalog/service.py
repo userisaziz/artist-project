@@ -8,14 +8,14 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.catalog.catalog import Category, ServiceTemplate
-from app.repositories.catalog.catalog import (
+from app.catalog.models import Category, ServiceTemplate
+from app.catalog.repository import (
     CategoryRepository,
     TemplateRepository,
     Usage,
 )
-from app.schemas.catalog.catalog import CategoryIn, CategoryPatch
+from app.catalog.schemas import CategoryIn, CategoryPatch
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.shared.enums import CategoryStatus
 
 

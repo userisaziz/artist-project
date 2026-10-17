@@ -7,8 +7,8 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from app.catalog.models import Category
 from app.models.artist.artist import AadhaarReveal, ArtistProfile, ArtistServiceItem
-from app.models.catalog.catalog import Category
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset, split_page
 
