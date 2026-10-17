@@ -8,15 +8,12 @@ artists can propose custom services, which wait for admin review one by one.
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import Depends
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.crypto import encrypt_aadhaar
-from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.artist import (
+from app.models.artist.artist import (
     ArtistKyc,
     ArtistProfile,
     ArtistServiceItem,
@@ -24,7 +21,9 @@ from app.models.artist import (
 )
 from app.models.catalog.catalog import Category, ServiceTemplate
 from app.models.user.user import User
-from app.schemas.artist import (
+from app.repositories.artist.artist import ArtistRepository
+from app.repositories.catalog.catalog import CategoryRepository, TemplateRepository
+from app.schemas.artist.artist import (
     CustomServiceIn,
     CustomServicePatch,
     KycIn,
@@ -33,9 +32,9 @@ from app.schemas.artist import (
     ServiceIn,
     ServicePatch,
 )
-from app.services.upload.storage import ImageStorage, get_storage
+from app.services.artist.aadhaar import is_valid_aadhaar
+from app.services.upload.storage import ImageStorage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
-from app.utils.aadhaar import is_valid_aadhaar
 
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
@@ -46,9 +45,12 @@ class ArtistService:
     def __init__(self, session: AsyncSession, storage: ImageStorage):
         self.session = session
         self.storage = storage
+        self.artists = ArtistRepository(session)
+        self.categories = CategoryRepository(session)
+        self.templates = TemplateRepository(session)
 
     async def get(self, user: User) -> ArtistProfile:
-        profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
+        profile = await self.artists.by_user(user.id)
         if profile is None:
             raise NotFoundError("No artist profile yet")
         return profile
@@ -63,9 +65,7 @@ class ArtistService:
         """Top-level categories an artist may pick: active ones, plus inactive ones the profile already has."""
         wanted = set(ids)
         kept = {c.id for c in current}
-        found = (await self.session.scalars(
-            select(Category).where(Category.id.in_(wanted), Category.parent_id.is_(None))
-        )).all()
+        found = await self.categories.top_level_by_ids(wanted)
         allowed = [c for c in found
                    if c.status == CategoryStatus.active or (c.status == CategoryStatus.inactive and c.id in kept)]
         if len(allowed) != len(wanted):
@@ -77,12 +77,12 @@ class ArtistService:
             raise ValidationError("Unknown city")
         if body.photo_key and not self.storage.owns(body.photo_key, user.id, "artist_photo"):
             raise ValidationError("Invalid photo key")
-        profile = await self.session.scalar(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
+        profile = await self.artists.by_user(user.id)
         categories = await self._categories(body.category_ids, profile.categories if profile else [])
         if profile is None:
             # Empty collections up front: a new object has nothing loaded, and async can't lazy-load later.
             profile = ArtistProfile(user_id=user.id, business_name=body.business_name, city=body.city, services=[], photos=[], kyc=None)
-            self.session.add(profile)
+            self.artists.add(profile)
         elif profile.status not in EDITABLE:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         old_photo = profile.photo_key
@@ -102,9 +102,9 @@ class ArtistService:
 
     async def _template(self, profile: ArtistProfile, template_id: int) -> ServiceTemplate:
         """An active service from the admin's list, under one of the artist's chosen categories."""
-        template = await self.session.get(ServiceTemplate, template_id)
-        subcategory = await self.session.get(Category, template.subcategory_id) if template else None
-        parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
+        template = await self.templates.get(template_id)
+        subcategory = await self.categories.get(template.subcategory_id) if template else None
+        parent = await self.categories.get(subcategory.parent_id) if subcategory and subcategory.parent_id else None
         if not (template and template.is_active and subcategory.status == CategoryStatus.active
                 and parent and parent.status == CategoryStatus.active):
             raise ValidationError("Unknown service")
@@ -160,8 +160,8 @@ class ArtistService:
         return profile
 
     async def _subcategory(self, subcategory_id: int) -> Category:
-        subcategory = await self.session.get(Category, subcategory_id)
-        parent = await self.session.get(Category, subcategory.parent_id) if subcategory and subcategory.parent_id else None
+        subcategory = await self.categories.get(subcategory_id)
+        parent = await self.categories.get(subcategory.parent_id) if subcategory and subcategory.parent_id else None
         if not (subcategory and subcategory.status == CategoryStatus.active and parent and parent.status == CategoryStatus.active):
             raise ValidationError("Unknown subcategory")
         return subcategory
@@ -301,9 +301,3 @@ class ArtistService:
         profile.rejection_reason = None
         await self.session.flush()
         return profile
-
-
-def get_artist_service(
-    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
-) -> ArtistService:
-    return ArtistService(session, storage)

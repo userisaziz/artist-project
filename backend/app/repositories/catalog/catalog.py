@@ -6,7 +6,7 @@ from typing import NamedTuple
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.artist import ArtistServiceItem, artist_categories
+from app.models.artist.artist import ArtistServiceItem, artist_categories
 from app.models.catalog.catalog import Category, ServiceTemplate
 from app.shared.enums import CategoryStatus
 

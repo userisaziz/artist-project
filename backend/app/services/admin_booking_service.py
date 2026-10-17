@@ -8,7 +8,7 @@ from sqlalchemy import ColumnElement, Date, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.artist import ArtistProfile, ArtistServiceItem
+from app.models.artist.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import Review
 from app.models.user.user import User

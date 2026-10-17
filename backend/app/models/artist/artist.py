@@ -1,4 +1,5 @@
-# app/models/artist.py — an artist's onboarding profile, its categories, services and portfolio (migration #3)
+"""An artist's onboarding profile: its categories, services, portfolio and KYC, plus the Aadhaar reveal audit (migration #3)."""
+
 import uuid
 from datetime import datetime
 

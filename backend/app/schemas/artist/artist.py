@@ -1,5 +1,5 @@
 """API contracts for artist onboarding and its admin review. Image fields are URLs built
-from storage keys at response time (see services/storage.py); keys go in, URLs come out."""
+from storage keys at response time (see presenters.py); keys go in, URLs come out."""
 
 import uuid
 from datetime import datetime
@@ -7,15 +7,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.models.artist import (
-    ArtistKyc,
-    ArtistProfile,
-    ArtistServiceItem,
-    PortfolioPhoto,
-)
-from app.services.upload.storage import ImageStorage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
-from app.utils.aadhaar import mask_aadhaar_last4
 
 
 class CategoryOut(BaseModel):
@@ -60,14 +52,6 @@ class ServiceOut(BaseModel):
     description: str | None = None
     status: ArtistServiceStatus
     rejection_reason: str | None
-
-
-def service_out(item: ArtistServiceItem) -> ServiceOut:
-    return ServiceOut(
-        id=item.id, category_id=item.category_id, subcategory_id=item.category_id, template_id=item.template_id,
-        name=item.display_name, price_paise=item.price_paise, duration_minutes=item.duration_minutes,
-        description=item.description, status=item.status, rejection_reason=item.rejection_reason,
-    )
 
 
 class CustomServiceIn(BaseModel):
@@ -169,16 +153,6 @@ class RevealOut(BaseModel):
     aadhaar_number: str
 
 
-def admin_kyc_out(kyc: ArtistKyc | None, storage: ImageStorage) -> AdminKycOut | None:
-    if kyc is None:
-        return None
-    return AdminKycOut(
-        aadhaar_masked=mask_aadhaar_last4(kyc.aadhaar_last4),
-        front_url=storage.private_url(kyc.front_key),
-        back_url=storage.private_url(kyc.back_key),
-    )
-
-
 class AdminArtistSummary(BaseModel):
     id: uuid.UUID
     status: ArtistStatus
@@ -219,44 +193,3 @@ class AdminCustomServiceOut(BaseModel):
 class AdminCustomServicePage(BaseModel):
     items: list[AdminCustomServiceOut]
     next_cursor: str | None
-
-
-def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> PhotoOut:
-    key = photo.storage_key
-    return PhotoOut(
-        id=photo.id, key=key, width=photo.width, height=photo.height,
-        thumb_url=storage.url(key, "thumb"), card_url=storage.url(key, "card"), full_url=storage.url(key, "full"),
-    )
-
-
-def profile_out(profile: ArtistProfile, storage: ImageStorage) -> ArtistProfileOut:
-    return ArtistProfileOut(
-        id=profile.id,
-        status=profile.status,
-        business_name=profile.business_name,
-        city=profile.city,
-        bio=profile.bio,
-        photo_key=profile.photo_key,
-        photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
-        categories=[CategoryOut.model_validate(c) for c in profile.categories],
-        services=[service_out(s) for s in profile.services],
-        photos=[photo_out(p, storage) for p in profile.photos],
-        kyc=KycOut(aadhaar_last4=profile.kyc.aadhaar_last4) if profile.kyc else None,
-        rejection_reason=profile.rejection_reason,
-        submitted_at=profile.submitted_at,
-        reviewed_at=profile.reviewed_at,
-    )
-
-
-def summary_out(profile: ArtistProfile, storage: ImageStorage) -> AdminArtistSummary:
-    return AdminArtistSummary(
-        id=profile.id,
-        status=profile.status,
-        business_name=profile.business_name,
-        city=profile.city,
-        photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
-        categories=[c.name for c in profile.categories],
-        service_count=len(profile.services),
-        photo_count=len(profile.photos),
-        submitted_at=profile.submitted_at,
-    )

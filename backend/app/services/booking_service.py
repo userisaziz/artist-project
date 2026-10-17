@@ -18,7 +18,7 @@ from sqlalchemy.orm import InstrumentedAttribute
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models.artist import ArtistProfile, ArtistServiceItem
+from app.models.artist.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
 from app.models.user.user import User

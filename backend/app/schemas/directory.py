@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.schemas.artist import NamedRef
+from app.schemas.artist.artist import NamedRef
 
 
 class ArtistCard(BaseModel):

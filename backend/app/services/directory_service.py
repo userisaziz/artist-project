@@ -10,10 +10,10 @@ from sqlalchemy.orm import raiseload
 
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError
-from app.models.artist import ArtistProfile, ArtistServiceItem, artist_categories
+from app.models.artist.artist import ArtistProfile, ArtistServiceItem, artist_categories
 from app.models.booking import Booking
 from app.models.catalog.catalog import Category, ServiceTemplate
-from app.schemas.artist import NamedRef
+from app.schemas.artist.artist import NamedRef
 from app.schemas.directory import (
     ArtistCard,
     ArtistPublic,
