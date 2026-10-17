@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Pre-commit gate: lint changed apps only (warnings pass, errors block)
+
+changed=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if echo "$changed" | grep -q '^admin/'; then
+  (cd admin && npm run lint && npm run lint:arch) || exit 1
+fi
+
+if echo "$changed" | grep -q '^mobile/'; then
+  (cd mobile && npm run lint) || exit 1
+fi

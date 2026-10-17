@@ -94,10 +94,32 @@ A feature file starts flat (e.g. `bookings/queries.ts`); split into the subfolde
 - Perf: memoize expensive lists (mobile: FlatList `keyExtractor` + stable items), `React.lazy`/route-level code-splitting on admin for heavy pages, debounce search inputs (use existing `use-debounced-value`).
 - Security: tokens only in secure storage (mobile: `expo-secure-store`; admin: httpOnly cookie-friendly patterns), never in localStorage or rendered markup. Never expose API keys/secrets in client bundles or unauthenticated responses. Sanitize any rendered user-supplied HTML; no `dangerouslySetInnerHTML` without review.
 
-## 11. Quality Gates
+## 11. Canonical Library Stack
 
-- Admin: `npm run lint` (oxlint) + `tsc` must pass before finishing work; mobile: `eslint` + `jest` likewise.
-- Architectural boundaries (cross-feature / layering, §1–§2) are enforced by ESLint once the boundary configs are installed: `npm run lint:arch` in admin (`import/no-restricted-paths` zones), `eslint` with `eslint-plugin-boundaries` in mobile. Until installed, treat §1–§2 as manual review items.
+Use these libraries; do not introduce ad-hoc alternatives or competing UI/data kits. Any new core library must be added to this list first.
+
+**admin/ (web)**
+- Server state / data fetching: TanStack Query v5 (`@tanstack/react-query`, client preconfigured in `src/lib/query-client.ts`) — never axios, never bare fetch in components
+- UI: shadcn/ui components in `src/components/ui/` built on `@base-ui/react`; variants via `class-variance-authority` + `cn`; icons `lucide-react`; toasts `sonner`; theming `next-themes`
+- Styling: Tailwind CSS v4 (`@tailwindcss/vite`) + `tw-animate-css`
+- Routing: `react-router` v8 (`src/app/routes.tsx`, `paths.ts`)
+- Forms & validation: `react-hook-form` + `@hookform/resolvers` + `zod` v4; OTP via `input-otp`
+- Recommended additions (adopt per need, wrap in `ui/` first): TanStack Table, TanStack Virtual, `react-day-picker`
+
+**mobile/ (React Native / Expo)**
+- Server state: TanStack Query v5 (same rule: request declarations in `src/api/<feature>`)
+- Routing: `expo-router` (file-based `app/`, route groups `(auth)` `(app)` `(onboarding)`)
+- UI: own design-system components in `src/components/<layer>/<feature>` driven by the three-layer tokens — shadcn/ui is web-only; the wrapper principle applies instead (third-party primitives like `expo-image`, `expo-linear-gradient`, `react-native-svg` are wrapped behind design-system components, never used raw in features)
+- Storage: `expo-secure-store` for tokens
+
+**Cross-cutting**: zod is the single validation layer (forms, API schemas, env); TanStack Query is the single server-cache layer on both apps.
+
+## 12. Quality Gates
+
+- Admin: `npm run lint` (oxlint) + `npm run lint:arch` (ESLint boundaries) + `tsc` must pass before finishing work; mobile: `npm run lint` (expo lint, includes boundaries) + `jest` likewise.
+- Boundary configs are INSTALLED and active. Current pre-existing violations stay as `warn` until the backlog is drained, then flip to `error` in `admin/eslint.config.js` and `mobile/eslint.config.js`.
+- Husky pre-commit (repo root) lints `admin/` and/or `mobile/` depending on which paths are staged — do not bypass with `--no-verify`.
+- Storybook (admin, port 6006): every new or reworked shared UI component in `src/components/ui/` ships a colocated `*.stories.tsx` covering its variants/states.
 - Conventional Commits for all commits.
 - Small, reviewable diffs: a PR mixes either feature work or refactor, not both.
 

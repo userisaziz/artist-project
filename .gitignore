@@ -4,5 +4,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 
+# root tooling (husky)
+node_modules/
+
 # git worktrees
 .worktrees/
