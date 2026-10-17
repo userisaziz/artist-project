@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 
+from app.catalog.config import get_catalog_settings
 from app.catalog.dependencies import get_category_service
 from app.catalog.schemas import CatalogCategoryOut
 from app.catalog.service import CategoryService
 from app.catalog.utils import catalog_tree
-from app.core.config import get_settings
 
 router = APIRouter(tags=["catalog"])
 
@@ -17,4 +17,4 @@ async def list_categories(service: CategoryService = Depends(get_category_servic
 
 @router.get("/cities", response_model=list[str])
 async def list_cities() -> list[str]:
-    return get_settings().cities
+    return get_catalog_settings().cities

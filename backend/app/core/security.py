@@ -15,14 +15,21 @@ import jwt
 
 from app.core.config import get_settings
 
+JWT_ALGORITHM = "HS256"  # pinned: never read from config or the token header
+JWT_ISSUER = "art-circle-api"
+JWT_AUDIENCE = "art-circle"
+
+
+def _secret() -> str:
+    return get_settings().jwt_secret.get_secret_value()
+
 
 def generate_otp() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def hash_otp(code: str) -> str:
-    settings = get_settings()
-    return hmac.new(settings.jwt_secret.encode(), code.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(_secret().encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
 def hash_token(token: str) -> str:
@@ -30,11 +37,18 @@ def hash_token(token: str) -> str:
 
 
 def _create_token(user_id: uuid_mod.UUID, token_type: str, ttl: timedelta) -> tuple[str, str]:
-    settings = get_settings()
     jti = str(uuid_mod.uuid4())
     now = datetime.now(timezone.utc)
-    payload = {"sub": str(user_id), "type": token_type, "jti": jti, "iat": now, "exp": now + ttl}
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm), jti
+    payload = {
+        "sub": str(user_id),
+        "type": token_type,
+        "jti": jti,
+        "iss": JWT_ISSUER,
+        "aud": JWT_AUDIENCE,
+        "iat": now,
+        "exp": now + ttl,
+    }
+    return jwt.encode(payload, _secret(), algorithm=JWT_ALGORITHM), jti
 
 
 def create_access_token(user_id: uuid_mod.UUID) -> str:
@@ -49,5 +63,11 @@ def create_refresh_token(user_id: uuid_mod.UUID) -> tuple[str, str]:
 
 
 def decode_token(token: str) -> dict:
-    settings = get_settings()
-    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(
+        token,
+        _secret(),
+        algorithms=[JWT_ALGORITHM],
+        audience=JWT_AUDIENCE,
+        issuer=JWT_ISSUER,
+        options={"require": ["exp", "iat", "sub", "type", "jti", "iss", "aud"]},
+    )

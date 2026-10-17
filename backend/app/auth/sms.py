@@ -10,7 +10,7 @@ from typing import ClassVar
 
 import httpx
 
-from app.core.config import get_settings
+from app.auth.config import get_auth_settings
 
 logger = logging.getLogger("art_circle.sms")
 
@@ -42,12 +42,11 @@ class Fast2SMSProvider(SMSProvider):
     URL = "https://www.fast2sms.com/dev/bulkV2"
 
     async def send_otp(self, phone: str, code: str) -> None:
-        api_key = get_settings().fast2sms_api_key
-        if not api_key:
-            raise RuntimeError("SMS_PROVIDER=fast2sms but FAST2SMS_API_KEY is empty")
+        settings = get_auth_settings()
+        api_key = settings.fast2sms_api_key.get_secret_value()
         digits = "".join(c for c in phone if c.isdigit())
         number = digits[2:] if len(digits) == 12 and digits.startswith("91") else digits
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=settings.sms_timeout_seconds) as client:
             response = await client.post(
                 self.URL,
                 headers={"authorization": api_key},
@@ -59,7 +58,7 @@ class Fast2SMSProvider(SMSProvider):
 
 
 def get_sms_provider() -> SMSProvider:
-    name = get_settings().sms_provider
+    name = get_auth_settings().sms_provider
     if name == "console":
         return ConsoleSMSProvider()
     if name == "fast2sms":

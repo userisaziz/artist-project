@@ -6,9 +6,13 @@ engine — everything else (routing, services, SQL) runs for real.
 
 import os
 
-# Tests never touch a real SMS gateway, whatever .env says. Must precede get_settings (cached).
+# Tests never touch a real SMS gateway, image host or payment, whatever .env says.
+# Must precede the cached settings getters.
+os.environ["ENVIRONMENT"] = "test"
 os.environ["SMS_PROVIDER"] = "console"
 os.environ["FAST2SMS_API_KEY"] = ""
+os.environ["STORAGE_PROVIDER"] = "fake"
+os.environ["PAYMENT_PROVIDER"] = "mock"
 # Fixed Fernet key for tests (32 zero bytes, base64) — never used outside the test DB.
 os.environ["AADHAAR_ENCRYPTION_KEY"] = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
@@ -17,15 +21,23 @@ import pytest_asyncio
 from alembic.command import upgrade
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.core.config import get_settings
 from app.core.database import get_db
 from app.main import create_app
 from app.registry import Base
 
-settings = get_settings()
+
+class DatabaseSettingsForTests(BaseSettings):
+    """Test-only configuration: the app's own settings never know about the test database."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    test_database_url: str
+
+
+settings = DatabaseSettingsForTests()
 
 
 def apply_migrations(url: str) -> None:
@@ -52,8 +64,26 @@ async def engine(migrated):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def client(engine):
-    app = create_app()
+async def app(engine):
+    return create_app()
+
+
+@pytest.fixture
+def override(app):
+    """`override(dependency, replacement)` for one test; every override is removed afterwards."""
+    added = []
+
+    def apply(dependency, replacement):
+        app.dependency_overrides[dependency] = replacement
+        added.append(dependency)
+
+    yield apply
+    for dependency in added:
+        app.dependency_overrides.pop(dependency, None)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def client(app):
 
     async def override_get_db():
         async with TestSessionFactory() as session:

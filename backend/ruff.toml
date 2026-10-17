@@ -22,3 +22,4 @@ extend-immutable-calls = [
 # __mapper_args__/__table_args__ dicts are SQLAlchemy declarative idiom, not shared mutable state.
 "app/models/**" = ["RUF012"]
 "*/models.py" = ["RUF012"]
+"*/config.py" = ["RUF012"]  # pydantic copies field defaults per instance

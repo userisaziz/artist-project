@@ -12,6 +12,7 @@ from datetime import timedelta
 import jwt as pyjwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.config import get_auth_settings
 from app.auth.models import OtpCode, RefreshToken
 from app.auth.repository import AuthRepository
 from app.auth.sms import SMSProvider, get_sms_provider
@@ -36,7 +37,8 @@ class AuthService:
         self.auth = AuthRepository(session)
         self.users = UserRepository(session)
         self.sms = sms or get_sms_provider()
-        self.settings = get_settings()
+        self.settings = get_auth_settings()
+        self.token_settings = get_settings()
 
     async def request_otp(self, phone: str) -> None:
         now = clock.now()
@@ -78,7 +80,7 @@ class AuthService:
             RefreshToken(
                 user_id=user.id,
                 token_hash=hash_token(refresh),
-                expires_at=clock.now() + timedelta(days=self.settings.refresh_token_ttl_days),
+                expires_at=clock.now() + timedelta(days=self.token_settings.refresh_token_ttl_days),
             )
         )
         return user, access, refresh
@@ -105,7 +107,7 @@ class AuthService:
             RefreshToken(
                 user_id=user.id,
                 token_hash=hash_token(refresh),
-                expires_at=now + timedelta(days=self.settings.refresh_token_ttl_days),
+                expires_at=now + timedelta(days=self.token_settings.refresh_token_ttl_days),
             )
         )
         return user, access, refresh

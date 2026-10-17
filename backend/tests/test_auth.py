@@ -28,10 +28,10 @@ async def test_wrong_code_returns_401(client):
 
 async def test_repeated_wrong_codes_lock_the_otp_out(client):
     """Failed attempts must persist despite the error rollback, or the lockout never fires."""
-    from app.core.config import get_settings
+    from app.auth.config import get_auth_settings
 
     code = await request_and_read_code(client)
-    for _ in range(get_settings().otp_max_attempts):
+    for _ in range(get_auth_settings().otp_max_attempts):
         response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": "000000"})
         assert response.status_code == 401
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})

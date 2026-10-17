@@ -1,39 +1,55 @@
-"""Typed application settings — the single source of truth for configuration.
+"""Global settings: environment, database, HTTP edge and the app-wide secrets (JWT, Aadhaar key).
 
-Loaded once from `.env` (pydantic-settings maps e.g. DATABASE_URL -> database_url).
-If a required value is missing, the app fails here at startup with a readable
-error instead of mysteriously at the first request.
+Domain-specific values live in each domain's own `config.py` (auth, booking, review, upload,
+artist), all built on `AppSettings` so they read the same `.env` and know the environment.
+A missing or unsafe value fails here at startup with a readable error, never at the first request.
 """
 
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+Environment = Literal["local", "test", "staging", "production"]
 
-class Settings(BaseSettings):
+
+class AppSettings(BaseSettings):
+    """Base for every settings class. Defaults to production, so a forgotten ENVIRONMENT fails safe."""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
     )
+    environment: Environment = "production"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+
+class Settings(AppSettings):
     database_url: str
-    test_database_url: str
-    jwt_secret: str
-    jwt_algorithm: str = "HS256"
-    access_token_ttl_minutes: int = 15
-    refresh_token_ttl_days: int = 7
-    otp_ttl_minutes: int = 5
-    otp_max_attempts: int = 5
-    otp_resend_cooldown_seconds: int = 60
-    debug: bool = True
-    sms_provider: str = "console"
-    fast2sms_api_key: str = ""
-    # Image storage: "fake" (tests/dev without keys) or "cloudinary".
-    storage_provider: str = "fake"
-    cloudinary_cloud_name: str = ""
-    cloudinary_api_key: str = ""
-    cloudinary_api_secret: str = ""
+    db_pool_size: int = Field(10, ge=1)
+    db_max_overflow: int = Field(10, ge=0)
+    db_pool_recycle_seconds: int = Field(1800, ge=60)
+    db_statement_timeout_ms: int = Field(15_000, ge=100)
+
+    # JWT signing key (HS256). Also keys the OTP HMAC, so it must be long and random.
+    jwt_secret: SecretStr = Field(min_length=32)
+    access_token_ttl_minutes: int = Field(15, ge=1, le=60)
+    refresh_token_ttl_days: int = Field(7, ge=1, le=90)
     # Fernet key for stored Aadhaar numbers (required: the app refuses to start without it).
     aadhaar_encryption_key: SecretStr
+
+    # Browser origins allowed by CORS (the admin web app). Local runs allow any origin.
+    cors_origins: list[str] = Field(
+        default=["http://localhost:5173"], validation_alias=AliasChoices("cors_origins", "admin_origins")
+    )
+    # Host headers accepted; set to the API's public hostnames in production.
+    allowed_hosts: list[str] = ["*"]
+    max_body_bytes: int = Field(1_048_576, ge=1024)  # JSON only: images upload straight to the image host
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    log_json: bool | None = None  # None: JSON everywhere except local
 
     @field_validator("aadhaar_encryption_key")
     @classmethod
@@ -46,35 +62,14 @@ class Settings(BaseSettings):
             raise ValueError("AADHAAR_ENCRYPTION_KEY must be a 32-byte url-safe base64 Fernet key") from None
         return value
 
-    @model_validator(mode="after")
-    def _no_mock_payments_in_production(self) -> "Settings":
-        if self.payment_provider != "mock":
-            raise ValueError(f"Unknown PAYMENT_PROVIDER: {self.payment_provider!r} (supported: mock)")
-        if not self.debug:
-            raise ValueError("PAYMENT_PROVIDER=mock takes no real deposits; it only runs with DEBUG=true")
-        return self
+    @property
+    def docs_enabled(self) -> bool:
+        """OpenAPI/docs are a local, test and staging convenience only (best-practices rule)."""
+        return self.environment in ("local", "test", "staging")
 
-    # Cities an artist can pick; a table replaces this once admins edit it.
-    cities: list[str] = ["Bangalore", "Mumbai", "Delhi NCR", "Hyderabad", "Chennai", "Pune"]
-    # Bookings (Increment 5). Money values are copied onto each booking, so changes only affect new ones.
-    platform_fee_paise: int = 9_900  # ₹99 charged to the customer…
-    platform_fee_waived_from_paise: int = 2_500_000  # …unless the service costs ₹25,000 or more
-    deposit_percent: int = 30  # of the total, paid when requesting
-    commission_percent: int = 10  # of the service price, kept from the artist
-    booking_accept_hours: int = 3  # the artist's window to accept a request
-    free_cancel_hours: int = 72  # customer cancellations this far ahead get the deposit back
-    slot_first_hour: int = 9  # hourly start times, IST
-    slot_last_hour: int = 17
-    booking_lead_hours: int = 2  # earliest bookable start, from now
-    booking_horizon_days: int = 60
-    max_open_requests_per_customer: int = 3  # unanswered requests at once, so one account can't squat on slots
-    # Reviews (Increment 6): open this long after completion; these phrases hide a review for moderation.
-    review_window_days: int = 30
-    review_blocked_words: list[str] = ["scam", "fraud", "call me", "whatsapp me"]
-    # Deposit payments. "mock" marks the deposit paid with no gateway: dev only (see _no_mock_payments_in_production).
-    payment_provider: str = "mock"
-    # CORS origins when DEBUG=false (the admin web app).
-    admin_origins: list[str] = ["http://localhost:5173"]
+    @property
+    def use_json_logs(self) -> bool:
+        return self.environment != "local" if self.log_json is None else self.log_json
 
 
 @lru_cache

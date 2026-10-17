@@ -21,29 +21,35 @@ Check that it's running: `curl localhost:8000/health` should return `{"status":"
 
 ## Configuration (`.env`)
 
-All settings live in `app/core/config.py` (pydantic-settings). If a required value is missing, the app fails at startup.
+Global settings live in `app/core/config.py`; each domain keeps its own in `app/<domain>/config.py` (auth, booking, catalog, review, upload). All of them are built when the app starts, so a missing or unsafe value stops the boot.
+
+`ENVIRONMENT` defaults to `production`. Production refuses console SMS, fake storage and mock payments, and hides the API docs.
 
 | Variable | Default | Notes |
 |---|---|---|
+| `ENVIRONMENT` | `production` | `local`, `test`, `staging` or `production`. Set `local` on a dev machine |
 | `DATABASE_URL` | required | `postgresql+asyncpg://...` |
-| `TEST_DATABASE_URL` | required | Separate database. Tests truncate its tables. |
-| `JWT_SECRET` | required | Use at least 32 random bytes outside dev |
-| `JWT_ALGORITHM` | `HS256` | |
+| `TEST_DATABASE_URL` | tests only | Separate database. Tests truncate its tables. The app itself never reads it. |
+| `JWT_SECRET` | required | At least 32 characters, or the app won't start. The algorithm is pinned to HS256 |
 | `ACCESS_TOKEN_TTL_MINUTES` | `15` | |
 | `REFRESH_TOKEN_TTL_DAYS` | `7` | |
 | `OTP_TTL_MINUTES` | `5` | |
 | `OTP_MAX_ATTEMPTS` | `5` | Wrong guesses allowed before the code is burned |
 | `OTP_RESEND_COOLDOWN_SECONDS` | `60` | Faster re-requests get a `429 rate_limited` response |
-| `DEBUG` | `true` | Allows CORS from every origin when true |
-| `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output; `fast2sms` sends real SMS |
+| `CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed browser origins outside `local` (any origin locally). `ADMIN_ORIGINS` still works |
+| `ALLOWED_HOSTS` | `["*"]` | Host headers the API answers to; set the public hostnames in production |
+| `LOG_LEVEL`, `LOG_JSON` | `INFO`, auto | Logs are JSON everywhere except `local` unless `LOG_JSON` says otherwise |
+| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_RECYCLE_SECONDS`, `DB_STATEMENT_TIMEOUT_MS` | `10`, `10`, `1800`, `15000` | Connection pool and per-statement timeout |
+| `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output (not allowed in production); `fast2sms` sends real SMS |
 | `FAST2SMS_API_KEY` | empty | Required when `SMS_PROVIDER=fast2sms` |
-| `PAYMENT_PROVIDER` | `mock` | Only `mock` so far, and it runs only with `DEBUG=true` (see Directory and bookings) |
+| `STORAGE_PROVIDER` | `fake` | `fake` (no network, not allowed in production) or `cloudinary`, which needs the three `CLOUDINARY_*` values |
+| `PAYMENT_PROVIDER` | `direct` | `direct`: the customer pays the artist's UPI and the platform holds no money. `mock` marks deposits paid and is not allowed in production |
 | `PLATFORM_FEE_PAISE`, `PLATFORM_FEE_WAIVED_FROM_PAISE`, `DEPOSIT_PERCENT`, `COMMISSION_PERCENT` | `9900`, `2500000`, `30`, `10` | Booking money; changes apply to new bookings only |
 | `BOOKING_ACCEPT_HOURS`, `FREE_CANCEL_HOURS`, `MAX_OPEN_REQUESTS_PER_CUSTOMER` | `3`, `72`, `3` | Booking rules |
 | `SLOT_FIRST_HOUR`, `SLOT_LAST_HOUR`, `BOOKING_LEAD_HOURS`, `BOOKING_HORIZON_DAYS` | `9`, `17`, `2`, `60` | Hourly IST start times, earliest start from now, how far ahead |
 | `AADHAAR_ENCRYPTION_KEY` | required | Fernet key that encrypts stored Aadhaar numbers; the app won't start without it. Generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Losing it makes stored Aadhaar numbers unrecoverable, so back it up. |
 
-> `.env.example` ships with `SMS_PROVIDER=fast2sms`. For local development, set it to `console` and read codes from the uvicorn log (`[console-sms] to=+91... | Your Art Circle code is 123456`).
+> `.env.example` ships with `ENVIRONMENT=local` and `SMS_PROVIDER=console`: read codes from the uvicorn log (`[console-sms] to=+91... | Your Art Circle code is 123456`).
 
 ## API
 
@@ -105,7 +111,7 @@ Customers find approved artists and request a slot. The artist has 3 hours to an
 
 **Money:** all amounts are integer paise and are copied onto the booking. A booking costs the service price plus a ₹99 platform fee, which is waived from ₹25,000. The customer pays a 30% deposit up front, rounded to the rupee. The commission is 10% of the service price, and customers never see it.
 
-> **Payments are mocked.** With `PAYMENT_PROVIDER=mock`, the deposit counts as paid and no money moves. The app refuses to start with the mock provider unless `DEBUG=true`, so it can't reach production. A real gateway is a later increment.
+> **Payments go straight to the artist.** With `PAYMENT_PROVIDER=direct` (the default) the customer pays the artist's UPI; bookings record the amounts but `deposit_paid_at` stays empty because the platform never sees the money. `mock` marks the deposit paid for dev and tests and is refused in production. Razorpay comes in phase 2.
 
 ### Error contract
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from app.core.config import get_settings
+from app.booking.config import get_booking_settings
 from app.core.exceptions import ValidationError
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -21,7 +21,7 @@ class Price:
 
 def price(subtotal_paise: int) -> Price:
     """Fee unless waived; deposit is a share of the total rounded to whole rupees (half up); commission on the subtotal."""
-    s = get_settings()
+    s = get_booking_settings()
     fee = 0 if subtotal_paise >= s.platform_fee_waived_from_paise else s.platform_fee_paise
     total = subtotal_paise + fee
     deposit_rupees = (total * s.deposit_percent + 5_000) // 10_000
@@ -40,18 +40,18 @@ def ist_day_bounds(first: date, last: date) -> tuple[datetime, datetime]:
 
 def check_bookable_day(day: date, now: datetime) -> None:
     today = ist_today(now)
-    if day < today or day > today + timedelta(days=get_settings().booking_horizon_days):
+    if day < today or day > today + timedelta(days=get_booking_settings().booking_horizon_days):
         raise ValidationError("Pick a date within the next two months")
 
 
 def slot_starts(day: date) -> list[datetime]:
     """Hourly start times for one IST day."""
-    s = get_settings()
+    s = get_booking_settings()
     return [datetime.combine(day, time(hour), tzinfo=IST) for hour in range(s.slot_first_hour, s.slot_last_hour + 1)]
 
 
 def is_after_lead_time(start: datetime, now: datetime) -> bool:
-    return start >= now + timedelta(hours=get_settings().booking_lead_hours)
+    return start >= now + timedelta(hours=get_booking_settings().booking_lead_hours)
 
 
 def check_bookable_start(start: datetime, now: datetime) -> None:
@@ -70,12 +70,12 @@ def check_bookable_start(start: datetime, now: datetime) -> None:
 
 
 def customer_refund_due(start: datetime, now: datetime) -> bool:
-    return start - now >= timedelta(hours=get_settings().free_cancel_hours)
+    return start - now >= timedelta(hours=get_booking_settings().free_cancel_hours)
 
 
 def accept_deadline(now: datetime, start: datetime) -> datetime:
     """The artist's window to answer, but never past the start: an unanswered request can't hold a slot that began."""
-    return min(now + timedelta(hours=get_settings().booking_accept_hours), start)
+    return min(now + timedelta(hours=get_booking_settings().booking_accept_hours), start)
 
 
 CALENDAR_RANGE = timedelta(days=3 * 366)

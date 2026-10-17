@@ -10,8 +10,7 @@ import sqlalchemy as sa
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
 
-from app.core.config import get_settings
-from tests.conftest import test_engine
+from tests.conftest import settings, test_engine
 from tests.support.auth import sign_in
 from tests.support.catalog import categories, seed_categories
 
@@ -82,7 +81,7 @@ async def test_existing_services_become_approved_custom_rows(client, engine):
 def test_catalog_migration_round_trips():
     """Sync on purpose: alembic's env.py calls asyncio.run."""
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", get_settings().test_database_url)
+    cfg.set_main_option("sqlalchemy.url", settings.test_database_url)
     downgrade(cfg, "d8e2a6b4c1f9")
     upgrade(cfg, "head")
     # The enum type was dropped and recreated with a new OID; pooled asyncpg connections cache the old one.

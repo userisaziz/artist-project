@@ -1,4 +1,4 @@
-"""Bookings for customers and artists: request a slot (deposit mocked as paid), accept, decline, complete, cancel.
+"""Bookings for customers and artists: request a slot, accept, decline, complete, cancel.
 
 Unanswered requests expire lazily: each read or write first marks overdue requests `expired`.
 Writes commit before returning, because `get_db` commits only after the response is sent and a
@@ -17,11 +17,11 @@ from sqlalchemy.orm import InstrumentedAttribute
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
+from app.booking.config import BookingSettings, get_booking_settings
 from app.booking.models import Booking
 from app.booking.schemas import (
     BookingIn,
 )
-from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_window_open
@@ -180,9 +180,10 @@ def ist_month_start(now: datetime) -> datetime:
 
 
 class BookingService:
-    def __init__(self, session: AsyncSession, storage: ImageStorage):
+    def __init__(self, session: AsyncSession, storage: ImageStorage, settings: BookingSettings):
         self.session = session
         self.storage = storage
+        self.settings = settings
 
     # --- shared ---------------------------------------------------------------------------------
 
@@ -276,6 +277,7 @@ class BookingService:
             raise ConflictError("That time was just taken. Pick another slot.")
 
         p = rules.price(service.price_paise)
+        provider = self.settings.payment_provider
         booking = Booking(
             code=new_code(),
             customer_id=customer.id,
@@ -292,9 +294,10 @@ class BookingService:
             total_paise=p.total_paise,
             deposit_paise=p.deposit_paise,
             commission_paise=p.commission_paise,
-            # Mock provider only (Settings refuses it without DEBUG): the deposit counts as paid.
-            deposit_paid_at=now,
-            payment_provider=get_settings().payment_provider,
+            # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
+            # "mock" (never in production) counts the deposit as paid.
+            deposit_paid_at=now if provider == "mock" else None,
+            payment_provider=provider,
             expires_at=rules.accept_deadline(now, data.start_at),
         )
         self.session.add(booking)
@@ -302,7 +305,7 @@ class BookingService:
         return await self.save(booking.id, view="customer")
 
     async def _check_open_requests(self, customer: User, now: datetime) -> None:
-        cap = get_settings().max_open_requests_per_customer
+        cap = self.settings.max_open_requests_per_customer
         waiting = (
             await self.session.execute(
                 select(func.count())
@@ -448,6 +451,8 @@ class BookingService:
 
 
 def get_booking_service(
-    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+    session: AsyncSession = Depends(get_db),
+    storage: ImageStorage = Depends(get_storage),
+    settings: BookingSettings = Depends(get_booking_settings),
 ) -> BookingService:
-    return BookingService(session, storage)
+    return BookingService(session, storage, settings)

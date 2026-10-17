@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-from app.core.config import get_settings
+from app.upload.config import get_upload_settings
 
 logger = logging.getLogger("art_circle.storage")
 
@@ -137,9 +137,11 @@ class CloudinaryStorage(ImageStorage):
 
 
 def get_storage() -> ImageStorage:
-    s = get_settings()
+    s = get_upload_settings()
     if s.storage_provider == "fake":
         return FakeStorage()
     if s.storage_provider == "cloudinary":
-        return CloudinaryStorage(s.cloudinary_cloud_name, s.cloudinary_api_key, s.cloudinary_api_secret)
+        return CloudinaryStorage(
+            s.cloudinary_cloud_name, s.cloudinary_api_key, s.cloudinary_api_secret.get_secret_value()
+        )
     raise ValueError(f"Unknown STORAGE_PROVIDER: {s.storage_provider!r} (supported: fake, cloudinary)")

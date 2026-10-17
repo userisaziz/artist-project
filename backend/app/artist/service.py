@@ -26,9 +26,9 @@ from app.artist.schemas import (
     ServiceIn,
     ServicePatch,
 )
+from app.catalog.config import get_catalog_settings
 from app.catalog.models import Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
-from app.core.config import get_settings
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.shared import clock
@@ -76,7 +76,7 @@ class ArtistService:
         return sorted(allowed, key=lambda c: c.sort_order)
 
     async def save_profile(self, user: User, body: ProfileIn) -> ArtistProfile:
-        if body.city not in get_settings().cities:
+        if body.city not in get_catalog_settings().cities:
             raise ValidationError("Unknown city")
         if body.photo_key and not self.storage.owns(body.photo_key, user.id, "artist_photo"):
             raise ValidationError("Invalid photo key")

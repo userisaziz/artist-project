@@ -9,6 +9,7 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.booking import service as booking_service
+from app.booking.config import BookingSettings, get_booking_settings
 from app.shared import clock
 from tests.support.artist import approved_artist
 from tests.support.auth import CUSTOMER_PHONE, sign_in
@@ -384,3 +385,11 @@ async def test_calendar_and_reason_inputs_are_validated(client, engine):
     b = (await book(client, customer, artist)).json()
     blank = await client.post(f"/api/v1/admin/bookings/{b['id']}/cancel", headers=admin, json={"reason": "   "})
     assert blank.status_code == 422
+
+
+async def test_direct_upi_bookings_record_amounts_but_no_payment(client, engine, override):
+    """With PAYMENT_PROVIDER=direct the customer pays the artist's UPI: nothing is marked as received."""
+    override(get_booking_settings, lambda: BookingSettings(environment="production", payment_provider="direct"))
+    _, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+    assert (b["status"], b["deposit_paise"], b["deposit_paid_at"]) == ("requested", 168000, None)

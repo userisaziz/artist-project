@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
+from app.booking.config import BookingSettings, get_booking_settings
 from app.booking.models import Booking
 from app.booking.service import OPEN, BookingService, rows_query
 from app.core.database import get_db
@@ -100,6 +101,8 @@ class AdminBookingService(BookingService):
 
 
 def get_admin_booking_service(
-    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+    session: AsyncSession = Depends(get_db),
+    storage: ImageStorage = Depends(get_storage),
+    settings: BookingSettings = Depends(get_booking_settings),
 ) -> AdminBookingService:
-    return AdminBookingService(session, storage)
+    return AdminBookingService(session, storage, settings)

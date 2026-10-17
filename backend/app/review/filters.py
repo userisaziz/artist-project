@@ -3,7 +3,7 @@
 import re
 from datetime import datetime, timedelta
 
-from app.core.config import get_settings
+from app.review.config import get_review_settings
 
 # Phone-shaped groups only, so dates ("15-10-2026 11:00") and lists of prices don't trip the filter.
 CONTACT_PATTERNS = (
@@ -26,7 +26,7 @@ def review_flag(text: str | None) -> str | None:
         return None
     if any(p.search(text) for p in CONTACT_PATTERNS):
         return "contact_info"
-    for phrase in get_settings().review_blocked_words:
+    for phrase in get_review_settings().review_blocked_words:
         if re.search(rf"\b{re.escape(phrase)}\b", text, re.IGNORECASE):
             return "blocked_word"
     return None
@@ -35,4 +35,4 @@ def review_flag(text: str | None) -> str | None:
 def review_window_open(completed_at: datetime | None, now: datetime) -> bool:
     if completed_at is None:
         return False
-    return now - completed_at <= timedelta(days=get_settings().review_window_days)
+    return now - completed_at <= timedelta(days=get_review_settings().review_window_days)
