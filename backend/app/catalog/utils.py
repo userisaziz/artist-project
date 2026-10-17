@@ -1,21 +1,14 @@
-"""Pure mappers from catalog models to response schemas."""
+"""Pure mappers from catalog models to response-shaped dicts (the route's response_model validates them once)."""
 
 from collections import defaultdict
 
-from app.catalog.schemas import (
-    AdminCategoryOut,
-    AdminTemplateOut,
-    CatalogCategoryOut,
-    SubcategoryOut,
-    TemplateOut,
-)
 from app.catalog.service import Catalog, CategoryUsage
 from app.catalog.template import TemplateUsage
 
 
-def category_out(row: CategoryUsage) -> AdminCategoryOut:
+def category_out(row: CategoryUsage) -> dict:
     category, u = row
-    return AdminCategoryOut(
+    return dict(
         id=category.id,
         slug=category.slug,
         name=category.name,
@@ -29,9 +22,9 @@ def category_out(row: CategoryUsage) -> AdminCategoryOut:
     )
 
 
-def template_out(row: TemplateUsage) -> AdminTemplateOut:
+def template_out(row: TemplateUsage) -> dict:
     template, artist_count = row
-    return AdminTemplateOut(
+    return dict(
         id=template.id,
         subcategory_id=template.subcategory_id,
         name=template.name,
@@ -42,19 +35,17 @@ def template_out(row: TemplateUsage) -> AdminTemplateOut:
     )
 
 
-def catalog_tree(catalog: Catalog) -> list[CatalogCategoryOut]:
+def catalog_tree(catalog: Catalog) -> list[dict]:
     """Active categories → active subcategories → active services. Hiding a level hides everything under it."""
-    services: dict[int, list[TemplateOut]] = defaultdict(list)
+    services: dict[int, list] = defaultdict(list)
     for template in catalog.templates:
-        services[template.subcategory_id].append(TemplateOut.model_validate(template))
-    subcategories: dict[int, list[SubcategoryOut]] = defaultdict(list)
+        services[template.subcategory_id].append(template)
+    subcategories: dict[int, list[dict]] = defaultdict(list)
     for c in catalog.categories:
         if c.parent_id is not None:
-            subcategories[c.parent_id].append(
-                SubcategoryOut(id=c.id, slug=c.slug, name=c.name, services=services[c.id])
-            )
+            subcategories[c.parent_id].append({"id": c.id, "slug": c.slug, "name": c.name, "services": services[c.id]})
     return [
-        CatalogCategoryOut(id=c.id, slug=c.slug, name=c.name, subcategories=subcategories[c.id])
+        {"id": c.id, "slug": c.slug, "name": c.name, "subcategories": subcategories[c.id]}
         for c in catalog.categories
         if c.parent_id is None
     ]

@@ -7,13 +7,14 @@ from fastapi import APIRouter, Depends, Query
 from app.booking.schemas import ArtistDashboard, BookingOut, BookingPage, ReasonIn
 from app.booking.service import BookingService, get_booking_service
 from app.core.auth import current_artist
+from app.shared.responses import errors
 from app.user.models import User
 
 # An approved artist's requests and schedule. Draft, pending or rejected profiles get 409.
-router = APIRouter(prefix="/artists/me", tags=["artist bookings"])
+router = APIRouter(prefix="/artists/me", tags=["artist bookings"], responses=errors(401, 403, 404, 409, 422))
 
 
-@router.get("/bookings", response_model=BookingPage)
+@router.get("/bookings", response_model=BookingPage, status_code=200, summary="My requests, upcoming and past bookings")
 async def list_artist_bookings(
     scope: Literal["requests", "upcoming", "past"] | None = None,
     from_: date | None = Query(None, alias="from", description="IST date, inclusive"),
@@ -22,19 +23,23 @@ async def list_artist_bookings(
     cursor: str | None = None,
     user: User = Depends(current_artist),
     bookings: BookingService = Depends(get_booking_service),
-) -> BookingPage:
+) -> dict:
     items, next_cursor = await bookings.artist_list(user, scope, from_, to, limit, cursor)
-    return BookingPage(items=items, next_cursor=next_cursor)
+    return {"items": items, "next_cursor": next_cursor}
 
 
-@router.post("/bookings/{booking_id}/accept", response_model=BookingOut)
+@router.post(
+    "/bookings/{booking_id}/accept", response_model=BookingOut, summary="Accept a booking request", status_code=200
+)
 async def accept_booking(
     booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
 ) -> BookingOut:
     return await bookings.accept(user, booking_id)
 
 
-@router.post("/bookings/{booking_id}/decline", response_model=BookingOut)
+@router.post(
+    "/bookings/{booking_id}/decline", response_model=BookingOut, summary="Decline a booking request", status_code=200
+)
 async def decline_booking(
     booking_id: uuid.UUID,
     body: ReasonIn,
@@ -44,14 +49,21 @@ async def decline_booking(
     return await bookings.decline(user, booking_id, body.reason)
 
 
-@router.post("/bookings/{booking_id}/complete", response_model=BookingOut)
+@router.post(
+    "/bookings/{booking_id}/complete", response_model=BookingOut, summary="Mark a booking completed", status_code=200
+)
 async def complete_booking(
     booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
 ) -> BookingOut:
     return await bookings.complete(user, booking_id)
 
 
-@router.get("/dashboard", response_model=ArtistDashboard)
+@router.get(
+    "/dashboard",
+    response_model=ArtistDashboard,
+    summary="Dashboard counts, earnings and today's schedule",
+    status_code=200,
+)
 async def artist_dashboard(
     user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
 ) -> ArtistDashboard:

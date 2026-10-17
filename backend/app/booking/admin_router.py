@@ -8,38 +8,46 @@ from app.booking.admin_service import (
     get_admin_booking_service,
 )
 from app.booking.schemas import AdminBookingOut, AdminBookingPage, AdminOverview
-from app.core.auth import current_admin
+from app.core.auth import audited_admin
 from app.shared.enums import BookingStatus
+from app.shared.responses import errors
 
-router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(current_admin)])
+router = APIRouter(
+    prefix="/admin", tags=["admin"], dependencies=[Depends(audited_admin)], responses=errors(401, 403, 404, 409, 422)
+)
 
 
-@router.get("/bookings", response_model=AdminBookingPage)
+@router.get("/bookings", response_model=AdminBookingPage, status_code=200, summary="Search all bookings")
 async def list_bookings(
     status: BookingStatus | None = None,
     q: str | None = Query(None, max_length=100),
     limit: int = Query(20, ge=1, le=100),
     cursor: str | None = None,
     bookings: AdminBookingService = Depends(get_admin_booking_service),
-) -> AdminBookingPage:
+) -> dict:
     items, next_cursor = await bookings.list(status, q, limit, cursor)
-    return AdminBookingPage(items=items, next_cursor=next_cursor)
+    return {"items": items, "next_cursor": next_cursor}
 
 
-@router.get("/bookings/{booking_id}", response_model=AdminBookingOut)
+@router.get("/bookings/{booking_id}", response_model=AdminBookingOut, summary="Any booking", status_code=200)
 async def get_booking(
     booking_id: uuid.UUID, bookings: AdminBookingService = Depends(get_admin_booking_service)
 ) -> AdminBookingOut:
     return await bookings.get(booking_id)
 
 
-@router.post("/bookings/{booking_id}/cancel", response_model=AdminBookingOut)
+@router.post(
+    "/bookings/{booking_id}/cancel",
+    response_model=AdminBookingOut,
+    summary="Cancel a booking (deposit refunded)",
+    status_code=200,
+)
 async def cancel_booking(
     booking_id: uuid.UUID, body: RejectIn, bookings: AdminBookingService = Depends(get_admin_booking_service)
 ) -> AdminBookingOut:
     return await bookings.cancel(booking_id, body.reason)
 
 
-@router.get("/overview", response_model=AdminOverview)
+@router.get("/overview", response_model=AdminOverview, summary="Overview KPIs", status_code=200)
 async def overview(bookings: AdminBookingService = Depends(get_admin_booking_service)) -> AdminOverview:
     return await bookings.overview()

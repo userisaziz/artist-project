@@ -1,12 +1,14 @@
 """Current-user resolution and role checks shared by every router."""
 
 import uuid
+from collections.abc import AsyncIterator
 
 import jwt as pyjwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import audit
 from app.core.database import get_db
 from app.core.exceptions import AuthError, ForbiddenError
 from app.core.security import decode_token
@@ -48,3 +50,21 @@ def require_role(role: UserRole):
 current_artist = require_role(UserRole.artist)
 current_admin = require_role(UserRole.admin)
 current_customer = require_role(UserRole.customer)
+
+
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+async def audited_admin(request: Request, admin: User = Depends(current_admin)) -> AsyncIterator[User]:
+    """Router-level guard for every /admin router: admins only, and each successful change is audited.
+
+    Set once on the router, so a new admin route can't be added without it.
+    """
+    yield admin
+    if request.method not in SAFE_METHODS:
+        audit(
+            "admin.action",
+            admin_id=str(admin.id),
+            method=request.method,
+            path=request.url.path,
+        )

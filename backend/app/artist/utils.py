@@ -1,4 +1,7 @@
-"""Pure mappers from artist models to response schemas; image keys become URLs through `ImageStorage`."""
+"""Pure mappers from artist models to response-shaped dicts; image keys become URLs through `ImageStorage`.
+
+Plain dicts, not schema instances: the route's response_model validates and serialises them once.
+"""
 
 from app.artist.aadhaar import mask_aadhaar_last4
 from app.artist.models import (
@@ -8,25 +11,12 @@ from app.artist.models import (
     PortfolioPhoto,
 )
 from app.artist.repository import CustomServiceRow
-from app.artist.schemas import (
-    AdminArtistDetail,
-    AdminArtistSummary,
-    AdminCustomServiceOut,
-    AdminKycOut,
-    ArtistOwner,
-    ArtistProfileOut,
-    CategoryOut,
-    KycOut,
-    NamedRef,
-    PhotoOut,
-    ServiceOut,
-)
 from app.upload.service import ImageStorage
 from app.user.models import User
 
 
-def service_out(item: ArtistServiceItem) -> ServiceOut:
-    return ServiceOut(
+def service_out(item: ArtistServiceItem) -> dict:
+    return dict(
         id=item.id,
         category_id=item.category_id,
         subcategory_id=item.category_id,
@@ -40,9 +30,9 @@ def service_out(item: ArtistServiceItem) -> ServiceOut:
     )
 
 
-def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> PhotoOut:
+def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> dict:
     key = photo.storage_key
-    return PhotoOut(
+    return dict(
         id=photo.id,
         key=key,
         width=photo.width,
@@ -53,8 +43,8 @@ def photo_out(photo: PortfolioPhoto, storage: ImageStorage) -> PhotoOut:
     )
 
 
-def profile_out(profile: ArtistProfile, storage: ImageStorage) -> ArtistProfileOut:
-    return ArtistProfileOut(
+def profile_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
+    return dict(
         id=profile.id,
         status=profile.status,
         business_name=profile.business_name,
@@ -62,18 +52,18 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> ArtistProfileO
         bio=profile.bio,
         photo_key=profile.photo_key,
         photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
-        categories=[CategoryOut.model_validate(c) for c in profile.categories],
+        categories=list(profile.categories),
         services=[service_out(s) for s in profile.services],
         photos=[photo_out(p, storage) for p in profile.photos],
-        kyc=KycOut(aadhaar_last4=profile.kyc.aadhaar_last4) if profile.kyc else None,
+        kyc={"aadhaar_last4": profile.kyc.aadhaar_last4} if profile.kyc else None,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,
         reviewed_at=profile.reviewed_at,
     )
 
 
-def summary_out(profile: ArtistProfile, storage: ImageStorage) -> AdminArtistSummary:
-    return AdminArtistSummary(
+def summary_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
+    return dict(
         id=profile.id,
         status=profile.status,
         business_name=profile.business_name,
@@ -86,29 +76,28 @@ def summary_out(profile: ArtistProfile, storage: ImageStorage) -> AdminArtistSum
     )
 
 
-def admin_kyc_out(kyc: ArtistKyc | None, storage: ImageStorage) -> AdminKycOut | None:
+def admin_kyc_out(kyc: ArtistKyc | None, storage: ImageStorage) -> dict | None:
     if kyc is None:
         return None
-    return AdminKycOut(
+    return dict(
         aadhaar_masked=mask_aadhaar_last4(kyc.aadhaar_last4),
         front_url=storage.private_url(kyc.front_key),
         back_url=storage.private_url(kyc.back_key),
     )
 
 
-def admin_detail_out(profile: ArtistProfile, owner: User, storage: ImageStorage) -> AdminArtistDetail:
-    data = profile_out(profile, storage).model_dump(exclude={"kyc"})
-    return AdminArtistDetail(**data, owner=ArtistOwner.model_validate(owner), kyc=admin_kyc_out(profile.kyc, storage))
+def admin_detail_out(profile: ArtistProfile, owner: User, storage: ImageStorage) -> dict:
+    return {**profile_out(profile, storage), "owner": owner, "kyc": admin_kyc_out(profile.kyc, storage)}
 
 
-def custom_service_out(row: CustomServiceRow) -> AdminCustomServiceOut:
+def custom_service_out(row: CustomServiceRow) -> dict:
     item, business_name, subcategory, parent = row
-    return AdminCustomServiceOut(
+    return dict(
         id=item.id,
         artist_id=item.artist_id,
         business_name=business_name,
-        category=NamedRef(id=parent.id, name=parent.name) if parent else None,
-        subcategory=NamedRef(id=subcategory.id, name=subcategory.name),
+        category={"id": parent.id, "name": parent.name} if parent else None,
+        subcategory={"id": subcategory.id, "name": subcategory.name},
         name=item.name,
         price_paise=item.price_paise,
         duration_minutes=item.duration_minutes,
