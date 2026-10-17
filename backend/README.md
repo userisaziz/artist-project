@@ -4,12 +4,12 @@ FastAPI backend for Art Circle: phone + OTP auth, JWT access/refresh tokens, and
 
 ## Setup
 
-Prerequisites: Python 3.12+ and a local PostgreSQL server (for example `brew install postgresql@16 && brew services start postgresql@16`).
+Prerequisites: Python 3.14 and a local PostgreSQL server (for example `brew install postgresql@16 && brew services start postgresql@16`).
 
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # the locked runtime deps + test/lint tools
 cp .env.example .env
 createdb art_circle
 createdb art_circle_test      # used by pytest
@@ -17,7 +17,7 @@ alembic upgrade head
 uvicorn app.main:app --reload # add --host 0.0.0.0 to reach it from a phone on your LAN
 ```
 
-Check that it's running: `curl localhost:8000/health` should return `{"status":"ok","db":"ok"}`. Interactive API docs are at http://localhost:8000/docs.
+Check that it's running: `curl localhost:8000/health/ready` should return `{"status":"ok","db":"ok"}`. Interactive API docs are at http://localhost:8000/docs.
 
 ## Configuration (`.env`)
 
@@ -124,26 +124,49 @@ Every error returns `{"code": "...", "message": "..."}`: domain errors, unknown 
 | 401 | `auth_error` | Invalid or expired OTP, bad refresh token |
 | 404 | `not_found` | |
 | 409 | `conflict` | Email already in use, role already chosen |
-| 429 | `rate_limited` | OTP re-requested inside the cooldown window |
-
-Request validation failures use FastAPI's default `422` shape.
+| 413 | `payload_too_large` | Request body over 1 MB |
+| 422 | `validation_error` | Body or query failed validation; `detail` lists the fields |
+| 429 | `rate_limited` | Cooldown or rate limit hit; see the `Retry-After` header |
+| 500 | `internal_error` | Unexpected; quote the `request_id` when reporting |
+| 503 | `service_unavailable` | SMS gateway or database unreachable; retry later |
 
 ## Project structure
 
+Module-first: one package per domain, each with only the files it needs.
+
 ```
 app/
-  main.py            app factory: CORS, routers, AppError handler, /health
-  api/v1/            thin route handlers (auth.py, users.py)
-  core/              config, database engine/session, dependencies, security (JWT, hashing), exceptions
-  models/            SQLAlchemy models: User, OTPCode, RefreshToken
-  schemas/           Pydantic request/response models
-  services/          business rules (AuthService, UserService)
-  utils/             enums, SMSProvider seam (console / Fast2SMS)
-alembic/versions/    migrations
-tests/               pytest suite against a real Postgres test DB
+  main.py              app factory: settings check, logging, middleware, error handlers, routers
+  router.py            mounts every domain router under /api/v1
+  registry.py          imports every model so Base.metadata is complete
+  core/                global infrastructure: config, database, security (JWT/OTP hashing), auth
+                       dependencies, error contract + handlers, middleware, logging, audit, rate limits
+  shared/              Base model + naming convention, Pydantic base, enums, clock, pagination, cursors
+  health/              liveness and readiness probes
+  <domain>/            auth, user, catalog, artist, booking, review, directory, upload
+    router.py          thin endpoints: validate via dependencies, call the service
+    schemas.py         Pydantic request/response models
+    models.py          SQLAlchemy models (tables are <domain>_<thing>, singular)
+    service.py         business rules and transactions
+    repository.py      queries
+    dependencies.py    service factories, valid_<resource>_id lookups, rate-limit dependencies
+    config.py          the domain's own settings
+    constants.py       fixed limits
+alembic/versions/      static, reversible migrations (YYYY-MM-DD_<slug>.py from now on)
+scripts/               make_admin, maintenance (run from backend/: python -m scripts.<name>)
+tests/                 pytest against a real Postgres test DB; tests/support/ mirrors the domains
 ```
 
-Routes stay thin: they parse input, call a service, and shape the output. Services take an `AsyncSession` directly; there is no repository layer yet. To add an SMS gateway, write one `SMSProvider` subclass and add a branch in `get_sms_provider()`.
+Cross-domain imports name the module explicitly (`from app.review.models import Review`). Time comes from the injected `Clock` (`app/shared/clock.py`), so tests move it with `dependency_overrides` instead of patching. To add an SMS gateway, write one `SMSProvider` subclass and add it to `get_sms_provider()`.
+
+## Operations
+
+- **Image:** `docker build -t art-circle-api .`, run with `ENVIRONMENT=production` and real secrets. It runs as a non-root user, trusts `X-Forwarded-For` only from `FORWARDED_ALLOW_IPS`, and sizes workers with `WEB_CONCURRENCY`. `docker compose up --build` starts Postgres, migrations and the API locally.
+- **Release:** run `alembic upgrade head` from the same image as a separate step before rolling out the API.
+- **Probes:** liveness `GET /health/live`, readiness `GET /health/ready`.
+- **Housekeeping:** schedule `python -m scripts.maintenance` every few minutes. It prunes used sign-in codes, dead refresh tokens and closed rate-limit windows.
+- **Logs:** JSON lines on stdout. The `art_circle.access` logger writes one line per request, `art_circle.audit` covers security events (sign-ins, rejected codes, refresh-token reuse, every admin change), and every line carries the `request_id`.
+- **Rate limits:** stored in Postgres, so every worker shares them. The auth endpoints are limited per IP and per phone; booking requests, reviews and upload signatures per user (`app/*/constants.py`).
 
 ## Migrations
 
@@ -156,8 +179,12 @@ alembic downgrade -1
 ## Tests and lint
 
 ```bash
-pytest          # migrates art_circle_test to head, then truncates tables after each test
-ruff check .
+pytest                      # migrates art_circle_test to head, then truncates tables after each test
+pytest --cov=app            # with the 90% branch-coverage gate CI enforces (.coveragerc)
+ruff check . && ruff format --check .
+alembic check               # models and migrations agree
 ```
 
-Tests always force `SMS_PROVIDER=console`, so they never send real SMS. They read OTPs from `ConsoleSMSProvider.sent`.
+The suite forces `ENVIRONMENT=test`, console SMS, fake storage and mock payments, and points even the app's own engine at the test database. It never sends real SMS; OTPs are read from `ConsoleSMSProvider.sent`. Swap dependencies with the `override` fixture and move time with `travel`. CI (`.github/workflows/backend.yml`) runs lint, then migrations from an empty database (up, check, down to base, up), the tests with coverage, and the image build.
+
+After changing `requirements.txt`, regenerate the lock in a clean venv: `python -m venv /tmp/lock && /tmp/lock/bin/pip install -r requirements.txt && /tmp/lock/bin/pip freeze --exclude pip > requirements.lock` (keep the header comment).

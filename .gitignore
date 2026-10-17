@@ -9,3 +9,7 @@ node_modules/
 
 # git worktrees
 .worktrees/
+
+# test coverage
+.coverage
+htmlcov/
