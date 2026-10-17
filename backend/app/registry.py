@@ -1,4 +1,4 @@
-"""Imports every feature's models so `Base.metadata` is complete (Alembic env and tests use it)."""
+"""Imports every domain's models so `Base.metadata` is complete (Alembic env and tests use it)."""
 
 from app.artist import models as artist_models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401

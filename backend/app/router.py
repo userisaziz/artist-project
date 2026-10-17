@@ -1,4 +1,4 @@
-"""`api_router` (/api/v1): every feature's routers. Each /artists/me… router comes before the directory,
+"""`api_router` (/api/v1): every domain's routers. Each /artists/me… router comes before the directory,
 otherwise "me" would be read as an artist id."""
 
 from fastapi import APIRouter

@@ -16,7 +16,7 @@ from app import registry  # noqa: F401  (every model mapped before the first req
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.exceptions import AppError
-from app.routes import api_router
+from app.router import api_router
 
 
 def create_app() -> FastAPI:
