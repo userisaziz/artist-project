@@ -1,9 +1,11 @@
 """The admin's service list under each subcategory. Templates artists offer are hidden
 rather than deleted, so those artists keep a valid reference."""
 
+from fastapi import Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistServiceItem
 from app.models.category import Category
@@ -102,3 +104,7 @@ class ServiceTemplateService:
             raise ConflictError("Service is in use; hide it instead")
         await self.session.delete(template)
         await self.session.flush()
+
+
+def get_service_template_service(session: AsyncSession = Depends(get_db)) -> ServiceTemplateService:
+    return ServiceTemplateService(session)

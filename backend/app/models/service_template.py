@@ -2,7 +2,7 @@
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.shared.models import Base
 
 
 class ServiceTemplate(Base):

@@ -17,10 +17,10 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
-from app.utils.enums import ArtistServiceStatus, ArtistStatus
+from app.shared.enums import ArtistServiceStatus, ArtistStatus
+from app.shared.models import Base, TimestampMixin
 
 artist_categories = Table(
     "artist_categories",

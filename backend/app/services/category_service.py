@@ -5,15 +5,17 @@ templates keep a valid reference."""
 import re
 from typing import NamedTuple
 
+from fastapi import Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistServiceItem, artist_categories
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
 from app.schemas.category import AdminCategoryOut, CategoryIn, CategoryPatch
-from app.utils.enums import CategoryStatus
+from app.shared.enums import CategoryStatus
 
 
 def slugify(name: str) -> str:
@@ -143,3 +145,7 @@ class CategoryService:
             raise ConflictError("Category is in use; deactivate it instead")
         await self.session.delete(category)
         await self.session.flush()
+
+
+def get_category_service(session: AsyncSession = Depends(get_db)) -> CategoryService:
+    return CategoryService(session)

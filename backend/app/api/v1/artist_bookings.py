@@ -4,10 +4,10 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.dependencies import current_artist, get_booking_service
+from app.core.auth import current_artist
 from app.models.user import User
 from app.schemas.booking import ArtistDashboard, BookingOut, BookingPage, ReasonIn
-from app.services.booking_service import BookingService
+from app.services.booking_service import BookingService, get_booking_service
 
 # An approved artist's requests and schedule. Draft, pending or rejected profiles get 409.
 router = APIRouter(prefix="/artists/me", tags=["artist bookings"])

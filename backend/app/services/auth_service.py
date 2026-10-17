@@ -8,10 +8,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt as pyjwt
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.database import get_db
 from app.core.exceptions import AuthError, RateLimitError
 from app.core.security import (
     create_access_token,
@@ -119,3 +121,7 @@ class AuthService:
             )
         )
         return user, access, refresh
+
+
+def get_auth_service(session: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(session)

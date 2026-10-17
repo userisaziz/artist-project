@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.utils.enums import CategoryStatus
+from app.shared.enums import CategoryStatus
 
 SLUG = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Response
 
-from app.core.dependencies import current_admin, get_category_service
+from app.core.auth import current_admin
 from app.schemas.category import AdminCategoryOut, CategoryIn, CategoryPatch
-from app.services.category_service import CategoryService
+from app.services.category_service import CategoryService, get_category_service
 
 router = APIRouter(prefix="/admin/categories", tags=["admin"], dependencies=[Depends(current_admin)])
 

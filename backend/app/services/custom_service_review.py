@@ -2,16 +2,18 @@
 
 import uuid
 
+from fastapi import Depends
 from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.category import Category
 from app.schemas.artist import AdminCustomServiceOut, NamedRef
-from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import ArtistServiceStatus
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.enums import ArtistServiceStatus
 
 Parent = aliased(Category)
 
@@ -76,3 +78,7 @@ class CustomServiceReview:
 
     async def reject(self, service_id: uuid.UUID, reason: str) -> AdminCustomServiceOut:
         return await self._decide(service_id, ArtistServiceStatus.rejected, reason.strip())
+
+
+def get_custom_service_review(session: AsyncSession = Depends(get_db)) -> CustomServiceReview:
+    return CustomServiceReview(session)

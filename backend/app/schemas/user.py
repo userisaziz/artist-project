@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.utils.enums import UserRole
+from app.shared.enums import UserRole
 
 
 class UserOut(BaseModel):

@@ -3,8 +3,11 @@
 import uuid
 from datetime import timedelta
 
+from fastapi import Depends
 from sqlalchemy import ColumnElement, Date, cast, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import Review
@@ -12,10 +15,11 @@ from app.models.user import User
 from app.schemas.booking import AdminOverview, BookingOut, WeekCount
 from app.services.booking_service import OPEN, BookingService, rows_query
 from app.services.review_service import needs_moderation
+from app.services.storage import ImageStorage, get_storage
+from app.shared import clock
+from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.shared.search import like_pattern
 from app.utils import booking_rules as rules
-from app.utils import clock
-from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
-from app.utils.search import like_pattern
 
 WEEKS = 12
 
@@ -89,3 +93,9 @@ class AdminBookingService(BookingService):
         )
         counts = dict(rows.all())
         return [WeekCount(week_start=w, count=counts.get(w, 0)) for w in weeks]
+
+
+def get_admin_booking_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> AdminBookingService:
+    return AdminBookingService(session, storage)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.core.dependencies import current_artist
+from app.core.auth import current_artist
 from app.models.user import User
 from app.schemas.artist import UploadOut, UploadRequest
 from app.services.storage import ImageStorage, get_storage

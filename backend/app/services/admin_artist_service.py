@@ -3,15 +3,17 @@
 import uuid
 from datetime import UTC, datetime
 
+from fastapi import Depends
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import decrypt_aadhaar
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.artist import AadhaarReveal, ArtistProfile
 from app.models.user import User
-from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import ArtistStatus
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.enums import ArtistStatus
 
 
 class AdminArtistService:
@@ -67,3 +69,7 @@ class AdminArtistService:
         # Commit now: get_db commits only after the response is sent, and the number must not leave unlogged.
         await self.session.commit()
         return decrypt_aadhaar(token)
+
+
+def get_admin_artist_service(session: AsyncSession = Depends(get_db)) -> AdminArtistService:
+    return AdminArtistService(session)

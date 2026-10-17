@@ -1,5 +1,5 @@
 """Booking contract: a customer requests a slot with a deposit; the artist accepts, declines or completes;
-customers and admins cancel. Time is moved by patching app.utils.clock.now."""
+customers and admins cancel. Time is moved by patching app.shared.clock.now."""
 
 import asyncio
 import re
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 
 from app.services import booking_service
-from app.utils import clock
+from app.shared import clock
 from tests.test_artists import sign_in
 from tests.test_directory import (  # noqa: F401 (autouse)
     CUSTOMER_PHONE,

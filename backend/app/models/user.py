@@ -7,8 +7,8 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin
-from app.utils.enums import UserRole
+from app.shared.enums import UserRole
+from app.shared.models import Base, TimestampMixin
 
 user_role_enum = Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e])
 

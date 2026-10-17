@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
-from app.utils.enums import ReviewStatus
+from app.shared.enums import ReviewStatus
 
 
 class ReviewIn(BaseModel):

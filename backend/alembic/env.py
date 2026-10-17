@@ -8,7 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
-from app.models import Base  # noqa: F401  (registers all models on metadata)
+from app.registry import Base  # every module's models, so the metadata is complete
 
 config = context.config
 if config.config_file_name is not None:

@@ -8,11 +8,13 @@ artists can propose custom services, which wait for admin review one by one.
 import uuid
 from datetime import UTC, datetime
 
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.crypto import encrypt_aadhaar
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import (
     ArtistKyc,
@@ -32,9 +34,9 @@ from app.schemas.artist import (
     ServiceIn,
     ServicePatch,
 )
-from app.services.storage import ImageStorage
+from app.services.storage import ImageStorage, get_storage
+from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 from app.utils.aadhaar import is_valid_aadhaar
-from app.utils.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
@@ -300,3 +302,9 @@ class ArtistService:
         profile.rejection_reason = None
         await self.session.flush()
         return profile
+
+
+def get_artist_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> ArtistService:
+    return ArtistService(session, storage)

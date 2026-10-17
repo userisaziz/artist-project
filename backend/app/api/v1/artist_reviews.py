@@ -2,10 +2,10 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.dependencies import current_artist, get_review_service
+from app.core.auth import current_artist
 from app.models.user import User
 from app.schemas.review import OwnReviewOut, OwnReviewPage, ReplyIn, ReportIn
-from app.services.review_service import ReviewService
+from app.services.review_service import ReviewService, get_review_service
 
 # An approved artist's reviews: read all but removed ones, reply once (editable), report one.
 router = APIRouter(prefix="/artists/me/reviews", tags=["artist reviews"])

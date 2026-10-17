@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
 from app.schemas.artist import CatalogCategoryOut, SubcategoryOut, TemplateOut
-from app.utils.enums import CategoryStatus
+from app.shared.enums import CategoryStatus
 
 router = APIRouter(tags=["catalog"])
 

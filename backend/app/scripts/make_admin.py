@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal, engine
 from app.models.user import User
-from app.utils.enums import UserRole
+from app.shared.enums import UserRole
 
 
 async def make_admin(phone: str) -> str:

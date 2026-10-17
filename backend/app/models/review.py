@@ -7,8 +7,8 @@ from sqlalchemy import DateTime, Enum, ForeignKey, SmallInteger, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
-from app.utils.enums import ReviewStatus
+from app.shared.enums import ReviewStatus
+from app.shared.models import Base, TimestampMixin
 
 review_status_enum = Enum(ReviewStatus, name="review_status", values_callable=lambda e: [m.value for m in e])
 PUBLIC_REVIEW = (ReviewStatus.published, ReviewStatus.flagged)

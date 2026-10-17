@@ -10,11 +10,13 @@ import uuid
 from datetime import date, datetime, time, timedelta
 from typing import Literal, NamedTuple
 
+from fastapi import Depends
 from sqlalchemy import ColumnElement, Select, and_, func, not_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.core.config import get_settings
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
@@ -30,16 +32,16 @@ from app.schemas.booking import (
     BookingOut,
     BookingReview,
 )
-from app.services.storage import ImageStorage
-from app.utils import booking_rules as rules
-from app.utils import clock
-from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import (
+from app.services.storage import ImageStorage, get_storage
+from app.shared import clock
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.enums import (
     ArtistServiceStatus,
     ArtistStatus,
     BookingStatus,
     ReviewStatus,
 )
+from app.utils import booking_rules as rules
 from app.utils.review_filter import review_window_open
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
@@ -377,3 +379,9 @@ class BookingService:
             earnings_this_month_paise=earnings,
             today=[booking_out(BookingRow(*r), self.storage, "artist") for r in today_rows],
         )
+
+
+def get_booking_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> BookingService:
+    return BookingService(session, storage)

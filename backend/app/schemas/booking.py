@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.utils.enums import BookingStatus, ReviewStatus
+from app.shared.enums import BookingStatus, ReviewStatus
 
 
 class BookingIn(BaseModel):

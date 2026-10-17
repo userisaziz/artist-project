@@ -1,12 +1,14 @@
 """Account rules for the signed-in user: sign-up details, then picking (or switching) the app role."""
 
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.core.exceptions import ConflictError
 from app.models.user import User
 from app.schemas.user import AccountDetails, RoleChoice
-from app.utils.enums import UserRole
+from app.shared.enums import UserRole
 
 
 class UserService:
@@ -32,3 +34,7 @@ class UserService:
         user.active_role = role
         await self.session.flush()
         return user
+
+
+def get_user_service(session: AsyncSession = Depends(get_db)) -> UserService:
+    return UserService(session)

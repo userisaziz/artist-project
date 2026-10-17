@@ -14,8 +14,8 @@ from app.models.artist import (
     PortfolioPhoto,
 )
 from app.services.storage import ImageStorage
+from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.utils.aadhaar import mask_aadhaar_last4
-from app.utils.enums import ArtistServiceStatus, ArtistStatus
 
 
 class CategoryOut(BaseModel):

@@ -3,9 +3,9 @@ from fastapi import APIRouter
 from app.api.v1 import (
     admin,
     admin_bookings,
-    admin_reviews,
     admin_categories,
     admin_custom_services,
+    admin_reviews,
     admin_service_templates,
     artist_bookings,
     artist_reviews,

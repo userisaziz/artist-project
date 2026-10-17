@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.utils import clock
+from app.shared import clock
 from tests.test_admin import ADMIN_PHONE
 from tests.test_artists import categories, complete_profile, seed_categories, sign_in
 

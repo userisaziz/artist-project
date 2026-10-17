@@ -3,8 +3,8 @@ import sqlalchemy as sa
 from sqlalchemy import Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
-from app.utils.enums import CategoryStatus
+from app.shared.enums import CategoryStatus
+from app.shared.models import Base
 
 
 class Category(Base):

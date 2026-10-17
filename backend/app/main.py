@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import registry  # noqa: F401  (every model mapped before the first request)
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.database import get_db

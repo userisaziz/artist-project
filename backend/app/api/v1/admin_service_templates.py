@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, Response
 
-from app.core.dependencies import current_admin, get_service_template_service
+from app.core.auth import current_admin
 from app.schemas.service_template import AdminTemplateOut, TemplateIn, TemplatePatch
-from app.services.service_template_service import ServiceTemplateService
+from app.services.service_template_service import (
+    ServiceTemplateService,
+    get_service_template_service,
+)
 
 router = APIRouter(prefix="/admin/service-templates", tags=["admin"], dependencies=[Depends(current_admin)])
 

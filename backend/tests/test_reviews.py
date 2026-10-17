@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import text
 
-from app.utils import clock
+from app.shared import clock
 from tests.test_artists import sign_in
 from tests.test_bookings import at, book, setup
 from tests.test_directory import (  # noqa: F401 (autouse)

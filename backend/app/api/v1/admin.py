@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from app.core.dependencies import current_admin, get_admin_artist_service
+from app.core.auth import current_admin
 from app.models.artist import ArtistProfile
 from app.models.user import User
 from app.schemas.artist import (
@@ -16,9 +16,12 @@ from app.schemas.artist import (
     profile_out,
     summary_out,
 )
-from app.services.admin_artist_service import AdminArtistService
+from app.services.admin_artist_service import (
+    AdminArtistService,
+    get_admin_artist_service,
+)
 from app.services.storage import ImageStorage, get_storage
-from app.utils.enums import ArtistStatus
+from app.shared.enums import ArtistStatus
 
 router = APIRouter(prefix="/admin/artists", tags=["admin"])
 

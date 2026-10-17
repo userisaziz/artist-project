@@ -5,10 +5,12 @@ import uuid
 from decimal import ROUND_HALF_UP, Decimal
 from typing import NamedTuple
 
+from fastapi import Depends
 from sqlalchemy import ColumnElement, Select, and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile
 from app.models.booking import Booking
@@ -25,9 +27,9 @@ from app.schemas.review import (
     ReviewSummary,
 )
 from app.services.booking_service import approved_artist_id
-from app.utils import clock
-from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import ArtistStatus, BookingStatus, ReviewStatus
+from app.shared import clock
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.enums import ArtistStatus, BookingStatus, ReviewStatus
 from app.utils.review_filter import review_flag, review_window_open
 
 DECISIONS = {"publish": ReviewStatus.published, "hide": ReviewStatus.hidden, "remove": ReviewStatus.removed}
@@ -248,3 +250,7 @@ class ReviewService:
 
     async def needs_moderation_count(self) -> int:
         return await self.session.scalar(select(func.count()).select_from(Review).where(needs_moderation()))
+
+
+def get_review_service(session: AsyncSession = Depends(get_db)) -> ReviewService:
+    return ReviewService(session)

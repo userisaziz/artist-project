@@ -3,10 +3,13 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.dependencies import current_admin, get_custom_service_review
+from app.core.auth import current_admin
 from app.schemas.artist import AdminCustomServiceOut, AdminCustomServicePage, RejectIn
-from app.services.custom_service_review import CustomServiceReview
-from app.utils.enums import ArtistServiceStatus
+from app.services.custom_service_review import (
+    CustomServiceReview,
+    get_custom_service_review,
+)
+from app.shared.enums import ArtistServiceStatus
 
 router = APIRouter(prefix="/admin/custom-services", tags=["admin"], dependencies=[Depends(current_admin)])
 

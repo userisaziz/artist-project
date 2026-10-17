@@ -7,8 +7,8 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
-from app.utils.enums import BookingStatus
+from app.shared.enums import BookingStatus
+from app.shared.models import Base, TimestampMixin
 
 booking_status_enum = Enum(BookingStatus, name="booking_status", values_callable=lambda e: [m.value for m in e])
 

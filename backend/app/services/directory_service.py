@@ -3,10 +3,12 @@
 import uuid
 from datetime import date, timedelta
 
+from fastapi import Depends
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
+from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem, artist_categories
 from app.models.booking import Booking
@@ -23,12 +25,12 @@ from app.schemas.directory import (
 )
 from app.services.booking_service import busy_ranges
 from app.services.review_service import ratings_for
-from app.services.storage import ImageStorage
+from app.services.storage import ImageStorage, get_storage
+from app.shared import clock
+from app.shared.cursor import decode_cursor, encode_cursor
+from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.shared.search import like_pattern
 from app.utils import booking_rules as rules
-from app.utils import clock
-from app.utils.cursor import decode_cursor, encode_cursor
-from app.utils.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
-from app.utils.search import like_pattern
 
 # Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.
 LISTED_AT = func.coalesce(ArtistProfile.reviewed_at, ArtistProfile.created_at)
@@ -156,3 +158,9 @@ class DirectoryService:
                  and not any(b_start < s + length and b_end > s for b_start, b_end in busy))
             for s in starts
         ])
+
+
+def get_directory_service(
+    session: AsyncSession = Depends(get_db), storage: ImageStorage = Depends(get_storage)
+) -> DirectoryService:
+    return DirectoryService(session, storage)

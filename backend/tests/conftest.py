@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.main import create_app
+from app.registry import Base
 
 settings = get_settings()
 
@@ -68,7 +69,7 @@ async def client(engine):
         yield ac
 
 
-TABLES = "users, user_roles, otp_codes, refresh_tokens, artist_profiles, artist_categories, artist_services, portfolio_photos, categories, artist_kyc, aadhaar_reveals, service_templates, bookings, reviews"
+TABLES = ", ".join(sorted(Base.metadata.tables))
 
 
 @pytest_asyncio.fixture(autouse=True)
