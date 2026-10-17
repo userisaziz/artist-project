@@ -9,16 +9,15 @@ import asyncio
 import re
 import sys
 
-from sqlalchemy import select
-
 from app.core.database import SessionLocal, engine
-from app.models.user import User
+from app.modules.users.models import User
+from app.modules.users.repository import UserRepository
 from app.shared.enums import UserRole
 
 
 async def make_admin(phone: str) -> str:
     async with SessionLocal() as session:
-        user = await session.scalar(select(User).where(User.phone == phone))
+        user = await UserRepository(session).by_phone(phone)
         created = user is None
         if created:
             user = User(phone=phone, role_grants=[])

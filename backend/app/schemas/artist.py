@@ -3,7 +3,7 @@ from storage keys at response time (see services/storage.py); keys go in, URLs c
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -13,7 +13,7 @@ from app.models.artist import (
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.services.storage import ImageStorage
+from app.modules.uploads.storage import ImageStorage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.utils.aadhaar import mask_aadhaar_last4
 
@@ -48,18 +48,6 @@ class CatalogCategoryOut(BaseModel):
     slug: str
     name: str
     subcategories: list[SubcategoryOut]
-
-
-class UploadRequest(BaseModel):
-    purpose: Literal["artist_photo", "portfolio", "aadhaar"]
-
-
-class UploadOut(BaseModel):
-    """POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API."""
-
-    upload_url: str
-    fields: dict[str, str]
-    key: str
 
 
 class ProfileIn(BaseModel):

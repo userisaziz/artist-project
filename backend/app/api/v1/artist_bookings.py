@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import current_artist
-from app.models.user import User
+from app.modules.users.models import User
 from app.schemas.booking import ArtistDashboard, BookingOut, BookingPage, ReasonIn
 from app.services.booking_service import BookingService, get_booking_service
 

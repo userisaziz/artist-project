@@ -6,7 +6,7 @@ PHONE = "+15550001111"
 async def _request_and_read_code(client):
     response = await client.post("/api/v1/auth/otp/request", json={"phone": PHONE})
     assert response.status_code == 204
-    from app.utils.sms_provider import ConsoleSMSProvider
+    from app.modules.auth.sms import ConsoleSMSProvider
     return ConsoleSMSProvider.sent[-1][1].split()[-1]
 
 

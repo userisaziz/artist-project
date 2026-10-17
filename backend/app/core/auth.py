@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions import AuthError, ForbiddenError
 from app.core.security import decode_token
-from app.models.user import User
+from app.modules.users.models import User
+from app.modules.users.repository import UserRepository
 from app.shared.enums import UserRole
 
 bearer_scheme = HTTPBearer(auto_error=True)
@@ -26,7 +27,7 @@ async def get_current_user(
         raise AuthError("Invalid token") from exc
     if payload.get("type") != "access":
         raise AuthError("Invalid token type")
-    user = await session.get(User, uuid.UUID(payload["sub"]))
+    user = await UserRepository(session).get(uuid.UUID(payload["sub"]))
     if user is None or not user.is_active:
         raise AuthError("User not found")
     return user

@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from app.core.auth import current_artist
-from app.models.user import User
+from app.modules.users.models import User
 from app.schemas.artist import (
     ArtistProfileOut,
     CustomServiceIn,

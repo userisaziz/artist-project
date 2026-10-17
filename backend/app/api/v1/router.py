@@ -10,13 +10,13 @@ from app.api.v1 import (
     artist_bookings,
     artist_reviews,
     artists,
-    auth,
     bookings,
     catalog,
     directory,
-    uploads,
-    users,
 )
+from app.modules.auth import router as auth
+from app.modules.uploads import router as uploads
+from app.modules.users import router as users
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)

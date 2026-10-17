@@ -24,7 +24,8 @@ from app.models.artist import (
 )
 from app.models.category import Category
 from app.models.service_template import ServiceTemplate
-from app.models.user import User
+from app.modules.uploads.storage import ImageStorage, get_storage
+from app.modules.users.models import User
 from app.schemas.artist import (
     CustomServiceIn,
     CustomServicePatch,
@@ -34,7 +35,6 @@ from app.schemas.artist import (
     ServiceIn,
     ServicePatch,
 )
-from app.services.storage import ImageStorage, get_storage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 from app.utils.aadhaar import is_valid_aadhaar
 

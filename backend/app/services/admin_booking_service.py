@@ -11,11 +11,11 @@ from app.core.database import get_db
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import Review
-from app.models.user import User
+from app.modules.uploads.storage import ImageStorage, get_storage
+from app.modules.users.models import User
 from app.schemas.booking import AdminOverview, BookingOut, WeekCount
 from app.services.booking_service import OPEN, BookingService, rows_query
 from app.services.review_service import needs_moderation
-from app.services.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
 from app.shared.search import like_pattern

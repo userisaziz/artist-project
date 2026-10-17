@@ -1,23 +1,24 @@
 """Account rules for the signed-in user: sign-up details, then picking (or switching) the app role."""
 
 from fastapi import Depends
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ConflictError
-from app.models.user import User
-from app.schemas.user import AccountDetails, RoleChoice
+from app.modules.users.models import User
+from app.modules.users.repository import UserRepository
+from app.modules.users.schemas import AccountDetails, RoleChoice
 from app.shared.enums import UserRole
 
 
 class UserService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.users = UserRepository(session)
 
     async def update_details(self, user: User, details: AccountDetails) -> User:
         if details.email and details.email != user.email:
-            taken = await self.session.scalar(select(User.id).where(User.email == details.email))
+            taken = await self.users.id_by_email(details.email)
             if taken:
                 raise ConflictError("Email already in use")
         user.first_name = details.first_name

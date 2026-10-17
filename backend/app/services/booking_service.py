@@ -21,7 +21,8 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile, ArtistServiceItem
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
-from app.models.user import User
+from app.modules.uploads.storage import ImageStorage, get_storage
+from app.modules.users.models import User
 from app.schemas.booking import (
     AdminBookingCustomer,
     AdminBookingOut,
@@ -32,7 +33,6 @@ from app.schemas.booking import (
     BookingOut,
     BookingReview,
 )
-from app.services.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import (

@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import current_artist
-from app.models.user import User
+from app.modules.users.models import User
 from app.schemas.review import OwnReviewOut, OwnReviewPage, ReplyIn, ReportIn
 from app.services.review_service import ReviewService, get_review_service
 

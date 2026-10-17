@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 
 from app.core.auth import current_artist
-from app.models.user import User
-from app.schemas.artist import UploadOut, UploadRequest
-from app.services.storage import ImageStorage, get_storage
+from app.modules.uploads.schemas import UploadOut, UploadRequest
+from app.modules.uploads.storage import ImageStorage, get_storage
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 

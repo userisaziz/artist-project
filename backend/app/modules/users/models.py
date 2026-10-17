@@ -1,4 +1,4 @@
-# app/models/user.py — mirrors users table; roles live in user_roles (migration #4)
+"""Accounts: the users table and the roles each account holds (user_roles, migration #4)."""
 import uuid
 from datetime import datetime
 
