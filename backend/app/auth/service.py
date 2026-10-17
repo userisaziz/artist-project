@@ -12,6 +12,9 @@ from datetime import timedelta
 import jwt as pyjwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.models import OtpCode, RefreshToken
+from app.auth.repository import AuthRepository
+from app.auth.sms import SMSProvider, get_sms_provider
 from app.core.config import get_settings
 from app.core.exceptions import AuthError, RateLimitError
 from app.core.security import (
@@ -22,11 +25,8 @@ from app.core.security import (
     hash_otp,
     hash_token,
 )
-from app.models.auth.auth import OtpCode, RefreshToken
 from app.models.user.user import User
-from app.repositories.auth.auth import AuthRepository
 from app.repositories.user.user import UserRepository
-from app.services.auth.sms import SMSProvider, get_sms_provider
 from app.shared import clock
 
 

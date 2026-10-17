@@ -11,9 +11,9 @@ from app.api.v1 import (
     bookings,
     directory,
 )
+from app.auth import router as auth
 from app.routes.artist import admin as artist_admin
 from app.routes.artist import artist
-from app.routes.auth import auth
 from app.routes.catalog import admin as catalog_admin
 from app.routes.catalog import catalog
 from app.routes.upload import upload

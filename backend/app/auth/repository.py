@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.auth.auth import OtpCode, RefreshToken
+from app.auth.models import OtpCode, RefreshToken
 
 
 class AuthRepository:

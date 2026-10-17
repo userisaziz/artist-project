@@ -5,7 +5,7 @@ import uuid
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.services.auth.sms import ConsoleSMSProvider
+from app.auth.sms import ConsoleSMSProvider
 from app.services.upload.storage import FakeStorage
 
 ARTIST_PHONE = "+919845011111"

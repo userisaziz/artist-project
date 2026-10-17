@@ -75,7 +75,7 @@ TABLES = ", ".join(sorted(Base.metadata.tables))
 @pytest_asyncio.fixture(autouse=True)
 async def clean_db(engine):
     yield
-    from app.services.auth.sms import ConsoleSMSProvider
+    from app.auth.sms import ConsoleSMSProvider
 
     ConsoleSMSProvider.sent.clear()
     async with engine.begin() as conn:
