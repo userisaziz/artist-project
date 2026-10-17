@@ -5,20 +5,20 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
+from app.shared.schemas import APIModel, ORMModel
 
 
-class CategoryOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class CategoryOut(ORMModel):
 
     id: int
     slug: str
     name: str
 
 
-class ProfileIn(BaseModel):
+class ProfileIn(APIModel):
     business_name: str = Field(min_length=1, max_length=120)
     city: str = Field(min_length=1, max_length=60)
     category_ids: list[int] = Field(min_length=1, max_length=6)
@@ -26,7 +26,7 @@ class ProfileIn(BaseModel):
     bio: str | None = Field(default=None, max_length=1000)
 
 
-class ServiceIn(BaseModel):
+class ServiceIn(APIModel):
     """Onboarding: a service from the admin's list, with the artist's own price and duration."""
 
     template_id: int
@@ -35,13 +35,13 @@ class ServiceIn(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
 
 
-class ServicePatch(BaseModel):
+class ServicePatch(APIModel):
     price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
 
 
-class ServiceOut(BaseModel):
+class ServiceOut(APIModel):
     id: uuid.UUID
     category_id: int
     subcategory_id: int  # the same column; pre-#6 rows point at a top-level category
@@ -54,7 +54,7 @@ class ServiceOut(BaseModel):
     rejection_reason: str | None
 
 
-class CustomServiceIn(BaseModel):
+class CustomServiceIn(APIModel):
     """After approval: the artist's own service under any active subcategory; waits for admin review."""
 
     subcategory_id: int
@@ -64,7 +64,7 @@ class CustomServiceIn(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
 
 
-class CustomServicePatch(BaseModel):
+class CustomServicePatch(APIModel):
     subcategory_id: int | None = None
     name: str | None = Field(default=None, min_length=1, max_length=120)
     price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
@@ -72,30 +72,30 @@ class CustomServicePatch(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
 
 
-class PhotoIn(BaseModel):
+class PhotoIn(APIModel):
     key: str = Field(min_length=1, max_length=255)
     width: int = Field(gt=0, le=20_000)
     height: int = Field(gt=0, le=20_000)
 
 
-class PhotoOrder(BaseModel):
+class PhotoOrder(APIModel):
     photo_ids: list[uuid.UUID]
 
 
-class KycIn(BaseModel):
+class KycIn(APIModel):
     # Format and checksum are checked in the service so errors keep the {code, message} contract.
     aadhaar_number: str = Field(max_length=20)
     front_key: str = Field(min_length=1, max_length=255)
     back_key: str = Field(min_length=1, max_length=255)
 
 
-class KycOut(BaseModel):
+class KycOut(APIModel):
     """What the artist sees about their own identity proof: never the number, keys or images."""
 
     aadhaar_last4: str
 
 
-class PhotoOut(BaseModel):
+class PhotoOut(APIModel):
     id: uuid.UUID
     key: str
     width: int
@@ -105,7 +105,7 @@ class PhotoOut(BaseModel):
     full_url: str
 
 
-class ArtistProfileOut(BaseModel):
+class ArtistProfileOut(APIModel):
     id: uuid.UUID
     status: ArtistStatus
     business_name: str
@@ -122,14 +122,13 @@ class ArtistProfileOut(BaseModel):
     reviewed_at: datetime | None
 
 
-class RejectIn(BaseModel):
+class RejectIn(APIModel):
     """A required reason (reject an artist or a service, cancel a booking); whitespace alone doesn't count."""
 
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
 
-class ArtistOwner(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class ArtistOwner(ORMModel):
 
     id: uuid.UUID
     phone: str
@@ -138,7 +137,7 @@ class ArtistOwner(BaseModel):
     email: str | None
 
 
-class AdminKycOut(BaseModel):
+class AdminKycOut(APIModel):
     aadhaar_masked: str
     front_url: str  # private, expiring (300 s)
     back_url: str
@@ -149,11 +148,11 @@ class AdminArtistDetail(ArtistProfileOut):
     kyc: AdminKycOut | None  # admin shape replaces the artist's {aadhaar_last4}
 
 
-class RevealOut(BaseModel):
+class RevealOut(APIModel):
     aadhaar_number: str
 
 
-class AdminArtistSummary(BaseModel):
+class AdminArtistSummary(APIModel):
     id: uuid.UUID
     status: ArtistStatus
     business_name: str
@@ -165,17 +164,17 @@ class AdminArtistSummary(BaseModel):
     submitted_at: datetime | None
 
 
-class AdminArtistPage(BaseModel):
+class AdminArtistPage(APIModel):
     items: list[AdminArtistSummary]
     next_cursor: str | None
 
 
-class NamedRef(BaseModel):
+class NamedRef(APIModel):
     id: int
     name: str
 
 
-class AdminCustomServiceOut(BaseModel):
+class AdminCustomServiceOut(APIModel):
     id: uuid.UUID
     artist_id: uuid.UUID
     business_name: str
@@ -190,6 +189,6 @@ class AdminCustomServiceOut(BaseModel):
     created_at: datetime
 
 
-class AdminCustomServicePage(BaseModel):
+class AdminCustomServicePage(APIModel):
     items: list[AdminCustomServiceOut]
     next_cursor: str | None

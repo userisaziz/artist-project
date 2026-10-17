@@ -1,13 +1,14 @@
 import re
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 
+from app.shared.schemas import APIModel
 from app.user.schemas import UserOut
 
 PHONE_RE = re.compile(r"^\+[1-9]\d{6,14}$")  # E.164
 
 
-class OTPRequest(BaseModel):
+class OTPRequest(APIModel):
     phone: str = Field(min_length=8, max_length=20)
 
     @field_validator("phone")
@@ -22,11 +23,11 @@ class OTPVerify(OTPRequest):
     code: str = Field(pattern=r"^\d{6}$")
 
 
-class RefreshRequest(BaseModel):
+class RefreshRequest(APIModel):
     refresh_token: str
 
 
-class TokenPair(BaseModel):
+class TokenPair(APIModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"

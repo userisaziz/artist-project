@@ -3,12 +3,13 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 
 from app.shared.enums import BookingStatus, ReviewStatus
+from app.shared.schemas import APIModel
 
 
-class BookingIn(BaseModel):
+class BookingIn(APIModel):
     artist_id: uuid.UUID
     service_id: uuid.UUID
     start_at: datetime
@@ -29,20 +30,20 @@ class BookingIn(BaseModel):
         return (value or "").strip() or None
 
 
-class ReasonIn(BaseModel):
+class ReasonIn(APIModel):
     """Optional reason: customer cancel, artist decline."""
 
     reason: str | None = Field(default=None, max_length=500)
 
 
-class BookingArtist(BaseModel):
+class BookingArtist(APIModel):
     id: uuid.UUID
     business_name: str
     photo_url: str | None
     city: str
 
 
-class BookingCustomer(BaseModel):
+class BookingCustomer(APIModel):
     id: uuid.UUID
     first_name: str | None
     last_name: str | None
@@ -52,13 +53,13 @@ class AdminBookingCustomer(BookingCustomer):
     phone: str
 
 
-class BookingReview(BaseModel):
+class BookingReview(APIModel):
     id: uuid.UUID
     rating: int
     status: ReviewStatus
 
 
-class BookingOut(BaseModel):
+class BookingOut(APIModel):
     id: uuid.UUID
     code: str
     status: BookingStatus
@@ -95,17 +96,17 @@ class AdminBookingOut(BookingOut):
     customer: AdminBookingCustomer
 
 
-class BookingPage(BaseModel):
+class BookingPage(APIModel):
     items: list[BookingOut]
     next_cursor: str | None
 
 
-class AdminBookingPage(BaseModel):
+class AdminBookingPage(APIModel):
     items: list[AdminBookingOut]
     next_cursor: str | None
 
 
-class ArtistDashboard(BaseModel):
+class ArtistDashboard(APIModel):
     requests: int
     upcoming: int
     completed_this_month: int
@@ -113,12 +114,12 @@ class ArtistDashboard(BaseModel):
     today: list[BookingOut]
 
 
-class WeekCount(BaseModel):
+class WeekCount(APIModel):
     week_start: date
     count: int
 
 
-class AdminOverview(BaseModel):
+class AdminOverview(APIModel):
     gross_paise_30d: int
     bookings_30d: int
     awaiting_artist: int

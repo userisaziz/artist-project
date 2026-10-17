@@ -1,28 +1,28 @@
 """Catalog contracts: the public category tree, and the admin's categories, subcategories and service templates."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
 from app.shared.enums import CategoryStatus
+from app.shared.schemas import APIModel, ORMModel
 
 SLUG = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 
 
-class TemplateOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class TemplateOut(ORMModel):
 
     id: int
     name: str
     description: str | None = None
 
 
-class SubcategoryOut(BaseModel):
+class SubcategoryOut(APIModel):
     id: int
     slug: str
     name: str
     services: list[TemplateOut]
 
 
-class CatalogCategoryOut(BaseModel):
+class CatalogCategoryOut(APIModel):
     """The public tree. `CategoryOut` (artists module) stays flat: it is also an artist's own category list."""
 
     id: int
@@ -31,7 +31,7 @@ class CatalogCategoryOut(BaseModel):
     subcategories: list[SubcategoryOut]
 
 
-class CategoryIn(BaseModel):
+class CategoryIn(APIModel):
     name: str = Field(min_length=1, max_length=100)
     slug: str | None = Field(default=None, max_length=50, pattern=SLUG)  # derived from name (and parent) when omitted
     sort_order: int | None = Field(default=None, ge=0)  # appended last among siblings when omitted
@@ -39,7 +39,7 @@ class CategoryIn(BaseModel):
     parent_id: int | None = None  # set → a subcategory of that top-level category
 
 
-class CategoryPatch(BaseModel):
+class CategoryPatch(APIModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     slug: str | None = Field(default=None, max_length=50, pattern=SLUG)
     sort_order: int | None = Field(default=None, ge=0)
@@ -47,8 +47,7 @@ class CategoryPatch(BaseModel):
     parent_id: int | None = None  # an explicit null makes a subcategory top-level
 
 
-class AdminCategoryOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class AdminCategoryOut(ORMModel):
 
     id: int
     slug: str
@@ -62,7 +61,7 @@ class AdminCategoryOut(BaseModel):
     template_count: int
 
 
-class TemplateIn(BaseModel):
+class TemplateIn(APIModel):
     subcategory_id: int
     name: str = Field(min_length=1, max_length=120)
     description: str | None = Field(default=None, max_length=1000)
@@ -70,7 +69,7 @@ class TemplateIn(BaseModel):
     is_active: bool = True
 
 
-class TemplatePatch(BaseModel):
+class TemplatePatch(APIModel):
     """No subcategory_id: a template stays where it was created."""
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
@@ -79,7 +78,7 @@ class TemplatePatch(BaseModel):
     is_active: bool | None = None
 
 
-class AdminTemplateOut(BaseModel):
+class AdminTemplateOut(APIModel):
     id: int
     subcategory_id: int
     name: str

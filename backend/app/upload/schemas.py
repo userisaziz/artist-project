@@ -2,14 +2,14 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from app.shared.schemas import APIModel
 
 
-class UploadRequest(BaseModel):
+class UploadRequest(APIModel):
     purpose: Literal["artist_photo", "portfolio", "aadhaar"]
 
 
-class UploadOut(BaseModel):
+class UploadOut(APIModel):
     """POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API."""
 
     upload_url: str

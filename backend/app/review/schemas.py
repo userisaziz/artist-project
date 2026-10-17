@@ -4,12 +4,13 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, field_validator
 
 from app.shared.enums import ReviewStatus
+from app.shared.schemas import APIModel
 
 
-class ReviewIn(BaseModel):
+class ReviewIn(APIModel):
     rating: int = Field(ge=1, le=5)
     text: str | None = Field(default=None, max_length=1000)
 
@@ -19,20 +20,20 @@ class ReviewIn(BaseModel):
         return (value or "").strip() or None
 
 
-class ReplyIn(BaseModel):
+class ReplyIn(APIModel):
     text: str = Field(max_length=500)  # empty clears the reply
 
 
-class ReportIn(BaseModel):
+class ReportIn(APIModel):
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
 
-class DecisionIn(BaseModel):
+class DecisionIn(APIModel):
     decision: Literal["publish", "hide", "remove"]
     note: str | None = Field(default=None, max_length=500)
 
 
-class ReviewOut(BaseModel):
+class ReviewOut(APIModel):
     """What anyone can read on the storefront."""
 
     id: uuid.UUID
@@ -53,36 +54,36 @@ class OwnReviewOut(ReviewOut):
     report_reason: str | None
 
 
-class ReviewSummary(BaseModel):
+class ReviewSummary(APIModel):
     average: float | None  # one decimal; None until there's a public review
     count: int
     distribution: dict[str, int]  # "5" … "1"
 
 
-class ReviewPage(BaseModel):
+class ReviewPage(APIModel):
     items: list[ReviewOut]
     next_cursor: str | None
     summary: ReviewSummary
 
 
-class OwnReviewPage(BaseModel):
+class OwnReviewPage(APIModel):
     items: list[OwnReviewOut]
     next_cursor: str | None
     summary: ReviewSummary
 
 
-class RefOut(BaseModel):
+class RefOut(APIModel):
     id: uuid.UUID
     business_name: str
 
 
-class ReviewCustomer(BaseModel):
+class ReviewCustomer(APIModel):
     id: uuid.UUID
     name: str | None
     phone: str
 
 
-class ReviewBooking(BaseModel):
+class ReviewBooking(APIModel):
     id: uuid.UUID
     code: str
     service_name: str
@@ -96,6 +97,6 @@ class AdminReviewOut(OwnReviewOut):
     booking: ReviewBooking
 
 
-class AdminReviewPage(BaseModel):
+class AdminReviewPage(APIModel):
     items: list[AdminReviewOut]
     next_cursor: str | None

@@ -1,13 +1,13 @@
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator
 
 from app.shared.enums import UserRole
+from app.shared.schemas import APIModel, ORMModel
 
 
-class UserOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class UserOut(ORMModel):
 
     id: uuid.UUID
     phone: str
@@ -28,7 +28,7 @@ class UserOut(BaseModel):
         return sorted(roles, key=order.index)
 
 
-class AccountDetails(BaseModel):
+class AccountDetails(APIModel):
     """Sign-up step: who the user is (before Choose role)."""
 
     first_name: str = Field(min_length=1, max_length=100)
@@ -37,7 +37,7 @@ class AccountDetails(BaseModel):
     whatsapp_booking_updates: bool = True
 
 
-class RoleChoice(BaseModel):
+class RoleChoice(APIModel):
     """Choose role / switch side: adds the role if new, then makes it active. Admin is never self-assigned."""
 
     role: Literal["customer", "artist"]

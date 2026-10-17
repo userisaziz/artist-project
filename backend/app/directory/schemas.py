@@ -3,12 +3,11 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel
-
 from app.artist.schemas import NamedRef
+from app.shared.schemas import APIModel
 
 
-class ArtistCard(BaseModel):
+class ArtistCard(APIModel):
     id: uuid.UUID
     business_name: str
     city: str
@@ -20,18 +19,18 @@ class ArtistCard(BaseModel):
     review_count: int
 
 
-class ArtistCardPage(BaseModel):
+class ArtistCardPage(APIModel):
     items: list[ArtistCard]
     next_cursor: str | None
 
 
-class PublicPhoto(BaseModel):
+class PublicPhoto(APIModel):
     id: uuid.UUID
     url: str
     thumb_url: str
 
 
-class PublicService(BaseModel):
+class PublicService(APIModel):
     id: uuid.UUID
     name: str
     description: str | None
@@ -49,11 +48,11 @@ class ArtistPublic(ArtistCard):
     completed_bookings: int
 
 
-class Slot(BaseModel):
+class Slot(APIModel):
     start_at: datetime
     available: bool
 
 
-class AvailabilityOut(BaseModel):
+class AvailabilityOut(APIModel):
     date: date
     slots: list[Slot]
