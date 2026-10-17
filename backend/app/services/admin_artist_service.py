@@ -11,7 +11,7 @@ from app.core.crypto import decrypt_aadhaar
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.artist import AadhaarReveal, ArtistProfile
-from app.modules.users.models import User
+from app.models.user.user import User
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistStatus
 

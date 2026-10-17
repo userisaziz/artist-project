@@ -4,7 +4,7 @@ import time
 import uuid
 from urllib.parse import parse_qs, urlparse
 
-from app.modules.uploads.storage import CloudinaryStorage, FakeStorage
+from app.services.upload.storage import CloudinaryStorage, FakeStorage
 
 
 def test_cloudinary_signature_matches_documented_example():

@@ -15,7 +15,7 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models.artist import ArtistProfile
 from app.models.booking import Booking
 from app.models.review import PUBLIC_REVIEW, Review
-from app.modules.users.models import User
+from app.models.user.user import User
 from app.schemas.review import (
     AdminReviewOut,
     OwnReviewOut,

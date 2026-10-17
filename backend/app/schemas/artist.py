@@ -13,7 +13,7 @@ from app.models.artist import (
     ArtistServiceItem,
     PortfolioPhoto,
 )
-from app.modules.uploads.storage import ImageStorage
+from app.services.upload.storage import ImageStorage
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.utils.aadhaar import mask_aadhaar_last4
 

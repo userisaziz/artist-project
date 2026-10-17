@@ -1,0 +1,125 @@
+"""Admin category management, two levels deep: top-level categories and their subcategories.
+Categories in use are made inactive rather than deleted, so existing artists, services and
+templates keep a valid reference. Also the public catalog tree."""
+
+import re
+from collections.abc import Sequence
+from typing import NamedTuple
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.models.catalog.catalog import Category, ServiceTemplate
+from app.repositories.catalog.catalog import (
+    CategoryRepository,
+    TemplateRepository,
+    Usage,
+)
+from app.schemas.catalog.catalog import CategoryIn, CategoryPatch
+from app.shared.enums import CategoryStatus
+
+
+def slugify(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+class CategoryUsage(NamedTuple):
+    category: Category
+    usage: Usage
+
+
+class Catalog(NamedTuple):
+    """Active categories and active templates, each in display order."""
+
+    categories: Sequence[Category]
+    templates: Sequence[ServiceTemplate]
+
+
+class CategoryService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.categories = CategoryRepository(session)
+        self.templates = TemplateRepository(session)
+
+    async def catalog(self) -> Catalog:
+        return Catalog(await self.categories.active_ordered(), await self.templates.active_ordered())
+
+    async def _usage_of(self, category: Category) -> Usage:
+        return (await self.categories.usage(category.id)).get(category.id, Usage())
+
+    async def _get(self, category_id: int) -> Category:
+        category = await self.categories.get(category_id)
+        if category is None:
+            raise NotFoundError("Category not found")
+        return category
+
+    async def _parent(self, parent_id: int) -> Category:
+        parent = await self.categories.get(parent_id)
+        if parent is None or parent.parent_id is not None:
+            raise ValidationError("Subcategories can only sit under a top-level category")
+        return parent
+
+    async def _ensure_unique(self, slug: str, name: str, parent_id: int | None, exclude_id: int | None = None) -> None:
+        if await self.categories.name_or_slug_taken(slug, name, parent_id, exclude_id):
+            raise ConflictError("A category with that name or slug already exists")
+
+    async def _move(self, category: Category, parent_id: int | None) -> None:
+        if parent_id == category.id:
+            raise ValidationError("A category can't be its own parent")
+        usage = await self._usage_of(category)
+        if parent_id is not None:
+            await self._parent(parent_id)
+            if usage.children:
+                raise ValidationError("A category with subcategories can't become a subcategory")
+        if usage.artists or usage.services or usage.templates:
+            raise ConflictError("Category is in use; it can't be moved")
+        category.parent_id = parent_id
+
+    async def list(self) -> list[CategoryUsage]:
+        rows = await self.categories.all_ordered()
+        usage = await self.categories.usage()
+        return [CategoryUsage(c, usage.get(c.id, Usage())) for c in rows]
+
+    async def create(self, body: CategoryIn) -> CategoryUsage:
+        name = body.name.strip()
+        parent = await self._parent(body.parent_id) if body.parent_id is not None else None
+        slug = body.slug or slugify(f"{parent.name} {name}" if parent else name)
+        if not slug:
+            raise ValidationError("Name needs at least one letter or digit")
+        await self._ensure_unique(slug, name, body.parent_id)
+        sort_order = body.sort_order
+        if sort_order is None:
+            sort_order = await self.categories.next_sort_order(body.parent_id)
+        category = Category(name=name, slug=slug, sort_order=sort_order, status=body.status, parent_id=body.parent_id)
+        self.categories.add(category)
+        await self.session.flush()
+        return CategoryUsage(category, Usage())
+
+    async def update(self, category_id: int, body: CategoryPatch) -> CategoryUsage:
+        category = await self._get(category_id)
+        data = body.model_dump(exclude_unset=True)
+        moving = "parent_id" in data and data["parent_id"] != category.parent_id
+        if moving:
+            await self._move(category, data["parent_id"])
+        changes = {k: v for k, v in data.items() if v is not None and k != "parent_id"}
+        if "name" in changes:
+            changes["name"] = changes["name"].strip()
+        if moving or "name" in changes or "slug" in changes:
+            await self._ensure_unique(
+                changes.get("slug", category.slug), changes.get("name", category.name), category.parent_id, category.id
+            )
+        if changes.get("status") == CategoryStatus.draft and category.status != CategoryStatus.draft:
+            usage = await self._usage_of(category)
+            if usage.artists or usage.services:
+                raise ConflictError("Category is in use; it can't go back to draft")
+        for field, value in changes.items():
+            setattr(category, field, value)
+        await self.session.flush()
+        return CategoryUsage(category, await self._usage_of(category))
+
+    async def delete(self, category_id: int) -> None:
+        category = await self._get(category_id)
+        if any(await self._usage_of(category)):
+            raise ConflictError("Category is in use; deactivate it instead")
+        await self.categories.delete(category)
+        await self.session.flush()

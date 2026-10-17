@@ -10,8 +10,8 @@ import re
 import sys
 
 from app.core.database import SessionLocal, engine
-from app.modules.users.models import User
-from app.modules.users.repository import UserRepository
+from app.models.user.user import User
+from app.repositories.user.user import UserRepository
 from app.shared.enums import UserRole
 
 

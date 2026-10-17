@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import current_customer
-from app.modules.users.models import User
+from app.models.user.user import User
 from app.schemas.booking import BookingIn, BookingOut, BookingPage, ReasonIn
 from app.schemas.review import OwnReviewOut, ReviewIn
 from app.services.booking_service import BookingService, get_booking_service

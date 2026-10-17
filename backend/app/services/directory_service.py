@@ -12,8 +12,7 @@ from app.core.database import get_db
 from app.core.exceptions import NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem, artist_categories
 from app.models.booking import Booking
-from app.modules.catalog.models import Category, ServiceTemplate
-from app.modules.uploads.storage import ImageStorage, get_storage
+from app.models.catalog.catalog import Category, ServiceTemplate
 from app.schemas.artist import NamedRef
 from app.schemas.directory import (
     ArtistCard,
@@ -25,6 +24,7 @@ from app.schemas.directory import (
 )
 from app.services.booking_service import busy_ranges
 from app.services.review_service import ratings_for
+from app.services.upload.storage import ImageStorage, get_storage
 from app.shared import clock
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus

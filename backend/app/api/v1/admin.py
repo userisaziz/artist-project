@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, Query, Response
 
 from app.core.auth import current_admin
 from app.models.artist import ArtistProfile
-from app.modules.uploads.storage import ImageStorage, get_storage
-from app.modules.users.models import User
+from app.models.user.user import User
 from app.schemas.artist import (
     AdminArtistDetail,
     AdminArtistPage,
@@ -21,6 +20,7 @@ from app.services.admin_artist_service import (
     AdminArtistService,
     get_admin_artist_service,
 )
+from app.services.upload.storage import ImageStorage, get_storage
 from app.shared.enums import ArtistStatus
 
 router = APIRouter(prefix="/admin/artists", tags=["admin"])

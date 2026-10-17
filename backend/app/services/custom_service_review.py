@@ -10,7 +10,7 @@ from sqlalchemy.orm import aliased
 from app.core.database import get_db
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.artist import ArtistProfile, ArtistServiceItem
-from app.modules.catalog.models import Category
+from app.models.catalog.catalog import Category
 from app.schemas.artist import AdminCustomServiceOut, NamedRef
 from app.shared.cursor import decode_cursor, encode_cursor
 from app.shared.enums import ArtistServiceStatus
