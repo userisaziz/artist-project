@@ -1,4 +1,4 @@
-import type { Booking, BookingStatus, CancelledBy, User } from '../types';
+import type { Booking, BookingReview, BookingStatus, CancelledBy, ServiceItem, User } from '../types';
 import type { TransportResponse } from '../transport';
 import type { MockArtists, MockProfile } from './artist';
 import { ACCEPT_WINDOW_HOURS, isBookableDate, isSlotFree, priceBreakdown, refundDueOnCustomerCancel, slotStarts } from '../../bookings/pricing';
@@ -55,6 +55,8 @@ export interface BookingDeps {
   artists: MockArtists;
   userById: (id: string) => User | undefined;
   now: () => number;
+  /** `review` and `can_review` (Increment 6); artists only see a public review. */
+  reviewFields: (b: MockBooking, view: BookingView) => { review: BookingReview | null; can_review: boolean };
 }
 
 /** In-memory bookings for MockTransport: creation, the lazy 3h expiry, transitions and the scoped lists. */
@@ -91,6 +93,23 @@ export class MockBookings {
     return this.rows.filter((b) => b.artistId === artistId && b.status === 'completed').length;
   }
 
+  find(id: string): MockBooking | undefined {
+    return this.rows.find((b) => b.id === id);
+  }
+
+  /** Test hook: a booking of `service` that finished at `completedAt`, as if accepted and marked completed. */
+  completed(customerId: string, profile: MockProfile, service: ServiceItem, completedAt: number): MockBooking {
+    const start = completedAt - service.duration_minutes * 60_000;
+    const created = start - 2 * 24 * HOUR_MS;
+    return this.insert({
+      status: 'completed', customerId, artistId: profile.id, serviceId: service.id, serviceName: service.name,
+      durationMinutes: service.duration_minutes, start, end: completedAt, address: '12 MG Road, Bangalore', note: null,
+      money: priceBreakdown(service.price_paise), depositPaidAt: created, expiresAt: created + ACCEPT_WINDOW_HOURS * HOUR_MS,
+      respondedAt: created + HOUR_MS, cancelledAt: null, completedAt, cancelledBy: null, declineReason: null, cancelReason: null,
+      refundDue: null, createdAt: created,
+    });
+  }
+
   /** Seeds and test hooks: stores a row as-is, skipping the slot rules. */
   insert(row: Omit<MockBooking, 'id' | 'code'>): MockBooking {
     const b = { ...row, id: `mock-booking-${++this.seq}`, code: this.code() };
@@ -115,6 +134,7 @@ export class MockBookings {
       responded_at: iso(b.respondedAt), cancelled_at: iso(b.cancelledAt), completed_at: iso(b.completedAt),
       decline_reason: b.declineReason, cancel_reason: b.cancelReason, cancelled_by: b.cancelledBy, refund_due: b.refundDue,
       created_at: new Date(b.createdAt).toISOString(),
+      ...this.deps.reviewFields(b, view),
     };
   }
 

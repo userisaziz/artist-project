@@ -18,7 +18,7 @@ const SCOPES: { key: CustomerBookingScope; label: string }[] = [
   { key: 'past', label: 'Past' },
 ];
 
-// Spec §2 Bookings tab: Upcoming / Past, each card with its status pill.
+// Spec §2 Bookings tab: Upcoming / Past, each card with its status pill; reviewable past bookings get "Review".
 export default function CustomerBookings() {
   const theme = useTheme();
   const router = useRouter();
@@ -63,7 +63,20 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{booking.artist.business_name}</AppText>
         </View>
       </View>
-      <AppText variant="label" style={{ color: theme.colors.textSecondary }}>{formatWhen(booking.start_at)}</AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <AppText variant="label" style={{ color: theme.colors.textSecondary }}>{formatWhen(booking.start_at)}</AppText>
+        {booking.can_review ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Review ${booking.service_name}`}
+            onPress={onPress}
+            hitSlop={8}
+            style={{ height: 32, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: theme.colors.brandSoft }}
+          >
+            <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}>★ Review</AppText>
+          </Pressable>
+        ) : null}
+      </View>
     </Pressable>
   );
 }

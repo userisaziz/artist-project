@@ -4,6 +4,7 @@ import { AppText } from '../components/AppText';
 import { Avatar } from '../components/Avatar';
 import { useTheme } from '../theme/theme-provider';
 import { formatPrice } from '../artist/format';
+import { ratingShort } from '../reviews/format';
 import type { ArtistCard } from '../api/types';
 
 interface ArtistCardViewProps {
@@ -37,6 +38,7 @@ export function ArtistCardView({ artist, onPress, variant = 'row' }: ArtistCardV
         <View style={{ flex: 1 }}>
           <AppText variant="subtitle" numberOfLines={1} style={{ fontSize: 14.5, lineHeight: 20, color: theme.colors.textPrimary }}>{artist.business_name}</AppText>
           <AppText variant="caption" numberOfLines={1} style={{ color: theme.colors.textMuted }}>{categoryLine(artist)}</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.brand }}>{ratingShort(artist.rating, artist.review_count)}</AppText>
         </View>
         {from && !tile ? <AppText variant="label" style={{ color: theme.colors.brand }}>{from}</AppText> : null}
       </View>

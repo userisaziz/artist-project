@@ -6,21 +6,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/AppText';
 import { AppButton } from '../../../src/components/AppButton';
 import { Avatar } from '../../../src/components/Avatar';
+import { Card } from '../../../src/components/Card';
+import { MenuRow } from '../../../src/components/MenuRow';
 import { useTheme } from '../../../src/theme/theme-provider';
 import { useAuth } from '../../../src/auth/auth-provider';
 import { useArtistProfile } from '../../../src/artist/queries';
 import { errorMessage } from '../../../src/api/error-message';
+import { useMyReviews } from '../../../src/reviews/queries';
+import { formatAverage } from '../../../src/reviews/format';
+import type { ReviewSummary } from '../../../src/api/types';
 
 const COVER_HEIGHT = 170;
+
+/** "4.9 · 128", "New", or "…" while loading. */
+function reviewsDetail(summary: ReviewSummary | undefined): string {
+  if (!summary) return '…';
+  return summary.average === null ? 'New' : `${formatAverage(summary.average)} · ${summary.count}`;
+}
 const AVATAR = 84;
 
-// Spec §3 Me: avatar, business name and "✓ Verified", the public storefront, the customer side, Log out.
+// Spec §3 Me: avatar, business name and "✓ Verified", the public storefront, Reviews and My services (Increment 6),
+// the customer side, Log out.
 export default function ArtistMe() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { chooseRole, signOut } = useAuth();
   const { data: profile } = useArtistProfile();
+  const reviews = useMyReviews();
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = profile?.business_name ?? '';
@@ -55,6 +68,12 @@ export default function ArtistMe() {
         <View style={{ marginTop: 16 }}>
           <AppButton label="View public profile" variant="secondary" onPress={() => router.push('/artist/public-profile')} />
         </View>
+
+        <Card style={{ marginTop: 14, paddingVertical: 0 }}>
+          <MenuRow label="Reviews" detail={reviewsDetail(reviews.data?.pages[0]?.summary)} onPress={() => router.push('/artist/reviews')} />
+          <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
+          <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
+        </Card>
 
         <Pressable
           accessibilityRole="button"

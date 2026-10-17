@@ -44,6 +44,8 @@ export default function ArtistLayout() {
         <Stack.Protected guard={stage === 'live'}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="public-profile" />
+          <Stack.Screen name="reviews" />
+          <Stack.Screen name="services" />
         </Stack.Protected>
       </Stack>
     </ArtistFlowContext.Provider>

@@ -1,6 +1,7 @@
 import type { TransportResponse } from '../transport';
 import type { MockArtists } from './artist';
 import type { MockBookings } from './bookings';
+import type { MockReviews } from './reviews';
 import { CATALOG } from './artist';
 import { availability, isBookableDate } from '../../bookings/pricing';
 
@@ -11,13 +12,21 @@ const MAX_LIMIT = 50;
 
 const err = (code: string, message: string, status: number): TransportResponse => ({ status, json: { code, message } });
 
-export function handleDirectory(artists: MockArtists, bookings: MockBookings, now: number, path: string, query: Record<string, string>): TransportResponse {
+export interface DirectoryDeps {
+  artists: MockArtists;
+  bookings: MockBookings;
+  reviews: MockReviews;
+  now: number;
+}
+
+export function handleDirectory({ artists, bookings, reviews, now }: DirectoryDeps, path: string, query: Record<string, string>): TransportResponse {
   const [, , id, sub] = path.split('/');
-  if (!id) return list(artists, query);
+  if (!id) return list(artists, reviews, query);
   const found = artists.byId(id);
   if (!found || found.profile.status !== 'approved') return err('not_found', 'Artist not found', 404);
   const { profile } = found;
-  if (!sub) return { status: 200, json: artists.storefront(profile, bookings.completedCount(profile.id)) };
+  if (!sub) return { status: 200, json: artists.storefront(profile, bookings.completedCount(profile.id), reviews.stats(profile.id)) };
+  if (sub === 'reviews') return reviews.publicPage(profile.id, query);
   if (sub !== 'availability') return err('not_found', `Mock has no handler for ${path}`, 404);
   const date = query.date ?? '';
   if (!isBookableDate(date, now)) return err('validation_error', 'Pick a date from today up to 60 days ahead', 422);
@@ -26,7 +35,7 @@ export function handleDirectory(artists: MockArtists, bookings: MockBookings, no
   return { status: 200, json: { date, slots: availability(date, service.duration_minutes, bookings.busy(profile.id), now) } };
 }
 
-function list(artists: MockArtists, query: Record<string, string>): TransportResponse {
+function list(artists: MockArtists, reviews: MockReviews, query: Record<string, string>): TransportResponse {
   const q = (query.q ?? '').trim().toLowerCase();
   const categoryId = query.category_id ? Number(query.category_id) : null;
   if (categoryId !== null && !CATALOG.some((c) => c.id === categoryId)) return err('validation_error', 'Unknown category', 422);
@@ -36,6 +45,6 @@ function list(artists: MockArtists, query: Record<string, string>): TransportRes
     && (!q || p.business_name.toLowerCase().includes(q) || p.services.some((s) => s.status === 'approved' && s.name.toLowerCase().includes(q))));
   const limit = Math.min(Math.max(Number(query.limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
   const offset = Number(query.cursor) || 0;
-  const items = rows.slice(offset, offset + limit).map((p) => artists.card(p));
+  const items = rows.slice(offset, offset + limit).map((p) => artists.card(p, reviews.stats(p.id)));
   return { status: 200, json: { items, next_cursor: offset + limit < rows.length ? String(offset + limit) : null } };
 }

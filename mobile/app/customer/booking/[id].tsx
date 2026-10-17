@@ -20,6 +20,7 @@ import { useNow } from '../../../src/bookings/use-now';
 import { formatPrice } from '../../../src/artist/format';
 import { cancelBooking } from '../../../src/api/endpoints/bookings';
 import { errorMessage } from '../../../src/api/error-message';
+import { RateBookingCard } from '../../../src/reviews/RateBookingCard';
 import type { Booking } from '../../../src/api/types';
 
 /** What happened to the deposit once a booking has ended without the service. */
@@ -29,7 +30,7 @@ function refundLine(b: Booking): string | null {
   return b.refund_due ? `Your ${deposit} deposit is being refunded.` : `The ${deposit} deposit isn’t refunded (cancelled within 72 hours of the start).`;
 }
 
-// Spec §2 booking/[id]: details, the breakdown, and "Cancel booking" with a confirm step that states the refund.
+// Spec §2 booking/[id]: details, "Rate your experience" (Increment 6), the breakdown, and "Cancel booking" with a confirm step that states the refund.
 export default function BookingDetail() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -95,6 +96,7 @@ export default function BookingDetail() {
           <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{b.note}</AppText>
         </View>
       ) : null}
+      <RateBookingCard booking={b} />
       <Card>
         <Breakdown money={b} paid />
       </Card>

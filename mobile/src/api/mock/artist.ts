@@ -54,7 +54,32 @@ function findTemplateByName(category: string, subcategory: string, name: string)
   return { sub, template };
 }
 
+/** An active subcategory (not a top-level category), as backend ArtistService._subcategory checks it. */
+function findSubcategory(id: unknown) {
+  for (const category of CATALOG) {
+    const sub = category.subcategories.find((s) => s.id === id);
+    if (sub) return { category, sub };
+  }
+  return null;
+}
+
+/** Backend CustomServiceIn / CustomServicePatch field rules; `required` for the POST. */
+function customFieldError(b: Record<string, unknown>, required: boolean): TransportResponse | null {
+  const present = (k: string) => b[k] !== undefined && b[k] !== null;
+  const need = (k: string) => required || present(k);
+  if (need('subcategory_id') && !(typeof b.subcategory_id === 'number' && Number.isInteger(b.subcategory_id))) return err('validation_error', 'subcategory_id is required', 422);
+  if (need('name') && (typeof b.name !== 'string' || b.name.length < 1 || b.name.length > MAX_NAME)) return err('validation_error', `name must be 1–${MAX_NAME} characters`, 422);
+  if (need('price_paise') && !isInt(b.price_paise, MAX_PRICE_PAISE)) return err('validation_error', 'price_paise must be a positive whole number', 422);
+  if (need('duration_minutes') && !isInt(b.duration_minutes, MAX_MINUTES)) return err('validation_error', `duration_minutes must be 1–${MAX_MINUTES}`, 422);
+  if (typeof b.description === 'string' && b.description.length > MAX_DESCRIPTION) return err('validation_error', `description must be at most ${MAX_DESCRIPTION} characters`, 422);
+  return null;
+}
+
 const MIN_PHOTOS = 6;
+const MAX_NAME = 120;
+const MAX_PRICE_PAISE = 100_000_000;
+const MAX_MINUTES = 1440;
+const MAX_DESCRIPTION = 1000;
 const MAX_PHOTOS = 30;
 const EDITABLE: ArtistStatus[] = ['draft', 'rejected'];
 const PURPOSES: UploadPurpose[] = ['artist_photo', 'portfolio', 'aadhaar']; // backend UploadRequest.purpose
@@ -68,7 +93,11 @@ export interface MockProfile {
   rejection_reason: string | null; submitted_at: string | null; reviewed_at: string | null;
 }
 
+/** `rating` and `review_count`, computed on read from public reviews (MockReviews.stats). */
+export interface RatingStats { rating: number | null; review_count: number }
+
 const err = (code: string, message: string, status: number, extra: object = {}): TransportResponse => ({ status, json: { code, message, ...extra } });
+const NOT_APPROVED = () => err('conflict', 'Custom services open once your profile is approved', 409);
 const isInt = (v: unknown, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0 && v <= max;
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
@@ -107,6 +136,7 @@ export class MockArtists {
     if (method === 'GET' && path === '/artists/me') return p ? this.ok(p) : err('not_found', 'No artist profile yet', 404);
     if (method === 'PUT' && path === '/artists/me/profile') return this.saveProfile(userId, p, b);
     if (!p) return err('not_found', 'No artist profile yet', 404);
+    if (path === '/artists/me/custom-services' || path.startsWith('/artists/me/custom-services/')) return this.customService(p, method, path, b);
     if (!EDITABLE.includes(p.status)) return err('conflict', `Profile is ${p.status} and can't be edited`, 409);
     const id = path.split('/').pop() ?? '';
     if (method === 'POST' && path === '/artists/me/services') return this.addService(p, b);
@@ -151,6 +181,70 @@ export class MockArtists {
       description: typeof b.description === 'string' ? b.description : null, status: 'approved', rejection_reason: null,
     });
     return this.ok(p, 201);
+  }
+
+  // ---- Custom services (catalog Part 2): approved artists only, each waits for admin review ----
+
+  private customService(p: MockProfile, method: string, path: string, b: Record<string, unknown>): TransportResponse {
+    const id = path.split('/')[4];
+    if (method === 'POST' && !id) return this.addCustom(p, b);
+    if (method === 'PATCH' && id) return this.updateCustom(p, id, b);
+    if (method === 'DELETE' && id) return this.deleteCustom(p, id);
+    return err('not_found', `Mock has no handler for ${method} ${path}`, 404);
+  }
+
+  /** Field checks first (FastAPI validates the body before the service runs), then approval, then the subcategory. */
+  private addCustom(p: MockProfile, b: Record<string, unknown>): TransportResponse {
+    const invalid = customFieldError(b, true);
+    if (invalid) return invalid;
+    if (p.status !== 'approved') return NOT_APPROVED();
+    if (!findSubcategory(b.subcategory_id)) return err('validation_error', 'Unknown subcategory', 422);
+    const name = text(b.name);
+    if (!name) return err('validation_error', 'Name is required', 422);
+    p.services.push({
+      id: this.id('service'), category_id: b.subcategory_id as number, subcategory_id: b.subcategory_id as number, template_id: null, name,
+      price_paise: b.price_paise as number, duration_minutes: b.duration_minutes as number,
+      description: typeof b.description === 'string' ? b.description : null, status: 'pending', rejection_reason: null,
+    });
+    return this.ok(p, 201);
+  }
+
+  /** Any field; null leaves a required field as it is. Any edit sends the service back to review. */
+  private updateCustom(p: MockProfile, id: string, b: Record<string, unknown>): TransportResponse {
+    const invalid = customFieldError(b, false);
+    if (invalid) return invalid;
+    if (p.status !== 'approved') return NOT_APPROVED();
+    const i = p.services.findIndex((s) => s.id === id && s.template_id === null);
+    if (i < 0) return err('not_found', 'Service not found', 404);
+    const item = p.services[i];
+    const has = (k: string) => b[k] !== undefined && b[k] !== null;
+    if (has('subcategory_id') && !findSubcategory(b.subcategory_id)) return err('validation_error', 'Unknown subcategory', 422);
+    const name = has('name') ? text(b.name) : item.name;
+    if (!name) return err('validation_error', 'Name is required', 422);
+    const subId = has('subcategory_id') ? (b.subcategory_id as number) : item.subcategory_id;
+    p.services[i] = {
+      ...item, name, category_id: subId, subcategory_id: subId,
+      price_paise: has('price_paise') ? (b.price_paise as number) : item.price_paise,
+      duration_minutes: has('duration_minutes') ? (b.duration_minutes as number) : item.duration_minutes,
+      description: 'description' in b ? (typeof b.description === 'string' ? b.description : null) : item.description,
+      status: 'pending', rejection_reason: null,
+    };
+    return this.ok(p);
+  }
+
+  private deleteCustom(p: MockProfile, id: string): TransportResponse {
+    if (p.status !== 'approved') return NOT_APPROVED();
+    if (!p.services.some((s) => s.id === id && s.template_id === null)) return err('not_found', 'Service not found', 404);
+    p.services = p.services.filter((s) => s.id !== id);
+    return this.ok(p);
+  }
+
+  /** Test/dev stand-in for the admin's custom-service approve and reject. */
+  reviewCustomService(userId: string, serviceId: string, decision: 'approved' | 'rejected', reason: string | null) {
+    const p = this.profiles.get(userId);
+    const i = p?.services.findIndex((s) => s.id === serviceId && s.template_id === null) ?? -1;
+    if (!p || i < 0) throw new Error('reviewCustomService() needs a custom service');
+    p.services[i] = { ...p.services[i], status: decision, rejection_reason: decision === 'rejected' ? reason : null };
   }
 
   private addPhoto(userId: string, p: MockProfile, b: Record<string, unknown>): TransportResponse {
@@ -261,24 +355,25 @@ export class MockArtists {
     return p.photo_key ? this.url(p.photo_key) : null;
   }
 
-  card(p: MockProfile): ArtistCard {
+  card(p: MockProfile, stats: RatingStats): ArtistCard {
     const prices = p.services.filter((s) => s.status === 'approved').map((s) => s.price_paise);
     return {
       id: p.id, business_name: p.business_name, city: p.city, photo_url: this.photoUrl(p),
       cover_url: p.photos.length ? this.url(p.photos[0].key) : null,
       categories: CATEGORIES.filter((c) => p.category_ids.includes(c.id)).map(({ id, name }) => ({ id, name })),
       from_price_paise: prices.length ? Math.min(...prices) : null,
+      ...stats,
     };
   }
 
   /** The storefront: approved services only; never KYC, phone or the rejection reason. */
-  storefront(p: MockProfile, completedBookings: number): ArtistPublic {
+  storefront(p: MockProfile, completedBookings: number, stats: RatingStats): ArtistPublic {
     const services = p.services.filter((s) => s.status === 'approved').map((s): PublicService => ({
       id: s.id, name: s.name, description: s.description, price_paise: s.price_paise, duration_minutes: s.duration_minutes,
       ...serviceRefs(s.subcategory_id),
     }));
     return {
-      ...this.card(p), bio: p.bio, services,
+      ...this.card(p, stats), bio: p.bio, services,
       photos: p.photos.map((ph) => ({ id: ph.id, url: this.url(ph.key), thumb_url: this.url(ph.key) })),
       member_since: p.reviewed_at, completed_bookings: completedBookings,
     };

@@ -12,12 +12,16 @@ import { formatDuration, formatPrice } from '../artist/format';
 import { formatMonthShort } from '../bookings/time';
 import { categoryLine } from './ArtistCardView';
 import { useArtistPublic } from './queries';
+import { StorefrontReviews } from '../reviews/StorefrontReviews';
+import { formatAverage, ratingLong, reviewCountLabel } from '../reviews/format';
 import type { PublicService } from '../api/types';
 
 interface StorefrontProps {
   artistId: string;
   /** Customers pick a package and go on to Date & time; an artist previewing their own page can't. */
   onCheckAvailability?: (service: PublicService) => void;
+  /** Opens every review; the artist's own preview has no such screen. */
+  onSeeAllReviews?: () => void;
 }
 
 const COVER_HEIGHT = 230;
@@ -34,7 +38,7 @@ function groupServices(services: PublicService[]): [string, PublicService[]][] {
 }
 
 /** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability }: StorefrontProps) {
+export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
@@ -72,6 +76,11 @@ export function Storefront({ artistId, onCheckAvailability }: StorefrontProps) {
           <AppText variant="body" style={{ color: theme.colors.textMuted }}>{categoryLine(artist)}</AppText>
 
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+            <Stat
+              value={artist.rating === null || !artist.review_count ? 'New' : `★ ${formatAverage(artist.rating)}`}
+              label={reviewCountLabel(artist.review_count)}
+              accessibilityLabel={ratingLong(artist.rating, artist.review_count)}
+            />
             <Stat value={String(artist.completed_bookings)} label="Bookings completed" />
             <Stat value={artist.member_since ? formatMonthShort(artist.member_since) : '—'} label="On Atelier since" />
           </View>
@@ -96,6 +105,8 @@ export function Storefront({ artistId, onCheckAvailability }: StorefrontProps) {
               </View>
             </>
           ) : null}
+
+          <StorefrontReviews artistId={artist.id} businessName={artist.business_name} onSeeAll={onSeeAllReviews} />
 
           {artist.bio ? (
             <>
@@ -123,10 +134,10 @@ export function Storefront({ artistId, onCheckAvailability }: StorefrontProps) {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, accessibilityLabel }: { value: string; label: string; accessibilityLabel?: string }) {
   const theme = useTheme();
   return (
-    <View style={{ flex: 1, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
+    <View accessible={!!accessibilityLabel} accessibilityLabel={accessibilityLabel} style={{ flex: 1, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
       <AppText variant="subtitle" style={{ fontSize: 18, color: theme.colors.textPrimary }}>{value}</AppText>
       <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{label}</AppText>
     </View>
