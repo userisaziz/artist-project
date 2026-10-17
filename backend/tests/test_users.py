@@ -1,6 +1,6 @@
 """Onboarding contract: sign-up details, then Choose role — which also switches sides later (multi-role)."""
 
-from tests.test_auth import _request_and_read_code, PHONE
+from tests.test_auth import PHONE, _request_and_read_code
 
 
 async def _login(client) -> dict:

@@ -1,7 +1,6 @@
 """Admin review of submitted artist profiles: the queue, one profile, approve / reject, and the Aadhaar reveal."""
 
 import uuid
-from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +10,7 @@ from app.models.artist.artist import AadhaarReveal, ArtistProfile
 from app.models.user.user import User
 from app.repositories.artist.artist import ArtistRepository
 from app.repositories.user.user import UserRepository
+from app.shared import clock
 from app.shared.enums import ArtistStatus
 
 
@@ -37,7 +37,7 @@ class AdminArtistService:
             raise ConflictError(f"Profile is {profile.status.value}, not pending")
         profile.status = status
         profile.rejection_reason = reason
-        profile.reviewed_at = datetime.now(UTC)
+        profile.reviewed_at = clock.now()
         profile.reviewed_by = admin.id
         await self.session.flush()
         return profile, owner

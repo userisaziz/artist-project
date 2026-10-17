@@ -6,7 +6,12 @@ import jwt as pyjwt
 import pytest
 
 from app.core.security import (
-    create_access_token, create_refresh_token, decode_token, generate_otp, hash_otp, hash_token,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    generate_otp,
+    hash_otp,
+    hash_token,
 )
 
 

@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.shared.enums import UserRole
 
@@ -33,7 +33,7 @@ class AccountDetails(BaseModel):
 
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str | None = Field(default=None, max_length=100)
-    email: str | None = Field(default=None, max_length=255)
+    email: EmailStr | None = Field(default=None, max_length=255)
     whatsapp_booking_updates: bool = True
 
 

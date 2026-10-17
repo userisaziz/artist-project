@@ -6,7 +6,6 @@ artists can propose custom services, which wait for admin review one by one.
 """
 
 import uuid
-from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +33,7 @@ from app.schemas.artist.artist import (
 )
 from app.services.artist.aadhaar import is_valid_aadhaar
 from app.services.upload.storage import ImageStorage
+from app.shared import clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 
 MIN_PHOTOS = 6
@@ -297,7 +297,7 @@ class ArtistService:
         if missing:
             raise ValidationError("Profile is incomplete", missing=missing, min_photos=MIN_PHOTOS)
         profile.status = ArtistStatus.pending
-        profile.submitted_at = datetime.now(UTC)
+        profile.submitted_at = clock.now()
         profile.rejection_reason = None
         await self.session.flush()
         return profile

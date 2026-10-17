@@ -29,7 +29,7 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _create_token(user_id, token_type: str, ttl: timedelta) -> tuple[str, str]:
+def _create_token(user_id: uuid_mod.UUID, token_type: str, ttl: timedelta) -> tuple[str, str]:
     settings = get_settings()
     jti = str(uuid_mod.uuid4())
     now = datetime.now(timezone.utc)
@@ -37,13 +37,13 @@ def _create_token(user_id, token_type: str, ttl: timedelta) -> tuple[str, str]:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm), jti
 
 
-def create_access_token(user_id) -> str:
+def create_access_token(user_id: uuid_mod.UUID) -> str:
     settings = get_settings()
     token, _ = _create_token(user_id, "access", timedelta(minutes=settings.access_token_ttl_minutes))
     return token
 
 
-def create_refresh_token(user_id) -> tuple[str, str]:
+def create_refresh_token(user_id: uuid_mod.UUID) -> tuple[str, str]:
     settings = get_settings()
     return _create_token(user_id, "refresh", timedelta(days=settings.refresh_token_ttl_days))
 

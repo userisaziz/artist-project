@@ -6,7 +6,7 @@ global exception handler.
 
 import logging
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -23,7 +23,15 @@ def create_app() -> FastAPI:
     settings = get_settings()
     # Our loggers (e.g. art_circle.sms) have no handler otherwise; console-mode OTPs would vanish.
     logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s | %(message)s")
-    app = FastAPI(title="Art Circle API", version="0.1.0")
+    # OpenAPI/docs are a local-and-staging convenience only (best-practices rule).
+    docs = "/docs" if settings.debug else None
+    app = FastAPI(
+        title="Art Circle API",
+        version="0.1.0",
+        openapi_url="/openapi.json" if settings.debug else None,
+        docs_url=docs,
+        redoc_url="/redoc" if settings.debug else None,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"] if settings.debug else settings.admin_origins,
@@ -34,7 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(api_router)
 
     @app.exception_handler(AppError)
-    async def app_error_handler(request, exc: AppError):
+    async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         # Domain errors become the stable {code, message} contract the client branches on.
         return JSONResponse(status_code=exc.status_code, content={"code": exc.code, "message": exc.message, **exc.details})
 

@@ -5,8 +5,8 @@ import uuid
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.services.upload.storage import FakeStorage
 from app.services.auth.sms import ConsoleSMSProvider
+from app.services.upload.storage import FakeStorage
 
 ARTIST_PHONE = "+919845011111"
 CATEGORIES = [("mehendi", "Mehendi"), ("makeup", "Makeup"), ("hair", "Hair"),

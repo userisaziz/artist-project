@@ -6,6 +6,7 @@ delivery. Another gateway later is one new class + one new settings value.
 
 import logging
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 import httpx
 
@@ -22,7 +23,7 @@ class SMSProvider(ABC):
 class ConsoleSMSProvider(SMSProvider):
     """Test/dev-mode provider: logs the OTP and records it so tests can read it."""
 
-    sent: list[tuple[str, str]] = []
+    sent: ClassVar[list[tuple[str, str]]] = []
 
     async def send_otp(self, phone: str, code: str) -> None:
         message = f"Your Art Circle code is {code}"

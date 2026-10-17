@@ -1,0 +1,25 @@
+# Backend lint gate (rules: .qoder/rules/fastapi-best-practices.md — "Lint").
+# `ruff check app tests` must be clean before every commit.
+# `ruff format` is intentionally NOT gated yet: a one-off reformat of 70+ files
+# would bury the module-first restructure diff. Revisit after that lands.
+
+line-length = 120
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B", "I", "RUF"]
+# Typographic punctuation deliberately used in prose comments/docstrings.
+allowed-confusables = ["›", "–"]
+
+[lint.flake8-bugbear]
+# FastAPI idiom: Depends()/Query()/Body() as argument defaults are not bugs.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Query",
+  "fastapi.Body",
+  "fastapi.Form",
+  "fastapi.File",
+]
+
+[lint.per-file-ignores]
+# __mapper_args__/__table_args__ dicts are SQLAlchemy declarative idiom, not shared mutable state.
+"app/models/**" = ["RUF012"]
