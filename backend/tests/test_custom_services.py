@@ -5,8 +5,10 @@ import uuid
 import pytest_asyncio
 from sqlalchemy import text
 
-from tests.test_admin import admin, submitted_artist
-from tests.test_artists import categories, complete_profile, seed_categories, sign_in
+from tests.support.artist import complete_profile, submitted_artist
+from tests.support.auth import admin_headers as admin
+from tests.support.auth import sign_in
+from tests.support.catalog import categories, seed_categories
 
 URL = "/api/v1/artists/me/custom-services"
 

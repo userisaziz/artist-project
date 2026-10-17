@@ -5,38 +5,21 @@ import asyncio
 import re
 from datetime import datetime, timedelta
 
+import pytest_asyncio
 from sqlalchemy import text
 
 from app.booking import service as booking_service
 from app.shared import clock
-from tests.test_artists import sign_in
-from tests.test_directory import (  # noqa: F401 (autouse)
-    CUSTOMER_PHONE,
-    admin_headers,
-    approved_artist,
-    categories_seeded,
-    slot,
-)
+from tests.support.artist import approved_artist
+from tests.support.auth import CUSTOMER_PHONE, sign_in
+from tests.support.booking import at, book, setup
+from tests.support.catalog import seed_categories
+from tests.support.directory import slot
 
 
-async def setup(client, engine) -> tuple[dict, dict, dict]:
-    admin = await admin_headers(client, engine)
-    artist = await approved_artist(client, engine, "+919845091001", admin)
-    customer = await sign_in(client, CUSTOMER_PHONE, role="customer")
-    return admin, artist, customer
-
-
-async def book(client, customer: dict, artist: dict, start: str | None = None, **extra):
-    return await client.post("/api/v1/bookings", headers=customer, json={
-        "artist_id": artist["id"], "service_id": artist["service_id"], "start_at": start or slot(),
-        "address": "12 1st Block, Koramangala", **extra,
-    })
-
-
-def at(when: str, hours: float = 0):
-    """A frozen clock `hours` after `when`."""
-    moment = datetime.fromisoformat(when) + timedelta(hours=hours)
-    return lambda: moment
+@pytest_asyncio.fixture(autouse=True)
+async def categories_seeded(engine):
+    await seed_categories(engine)
 
 
 # --- create ---------------------------------------------------------------------------------------

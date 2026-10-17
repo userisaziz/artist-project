@@ -3,16 +3,20 @@ Ratings show on the directory and storefront from public (published + flagged) r
 
 from datetime import datetime, timedelta
 
+import pytest_asyncio
 from sqlalchemy import text
 
 from app.shared import clock
-from tests.test_artists import sign_in
-from tests.test_bookings import at, book, setup
-from tests.test_directory import (  # noqa: F401 (autouse)
-    approved_artist,
-    categories_seeded,
-    slot,
-)
+from tests.support.artist import approved_artist
+from tests.support.auth import sign_in
+from tests.support.booking import at, book, setup
+from tests.support.catalog import seed_categories
+from tests.support.directory import slot
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def categories_seeded(engine):
+    await seed_categories(engine)
 
 
 async def completed_booking(client, artist: dict, customer: dict, monkeypatch, day: int = 5) -> dict:

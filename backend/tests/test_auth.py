@@ -1,17 +1,10 @@
 """Auth flow contract: OTP request/verify, JIT registration, cooldown, rotation."""
 
-PHONE = "+15550001111"
-
-
-async def _request_and_read_code(client):
-    response = await client.post("/api/v1/auth/otp/request", json={"phone": PHONE})
-    assert response.status_code == 204
-    from app.auth.sms import ConsoleSMSProvider
-    return ConsoleSMSProvider.sent[-1][1].split()[-1]
+from tests.support.auth import PHONE, request_and_read_code
 
 
 async def test_otp_verify_creates_user_jit_and_returns_tokens(client):
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})
     assert response.status_code == 200
     body = response.json()
@@ -21,14 +14,14 @@ async def test_otp_verify_creates_user_jit_and_returns_tokens(client):
 
 
 async def test_second_verify_of_same_code_fails(client):
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})
     assert response.status_code == 401
 
 
 async def test_wrong_code_returns_401(client):
-    await _request_and_read_code(client)
+    await request_and_read_code(client)
     response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": "000000"})
     assert response.status_code == 401
 
@@ -37,7 +30,7 @@ async def test_repeated_wrong_codes_lock_the_otp_out(client):
     """Failed attempts must persist despite the error rollback, or the lockout never fires."""
     from app.core.config import get_settings
 
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     for _ in range(get_settings().otp_max_attempts):
         response = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": "000000"})
         assert response.status_code == 401
@@ -46,7 +39,7 @@ async def test_repeated_wrong_codes_lock_the_otp_out(client):
 
 
 async def test_resend_cooldown_returns_429(client):
-    await _request_and_read_code(client)
+    await request_and_read_code(client)
     response = await client.post("/api/v1/auth/otp/request", json={"phone": PHONE})
     assert response.status_code == 429
 
@@ -57,7 +50,7 @@ async def test_invalid_phone_format_returns_422(client):
 
 
 async def test_refresh_rotation_revokes_old_token(client):
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     verify = (await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})).json()
     refreshed = await client.post("/api/v1/auth/refresh", json={"refresh_token": verify["refresh_token"]})
     assert refreshed.status_code == 200
@@ -66,7 +59,7 @@ async def test_refresh_rotation_revokes_old_token(client):
 
 
 async def test_expired_code_is_rejected(client, engine):
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.execute(text("UPDATE otp_codes SET expires_at = now() - interval '1 minute'"))

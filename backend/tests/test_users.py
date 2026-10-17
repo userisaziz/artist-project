@@ -1,10 +1,10 @@
 """Onboarding contract: sign-up details, then Choose role — which also switches sides later (multi-role)."""
 
-from tests.test_auth import PHONE, _request_and_read_code
+from tests.support.auth import PHONE, request_and_read_code
 
 
 async def _login(client) -> dict:
-    code = await _request_and_read_code(client)
+    code = await request_and_read_code(client)
     body = (await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code})).json()
     return {"Authorization": f"Bearer {body['access_token']}"}
 

@@ -5,96 +5,18 @@ import uuid
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.auth.sms import ConsoleSMSProvider
 from app.upload.service import FakeStorage
+from tests.support.artist import complete_profile
+from tests.support.auth import sign_in
+from tests.support.catalog import categories, seed_categories, templates
+from tests.support.upload import upload_key
 
 ARTIST_PHONE = "+919845011111"
-CATEGORIES = [("mehendi", "Mehendi"), ("makeup", "Makeup"), ("hair", "Hair"),
-              ("photography", "Photography"), ("decor", "Decor"), ("tattoo", "Tattoo")]
-
-
-async def seed_categories(engine) -> None:
-    """Admins build the catalog in the admin app; tests insert the design's six categories directly,
-    plus Mehendi › Bridal and Makeup › Party with a few services so onboarding has something to pick."""
-    async with engine.begin() as conn:
-        ids = {}
-        for i, (slug, name) in enumerate(CATEGORIES):
-            ids[slug] = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order, status) VALUES (:s, :n, :i, 'active') RETURNING id"),
-                {"s": slug, "n": name, "i": i},
-            )).scalar_one()
-        for parent, slug, name, services in (("mehendi", "mehendi-bridal", "Bridal", ("Bridal Classic", "Bridal Full Arms")),
-                                             ("makeup", "makeup-party", "Party", ("Party Makeup",))):
-            sub = (await conn.execute(
-                text("INSERT INTO categories (slug, name, sort_order, parent_id, status) VALUES (:s, :n, 0, :p, 'active') RETURNING id"),
-                {"s": slug, "n": name, "p": ids[parent]},
-            )).scalar_one()
-            for i, service in enumerate(services):
-                await conn.execute(text("INSERT INTO service_templates (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
-                                   {"s": sub, "n": service, "i": i})
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def categories_seeded(engine):
     await seed_categories(engine)
-
-
-async def sign_in(client, phone: str, role: str | None = "artist", engine=None) -> dict:
-    """Phone + OTP, then optionally pick a role (artist/customer) or force admin straight in the DB."""
-    await client.post("/api/v1/auth/otp/request", json={"phone": phone})
-    code = ConsoleSMSProvider.sent[-1][1].split()[-1]
-    body = (await client.post("/api/v1/auth/otp/verify", json={"phone": phone, "code": code})).json()
-    headers = {"Authorization": f"Bearer {body['access_token']}"}
-    if role in ("artist", "customer"):
-        await client.put("/api/v1/users/me/role", headers=headers, json={"role": role})
-    elif role == "admin":
-        async with engine.begin() as conn:
-            await conn.execute(text("INSERT INTO user_roles (user_id, role) SELECT id, 'admin' FROM users WHERE phone=:p"), {"p": phone})
-    return headers
-
-
-async def categories(client) -> dict[str, int]:
-    return {c["slug"]: c["id"] for c in (await client.get("/api/v1/categories")).json()}
-
-
-async def templates(client) -> dict[str, int]:
-    """Service name → template id, from the public catalog tree."""
-    tree = (await client.get("/api/v1/categories")).json()
-    return {s["name"]: s["id"] for c in tree for sub in c["subcategories"] for s in sub["services"]}
-
-
-async def upload_key(client, headers, purpose: str) -> str:
-    response = await client.post("/api/v1/uploads/signature", headers=headers, json={"purpose": purpose})
-    assert response.status_code == 200
-    return response.json()["key"]
-
-
-async def add_kyc(client, headers) -> None:
-    """Identity step with a generated (not real) Aadhaar number."""
-    response = await client.put("/api/v1/artists/me/kyc", headers=headers, json={
-        "aadhaar_number": "234123412346",
-        "front_key": await upload_key(client, headers, "aadhaar"),
-        "back_key": await upload_key(client, headers, "aadhaar"),
-    })
-    assert response.status_code == 200
-
-
-async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -> dict:
-    """A submittable profile: photo, name, category, city, one service, `photos` portfolio photos."""
-    cats = await categories(client)
-    await client.put("/api/v1/artists/me/profile", headers=headers, json={
-        "business_name": "Ayesha Mehendi Art", "city": "Bangalore",
-        "category_ids": [cats["mehendi"]], "photo_key": await upload_key(client, headers, "artist_photo"),
-    })
-    await client.post("/api/v1/artists/me/services", headers=headers, json={
-        "template_id": (await templates(client))["Bridal Classic"], "price_paise": 550000, "duration_minutes": 180,
-    })
-    for _ in range(photos):
-        key = await upload_key(client, headers, "portfolio")
-        await client.post("/api/v1/artists/me/photos", headers=headers, json={"key": key, "width": 1200, "height": 1500})
-    if kyc:
-        await add_kyc(client, headers)
-    return (await client.get("/api/v1/artists/me", headers=headers)).json()
 
 
 async def test_categories_and_cities_are_public(client):

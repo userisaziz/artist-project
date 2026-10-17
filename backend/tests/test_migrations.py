@@ -12,7 +12,8 @@ from alembic.config import Config
 
 from app.core.config import get_settings
 from tests.conftest import test_engine
-from tests.test_artists import categories, seed_categories, sign_in
+from tests.support.auth import sign_in
+from tests.support.catalog import categories, seed_categories
 
 EXPECTED_TABLES = {
     "users", "otp_codes", "refresh_tokens", "alembic_version",

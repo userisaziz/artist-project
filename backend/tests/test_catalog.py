@@ -1,7 +1,8 @@
 """Catalog contract: the admin's service list under each subcategory, and the public category tree."""
 
-from tests.test_admin import admin, create_category
-from tests.test_artists import complete_profile, seed_categories, sign_in
+from tests.support.artist import complete_profile
+from tests.support.auth import admin_headers, sign_in
+from tests.support.catalog import create_category, seed_categories
 
 TEMPLATES = "/api/v1/admin/service-templates"
 
@@ -18,7 +19,7 @@ async def makeup_bridal(client, headers) -> tuple[dict, dict]:
 
 
 async def test_template_crud(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     _, bridal = await makeup_bridal(client, headers)
     hd = await create_template(client, headers, subcategory_id=bridal["id"], name=" HD Bridal Makeup ", description="Long-wear HD base")
     assert hd | {"id": 0} == {
@@ -42,7 +43,7 @@ async def test_template_crud(client, engine):
 
 
 async def test_templates_sit_under_subcategories_with_unique_names(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup, bridal = await makeup_bridal(client, headers)
     template = await create_template(client, headers, subcategory_id=bridal["id"], name="HD Bridal Makeup")
 
@@ -64,7 +65,7 @@ async def test_templates_sit_under_subcategories_with_unique_names(client, engin
 
 
 async def test_public_catalog_is_a_tree_of_active_items(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup = await create_category(client, headers, name="Makeup", status="active")
     bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"], status="active")
     party = await create_category(client, headers, name="Party", parent_id=makeup["id"], status="inactive")
@@ -90,7 +91,7 @@ async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engi
     await seed_categories(engine)
     artist = await sign_in(client, "+919845030001")
     await complete_profile(client, artist, photos=0, kyc=False)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     sub_id = next(c["id"] for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi-bridal")
     listed = (await client.get(f"{TEMPLATES}?subcategory_id={sub_id}", headers=headers)).json()
     classic = next(t for t in listed if t["name"] == "Bridal Classic")

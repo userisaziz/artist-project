@@ -1,17 +1,21 @@
 """Artist identity step: Aadhaar number (encrypted) and card photos (private storage)."""
 
+import pytest_asyncio
 from sqlalchemy import text
 
 from app.core.crypto import decrypt_aadhaar
 from app.upload.service import FakeStorage
-from tests.test_artists import (  # noqa: F401  (autouse fixture)
-    categories_seeded,
-    complete_profile,
-    sign_in,
-    upload_key,
-)
+from tests.support.artist import complete_profile
+from tests.support.auth import sign_in
+from tests.support.catalog import seed_categories
+from tests.support.upload import upload_key
 
 PHONE = "+919845055501"
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def categories_seeded(engine):
+    await seed_categories(engine)
 
 
 async def kyc_body(client, headers, number="234123412346") -> dict:

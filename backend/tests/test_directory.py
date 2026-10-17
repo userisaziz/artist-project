@@ -1,50 +1,21 @@
 """Public artist directory: who customers can find, what they see, and which slots are free."""
 
 import uuid
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta
 
 import pytest_asyncio
 from sqlalchemy import text
 
 from app.shared import clock
-from tests.test_admin import ADMIN_PHONE
-from tests.test_artists import categories, complete_profile, seed_categories, sign_in
-
-IST = ZoneInfo("Asia/Kolkata")
-CUSTOMER_PHONE = "+919845080001"
+from tests.support.artist import approved_artist, complete_profile
+from tests.support.auth import CUSTOMER_PHONE, admin_headers, sign_in
+from tests.support.catalog import categories, seed_categories
+from tests.support.directory import IST, ist_day, slot
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def categories_seeded(engine):
     await seed_categories(engine)
-
-
-def ist_day(days: int) -> date:
-    return (clock.now().astimezone(IST) + timedelta(days=days)).date()
-
-
-def slot(days: int = 5, hour: int = 11) -> str:
-    """An hourly start `days` from today, IST, as the API sends it."""
-    d = ist_day(days)
-    return datetime(d.year, d.month, d.day, hour, tzinfo=IST).isoformat()
-
-
-async def admin_headers(client, engine) -> dict:
-    return await sign_in(client, ADMIN_PHONE, role="admin", engine=engine)
-
-
-async def approved_artist(client, engine, phone: str, admin: dict, name: str = "Ayesha Mehendi Art", city: str = "Bangalore") -> dict:
-    """An approved artist with one service, Bridal Classic at ₹5,500 for 3 h. Returns headers, ids."""
-    headers = await sign_in(client, phone)
-    profile = await complete_profile(client, headers)
-    cats = await categories(client)
-    await client.put("/api/v1/artists/me/profile", headers=headers, json={
-        "business_name": name, "city": city, "category_ids": [cats["mehendi"]], "photo_key": profile["photo_key"],
-    })
-    assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 200
-    assert (await client.post(f"/api/v1/admin/artists/{profile['id']}/approve", headers=admin)).status_code == 200
-    return {"headers": headers, "id": profile["id"], "service_id": profile["services"][0]["id"]}
 
 
 async def test_directory_lists_only_approved_artists(client, engine):

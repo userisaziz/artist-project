@@ -2,16 +2,12 @@
 
 from sqlalchemy import text as sql_text
 
-from tests.test_artists import complete_profile, seed_categories, sign_in
-
-ADMIN_PHONE = "+919845000001"
-
-
-async def admin(client, engine) -> dict:
-    return await sign_in(client, ADMIN_PHONE, role="admin", engine=engine)
-
+from tests.support.artist import complete_profile, submitted_artist, submitted_artist_id
+from tests.support.auth import ADMIN_PHONE, admin_headers, sign_in
+from tests.support.catalog import create_category, seed_categories
 
 # --- categories -------------------------------------------------------------
+
 
 async def test_admin_endpoints_refuse_non_admins(client):
     headers = await sign_in(client, "+919845011112", role="artist")
@@ -23,7 +19,7 @@ async def test_admin_endpoints_refuse_non_admins(client):
 
 
 async def test_create_category_derives_slug_and_order(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     first = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Bridal Makeup", "status": "active"})
     assert first.status_code == 201
     assert first.json() | {"id": 0} == {
@@ -40,7 +36,7 @@ async def test_create_category_derives_slug_and_order(client, engine):
 
 
 async def test_category_names_and_slugs_are_unique(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Mehendi"})
     dupe = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "mehendi"})
     assert dupe.status_code == 409
@@ -49,7 +45,7 @@ async def test_category_names_and_slugs_are_unique(client, engine):
 
 
 async def test_update_and_delete_category(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     created = (await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Decor"})).json()
     patched = await client.patch(f"/api/v1/admin/categories/{created['id']}", headers=headers, json={"name": "Event Decor", "status": "inactive"})
     assert patched.json()["name"] == "Event Decor"
@@ -64,21 +60,15 @@ async def test_category_in_use_cannot_be_deleted(client, engine):
     await seed_categories(engine)
     artist = await sign_in(client, "+919845011113")
     await complete_profile(client, artist, photos=0)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
     assert (mehendi["artist_count"], mehendi["service_count"], mehendi["child_count"]) == (1, 0, 1)
     response = await client.delete(f"/api/v1/admin/categories/{mehendi['id']}", headers=headers)
     assert response.status_code == 409
 
 
-async def create_category(client, headers, **body) -> dict:
-    response = await client.post("/api/v1/admin/categories", headers=headers, json=body)
-    assert response.status_code == 201, response.json()
-    return response.json()
-
-
 async def test_subcategories_sit_under_a_top_level_category(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup = await create_category(client, headers, name="Makeup")
     bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
     assert bridal["slug"] == "makeup-bridal"
@@ -98,7 +88,7 @@ async def test_subcategories_sit_under_a_top_level_category(client, engine):
 
 
 async def test_subcategory_names_are_unique_per_parent(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup = await create_category(client, headers, name="Makeup")
     mehendi = await create_category(client, headers, name="Mehendi")
     await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
@@ -109,7 +99,7 @@ async def test_subcategory_names_are_unique_per_parent(client, engine):
 
 
 async def test_moving_categories_keeps_two_levels(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup = await create_category(client, headers, name="Makeup")
     hair = await create_category(client, headers, name="Hair")
     bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
@@ -128,7 +118,7 @@ async def test_moving_categories_keeps_two_levels(client, engine):
 
 
 async def test_category_with_subcategories_cannot_be_deleted(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     makeup = await create_category(client, headers, name="Makeup")
     bridal = await create_category(client, headers, name="Bridal", parent_id=makeup["id"])
     assert (await client.delete(f"/api/v1/admin/categories/{makeup['id']}", headers=headers)).status_code == 409
@@ -137,7 +127,7 @@ async def test_category_with_subcategories_cannot_be_deleted(client, engine):
 
 
 async def test_category_status_values_and_visibility(client, engine):
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     nails = await create_category(client, headers, name="Nails")
     url = f"/api/v1/admin/categories/{nails['id']}"
     assert (await client.patch(url, headers=headers, json={"status": "archived"})).status_code == 422
@@ -151,7 +141,7 @@ async def test_category_in_use_cannot_go_back_to_draft(client, engine):
     await seed_categories(engine)
     artist = await sign_in(client, "+919845011114")
     await complete_profile(client, artist, photos=0)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     mehendi = next(c for c in (await client.get("/api/v1/admin/categories", headers=headers)).json() if c["slug"] == "mehendi")
     url = f"/api/v1/admin/categories/{mehendi['id']}"
     draft = await client.patch(url, headers=headers, json={"status": "draft"})
@@ -161,12 +151,6 @@ async def test_category_in_use_cannot_go_back_to_draft(client, engine):
 
 # --- artist review ------------------------------------------------------------
 
-async def submitted_artist(client, engine, phone: str) -> dict:
-    headers = await sign_in(client, phone)
-    await complete_profile(client, headers)
-    await client.post("/api/v1/artists/me/submit", headers=headers)
-    return headers
-
 
 async def test_queue_lists_pending_oldest_first_with_paging(client, engine):
     await seed_categories(engine)
@@ -174,7 +158,7 @@ async def test_queue_lists_pending_oldest_first_with_paging(client, engine):
         await submitted_artist(client, engine, phone)
     draft = await sign_in(client, "+919845020004")
     await complete_profile(client, draft, photos=0)  # drafts never show up
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
 
     page1 = (await client.get("/api/v1/admin/artists?limit=2", headers=headers)).json()
     assert len(page1["items"]) == 2
@@ -190,7 +174,7 @@ async def test_queue_lists_pending_oldest_first_with_paging(client, engine):
 async def test_detail_includes_owner_and_full_profile(client, engine):
     await seed_categories(engine)
     await submitted_artist(client, engine, "+919845020005")
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     artist_id = (await client.get("/api/v1/admin/artists", headers=headers)).json()["items"][0]["id"]
     detail = (await client.get(f"/api/v1/admin/artists/{artist_id}", headers=headers)).json()
     assert detail["owner"]["phone"] == "+919845020005"
@@ -201,7 +185,7 @@ async def test_detail_includes_owner_and_full_profile(client, engine):
 async def test_approve(client, engine):
     await seed_categories(engine)
     artist = await submitted_artist(client, engine, "+919845020006")
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     artist_id = (await client.get("/api/v1/admin/artists", headers=headers)).json()["items"][0]["id"]
 
     approved = await client.post(f"/api/v1/admin/artists/{artist_id}/approve", headers=headers)
@@ -216,7 +200,7 @@ async def test_approve(client, engine):
 async def test_reject_then_edit_and_resubmit(client, engine):
     await seed_categories(engine)
     artist = await submitted_artist(client, engine, "+919845020007")
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     artist_id = (await client.get("/api/v1/admin/artists", headers=headers)).json()["items"][0]["id"]
 
     no_reason = await client.post(f"/api/v1/admin/artists/{artist_id}/reject", headers=headers, json={"reason": ""})
@@ -240,24 +224,18 @@ async def test_unknown_or_draft_artist_is_not_found(client, engine):
     await seed_categories(engine)
     draft = await sign_in(client, "+919845020008")
     profile = await complete_profile(client, draft, photos=0)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     assert (await client.get(f"/api/v1/admin/artists/{profile['id']}", headers=headers)).status_code == 404
     assert (await client.get("/api/v1/admin/artists?cursor=garbage", headers=headers)).status_code == 422
 
 
 # --- Aadhaar verification ---------------------------------------------------
 
-async def submitted_artist_id(client, phone="+919845066601") -> str:
-    headers = await sign_in(client, phone, role="artist")
-    await complete_profile(client, headers)
-    assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 200
-    return (await client.get("/api/v1/artists/me", headers=headers)).json()["id"]
-
 
 async def test_admin_detail_shows_masked_aadhaar_and_private_links(client, engine):
     await seed_categories(engine)
     artist_id = await submitted_artist_id(client)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     kyc = (await client.get(f"/api/v1/admin/artists/{artist_id}", headers=headers)).json()["kyc"]
     assert kyc["aadhaar_masked"] == "•••• •••• 2346"
     assert kyc["front_url"].startswith("https://fake.storage/private/") and "/aadhaar/" in kyc["front_url"]
@@ -269,7 +247,7 @@ async def test_admin_detail_shows_masked_aadhaar_and_private_links(client, engin
 async def test_reveal_returns_the_number_and_logs_it(client, engine):
     await seed_categories(engine)
     artist_id = await submitted_artist_id(client)
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     response = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=headers)
     assert response.status_code == 200
     assert response.json() == {"aadhaar_number": "234123412346"}
@@ -288,7 +266,7 @@ async def test_reveal_is_admin_only_and_needs_kyc(client, engine):
     forbidden = await client.post(f"/api/v1/admin/artists/{artist_id}/kyc/reveal", headers=artist_headers)
     assert forbidden.status_code == 403
 
-    headers = await admin(client, engine)
+    headers = await admin_headers(client, engine)
     async with engine.begin() as conn:
         await conn.execute(sql_text("DELETE FROM artist_kyc"))  # a profile submitted before this increment
     detail = (await client.get(f"/api/v1/admin/artists/{artist_id}", headers=headers)).json()
