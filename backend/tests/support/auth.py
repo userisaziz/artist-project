@@ -11,9 +11,12 @@ ADMIN_PHONE = "+919845000001"
 
 async def sign_in(client, phone: str, role: str | None = "artist", engine=None) -> dict:
     """Phone + OTP, then optionally pick a role (artist/customer) or force admin straight in the DB."""
-    await client.post("/api/v1/auth/otp/request", json={"phone": phone})
+    requested = await client.post("/api/v1/auth/otp/request", json={"phone": phone})
+    assert requested.status_code == 204, requested.text
     code = ConsoleSMSProvider.sent[-1][1].split()[-1]
-    body = (await client.post("/api/v1/auth/otp/verify", json={"phone": phone, "code": code})).json()
+    verified = await client.post("/api/v1/auth/otp/verify", json={"phone": phone, "code": code})
+    assert verified.status_code == 200, verified.text
+    body = verified.json()
     headers = {"Authorization": f"Bearer {body['access_token']}"}
     if role in ("artist", "customer"):
         await client.put("/api/v1/users/me/role", headers=headers, json={"role": role})

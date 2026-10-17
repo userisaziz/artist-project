@@ -1,5 +1,6 @@
 """Account rules for the signed-in user: sign-up details, then picking (or switching) the app role."""
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError
@@ -23,7 +24,10 @@ class UserService:
         user.last_name = details.last_name
         user.email = details.email
         user.whatsapp_booking_updates = details.whatsapp_booking_updates
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:  # someone took the email between the check and the write
+            raise ConflictError("Email already in use") from exc
         return user
 
     async def choose_role(self, user: User, choice: RoleChoice) -> User:

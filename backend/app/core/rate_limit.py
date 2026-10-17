@@ -69,7 +69,7 @@ def limit_by_ip(scope: str, get_limit: Callable[..., Limit]):
     async def dependency(
         request: Request,
         limit: Limit = Depends(get_limit),
-        session: AsyncSession = Depends(get_db),
+        session: AsyncSession = Depends(get_db, scope="function"),
         clock: Clock = Depends(get_clock),
     ) -> None:
         await hit(session, f"{scope}:ip:{client_ip(request)}", limit, clock.now())
@@ -85,7 +85,7 @@ def limit_by_user(scope: str, get_limit: Callable[..., Limit]):
     async def dependency(
         user: User = Depends(get_current_user),
         limit: Limit = Depends(get_limit),
-        session: AsyncSession = Depends(get_db),
+        session: AsyncSession = Depends(get_db, scope="function"),
         clock: Clock = Depends(get_clock),
     ) -> None:
         await hit(session, f"{scope}:user:{user.id}", limit, clock.now())

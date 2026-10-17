@@ -152,3 +152,11 @@ async def test_directory_hides_artists_and_services_admins_withdrew(client, engi
         await conn.execute(text("UPDATE artist_profile SET status='rejected' WHERE id=:i"), {"i": ayesha["id"]})
     assert (await client.get("/api/v1/artists")).json()["items"] == []
     assert (await client.get(f"/api/v1/artists/{ayesha['id']}")).status_code == 404
+
+
+async def test_public_reads_are_limited_per_ip(client, override):
+    from app.core.rate_limit import Limit
+    from app.directory.dependencies import public_reads_per_ip
+
+    override(public_reads_per_ip, lambda: Limit(hits=2, window_seconds=60))
+    assert [(await client.get("/api/v1/artists")).status_code for _ in range(3)] == [200, 200, 429]

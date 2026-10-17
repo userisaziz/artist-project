@@ -4,7 +4,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 
 from app.artist.models import ArtistProfile
-from app.directory.dependencies import get_directory_service, valid_artist_id
+from app.directory.dependencies import get_directory_service, limit_public_reads, valid_artist_id
 from app.directory.schemas import ArtistCardPage, ArtistPublic, AvailabilityOut
 from app.directory.service import DirectoryService
 from app.review.dependencies import get_review_service
@@ -13,7 +13,9 @@ from app.review.service import ReviewService
 from app.shared.responses import errors
 
 # Public: no sign-in needed to browse artists. Registered after the /artists/me routers so "me" never reads as an id.
-router = APIRouter(prefix="/artists", tags=["directory"], responses=errors(404, 422))
+router = APIRouter(
+    prefix="/artists", tags=["directory"], responses=errors(404, 422, 429), dependencies=[Depends(limit_public_reads)]
+)
 
 
 @router.get("", response_model=ArtistCardPage, status_code=200, summary="Browse approved artists")

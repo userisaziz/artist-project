@@ -126,7 +126,7 @@ async def test_every_constraint_and_index_follows_the_naming_convention(engine):
                 )
             )
         ).all()
-    prefix = {"p": "pk_", "u": "uq_", "f": "fk_", "c": "ck_"}
+    prefix = {"p": "pk_", "u": "uq_", "f": "fk_", "c": "ck_", "x": "ex_"}
     bad = [name for table, name, kind in constraints if not name.startswith(f"{prefix[kind]}{table}")]
     bad += [name for table, name in indexes if not name.startswith((f"ix_{table}_", f"uq_{table}_"))]
     assert bad == []

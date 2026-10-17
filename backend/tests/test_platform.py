@@ -131,3 +131,49 @@ def test_the_app_engine_points_at_the_test_database():
     from tests.conftest import settings
 
     assert engine.url.render_as_string(hide_password=False) == settings.test_database_url
+
+
+async def test_writes_commit_before_the_response_is_sent(engine, override):
+    """A client must never see 200/201 for a write that later fails to commit."""
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    from tests.support.auth import PHONE, sign_in
+
+    app = create_app()
+    order: list[str] = []
+
+    async def record_start(scope, receive, send):
+        async def tracking(message):
+            if message["type"] == "http.response.start":
+                order.append("response")
+            await send(message)
+
+        await app(scope, receive, tracking)
+
+    from tests.conftest import TestSessionFactory
+
+    async def test_db():
+        async with TestSessionFactory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    app.dependency_overrides[get_db] = test_db
+    async with AsyncClient(transport=ASGITransport(app=record_start), base_url="http://test") as ac:
+        headers = await sign_in(ac, PHONE, role=None)
+
+        def on_commit(session):
+            order.append("commit")
+
+        event.listen(Session, "after_commit", on_commit)
+        try:
+            order.clear()
+            response = await ac.patch("/api/v1/users/me", headers=headers, json={"first_name": "Meera"})
+        finally:
+            event.remove(Session, "after_commit", on_commit)
+    assert response.status_code == 200
+    assert order[-1] == "response" and "commit" in order

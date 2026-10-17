@@ -1,14 +1,16 @@
 """All auth rules live here — routes just forward to these methods.
 
 Invariants enforced:
-- OTP requests for one phone are serialised (advisory lock), so the resend cooldown can't be raced.
+- OTP requests and verifies for one phone are serialised (advisory lock): the resend cooldown can't be
+  raced, one code signs in once, and parallel wrong guesses all count toward the attempt lockout.
 - A resend invalidates earlier codes; verify is one-shot.
 - The code is saved before the SMS goes out; if delivery fails the code is withdrawn (no cooldown
   for a text that never arrived) and the caller gets 503.
 - Wrong guesses are persisted before the error raises, else the rollback in get_db would discard
   them and the attempt lockout could never trigger.
-- Refresh tokens rotate on every use. Replaying an already-rotated token revokes its whole family
-  (it was stolen or leaked), and logout revokes the family too.
+- Refresh tokens rotate on every use, under a row lock so two refreshes can't both rotate one token.
+  Replaying an already-rotated token revokes its whole family (it was stolen or leaked), and logout
+  revokes the family too.
 """
 
 import uuid
@@ -85,6 +87,7 @@ class AuthService:
 
     async def verify_otp(self, phone: str, code: str) -> tuple[User, str, str]:
         await hit(self.session, f"otp_verify:phone:{phone}", self.verify_limit, self.clock.now())
+        await self.auth.lock_phone(phone)  # parallel verifies (or guesses) for one phone run one at a time
         otp = await self.auth.latest_active_otp(phone, self.clock.now())
         if otp is None or otp.attempts >= self.settings.otp_max_attempts:
             audit("auth.otp_rejected", phone=mask_phone(phone), reason="no_active_code")
@@ -113,7 +116,7 @@ class AuthService:
         return user, access, refresh
 
     async def refresh(self, refresh_token: str) -> tuple[User, str, str]:
-        stored = await self._stored_refresh(refresh_token)
+        stored = await self._stored_refresh(refresh_token, lock=True)
         now = self.clock.now()
         if stored.revoked_at is not None:
             # A rotated token came back: someone else holds a copy. End every session from that sign-in.
@@ -143,14 +146,14 @@ class AuthService:
         await self.auth.revoke_family(stored.family_id, self.clock.now())
         audit("auth.logged_out", user_id=str(stored.user_id))
 
-    async def _stored_refresh(self, refresh_token: str) -> RefreshToken:
+    async def _stored_refresh(self, refresh_token: str, *, lock: bool = False) -> RefreshToken:
         try:
             payload = decode_token(refresh_token)
         except pyjwt.PyJWTError as exc:
             raise AuthError("Invalid refresh token") from exc
         if payload.get("type") != "refresh":
             raise AuthError("Invalid refresh token")
-        stored = await self.auth.refresh_token_by_hash(hash_token(refresh_token))
+        stored = await self.auth.refresh_token_by_hash(hash_token(refresh_token), lock=lock)
         if stored is None:
             raise AuthError("Refresh token expired or revoked")
         return stored

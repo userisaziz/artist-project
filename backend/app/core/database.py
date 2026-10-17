@@ -4,6 +4,10 @@ One engine for the whole process (shared connection pool, sized from settings, d
 shutdown by the app lifespan). `get_db` is the dependency every route uses: it owns the
 transaction — commit when the request succeeds, rollback when anything raises — so services
 never manage sessions.
+
+Always depend on it as `Depends(get_db, scope="function")`: the commit then runs before the response
+is sent, so a client never gets 200/201 for a write that failed to commit (FastAPI's default
+"request" scope would commit only after the response went out). tests/test_platform.py checks this.
 """
 
 from collections.abc import AsyncIterator

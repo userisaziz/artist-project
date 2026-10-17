@@ -58,5 +58,28 @@ def test_short_jwt_secret_is_rejected():
 
 
 def test_docs_are_off_in_production():
-    assert Settings(environment="production", jwt_secret=STRONG_SECRET).docs_enabled is False
+    assert Settings(**PRODUCTION_EDGE).docs_enabled is False
     assert Settings(environment="staging", jwt_secret=STRONG_SECRET).docs_enabled is True
+
+
+PRODUCTION_EDGE = {
+    "environment": "production",
+    "jwt_secret": STRONG_SECRET,
+    "allowed_hosts": ["api.artcircle.in"],
+    "forwarded_allow_ips": "10.0.0.0/8",
+    "cors_origins": ["https://admin.artcircle.in"],
+}
+
+
+def test_production_http_edge_config_is_accepted():
+    assert Settings(**PRODUCTION_EDGE).allowed_hosts == ["api.artcircle.in"]
+
+
+def test_production_refuses_wildcard_hosts_missing_proxy_trust_and_localhost_cors():
+    for field, unsafe, message in (
+        ("allowed_hosts", ["*"], "ALLOWED_HOSTS"),
+        ("forwarded_allow_ips", "", "FORWARDED_ALLOW_IPS"),
+        ("cors_origins", ["http://localhost:5173"], "CORS_ORIGINS"),
+    ):
+        with pytest.raises(ValidationError, match=message):
+            Settings(**{**PRODUCTION_EDGE, field: unsafe})

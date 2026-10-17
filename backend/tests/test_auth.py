@@ -154,3 +154,20 @@ async def test_sign_ins_and_failures_are_audited_with_masked_phones(client, capl
     ]
     assert all(PHONE not in str(r.__dict__) for r in audit)
     assert audit[0].phone == "+15*****1111"
+
+
+async def test_simultaneous_refreshes_with_one_token_rotate_it_once(client):
+    """Row-locked rotation: the second request sees the token already rotated (reuse), never a forked session."""
+    token = (await _sign_in(client))["refresh_token"]
+    responses = await asyncio.gather(
+        *(client.post("/api/v1/auth/refresh", json={"refresh_token": token}) for _ in range(2))
+    )
+    assert sorted(r.status_code for r in responses) == [200, 401]
+
+
+async def test_simultaneous_verifies_of_one_code_sign_in_once(client):
+    code = await request_and_read_code(client)
+    responses = await asyncio.gather(
+        *(client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code}) for _ in range(2))
+    )
+    assert sorted(r.status_code for r in responses) == [200, 401]

@@ -6,5 +6,7 @@ from app.review.service import ReviewService
 from app.shared.clock import Clock, get_clock
 
 
-def get_review_service(session: AsyncSession = Depends(get_db), clock: Clock = Depends(get_clock)) -> ReviewService:
+def get_review_service(
+    session: AsyncSession = Depends(get_db, scope="function"), clock: Clock = Depends(get_clock)
+) -> ReviewService:
     return ReviewService(session, clock)

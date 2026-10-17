@@ -5,6 +5,7 @@ import asyncio
 import re
 from datetime import datetime, timedelta
 
+import pytest
 import pytest_asyncio
 from sqlalchemy import text
 
@@ -421,3 +422,23 @@ async def test_direct_upi_bookings_record_amounts_but_no_payment(client, engine,
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
     assert (b["status"], b["deposit_paise"], b["deposit_paid_at"]) == ("requested", 168000, None)
+
+
+async def test_the_database_refuses_overlapping_active_bookings_for_one_artist(client, engine):
+    """Defence in depth: even a write that skips the service's checks can't double-book an artist."""
+    import sqlalchemy.exc
+
+    _, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+    with pytest.raises(sqlalchemy.exc.IntegrityError, match="ex_booking_no_overlap"):
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO booking (code, customer_id, artist_id, service_name, duration_minutes, start_at, "
+                    "end_at, address, status, subtotal_paise, platform_fee_paise, total_paise, deposit_paise, "
+                    "commission_paise, payment_provider, expires_at) SELECT 'BK-OVRLAP', customer_id, artist_id, "
+                    "service_name, duration_minutes, start_at + interval '1 hour', end_at + interval '1 hour', "
+                    "address, 'confirmed', 0, 0, 0, 0, 0, 'mock', expires_at FROM booking WHERE id = :id"
+                ),
+                {"id": b["id"]},
+            )

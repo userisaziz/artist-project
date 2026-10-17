@@ -1,10 +1,11 @@
-# app/models/booking.py — a customer's booking request for one artist service (migration #8)
+"""A customer's booking request for one artist service."""
+
 import uuid
 from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums import BookingStatus
@@ -70,6 +71,15 @@ class Booking(Base, TimestampMixin):
             name="money_non_negative",
         ),
         sa.CheckConstraint("end_at > start_at", name="end_after_start"),
+        # The database itself refuses two slot-holding bookings that overlap for one artist, whatever
+        # code path writes them (the service also checks first, under the artist row lock).
+        ExcludeConstraint(
+            ("artist_id", "="),
+            (sa.text("tstzrange(start_at, end_at)"), "&&"),
+            using="gist",
+            where=sa.text("status IN ('requested', 'confirmed')"),
+            name="ex_booking_no_overlap",
+        ),
     )
 
     @property

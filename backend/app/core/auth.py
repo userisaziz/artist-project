@@ -21,7 +21,7 @@ bearer_scheme = HTTPBearer(auto_error=True)
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db, scope="function"),
 ) -> User:
     try:
         payload = decode_token(credentials.credentials)

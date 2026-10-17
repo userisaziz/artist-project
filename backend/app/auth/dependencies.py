@@ -19,7 +19,7 @@ def otp_verify_per_phone() -> Limit:
 
 
 def get_auth_service(
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db, scope="function"),
     sms: SMSProvider = Depends(get_sms_provider),
     settings: AuthSettings = Depends(get_auth_settings),
     request_limit: Limit = Depends(otp_request_per_phone),

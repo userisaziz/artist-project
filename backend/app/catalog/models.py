@@ -41,4 +41,10 @@ class ServiceTemplate(Base):
     # One name per subcategory, case-insensitively.
     __table_args__ = (
         sa.Index("uq_catalog_service_template_subcategory_name", "subcategory_id", sa.text("lower(name)"), unique=True),
+        sa.Index(
+            "ix_catalog_service_template_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
     )

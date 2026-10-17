@@ -32,8 +32,12 @@ class AuthRepository:
             await self.session.scalars(select(OtpCode).where(OtpCode.phone == phone, OtpCode.consumed_at.is_(None)))
         ).all()
 
-    async def refresh_token_by_hash(self, token_hash: str) -> RefreshToken | None:
-        return await self.session.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+    async def refresh_token_by_hash(self, token_hash: str, *, lock: bool = False) -> RefreshToken | None:
+        """`lock`: row-lock it, so two refreshes with the same token are serialised and the second sees it revoked."""
+        query = select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+        if lock:
+            query = query.with_for_update().execution_options(populate_existing=True)
+        return await self.session.scalar(query)
 
     async def lock_phone(self, phone: str) -> None:
         """Serialise sign-in work for one phone until the transaction ends (cooldown checks can't race)."""

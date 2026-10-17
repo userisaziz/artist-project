@@ -6,9 +6,9 @@ A missing or unsafe value fails here at startup with a readable error, never at 
 """
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import AliasChoices, Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["local", "test", "staging", "production"]
@@ -45,8 +45,11 @@ class Settings(AppSettings):
     cors_origins: list[str] = Field(
         default=["http://localhost:5173"], validation_alias=AliasChoices("cors_origins", "admin_origins")
     )
-    # Host headers accepted; set to the API's public hostnames in production.
+    # Host headers accepted; must be the API's public hostnames in production.
     allowed_hosts: list[str] = ["*"]
+    # Proxies trusted to set X-Forwarded-For (uvicorn --forwarded-allow-ips). Required in production:
+    # without it every client looks like the load balancer and shares one rate-limit bucket.
+    forwarded_allow_ips: str = ""
     max_body_bytes: int = Field(1_048_576, ge=1024)  # JSON only: images upload straight to the image host
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_json: bool | None = None  # None: JSON everywhere except local
@@ -61,6 +64,18 @@ class Settings(AppSettings):
         except ValueError:  # deliberately not chained: the message must never echo the key
             raise ValueError("AADHAAR_ENCRYPTION_KEY must be a 32-byte url-safe base64 Fernet key") from None
         return value
+
+    @model_validator(mode="after")
+    def _safe_http_edge_in_production(self) -> Self:
+        if not self.is_production:
+            return self
+        if "*" in self.allowed_hosts:
+            raise ValueError("ALLOWED_HOSTS must list the API's hostnames in production, not *")
+        if not self.forwarded_allow_ips.strip():
+            raise ValueError("FORWARDED_ALLOW_IPS must name the load balancer/proxy addresses in production")
+        if any("localhost" in o or "127.0.0.1" in o or o == "*" for o in self.cors_origins):
+            raise ValueError("CORS_ORIGINS must be the real admin origin(s) in production")
+        return self
 
     @property
     def docs_enabled(self) -> bool:

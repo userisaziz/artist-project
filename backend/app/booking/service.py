@@ -11,6 +11,7 @@ from datetime import date, datetime, time, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import ColumnElement, and_, not_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -188,6 +189,9 @@ class BookingService:
             raise NotFoundError("Service not found")
 
         rules.check_bookable_start(data.start_at, now)
+        # Settle this artist's unanswered requests first: an expired one must not hold its slot (nor trip the
+        # database's no-overlap constraint, which only knows the stored status).
+        await self.bookings.expire_overdue(now, Booking.artist_id == artist.id)
         await self._check_open_requests(customer, now)
         end = data.start_at + timedelta(minutes=service.duration_minutes)
         if await self.bookings.busy_ranges(artist.id, data.start_at, end, now):
@@ -218,7 +222,10 @@ class BookingService:
             expires_at=rules.accept_deadline(now, data.start_at),
         )
         self.bookings.add(booking)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:  # ex_booking_no_overlap: only reachable if a write skipped the artist lock
+            raise ConflictError("That time was just taken. Pick another slot.") from exc
         return await self.save(booking.id, view="customer")
 
     async def _check_open_requests(self, customer: User, now: datetime) -> None:

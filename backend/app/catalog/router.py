@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 
 from app.catalog.config import get_catalog_settings
-from app.catalog.dependencies import get_category_service
+from app.catalog.dependencies import get_category_service, limit_public_reads
 from app.catalog.schemas import CatalogCategoryOut
 from app.catalog.service import CategoryService
 from app.catalog.utils import catalog_tree
 from app.shared.responses import errors
 
-router = APIRouter(tags=["catalog"], responses=errors(422))
+router = APIRouter(tags=["catalog"], responses=errors(422, 429), dependencies=[Depends(limit_public_reads)])
 
 
 @router.get(

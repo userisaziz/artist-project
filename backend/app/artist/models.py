@@ -69,7 +69,16 @@ class ArtistProfile(Base, TimestampMixin):
     )
     kyc: Mapped["ArtistKyc | None"] = relationship(lazy="selectin", uselist=False, cascade="all, delete-orphan")
 
-    __table_args__ = (sa.Index("ix_artist_profile_status_submitted", "status", "submitted_at", "id"),)
+    __table_args__ = (
+        sa.Index("ix_artist_profile_status_submitted", "status", "submitted_at", "id"),
+        # Directory search is ILIKE '%q%': trigram indexes keep it off sequential scans.
+        sa.Index(
+            "ix_artist_profile_business_name_trgm",
+            "business_name",
+            postgresql_using="gin",
+            postgresql_ops={"business_name": "gin_trgm_ops"},
+        ),
+    )
 
 
 class ArtistServiceItem(Base, TimestampMixin):
@@ -106,6 +115,9 @@ class ArtistServiceItem(Base, TimestampMixin):
         sa.CheckConstraint("price_paise > 0", name="price_positive"),
         sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
         sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="name_or_template"),
+        sa.Index(
+            "ix_artist_service_item_name_trgm", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
+        ),
     )
 
     @property

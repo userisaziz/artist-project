@@ -24,7 +24,7 @@ async def live() -> dict:
 
 @router.get("/ready", response_model=ReadyOut, status_code=200, summary="Readiness probe (database reachable)")
 @router.get("", response_model=ReadyOut, status_code=200, summary="Readiness probe (alias of /health/ready)")
-async def ready(session: AsyncSession = Depends(get_db)) -> dict:
+async def ready(session: AsyncSession = Depends(get_db, scope="function")) -> dict:
     try:
         await session.execute(text("SELECT 1"))
     except (SQLAlchemyError, OSError) as exc:

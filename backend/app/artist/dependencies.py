@@ -10,7 +10,7 @@ from app.upload.service import ImageStorage, get_storage
 
 
 def get_artist_service(
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db, scope="function"),
     storage: ImageStorage = Depends(get_storage),
     clock: Clock = Depends(get_clock),
 ) -> ArtistService:
@@ -18,10 +18,10 @@ def get_artist_service(
 
 
 def get_admin_artist_service(
-    session: AsyncSession = Depends(get_db), clock: Clock = Depends(get_clock)
+    session: AsyncSession = Depends(get_db, scope="function"), clock: Clock = Depends(get_clock)
 ) -> AdminArtistService:
     return AdminArtistService(session, clock)
 
 
-def get_custom_service_review(session: AsyncSession = Depends(get_db)) -> CustomServiceReview:
+def get_custom_service_review(session: AsyncSession = Depends(get_db, scope="function")) -> CustomServiceReview:
     return CustomServiceReview(session)

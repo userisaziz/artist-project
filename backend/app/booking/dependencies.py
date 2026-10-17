@@ -12,7 +12,7 @@ from app.upload.service import ImageStorage, get_storage
 
 
 def get_booking_service(
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db, scope="function"),
     storage: ImageStorage = Depends(get_storage),
     settings: BookingSettings = Depends(get_booking_settings),
     clock: Clock = Depends(get_clock),
@@ -21,7 +21,7 @@ def get_booking_service(
 
 
 def get_admin_booking_service(
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db, scope="function"),
     storage: ImageStorage = Depends(get_storage),
     settings: BookingSettings = Depends(get_booking_settings),
     clock: Clock = Depends(get_clock),
