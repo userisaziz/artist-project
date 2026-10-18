@@ -8,7 +8,7 @@ Increment 2: categories (admins create them), artist profiles, their services an
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -16,9 +16,9 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "265eeb13be2d"
-down_revision: Union[str, Sequence[str], None] = "a7c3e1d2b4f6"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "a7c3e1d2b4f6"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

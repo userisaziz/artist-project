@@ -38,7 +38,7 @@ async def test_migrations_create_all_tables(engine):
         rows = (
             (await conn.execute(sa.text("SELECT tablename FROM pg_tables WHERE schemaname='public'"))).scalars().all()
         )
-    assert EXPECTED_TABLES <= set(rows)
+    assert set(rows) >= EXPECTED_TABLES
 
 
 async def test_existing_services_become_approved_custom_rows(client, engine):

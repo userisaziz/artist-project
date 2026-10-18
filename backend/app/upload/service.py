@@ -91,7 +91,8 @@ class CloudinaryStorage(ImageStorage):
 
     def sign(self, params: dict[str, str]) -> str:
         to_sign = "&".join(f"{k}={params[k]}" for k in sorted(params))
-        return hashlib.sha1((to_sign + self.api_secret).encode()).hexdigest()
+        # Cloudinary's default signature scheme is SHA-1 over the sorted params + secret (their API, not our choice).
+        return hashlib.sha1((to_sign + self.api_secret).encode()).hexdigest()  # noqa: S324
 
     def upload_params(self, owner_id: uuid.UUID, purpose: Purpose) -> dict:
         key = new_key(owner_id, purpose)

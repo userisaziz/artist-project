@@ -4,7 +4,8 @@
 line-length = 120
 
 [lint]
-select = ["E4", "E7", "E9", "F", "B", "I", "RUF"]
+# S: security (bandit), ASYNC: blocking calls in async code, UP: modern syntax, SIM: simplifications.
+select = ["E4", "E7", "E9", "F", "B", "I", "RUF", "S", "ASYNC", "UP", "SIM"]
 # Typographic punctuation deliberately used in prose comments/docstrings.
 allowed-confusables = ["›", "–"]
 
@@ -20,7 +21,8 @@ extend-immutable-calls = [
 
 [lint.per-file-ignores]
 # __mapper_args__/__table_args__ dicts are SQLAlchemy declarative idiom, not shared mutable state.
-"app/models/**" = ["RUF012"]
 "*/models.py" = ["RUF012"]
 "*/config.py" = ["RUF012"]  # pydantic copies field defaults per instance
 "tests/conftest.py" = ["E402"]  # test env vars must be set before the app is imported
+# pytest asserts, and throwaway secrets that only exist inside tests.
+"tests/**" = ["S101", "S105", "S106"]

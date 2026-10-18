@@ -9,7 +9,7 @@ users.role becomes users.active_role: the side of the mobile app being shown
 (customer/artist, never admin; NULL until Choose role, which replaces is_onboarded).
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -17,9 +17,9 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "c4d1f7a9b2e3"
-down_revision: Union[str, Sequence[str], None] = "265eeb13be2d"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "265eeb13be2d"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 user_role = postgresql.ENUM("customer", "artist", "admin", name="user_role", create_type=False)
 
