@@ -29,6 +29,6 @@ class RefreshRequest(APIModel):
 
 class TokenPair(APIModel):
     access_token: str
-    refresh_token: str
+    refresh_token: str | None = Field(description="null when the token was set as the httpOnly cookie instead")
     token_type: str = "bearer"  # noqa: S105  (the OAuth token type, not a secret)
     user: UserOut

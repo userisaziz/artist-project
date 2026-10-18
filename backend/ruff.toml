@@ -17,6 +17,8 @@ extend-immutable-calls = [
   "fastapi.Body",
   "fastapi.Form",
   "fastapi.File",
+  "fastapi.Header",
+  "fastapi.Cookie",
 ]
 
 [lint.per-file-ignores]

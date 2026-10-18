@@ -3,9 +3,12 @@
 import asyncio
 import logging
 
+import pytest
+
 from app.auth.config import AuthSettings, get_auth_settings
 from app.auth.dependencies import otp_request_per_ip, otp_request_per_phone
 from app.auth.sms import SMSProvider, get_sms_provider
+from app.core.config import get_settings
 from app.core.exceptions import ServiceUnavailableError
 from app.core.rate_limit import Limit
 from tests.support.auth import PHONE, request_and_read_code
@@ -171,3 +174,180 @@ async def test_simultaneous_verifies_of_one_code_sign_in_once(client):
         *(client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code}) for _ in range(2))
     )
     assert sorted(r.status_code for r in responses) == [200, 401]
+
+
+# --- httpOnly refresh cookie transport (admin web) ------------------------------------------------
+
+COOKIE_MODE = {"X-Session-Transport": "cookie"}
+SESSION_COOKIE_MODE = {"X-Session-Transport": "cookie-session"}
+ADMIN_ORIGIN = "http://localhost:5173"
+
+
+@pytest.fixture(autouse=True)
+def empty_cookie_jar(client):
+    """The client is session-scoped: never let one test's refresh cookie reach the next."""
+    client.cookies.clear()
+    yield
+    client.cookies.clear()
+
+
+async def _sign_in_with(client, headers: dict):
+    code = await request_and_read_code(client)
+    return await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": code}, headers=headers)
+
+
+def _cookie_attrs(response) -> dict[str, str]:
+    """`Set-Cookie: ac_refresh=...; HttpOnly; ...` as {lower-cased attribute: value}."""
+    header = response.headers["set-cookie"]
+    parts = [p.strip() for p in header.split(";")]
+    name, _, value = parts[0].partition("=")
+    attrs = {"name": name, "value": value}
+    for part in parts[1:]:
+        key, _, val = part.partition("=")
+        attrs[key.lower()] = val
+    return attrs
+
+
+async def test_verify_in_cookie_mode_sets_an_httponly_cookie_and_hides_the_token(client):
+    response = await _sign_in_with(client, COOKIE_MODE)
+    assert response.status_code == 200
+    assert response.json()["refresh_token"] is None
+    assert response.json()["access_token"]
+    cookie = _cookie_attrs(response)
+    assert cookie["name"] == "ac_refresh" and cookie["value"]
+    assert "httponly" in cookie
+    assert cookie["samesite"].lower() == "strict"
+    assert cookie["path"] == "/api/v1/auth"
+    assert int(cookie["max-age"]) == get_settings().refresh_token_ttl_days * 86400
+    assert "secure" not in cookie  # test environment: plain http
+
+
+async def test_cookie_is_secure_outside_local_and_test(client, override):
+    override(get_settings, lambda: get_settings().model_copy(update={"environment": "staging"}))
+    response = await _sign_in_with(client, COOKIE_MODE)
+    assert "secure" in _cookie_attrs(response)
+
+
+async def test_cookie_session_mode_sets_a_session_cookie(client):
+    response = await _sign_in_with(client, SESSION_COOKIE_MODE)
+    cookie = _cookie_attrs(response)
+    assert cookie["value"] and "httponly" in cookie
+    assert "max-age" not in cookie and "expires" not in cookie
+
+
+async def test_unknown_session_transport_is_a_422(client):
+    response = await _sign_in_with(client, {"X-Session-Transport": "localstorage"})
+    assert response.status_code == 422
+
+
+async def test_body_flow_sets_no_cookie(client):
+    response = await _sign_in_with(client, {})
+    assert response.json()["refresh_token"]
+    assert "set-cookie" not in response.headers
+
+
+async def test_refresh_via_cookie_rotates_and_resets_the_cookie(client):
+    first = _cookie_attrs(await _sign_in_with(client, COOKIE_MODE))["value"]
+    refreshed = await client.post("/api/v1/auth/refresh", headers=COOKIE_MODE)
+    assert refreshed.status_code == 200
+    assert refreshed.json()["refresh_token"] is None
+    second = _cookie_attrs(refreshed)["value"]
+    assert second and second != first
+    # The rotated-out token is dead.
+    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": first})).status_code == 401
+
+
+async def test_refresh_reads_the_cookie_only_with_the_custom_header(client):
+    """CSRF guard: a cross-site form post carries the cookie but can't add the header without a preflight."""
+    await _sign_in_with(client, COOKIE_MODE)
+    assert client.cookies.get("ac_refresh")
+    response = await client.post("/api/v1/auth/refresh")
+    assert response.status_code == 401
+    assert response.json()["code"] == "auth_error"
+
+
+async def test_refresh_without_any_token_is_a_401(client):
+    response = await client.post("/api/v1/auth/refresh", headers=COOKIE_MODE)
+    assert response.status_code == 401
+    assert set(response.json()) >= {"code", "message"}
+
+
+async def test_failed_cookie_refresh_clears_the_cookie(client):
+    await _sign_in_with(client, COOKIE_MODE)
+    client.cookies.set("ac_refresh", "garbage", path="/api/v1/auth")
+    response = await client.post("/api/v1/auth/refresh", headers=COOKIE_MODE)
+    assert response.status_code == 401
+    cookie = _cookie_attrs(response)
+    assert cookie["name"] == "ac_refresh"
+    assert cookie["max-age"] == "0"
+    assert cookie["path"] == "/api/v1/auth"
+
+
+async def test_logout_via_cookie_revokes_the_family_and_clears_the_cookie(client):
+    token = _cookie_attrs(await _sign_in_with(client, COOKIE_MODE))["value"]
+    response = await client.post("/api/v1/auth/logout", headers=COOKIE_MODE)
+    assert response.status_code == 204
+    cookie = _cookie_attrs(response)
+    assert cookie["max-age"] == "0" and cookie["path"] == "/api/v1/auth"
+    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": token})).status_code == 401
+
+
+async def test_logout_without_any_token_is_still_204(client):
+    assert (await client.post("/api/v1/auth/logout")).status_code == 204
+    cleared = await client.post("/api/v1/auth/logout", headers=COOKIE_MODE)
+    assert cleared.status_code == 204
+    assert _cookie_attrs(cleared)["max-age"] == "0"
+
+
+async def test_body_token_wins_over_the_cookie(client, override):
+    override(get_auth_settings, lambda: AuthSettings(sms_provider="console", otp_resend_cooldown_seconds=0))
+    cookie_token = _cookie_attrs(await _sign_in_with(client, COOKIE_MODE))["value"]
+    client.cookies.clear()
+    body_token = (await _sign_in(client))["refresh_token"]
+    client.cookies.set("ac_refresh", cookie_token, path="/api/v1/auth")
+    response = await client.post("/api/v1/auth/logout", json={"refresh_token": body_token}, headers=COOKIE_MODE)
+    assert response.status_code == 204
+    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": body_token})).status_code == 401
+    assert (await client.post("/api/v1/auth/refresh", json={"refresh_token": cookie_token})).status_code == 200
+
+
+async def test_cors_preflight_from_admin_allows_credentials_and_the_transport_header(client):
+    response = await client.options(
+        "/api/v1/auth/refresh",
+        headers={
+            "Origin": ADMIN_ORIGIN,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type, x-session-transport",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == ADMIN_ORIGIN
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "x-session-transport" in response.headers["access-control-allow-headers"].lower()
+
+
+async def test_local_cors_echoes_the_origin_with_credentials(engine, monkeypatch):
+    """Local allows any origin; with credentials the browser needs the concrete origin, never `*`."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.main import create_app
+
+    monkeypatch.setenv("ENVIRONMENT", "local")
+    get_settings.cache_clear()
+    try:
+        local_app = create_app()
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
+    origin = "http://localhost:5174"
+    async with AsyncClient(transport=ASGITransport(app=local_app), base_url="http://test") as local:
+        response = await local.options(
+            "/api/v1/auth/refresh",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "x-session-transport",
+            },
+        )
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"

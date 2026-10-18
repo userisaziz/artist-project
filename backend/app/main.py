@@ -13,6 +13,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app import registry  # noqa: F401  (every model mapped before the first request)
 from app.auth.config import get_auth_settings
+from app.auth.constants import SESSION_TRANSPORT_HEADER
 from app.booking.config import get_booking_settings
 from app.catalog.config import get_catalog_settings
 from app.core.config import get_settings
@@ -35,7 +36,7 @@ SETTINGS_GETTERS = (
     get_upload_settings,
 )
 CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID"]
+CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID", SESSION_TRANSPORT_HEADER]
 GZIP_MIN_BYTES = 1024
 
 
@@ -64,7 +65,9 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"] if settings.environment == "local" else settings.cors_origins,
+        # With credentials, Starlette answers a "*" origin list with the caller's concrete Origin, never "*".
         allow_methods=CORS_METHODS,
+        allow_credentials=True,  # the admin's httpOnly refresh cookie
         allow_headers=CORS_HEADERS,
         expose_headers=["X-Request-ID", "Retry-After"],
     )
