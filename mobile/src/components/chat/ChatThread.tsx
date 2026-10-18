@@ -37,7 +37,7 @@ export function ChatThread({ side, conversationId }: ChatThreadProps) {
   const messages = useMessages(side, conversationId, focused);
   const send = useSendMessage(side, conversationId);
   const markRead = useMarkRead(side, conversationId);
-  const items = messages.data?.pages.flatMap((p) => p.items) ?? [];
+  const items = useMemo(() => messages.data?.pages.flatMap((p) => p.items) ?? [], [messages.data]);
   const rows = useMemo(() => threadRows(items, now), [items, now]);
   const newestIncoming = items.find((m) => m.sender !== side)?.id;
   const { mutate: markAsRead } = markRead;
