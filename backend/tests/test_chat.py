@@ -6,6 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest_asyncio
 from sqlalchemy import text
 
+from app.chat.dependencies import message_burst_per_user, opens_per_user
+from app.core.rate_limit import Limit
 from tests.support.artist import approved_artist, submitted_artist_id
 from tests.support.auth import sign_in
 from tests.support.booking import book, setup
@@ -234,3 +236,66 @@ async def test_each_side_reads_one_conversation_from_its_own_view(client, engine
     assert mine.json()["counterpart"]["name"] == "Ayesha Mehendi Art"
     assert theirs.json()["counterpart"]["name"] == "Atelier customer"
     assert other.status_code == 404
+
+
+async def test_messages_with_contact_details_are_refused(client, engine):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+
+    for body in ("Call me on 98450 67890", "mail me at a@b.com", "see www.mysite.in"):
+        response = await send(client, customer, c["id"], body)
+        assert response.status_code == 422, body
+    assert (await send(client, customer, c["id"], "Saturday 10 Oct at 11:00 works")).status_code == 201
+
+
+async def test_messages_keep_sending_order_under_one_clock_reading(client, engine, travel):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    travel(NOW)
+    for i in range(4):
+        await send(client, customer, c["id"], f"m{i}")
+
+    page = (await client.get(f"/api/v1/conversations/{c['id']}/messages", headers=customer)).json()
+
+    assert [m["text"] for m in page["items"]] == ["m3", "m2", "m1", "m0"]
+
+
+async def test_artist_cannot_open_a_chat_from_a_dead_booking(client, engine):
+    _, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+    await client.post(
+        f"/api/v1/artists/me/bookings/{b['id']}/decline", headers=artist["headers"], json={"reason": None}
+    )
+
+    response = await client.post(
+        "/api/v1/artists/me/conversations", headers=artist["headers"], json={"booking_id": b["id"]}
+    )
+
+    assert response.status_code == 409
+
+
+async def test_customer_cannot_write_to_an_artist_who_is_no_longer_approved(client, engine):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE artist_profile SET status='rejected' WHERE id=:id"), {"id": artist["id"]})
+
+    assert (await send(client, customer, c["id"], "Hello?")).status_code == 409
+
+
+async def test_opening_chats_is_rate_limited(client, engine, override):
+    _, artist, customer = await setup(client, engine)
+    override(opens_per_user, lambda: Limit(hits=1, window_seconds=3600))
+
+    assert (await open_chat(client, customer, artist["id"])).status_code == 200
+    assert (await open_chat(client, customer, artist["id"])).status_code == 429
+
+
+async def test_message_bursts_are_rate_limited(client, engine, override):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    override(message_burst_per_user, lambda: Limit(hits=2, window_seconds=60))
+
+    codes = [(await send(client, customer, c["id"], f"m{i}")).status_code for i in range(3)]
+
+    assert codes == [201, 201, 429]

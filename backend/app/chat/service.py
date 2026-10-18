@@ -3,7 +3,8 @@ Delivery is by polling: clients re-read the inbox and the open conversation on a
 
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, cast
 
 from sqlalchemy import ColumnElement
 from sqlalchemy.exc import IntegrityError
@@ -12,13 +13,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.chat.constants import ChatSide
 from app.chat.models import Conversation, Message
 from app.chat.repository import ChatRepository, ConversationRow, customer_name_matches
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.review import filters as review_filters
 from app.shared.clock import Clock
+from app.shared.enums import BookingStatus
 from app.shared.pagination import split_page
 from app.shared.search import like_pattern
 from app.upload.service import ImageStorage
 
 CUSTOMER_FALLBACK_NAME = "Atelier customer"
+TICK = timedelta(microseconds=1)
+# Bookings an artist may start a chat from: live requests, confirmed and completed work. Not declined,
+# cancelled or expired ones, so a customer who walked away isn't contacted again.
+CHAT_BOOKING_STATUSES = (BookingStatus.requested, BookingStatus.confirmed, BookingStatus.completed)
 
 
 @dataclass(frozen=True)
@@ -98,6 +105,8 @@ class ChatService:
             except IntegrityError:
                 await self.session.rollback()
             conversation = await self.chats.pair(customer_id, artist_id)
+            if conversation is None:  # lost the race and the winner rolled back: let the client retry
+                raise ConflictError("Couldn't open the conversation. Please try again.")
         return await self._out(participant, conversation.id)
 
     async def conversation(self, participant: Participant, conversation_id: uuid.UUID) -> Conversation:
@@ -119,17 +128,23 @@ class ChatService:
         return await self._open(participant, participant.id, artist_id)
 
     async def open_from_booking(self, participant: Participant, booking_id: uuid.UUID) -> dict[str, Any]:
-        customer_id = await self.chats.booking_customer(booking_id, participant.id)
-        if customer_id is None:
+        booking = await self.chats.artist_booking(booking_id, participant.id)
+        if booking is None:
             raise NotFoundError("Booking not found")
-        return await self._open(participant, customer_id, participant.id)
+        expired = booking.status == BookingStatus.requested and booking.expires_at <= self.clock.now()
+        if booking.status not in CHAT_BOOKING_STATUSES or expired:
+            raise ConflictError("You can message customers about live or completed bookings only")
+        return await self._open(participant, booking.customer_id, participant.id)
 
     async def inbox(self, participant: Participant, q: str | None, limit: int, cursor: str | None):
         where = [participant.scope]
         if q and q.strip() and participant.side == ChatSide.artist:
             where.append(customer_name_matches(like_pattern(q)))
         rows = await self.chats.page_rows(participant.side, self.clock.now(), where, limit=limit, cursor=cursor)
-        page, next_cursor = split_page(rows, limit, lambda r: (r.conversation.last_message_at, r.conversation.id))
+        # page_rows only returns conversations with a message, so last_message_at is set.
+        page, next_cursor = split_page(
+            rows, limit, lambda r: (cast(datetime, r.conversation.last_message_at), r.conversation.id)
+        )
         return [conversation_out(r, participant.side, self.storage) for r in page], next_cursor
 
     async def messages(self, conversation: Conversation, limit: int, cursor: str | None):
@@ -138,22 +153,35 @@ class ChatService:
         return [message_out(m) for m in page], next_cursor
 
     async def send(self, participant: Participant, conversation: Conversation, text: str) -> dict[str, Any]:
-        """Writing counts as reading: the sender has seen everything up to their own message."""
-        now = self.clock.now()
-        message = Message(conversation_id=conversation.id, sender=participant.side, text=text, created_at=now)
+        """Under the conversation's row lock, so message times strictly increase in commit order and a read
+        mark taken after a send always covers it. Writing counts as reading for the sender."""
+        if review_filters.review_flag(text):
+            raise ValidationError("Messages can't include phone numbers, emails, links or blocked words")
+        if participant.side == ChatSide.customer and not await self.chats.approved_artist_owner(conversation.artist_id):
+            raise ConflictError("This artist isn't taking messages right now")
+        locked = await self.chats.locked(conversation.id)
+        at = self._next_time(locked.last_message_at)
+        message = Message(conversation_id=locked.id, sender=participant.side, text=text, created_at=at)
         self.chats.add(message)
-        conversation.last_message_at = now
-        self._mark_read(participant, conversation)
+        locked.last_message_at = at
+        self._mark_read(participant, locked, at)
         await self.session.commit()
         return message_out(message)
 
     async def mark_read(self, participant: Participant, conversation: Conversation) -> dict[str, Any]:
-        self._mark_read(participant, conversation)
+        locked = await self.chats.locked(conversation.id)
+        self._mark_read(participant, locked, self.clock.now())
         await self.session.commit()
         return await self._out(participant, conversation.id)
 
-    def _mark_read(self, participant: Participant, conversation: Conversation) -> None:
-        if participant.side == ChatSide.customer:
-            conversation.customer_read_at = self.clock.now()
-        else:
-            conversation.artist_read_at = self.clock.now()
+    def _next_time(self, last: datetime | None) -> datetime:
+        """Now, or just after the previous message if the clock hasn't moved past it."""
+        now = self.clock.now()
+        return now if last is None or now > last else last + TICK
+
+    @staticmethod
+    def _mark_read(participant: Participant, conversation: Conversation, at: datetime) -> None:
+        """Read marks only move forward."""
+        field = "customer_read_at" if participant.side == ChatSide.customer else "artist_read_at"
+        current = getattr(conversation, field)
+        setattr(conversation, field, at if current is None or at > current else current)

@@ -140,11 +140,22 @@ class ChatRepository:
             )
         )
 
-    async def booking_customer(self, booking_id: uuid.UUID, artist_id: uuid.UUID) -> uuid.UUID | None:
-        """The customer of one of this artist's bookings; None if the booking isn't theirs."""
+    async def artist_booking(self, booking_id: uuid.UUID, artist_id: uuid.UUID) -> Booking | None:
+        """One of this artist's bookings; None if the booking isn't theirs."""
         return await self.session.scalar(
-            select(Booking.customer_id).where(Booking.id == booking_id, Booking.artist_id == artist_id)
+            select(Booking).where(Booking.id == booking_id, Booking.artist_id == artist_id)
         )
+
+    async def locked(self, conversation_id: uuid.UUID) -> Conversation:
+        """SELECT … FOR UPDATE, refreshed: sends and read marks on one conversation take turns."""
+        return (
+            await self.session.execute(
+                select(Conversation)
+                .where(Conversation.id == conversation_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one()
 
     async def message_page(self, conversation_id: uuid.UUID, *, limit: int, cursor: str | None) -> list[Message]:
         """Newest first, keyset on (created_at, id), `limit + 1` rows."""

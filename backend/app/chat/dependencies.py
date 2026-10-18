@@ -55,4 +55,20 @@ def messages_per_user() -> Limit:
     return constants.MESSAGES_PER_USER
 
 
-limit_messages = limit_by_user("chat_message", messages_per_user)
+def message_burst_per_user() -> Limit:
+    return constants.MESSAGE_BURST_PER_USER
+
+
+def opens_per_user() -> Limit:
+    return constants.OPENS_PER_USER
+
+
+limit_hourly_messages = limit_by_user("chat_message", messages_per_user)
+limit_message_burst = limit_by_user("chat_message_burst", message_burst_per_user)
+limit_opens = limit_by_user("chat_open", opens_per_user)
+
+
+async def limit_messages(
+    _hourly: None = Depends(limit_hourly_messages), _burst: None = Depends(limit_message_burst)
+) -> None:
+    """Sends: at most 20 a minute and 300 an hour per user."""

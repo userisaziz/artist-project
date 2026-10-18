@@ -23,8 +23,8 @@ class Conversation(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
     )
-    customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False, index=True
+    customer_id: Mapped[uuid.UUID] = mapped_column(  # lookups use uq_chat_conversation_pair, which leads with it
+        UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False
     )
     artist_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("artist_profile.id"), nullable=False, index=True
@@ -33,7 +33,24 @@ class Conversation(Base, TimestampMixin):
     customer_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     artist_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    __table_args__ = (sa.UniqueConstraint("customer_id", "artist_id", name="uq_chat_conversation_pair"),)
+    __table_args__ = (
+        sa.UniqueConstraint("customer_id", "artist_id", name="uq_chat_conversation_pair"),
+        # Each side's inbox: its conversations with a message, in keyset order (last_message_at, id).
+        sa.Index(
+            "ix_chat_conversation_customer_inbox",
+            "customer_id",
+            "last_message_at",
+            "id",
+            postgresql_where=sa.text("last_message_at IS NOT NULL"),
+        ),
+        sa.Index(
+            "ix_chat_conversation_artist_inbox",
+            "artist_id",
+            "last_message_at",
+            "id",
+            postgresql_where=sa.text("last_message_at IS NOT NULL"),
+        ),
+    )
 
 
 class Message(Base):
@@ -50,4 +67,4 @@ class Message(Base):
     text: Mapped[str] = mapped_column(String(MESSAGE_MAX_LENGTH), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    __table_args__ = (sa.Index("ix_chat_message_conversation_created", "conversation_id", "created_at"),)
+    __table_args__ = (sa.Index("ix_chat_message_conversation_created", "conversation_id", "created_at", "id"),)

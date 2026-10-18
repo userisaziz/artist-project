@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.chat.dependencies import artist_participant, get_chat_service, limit_messages, valid_artist_conversation
+from app.chat.dependencies import (
+    artist_participant,
+    get_chat_service,
+    limit_messages,
+    limit_opens,
+    valid_artist_conversation,
+)
 from app.chat.models import Conversation
 from app.chat.schemas import ConversationOut, ConversationPage, MessageIn, MessageOut, MessagePage, OpenFromBookingIn
 from app.chat.service import ChatService, Participant
@@ -13,7 +19,11 @@ router = APIRouter(
 
 
 @router.post(
-    "", response_model=ConversationOut, status_code=200, summary="Open (or reopen) a chat with a booking's customer"
+    "",
+    response_model=ConversationOut,
+    status_code=200,
+    summary="Open (or reopen) a chat with a booking's customer",
+    dependencies=[Depends(limit_opens)],
 )
 async def open_conversation(
     body: OpenFromBookingIn,
