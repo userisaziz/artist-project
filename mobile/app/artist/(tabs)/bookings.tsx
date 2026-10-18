@@ -9,6 +9,7 @@ import { useArtistBookings } from '../../../src/hooks/bookings/bookings';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
 import { RequestCard } from '../../../src/components/bookings/RequestCard';
+import { useChatOpener } from '../../../src/hooks/chat/chat';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 import type { ArtistBookingScope, Booking } from '../../../src/types/bookings/bookings';
 
@@ -30,6 +31,7 @@ export default function ArtistBookings() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const requestCount = requests.data ? `${requests.data.pages.reduce((n, p) => n + p.items.length, 0)}${requests.hasNextPage ? '+' : ''}` : '…';
   const { run, busyId, errors } = useArtistBookingActions();
+  const chat = useChatOpener('artist');
 
   const renderItem = ({ item }: { item: Booking }) => {
     if (scope === 'requests') {
@@ -41,6 +43,7 @@ export default function ArtistBookings() {
           error={errors[item.id]}
           onAccept={() => { void run(item.id, { kind: 'accept' }); }}
           onDecline={(reason) => { void run(item.id, { kind: 'decline', reason }); }}
+          onMessage={() => { void chat.open(item.id); }}
         />
       );
     }

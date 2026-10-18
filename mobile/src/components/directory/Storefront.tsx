@@ -22,6 +22,9 @@ interface StorefrontProps {
   onCheckAvailability?: (service: PublicService) => void;
   /** Opens every review; the artist's own preview has no such screen. */
   onSeeAllReviews?: () => void;
+  /** Opens the chat with this artist (customers only); `messaging` while it opens. */
+  onMessage?: () => void;
+  messaging?: boolean;
 }
 
 const COVER_HEIGHT = 230;
@@ -38,7 +41,7 @@ function groupServices(services: PublicService[]): [string, PublicService[]][] {
 }
 
 /** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews }: StorefrontProps) {
+export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
@@ -127,7 +130,16 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews }: S
           ) : (
             <AppText variant="caption" style={{ color: theme.colors.textMuted, textAlign: 'center' }}>Select a package to see open times</AppText>
           )}
-          <AppButton label="Check availability" disabled={!selected} onPress={() => { if (selected) onCheckAvailability(selected); }} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {onMessage ? (
+              <View style={{ flex: 1 }}>
+                <AppButton label="Message" accessibilityLabel={`Message ${artist.business_name}`} variant="secondary" loading={messaging} onPress={onMessage} />
+              </View>
+            ) : null}
+            <View style={{ flex: 1.4 }}>
+              <AppButton label="Check availability" disabled={!selected} onPress={() => { if (selected) onCheckAvailability(selected); }} />
+            </View>
+          </View>
         </View>
       ) : null}
     </View>

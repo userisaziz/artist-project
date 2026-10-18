@@ -21,6 +21,7 @@ import { formatPrice } from '../../../src/utils/common/format';
 import { cancelBooking } from '../../../src/api/bookings/bookings';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { RateBookingCard } from '../../../src/components/reviews/RateBookingCard';
+import { useChatOpener } from '../../../src/hooks/chat/chat';
 import type { Booking } from '../../../src/types/bookings/bookings';
 
 /** What happened to the deposit once a booking has ended without the service. */
@@ -37,6 +38,7 @@ export default function BookingDetail() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const booking = useBooking(id);
   const write = useBookingWrite();
+  const chat = useChatOpener('customer');
   const now = useNow();
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -106,6 +108,7 @@ export default function BookingDetail() {
         <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>The artist has 3 hours to confirm. If they don’t, the deposit is refunded.</AppText>
       ) : null}
 
+      <AppButton label="Message artist" variant="secondary" loading={chat.openingId === b.artist.id} onPress={() => { void chat.open(b.artist.id); }} />
       {cancellable && !confirming ? <AppButton label="Cancel booking" variant="secondary" onPress={() => setConfirming(true)} /> : null}
       {cancellable && confirming ? (
         <Card style={{ gap: 12 }}>

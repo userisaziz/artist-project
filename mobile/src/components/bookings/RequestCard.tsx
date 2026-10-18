@@ -20,10 +20,12 @@ interface RequestCardProps {
   error?: string;
   onAccept: () => void;
   onDecline: (reason: string | null) => void;
+  /** Opens the chat with this customer. */
+  onMessage?: () => void;
 }
 
-/** Spec §3 request card: customer and countdown, Service / When / Where / You earn, the note, Decline and Accept. */
-export function RequestCard({ booking, now, busy, error, onAccept, onDecline }: RequestCardProps) {
+/** Spec §3 request card: customer and countdown, Service / When / Where / You earn, the note, Decline, Message and Accept. */
+export function RequestCard({ booking, now, busy, error, onAccept, onDecline, onMessage }: RequestCardProps) {
   const theme = useTheme();
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('');
@@ -68,6 +70,11 @@ export function RequestCard({ booking, now, busy, error, onAccept, onDecline }: 
           <View style={{ flex: 1 }}>
             <AppButton label="Decline" accessibilityLabel={`Decline ${name}`} variant="secondary" disabled={busy} onPress={() => setDeclining(true)} />
           </View>
+          {onMessage ? (
+            <View style={{ flex: 1 }}>
+              <AppButton label="Message" accessibilityLabel={`Message ${name}`} variant="secondary" onPress={onMessage} />
+            </View>
+          ) : null}
           <View style={{ flex: 1 }}>
             <AppButton label="Accept" accessibilityLabel={`Accept ${name}`} loading={busy} onPress={onAccept} />
           </View>

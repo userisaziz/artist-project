@@ -11,6 +11,7 @@ import { useNow } from '../../../src/hooks/common/use-now';
 import { formatPrice } from '../../../src/utils/common/format';
 import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
 import { RequestCard } from '../../../src/components/bookings/RequestCard';
+import { useChatOpener } from '../../../src/hooks/chat/chat';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 
 const HOME_REQUESTS = 2;
@@ -25,6 +26,7 @@ export default function ArtistHome() {
   const dashboard = useArtistDashboard();
   const requests = useArtistBookings('requests');
   const { run, busyId, errors } = useArtistBookingActions();
+  const chat = useChatOpener('artist');
   const firstRequests = (requests.data?.pages[0]?.items ?? []).slice(0, HOME_REQUESTS);
   const heading = { fontSize: 22, lineHeight: 28, color: theme.colors.heading } as const;
   const d = dashboard.data;
@@ -65,6 +67,7 @@ export default function ArtistHome() {
           error={errors[b.id]}
           onAccept={() => { void run(b.id, { kind: 'accept' }); }}
           onDecline={(reason) => { void run(b.id, { kind: 'decline', reason }); }}
+          onMessage={() => { void chat.open(b.id); }}
         />
       ))}
 
