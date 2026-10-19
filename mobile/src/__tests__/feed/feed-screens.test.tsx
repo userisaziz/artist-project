@@ -126,3 +126,23 @@ it('a failed publish says why and stays on the form', async () => {
   expect(await screen.findByText('Posts can’t include phone numbers')).toBeTruthy();
   expect(onPosted).not.toHaveBeenCalled();
 });
+
+it('reporting a post asks why and sends it to the moderators', async () => {
+  const { Alert } = jest.requireActual('react-native');
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation((...args: unknown[]) => {
+    const buttons = args[2] as { text: string; onPress?: () => void }[] | undefined;
+    buttons?.find((b) => b.text === 'Spam')?.onPress?.();
+  });
+  serve({
+    'GET /feed?tab=for_you': { items: [postFixture()], next_cursor: null },
+    'POST /feed/posts/p1/report': { status: 204, json: null },
+  });
+  await wrap(<FeedList nav={nav} />);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Report this post' }));
+
+  await waitFor(() => expect(send.mock.calls.some(([r]) => r.method === 'POST' && r.path === '/feed/posts/p1/report')).toBe(true));
+  const posted = send.mock.calls.find(([r]) => r.path === '/feed/posts/p1/report');
+  expect(posted?.[0].body).toEqual({ reason: 'spam' });
+  alert.mockRestore();
+});

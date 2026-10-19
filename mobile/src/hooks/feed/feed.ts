@@ -3,7 +3,7 @@ import type { Page } from '../../core/api/types';
 import * as feedApi from '../../api/feed/feed';
 import { useAuth } from '../../context/auth/auth-provider';
 import { patchPosts } from '../../utils/feed/article';
-import type { FeedTab, Post, PostInput } from '../../types/feed/feed';
+import type { FeedTab, Post, PostInput, ReportReason } from '../../types/feed/feed';
 
 // Keyed by user id, so another account on the device never sees cached likes and follows.
 export const feedKeys = {
@@ -99,5 +99,11 @@ export function useDeletePost() {
         client.invalidateQueries({ queryKey: feedKeys.lists(user?.id) }),
       ]);
     },
+  });
+}
+
+export function useReportPost() {
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: ReportReason }) => feedApi.reportPost(id, reason),
   });
 }

@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { BookLookButton } from './BookLookButton';
 import { LikeButton } from './LikeButton';
+import { ReportPostButton } from './ReportPostButton';
 import { PhotoCarousel } from './PhotoCarousel';
 import { PostAuthor } from './PostAuthor';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -20,7 +21,10 @@ export function PhotoPostCard({ post, now, nav }: { post: Post; now: number; nav
       <PhotoCarousel key={post.id} photos={post.photos} label={`${post.artist.business_name}’s post`} />
       <View style={{ paddingHorizontal: theme.spacing.md, gap: 8 }}>
         {service ? <BookLookButton service={service} onPress={() => nav.book(post.artist.id, service.id)} /> : null}
-        <LikeButton post={post} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <LikeButton post={post} />
+          <ReportPostButton postId={post.id} />
+        </View>
         {post.text ? (
           <AppText variant="body" style={{ fontSize: 13.5, color: theme.colors.textPrimary }}>
             <AppText variant="label" style={{ fontSize: 13.5 }}>{post.artist.business_name} </AppText>

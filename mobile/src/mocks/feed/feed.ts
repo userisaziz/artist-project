@@ -18,6 +18,8 @@ export function postFixture(overrides: Partial<Post> = {}): Post {
     like_count: 12,
     liked: false,
     following: false,
+    featured: false,
+    moderation: 'live',
     created_at: '2026-10-09T07:00:00Z',
     ...overrides,
   };

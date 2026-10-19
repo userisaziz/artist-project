@@ -1,7 +1,7 @@
 import { request } from '../../core/api/client';
 import { withQuery } from '../../core/api/query-string';
 import type { Page } from '../../core/api/types';
-import type { FeedTab, Post, PostInput } from '../../types/feed/feed';
+import type { FeedTab, Post, PostInput, ReportReason } from '../../types/feed/feed';
 
 // Customer feed (backend app/feed/router.py).
 export function getFeed(tab: FeedTab, cursor?: string | null) {
@@ -12,6 +12,9 @@ export function getPost(id: string) {
 }
 export function setLike(id: string, liked: boolean) {
   return request<{ liked: boolean; like_count: number }>(`/feed/posts/${encodeURIComponent(id)}/like`, undefined, { auth: true, method: liked ? 'PUT' : 'DELETE' });
+}
+export function reportPost(id: string, reason: ReportReason) {
+  return request<void>(`/feed/posts/${encodeURIComponent(id)}/report`, { reason }, { auth: true });
 }
 export function setFollow(artistId: string, following: boolean) {
   return request<{ following: boolean }>(`/feed/artists/${encodeURIComponent(artistId)}/follow`, undefined, { auth: true, method: following ? 'PUT' : 'DELETE' });

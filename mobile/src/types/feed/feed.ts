@@ -25,8 +25,12 @@ export interface Post {
   like_count: number;
   liked: boolean;
   following: boolean;
+  featured: boolean;
+  moderation: 'live' | 'hidden' | 'removed'; // always live in the customer feed; artists see takedowns
   created_at: string;
 }
+
+export type ReportReason = 'spam' | 'inappropriate' | 'contact_details' | 'other';
 
 export interface PhotoInput {
   key: string;

@@ -8,6 +8,7 @@ import { Photo } from '../common/Photo';
 import { ErrorView, LoadingView } from '../common/StateViews';
 import { ArticleBlockView } from './ArticleBlockView';
 import { LikeButton } from './LikeButton';
+import { ReportPostButton } from './ReportPostButton';
 import { PhotoCarousel } from './PhotoCarousel';
 import { PostAuthor } from './PostAuthor';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -73,6 +74,7 @@ export function ArticleView({ postId, nav }: { postId: string; nav: FeedNavigati
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>
         <LikeButton post={p} />
+        <ReportPostButton postId={p.id} />
         <View style={{ flex: 1 }}>
           <AppButton label={`Book ${firstName}`} onPress={book} />
         </View>

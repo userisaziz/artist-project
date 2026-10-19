@@ -50,6 +50,8 @@ export function MyPosts({ onNewPost }: { onNewPost: () => void }) {
                 <View style={{ flex: 1, gap: 2 }}>
                   <AppText variant="subtitle" numberOfLines={2} style={{ fontSize: 14, color: theme.colors.textPrimary }}>{item.title ?? item.text ?? ''}</AppText>
                   <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${topicLabel(item)} · ${shortAgo(item.created_at, now)} · ♥ ${compactCount(item.like_count)}`}</AppText>
+                  {item.moderation !== 'live' ? <AppText variant="caption" style={{ color: theme.colors.error }}>Hidden by our team: it no longer shows in the Feed.</AppText> : null}
+                  {item.featured ? <AppText variant="caption" style={{ color: theme.colors.brand }}>Featured at the top of the Feed</AppText> : null}
                 </View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Delete post" hitSlop={8} disabled={remove.isPending} onPress={() => confirmDelete(item)}>
                   <AppText variant="label" style={{ color: theme.colors.error }}>Delete</AppText>
