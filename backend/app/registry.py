@@ -6,6 +6,7 @@ from app.booking import models as booking_models  # noqa: F401
 from app.catalog import models as catalog_models  # noqa: F401
 from app.chat import models as chat_models  # noqa: F401
 from app.core import rate_limit  # noqa: F401  (core_rate_limit_bucket)
+from app.feed import models as feed_models  # noqa: F401
 from app.review import models as review_models  # noqa: F401
 from app.shared.models import Base
 from app.user import models as user_models  # noqa: F401

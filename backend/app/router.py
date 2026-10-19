@@ -14,6 +14,8 @@ from app.catalog import router as catalog
 from app.chat import artist_router as artist_chat
 from app.chat import router as chat
 from app.directory import router as directory
+from app.feed import artist_router as artist_feed
+from app.feed import router as feed
 from app.review import admin_router as admin_reviews
 from app.review import artist_router as artist_reviews
 from app.upload import router as upload
@@ -28,9 +30,11 @@ api_router.include_router(artist.router)
 api_router.include_router(artist_bookings.router)
 api_router.include_router(artist_reviews.router)
 api_router.include_router(artist_chat.router)
+api_router.include_router(artist_feed.router)
 api_router.include_router(directory.router)  # after every /artists/me router: "me" isn't an artist id
 api_router.include_router(bookings.router)
 api_router.include_router(chat.router)
+api_router.include_router(feed.router)
 api_router.include_router(artist_admin.router)
 api_router.include_router(admin_bookings.router)
 api_router.include_router(admin_reviews.router)

@@ -21,7 +21,7 @@ from app.upload.config import get_upload_settings
 
 logger = logging.getLogger("art_circle.storage")
 
-Purpose = Literal["artist_photo", "portfolio", "aadhaar"]
+Purpose = Literal["artist_photo", "portfolio", "aadhaar", "post"]
 PRIVATE_PURPOSES = {"aadhaar"}  # stored without a public URL; viewed through expiring signed links
 Variant = Literal["thumb", "card", "full"]
 ALLOWED_FORMATS = "jpg,jpeg,png,webp,heic"
