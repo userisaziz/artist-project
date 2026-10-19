@@ -13,6 +13,7 @@ from app.catalog import admin_router as catalog_admin
 from app.catalog import router as catalog
 from app.chat import artist_router as artist_chat
 from app.chat import router as chat
+from app.customer import admin_router as customer_admin
 from app.directory import router as directory
 from app.feed import artist_router as artist_feed
 from app.feed import router as feed
@@ -39,3 +40,4 @@ api_router.include_router(artist_admin.router)
 api_router.include_router(admin_bookings.router)
 api_router.include_router(admin_reviews.router)
 api_router.include_router(catalog_admin.router)
+api_router.include_router(customer_admin.router)

@@ -29,6 +29,9 @@ class User(Base, TimestampMixin):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Set when an admin blocks the account (is_active false); cleared on unblock.
+    blocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    blocked_reason: Mapped[str | None] = mapped_column(String(500))
     whatsapp_booking_updates: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # Which side of the mobile app is showing (customer or artist; never admin). NULL until
     # Choose role, so "onboarded" is simply `active_role is not None`.
