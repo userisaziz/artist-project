@@ -17,6 +17,7 @@ export default function InReviewScreen() {
   const { data } = useArtistProfile();
   const { startEditing } = useArtistFlow();
   const rejected = data?.status === 'rejected';
+  const suspended = data?.status === 'suspended';
   const submitted = data?.submitted_at
     ? new Date(data.submitted_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
     : '';
@@ -30,10 +31,17 @@ export default function InReviewScreen() {
           <Path d="M13 10l-3 7M15 10l3 7" />
         </Svg>
         <AppText variant="display" style={{ fontSize: 34, lineHeight: 36, letterSpacing: -0.85, color: theme.colors.heading, textAlign: 'center', marginTop: 18 }}>
-          {rejected ? 'Your profile needs ' : 'Your profile is '}<Accent light color={theme.colors.brand}>{rejected ? 'a few changes' : 'in review'}</Accent>
+          {rejected ? 'Your profile needs ' : 'Your profile is '}<Accent light color={theme.colors.brand}>{rejected ? 'a few changes' : suspended ? 'paused' : 'in review'}</Accent>
         </AppText>
 
-        {rejected ? (
+        {suspended ? (
+          <View style={[card, { gap: 6 }]}>
+            <AppText variant="label" style={{ color: theme.colors.brand }}>Note from our team</AppText>
+            <AppText variant="body" style={{ color: theme.colors.textPrimary }}>
+              Your profile is hidden and you can’t take new bookings while we look into something. We’ll contact you about next steps.
+            </AppText>
+          </View>
+        ) : rejected ? (
           <View style={[card, { gap: 6 }]}>
             <AppText variant="label" style={{ color: theme.colors.brand }}>Note from our team</AppText>
             <AppText variant="body" style={{ color: theme.colors.textPrimary }}>{data?.rejection_reason ?? 'Please review your profile and submit again.'}</AppText>

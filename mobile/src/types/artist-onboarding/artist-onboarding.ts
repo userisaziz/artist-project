@@ -1,6 +1,6 @@
 import type { Category } from '../catalog/catalog';
 
-export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export type ServiceStatus = 'approved' | 'pending' | 'rejected';
 

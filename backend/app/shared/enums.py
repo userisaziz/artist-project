@@ -10,12 +10,14 @@ class UserRole(str, enum.Enum):
 
 
 class ArtistStatus(str, enum.Enum):
-    """Artist profile review state: draft → pending → approved | rejected (→ pending again)."""
+    """Artist profile review state: draft → pending → approved | rejected (→ pending again).
+    An admin can suspend an approved artist (hidden, no bookings) and reinstate them to approved."""
 
     draft = "draft"
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
+    suspended = "suspended"
 
 
 class ArtistServiceStatus(str, enum.Enum):

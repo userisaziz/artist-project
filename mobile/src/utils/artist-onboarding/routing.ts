@@ -9,7 +9,7 @@ export function artistStage(profile: ArtistProfile | null, editing: boolean): Ar
   if (!profile || profile.status === 'draft') return 'onboarding';
   if (profile.status === 'approved') return 'live';
   if (profile.status === 'rejected' && editing) return 'onboarding';
-  return 'review'; // pending, or rejected until they press "Edit and resubmit"
+  return 'review'; // pending, suspended by an admin, or rejected until they press "Edit and resubmit"
 }
 
 /** Spec §2.1: each Continue saves, so a returning artist resumes at the first step the server has no data for. */

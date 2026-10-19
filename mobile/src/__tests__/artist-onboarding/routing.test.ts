@@ -39,3 +39,7 @@ it('artistHref maps each stage to its route; editing a rejection starts at Profi
   expect(artistHref(profile({ status: 'rejected' }), true)).toBe('/artist/onboarding/profile');
   expect(artistHref(profile({ status: 'approved' }), false)).toBe('/artist/home');
 });
+
+it('a suspended artist is kept out of the live area', () => {
+  expect(artistStage({ status: 'suspended' } as Parameters<typeof artistStage>[0], false)).toBe('review');
+});
