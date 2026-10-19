@@ -23,6 +23,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: PATHS.customers, label: 'Customers' },
   { to: PATHS.bookings, label: 'Bookings', count: 'bookings30d' },
   { to: PATHS.reviews, label: 'Reviews', count: 'flaggedReviews' },
+  { to: PATHS.shopProducts, label: 'Shop · Products' },
+  { to: PATHS.shopOrders, label: 'Shop · Orders' },
   { to: PATHS.feed, label: 'Feed' },
   { to: PATHS.categories, label: 'Catalog' },
   { to: PATHS.subcategoryRequests, label: 'Subcategories', count: 'pendingSubcategories' },

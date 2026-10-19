@@ -24,6 +24,8 @@ export const PATHS = {
   reports: '/reports',
   settings: '/settings',
   feed: '/feed',
+  shopProducts: '/shop/products',
+  shopOrders: '/shop/orders',
 } as const
 
 /** Where signed-in admins land by default. */

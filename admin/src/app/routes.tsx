@@ -17,6 +17,8 @@ const BookingDetailPage = lazy(() => import('@/features/bookings/BookingDetailPa
 const ReviewsPage = lazy(() => import('@/features/reviews/ReviewsPage').then(m => ({ default: m.ReviewsPage })))
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage').then(m => ({ default: m.CustomersPage })))
 const CustomerDetailPage = lazy(() => import('@/features/customers/CustomerDetailPage').then(m => ({ default: m.CustomerDetailPage })))
+const ShopProductsPage = lazy(() => import('@/features/shop/ShopProductsPage').then(m => ({ default: m.ShopProductsPage })))
+const ShopOrdersPage = lazy(() => import('@/features/shop/ShopOrdersPage').then(m => ({ default: m.ShopOrdersPage })))
 const FeedModerationPage = lazy(() => import('@/features/feed/FeedModerationPage').then(m => ({ default: m.FeedModerationPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
@@ -56,6 +58,8 @@ export function AppRoutes() {
           <Route path={PATHS.reports} element={<ReportsPage />} />
           <Route path={PATHS.settings} element={<SettingsPage />} />
           <Route path={PATHS.feed} element={<FeedModerationPage />} />
+          <Route path={PATHS.shopProducts} element={<ShopProductsPage />} />
+          <Route path={PATHS.shopOrders} element={<ShopOrdersPage />} />
           <Route path="*" element={<Navigate to={HOME_PATH} replace />} />
         </Route>
       </Route>
