@@ -39,6 +39,24 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    --color-blush: var(--blush);
+    --color-plum: var(--plum);
+    --color-plum-deep: var(--plum-deep);
+    --color-subtle-foreground: var(--subtle-foreground);
+    --color-placeholder: var(--placeholder);
+    --color-halo: var(--halo);
+    --color-line: var(--line);
+    --color-line-soft: var(--line-soft);
+    --color-rose: var(--rose);
+    --color-faint: var(--faint);
+    --color-row-hover: var(--row-hover);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-danger-soft: var(--danger-soft);
+    --color-neutral-soft: var(--neutral-soft);
+    --color-primary-hover: var(--primary-hover);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -50,7 +68,7 @@
 
 /* Atelier palette (docs/design/atelier); mirrors mobile/src/theme/tokens/palette.ts */
 :root {
-    --background: #FDF7FA;
+    --background: #FAF8F9;
     --foreground: #49313B;
     --card: #FFFFFF;
     --card-foreground: #49313B;
@@ -82,6 +100,26 @@
     --sidebar-accent-foreground: #B64D75;
     --sidebar-border: #F0CFDD;
     --sidebar-ring: #B64D75;
+    /* Sign-in screen brand tones (Atelier hi-fi "Admin sign in") */
+    --blush: #FDF2F5;            /* page wash behind the form */
+    --plum: #7A2F55;             /* photo scrim, top */
+    --plum-deep: #4A1B33;        /* photo scrim, bottom; display headings */
+    --subtle-foreground: #6E5262; /* body copy and labels on blush */
+    --placeholder: #B293A3;
+    --halo: #FCEEF3;             /* soft focus ring; table header and active nav wash */
+    /* Console tones (Atelier hi-fi admin screens) */
+    --line: #F0DCE5;             /* card and bar borders */
+    --line-soft: #F7E3EC;        /* row dividers */
+    --rose: #F5B6D0;             /* highlight border, recent chart bars */
+    --faint: #9C8591;            /* chart axis, search placeholder */
+    --row-hover: #FFF8FB;
+    --primary-hover: #9F3F64;
+    --success: #2F6B47;
+    --success-soft: #E3F1E7;
+    --warning: #9A6514;
+    --warning-soft: #FDF0DC;
+    --danger-soft: #FBE3E3;
+    --neutral-soft: #F2EEF0;
 }
 
 .dark {

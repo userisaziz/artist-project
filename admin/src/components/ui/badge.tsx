@@ -18,6 +18,12 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Status pills from the design's admin tables (TONE g/a/r/x/n)
+        success: "h-auto rounded-full px-2.5 py-[3px] text-[11.5px] font-bold bg-success-soft text-success",
+        warning: "h-auto rounded-full px-2.5 py-[3px] text-[11.5px] font-bold bg-warning-soft text-warning",
+        brand: "h-auto rounded-full px-2.5 py-[3px] text-[11.5px] font-bold bg-accent text-primary",
+        danger: "h-auto rounded-full px-2.5 py-[3px] text-[11.5px] font-bold bg-danger-soft text-destructive",
+        neutral: "h-auto rounded-full px-2.5 py-[3px] text-[11.5px] font-bold bg-neutral-soft text-subtle-foreground",
       },
     },
     defaultVariants: {

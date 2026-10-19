@@ -16,7 +16,7 @@ const meta = {
     },
     size: {
       control: "select",
-      options: ["default", "xs", "sm", "lg", "icon", "icon-xs", "icon-sm", "icon-lg"],
+      options: ["default", "xs", "sm", "lg", "page", "icon", "icon-xs", "icon-sm", "icon-lg"],
     },
   },
 } satisfies Meta<typeof Button>;
@@ -47,6 +47,16 @@ export const Sizes: Story = {
       <Button {...args} size="sm" />
       <Button {...args} size="default" />
       <Button {...args} size="lg" />
+      <Button {...args} size="page" />
+    </div>
+  ),
+};
+
+export const PageActions: Story = {
+  render: (args) => (
+    <div className="flex gap-2">
+      <Button {...args} size="page" variant="outline">Export CSV</Button>
+      <Button {...args} size="page">+ New category</Button>
     </div>
   ),
 };

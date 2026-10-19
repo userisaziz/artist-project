@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
+import { artistPath, bookingPath } from '@/lib/paths'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError } from '@/lib/api'
+import { toastError } from '@/lib/notify'
 import { dateTime } from '@/lib/format'
 import type { AdminReview, ReviewDecision } from '@/lib/types'
 import { useDecideReview } from './queries'
@@ -51,7 +52,7 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
       toast.success(DECISIONS[decision].done)
       onDecided(updated)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+      toastError(e)
     } finally {
       setConfirmingRemove(false)
     }
@@ -60,8 +61,8 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
 
   return (
     <>
-      <DialogHeader className="border-b p-5 pr-12">
-        <DialogTitle className="text-lg font-semibold">{reviewParties(r)}</DialogTitle>
+      <DialogHeader className="border-b border-line p-5 pr-12">
+        <DialogTitle className="text-[18.7px] leading-tight font-semibold tracking-[-0.025em]">{reviewParties(r)}</DialogTitle>
         <DialogDescription>{r.service_name} · {dateTime(r.created_at)}</DialogDescription>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-semibold tabular-nums">★ {r.rating}</span>
@@ -69,9 +70,9 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
         </div>
       </DialogHeader>
 
-      <div className="flex-1 space-y-5 p-5 text-sm">
+      <div className="flex-1 space-y-5 p-5 text-[13px]">
         {r.flag && (
-          <div className="rounded-lg border border-[#F1DDB8] bg-[#FDF0DC] p-3 text-[#9A6514]">
+          <div className="rounded-xl bg-warning-soft p-3 text-warning">
             <div className="font-semibold">{FLAGS[r.flag].explanation}</div>
             {r.report_reason && <p className="mt-1">{r.report_reason}</p>}
           </div>
@@ -82,7 +83,7 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
         </Section>
         <div className="grid grid-cols-2 gap-4">
           <Section label="Booking">
-            <Link to={`/bookings/${r.booking.id}`} className="font-medium text-primary hover:underline">{r.booking.code}</Link>
+            <Link to={bookingPath(r.booking.id)} className="font-medium text-primary hover:underline">{r.booking.code}</Link>
             <div className="text-muted-foreground">{r.booking.service_name}</div>
           </Section>
           <Section label="Customer">
@@ -90,7 +91,7 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
             <div className="text-muted-foreground">{r.customer.phone}</div>
           </Section>
           <Section label="Artist">
-            <Link to={`/artists/${r.artist.id}`} className="font-medium hover:underline">{r.artist.business_name}</Link>
+            <Link to={artistPath(r.artist.id)} className="font-medium hover:underline">{r.artist.business_name}</Link>
           </Section>
           {r.moderated_at && <Section label="Last decision">{dateTime(r.moderated_at)}</Section>}
         </div>
@@ -111,7 +112,7 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
       </div>
 
       {decisions.length > 0 && (
-        <div className="flex justify-end gap-2 border-t bg-muted/50 p-4">
+        <div className="flex justify-end gap-2 border-t border-line bg-row-hover p-4">
           {decisions.map((d) => (
             <Button key={d} variant={DECISIONS[d].variant} disabled={decide.isPending} onClick={() => choose(d)}>{DECISIONS[d].label}</Button>
           ))}
@@ -137,7 +138,7 @@ function ReviewDetail({ review: r, onDecided }: { review: AdminReview; onDecided
 function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
-      <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{label}</div>
+      <div className="text-[11px] font-bold tracking-[0.06em] text-muted-foreground uppercase">{label}</div>
       {children}
     </div>
   )

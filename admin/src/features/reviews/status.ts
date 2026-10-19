@@ -1,12 +1,11 @@
-import { AMBER, GREEN, NEUTRAL, RED } from '@/features/bookings/status'
 import type { AdminReview, ReviewDecision, ReviewFlag, ReviewModerationStatus } from '@/lib/types'
 
 /** In the order the queue's filter chips show them; Flagged is the default. */
-export const REVIEW_STATUSES: { value: ReviewModerationStatus; label: string; className: string }[] = [
-  { value: 'flagged', label: 'Flagged', className: AMBER },
-  { value: 'hidden', label: 'Hidden', className: RED },
-  { value: 'published', label: 'Published', className: GREEN },
-  { value: 'removed', label: 'Removed', className: NEUTRAL },
+export const REVIEW_STATUSES: { value: ReviewModerationStatus; label: string; tone: 'warning' | 'danger' | 'success' | 'neutral' }[] = [
+  { value: 'flagged', label: 'Flagged', tone: 'warning' },
+  { value: 'hidden', label: 'Hidden', tone: 'danger' },
+  { value: 'published', label: 'Published', tone: 'success' },
+  { value: 'removed', label: 'Removed', tone: 'neutral' },
 ]
 
 export const DEFAULT_REVIEW_STATUS: ReviewModerationStatus = 'flagged'

@@ -1,18 +1,23 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { FilterChips } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { GridHeader } from '@/components/console/grid-header'
+import { GridMessage } from '@/components/console/grid-message'
+import { GridRow } from '@/components/console/grid-row'
+import { InitialsAvatar } from '@/components/console/initials-avatar'
+import { Panel } from '@/components/console/panel'
+import { PanelFooter } from '@/components/console/panel-footer'
+import { PanelToolbar } from '@/components/console/panel-toolbar'
+import { Button } from '@/components/ui/button'
 import { monthYear } from '@/lib/format'
 import type { AdminReview } from '@/lib/types'
 import { useReviews } from './queries'
 import { ReviewDetailPanel } from './ReviewDetailPanel'
 import { ReviewStatusPill } from './ReviewStatusPill'
-import { DEFAULT_REVIEW_STATUS, FLAGS, REVIEW_STATUSES, excerpt, isReviewStatus, reviewParties } from './status'
+import { DEFAULT_REVIEW_STATUS, FLAGS, REVIEW_STATUSES, decisionsFor, excerpt, isReviewStatus, reviewParties } from './status'
 
-const COLUMNS = 5
+const COLUMNS = '2fr 2.6fr .7fr 1fr 1fr .7fr'
 const EMPTY: Record<AdminReview['status'], string> = {
   flagged: 'No flagged reviews. Nothing is waiting for a moderator.',
   hidden: 'No hidden reviews.',
@@ -33,60 +38,46 @@ export function ReviewsPage() {
   return (
     <>
       <PageHeader title="Reviews" subtitle="Moderate reviews reported by artists or caught by the filters." />
-      <div className="mb-4">
-        <FilterChips
-          chips={REVIEW_STATUSES}
-          value={status}
-          onChange={(next) => setParams(next === DEFAULT_REVIEW_STATUS ? {} : { status: next })}
-        />
-      </div>
-
-      <div className="rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">Review</TableHead>
-              <TableHead>Excerpt</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead>Flag</TableHead>
-              <TableHead className="pr-4">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.isPending &&
-              Array.from({ length: 4 }, (_, i) => (
-                <TableRow key={i}><TableCell colSpan={COLUMNS} className="pl-4"><Skeleton className="h-9 w-full" /></TableCell></TableRow>
-              ))}
-            {list.isError && (
-              <TableRow><TableCell colSpan={COLUMNS} className="py-10 text-center text-destructive">Couldn’t load reviews. {list.error.message}</TableCell></TableRow>
+      <Panel className="flex flex-col">
+        <PanelToolbar>
+          <FilterChips
+            chips={REVIEW_STATUSES}
+            value={status}
+            onChange={(next) => setParams(next === DEFAULT_REVIEW_STATUS ? {} : { status: next })}
+          />
+        </PanelToolbar>
+        <GridHeader columns={COLUMNS} labels={['Review', 'Excerpt', 'Rating', 'Flag', 'Status', '']} />
+        {list.isPending && <GridMessage state="loading" />}
+        {list.isError && <GridMessage state="error">Couldn’t load reviews. {list.error.message}</GridMessage>}
+        {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{EMPTY[status]}</GridMessage>}
+        {rows.map((r) => (
+          <GridRow key={r.id} columns={COLUMNS} onClick={() => setSelected(r)} selected={selected?.id === r.id}>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <InitialsAvatar name={r.reviewer_name} />
+              <div className="min-w-0">
+                <div className="truncate font-bold">{reviewParties(r)}</div>
+                <div className="truncate text-[11.5px] text-muted-foreground">{r.service_name} · {monthYear(r.created_at)}</div>
+              </div>
+            </div>
+            <span className="truncate text-muted-foreground">{excerpt(r.text)}</span>
+            <span className="tabular-nums">★ {r.rating}</span>
+            <span className="truncate">{r.flag ? FLAGS[r.flag].label : '—'}</span>
+            <span><ReviewStatusPill status={r.status} /></span>
+            <span className="text-right text-[12.5px] font-bold text-primary">{decisionsFor(r.status).length > 0 && r.status !== 'published' ? 'Moderate' : 'View'}</span>
+          </GridRow>
+        ))}
+        {list.isSuccess && rows.length > 0 && (
+          <PanelFooter
+            end={list.hasNextPage && (
+              <Button variant="link" size="xs" onClick={() => { void list.fetchNextPage() }} disabled={list.isFetchingNextPage}>
+                {list.isFetchingNextPage ? 'Loading…' : 'Load more'}
+              </Button>
             )}
-            {list.isSuccess && rows.length === 0 && (
-              <TableRow><TableCell colSpan={COLUMNS} className="py-12 text-center text-muted-foreground">{EMPTY[status]}</TableCell></TableRow>
-            )}
-            {rows.map((r) => (
-              <TableRow key={r.id} className="cursor-pointer" onClick={() => setSelected(r)}>
-                <TableCell className="pl-4">
-                  <button type="button" className="text-left font-medium hover:underline" onClick={(e) => { e.stopPropagation(); setSelected(r) }}>
-                    {reviewParties(r)}
-                  </button>
-                  <div className="text-xs text-muted-foreground">{r.service_name} · {monthYear(r.created_at)}</div>
-                </TableCell>
-                <TableCell className="max-w-sm whitespace-normal text-muted-foreground">{excerpt(r.text)}</TableCell>
-                <TableCell className="font-medium whitespace-nowrap tabular-nums">★ {r.rating}</TableCell>
-                <TableCell>{r.flag ? FLAGS[r.flag].label : '—'}</TableCell>
-                <TableCell className="pr-4"><ReviewStatusPill status={r.status} /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      {list.hasNextPage && (
-        <div className="mt-4 flex justify-center">
-          <Button variant="outline" onClick={() => { void list.fetchNextPage() }} disabled={list.isFetchingNextPage}>
-            {list.isFetchingNextPage ? 'Loading…' : 'Load more'}
-          </Button>
-        </div>
-      )}
+          >
+            Showing {rows.length}{list.hasNextPage ? '+' : ''}
+          </PanelFooter>
+        )}
+      </Panel>
 
       <ReviewDetailPanel review={selected} onClose={() => setSelected(null)} onDecided={setSelected} />
     </>

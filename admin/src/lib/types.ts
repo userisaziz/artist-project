@@ -14,7 +14,7 @@ export interface User {
 
 export interface TokenPair {
   access_token: string
-  refresh_token: string
+  refresh_token: string | null // null: the backend set it as the HttpOnly ac_refresh cookie instead
   user: User
 }
 
@@ -61,8 +61,9 @@ export interface ServiceTemplateInput {
   is_active: boolean
 }
 
-export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected'
-export type ReviewStatus = Exclude<ArtistStatus, 'draft'>
+export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended'
+/** The Verification queue's statuses (and the custom-service queue's). */
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
 
 /** Picked-from-the-list services are approved on creation; custom ones wait for admin review. */
 export type ServiceStatus = 'approved' | 'pending' | 'rejected'
@@ -190,16 +191,25 @@ export interface AdminBooking extends Omit<Booking, 'customer'> {
 
 export type BookingPage = Page<AdminBooking>
 
+/** GET /admin/overview?period=&city= : the date-range filter's choices. */
+export type OverviewPeriod = 'today' | '7d' | '30d' | 'quarter'
+
+/** Booking figures cover the chosen period (and city); `_previous` is the same-length period before it. */
 export interface AdminOverview {
-  gross_paise_30d: number // total of bookings created in the last 30 days, minus declined and expired
-  bookings_30d: number
+  period_days: number
+  gross_paise: number // total of bookings created in the period, minus declined and expired
+  gross_paise_previous: number
+  bookings: number
+  bookings_previous: number
+  completed: number
+  cancelled: number
+  new_artists: number // approved during the period
   awaiting_artist: number
-  completed_30d: number
-  cancelled_30d: number
   pending_artists: number
   pending_custom_services: number
   flagged_reviews: number // reviews in `flagged`, waiting for a moderator
   bookings_by_week: { week_start: string; count: number }[] // 12 entries, oldest first; week_start is a YYYY-MM-DD date
+  cities: string[] // every city with an approved artist, A to Z
 }
 
 /** published and flagged are public; hidden and removed are not. removed is final. */
@@ -231,3 +241,41 @@ export interface AdminReview {
 }
 
 export type ReviewPage = Page<AdminReview>
+
+/** GET /admin/artists/directory: every non-draft artist ("all"), or one status. */
+export type DirectoryStatus = 'all' | 'approved' | 'pending' | 'suspended'
+
+export interface DirectoryRow {
+  id: string
+  business_name: string
+  photo_url: string | null
+  category: string | null // the first of the artist's categories
+  city: string
+  status: ArtistStatus
+  rating_average: number | null // null until the first review
+  rating_count: number
+  bookings_total: number // completed, ever
+  booking_value_30d: number // paise, completed in the last 30 days (paid to the artist directly)
+  open_complaints: number | null // null until complaints are tracked
+  created_at: string
+}
+
+export type DirectoryPage = Page<DirectoryRow>
+
+export interface DirectorySummary {
+  counts: Record<DirectoryStatus, number>
+  active_artists: number
+  new_this_month: number
+  avg_rating: number | null
+  total_reviews: number
+  median_response_minutes: number | null
+  at_risk: number // approved artists declining or cancelling over 8% of the last 30 days' bookings
+}
+
+/** POST /admin/artists/{id}/suspend and /reinstate */
+export interface Suspension {
+  id: string
+  status: ArtistStatus
+  suspension_reason: string | null
+  suspended_at: string | null
+}

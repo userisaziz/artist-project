@@ -48,14 +48,12 @@ function stepsOf(b: AdminBooking): Step[] {
 /** requested → deposit paid → responded → completed / cancelled, with IST times where the API has them. */
 export function BookingTimeline({ booking }: { booking: AdminBooking }) {
   return (
-    <ol className="space-y-4">
+    <ol className="ml-[5px] border-l-2 border-rose">
       {stepsOf(booking).map((s) => (
-        <li key={s.label} className="flex gap-3">
-          <span className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', s.done ? 'bg-primary' : 'border-2 border-primary bg-card')} />
-          <div>
-            <div className="text-sm font-medium">{s.label}</div>
-            {(s.at || s.hint) && <div className="text-xs text-muted-foreground">{s.at ? istDateTime(s.at) : s.hint}</div>}
-          </div>
+        <li key={s.label} className="relative pb-3.5 pl-4 last:pb-0">
+          <span aria-hidden className={cn('absolute top-[3px] -left-1.5 size-2.5 rounded-full border-2 border-card', s.done ? 'bg-primary' : 'bg-rose')} />
+          <div className="text-[13px] font-semibold">{s.label}</div>
+          {(s.at || s.hint) && <div className="text-[11.5px] text-muted-foreground">{s.at ? istDateTime(s.at) : s.hint}</div>}
         </li>
       ))}
     </ol>

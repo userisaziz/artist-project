@@ -1,8 +1,8 @@
-import { NEUTRAL } from '@/features/bookings/status'
+import { Badge } from '@/components/ui/badge'
 import type { ReviewModerationStatus } from '@/lib/types'
 import { REVIEW_STATUS } from './status'
 
 export function ReviewStatusPill({ status }: { status: ReviewModerationStatus }) {
   const s = REVIEW_STATUS.get(status)
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${s?.className ?? NEUTRAL}`}>{s?.label ?? status}</span>
+  return <Badge variant={s?.tone ?? 'neutral'}>{s?.label ?? status}</Badge>
 }

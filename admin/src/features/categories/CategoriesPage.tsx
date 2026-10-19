@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/PageHeader'
-import { ApiError } from '@/lib/api'
+import { toastError } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import type { AdminCategory, CategoryStatus } from '@/lib/types'
 import { CategoryDialog } from './CategoryDialog'
@@ -56,7 +56,7 @@ export function CategoriesPage() {
   const setStatus = (c: AdminCategory, status: CategoryStatus) =>
     save.mutate(
       { id: c.id, input: { status } },
-      { onError: (e) => toast.error(e instanceof ApiError ? e.message : 'Could not update the category') },
+      { onError: (e) => toastError(e, 'Could not update the category') },
     )
 
   const confirmDelete = async () => {
@@ -66,7 +66,7 @@ export function CategoriesPage() {
       toast.success(`“${deleting.name}” deleted`)
       if (deleting.id === subId) setParams({})
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Could not delete the category')
+      toastError(e, 'Could not delete the category')
     }
     setDeleting(null)
   }
@@ -111,11 +111,11 @@ export function CategoriesPage() {
       <PageHeader
         title="Catalog"
         subtitle="Categories, their subcategories, and the services artists pick from during onboarding."
-        action={<Button onClick={() => setDialog({ category: null, parent: null })}><Plus /> New category</Button>}
+        action={<Button size="page" onClick={() => setDialog({ category: null, parent: null })}><Plus /> New category</Button>}
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <section aria-label="Categories" className="rounded-xl border bg-card">
+      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <section aria-label="Categories" className="overflow-hidden rounded-2xl border border-line bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -169,7 +169,7 @@ export function CategoriesPage() {
         {selected ? (
           <ServiceTemplatesPane category={byId(selected.parent_id)} subcategory={selected} />
         ) : (
-          <section aria-label="Services" className="rounded-xl border bg-card px-6 py-16 text-center text-sm text-muted-foreground">
+          <section aria-label="Services" className="overflow-hidden rounded-2xl border border-line bg-card px-6 py-16 text-center text-sm text-muted-foreground">
             Pick a subcategory to manage its services.
           </section>
         )}

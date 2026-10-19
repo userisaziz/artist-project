@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ApiError } from '@/lib/api'
+import { toastError } from '@/lib/notify'
 import type { AdminCategory } from '@/lib/types'
 import { useSaveCategory } from './queries'
 import { StatusSelect } from './StatusSelect'
@@ -63,9 +64,8 @@ export function CategoryDialog({ open, category, parent = null, onClose }: {
       toast.success(category ? `${noun} updated` : `“${values.name}” created`)
       onClose()
     } catch (e) {
-      const message = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.'
-      if (e instanceof ApiError && e.code === 'conflict') form.setError('name', { message })
-      else toast.error(message)
+      if (e instanceof ApiError && e.code === 'conflict') form.setError('name', { message: e.message })
+      else toastError(e)
     }
   })
 

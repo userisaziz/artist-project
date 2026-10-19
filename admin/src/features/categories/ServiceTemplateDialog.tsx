@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError } from '@/lib/api'
+import { toastError } from '@/lib/notify'
 import type { AdminCategory, ServiceTemplate } from '@/lib/types'
 import { useSaveServiceTemplate } from './queries'
 
@@ -55,9 +56,8 @@ export function ServiceTemplateDialog({ open, subcategory, template, onClose }: 
       toast.success(template ? 'Service updated' : `“${values.name}” added to ${subcategory.name}`)
       onClose()
     } catch (e) {
-      const message = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.'
-      if (e instanceof ApiError && e.code === 'conflict') form.setError('name', { message })
-      else toast.error(message)
+      if (e instanceof ApiError && e.code === 'conflict') form.setError('name', { message: e.message })
+      else toastError(e)
     }
   })
 

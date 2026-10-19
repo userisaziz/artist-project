@@ -1,50 +1,45 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ArrowLeft, Check, Eye, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { InitialsAvatar } from '@/components/console/initials-avatar'
+import { Panel } from '@/components/console/panel'
+import { RejectReasonDialog } from '@/components/RejectReasonDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { RejectReasonDialog } from '@/components/RejectReasonDialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCategories } from '@/features/categories/queries'
 import { ApiError } from '@/lib/api'
-import { dateTime, duration, rupees } from '@/lib/format'
-import type { AdminCategory, AdminKyc, ArtistStatus, ServiceStatus } from '@/lib/types'
-import { revealAadhaar, useArtist, useReviewArtist } from './queries'
+import { dateTime } from '@/lib/format'
+import { toastError } from '@/lib/notify'
+import { PATHS } from '@/lib/paths'
+import type { AdminCategory, ArtistDetail } from '@/lib/types'
+import { IdentityPanel } from './components/identity-panel'
+import { KycChecklist } from './components/kyc-checklist'
+import { PortfolioGrid } from './components/portfolio-grid'
+import { ServicesList } from './components/services-list'
+import type { Viewing } from './components/viewing'
+import { useArtist, useReviewArtist, useSuspension } from './queries'
+import { ARTIST_STATUS } from './status'
 
-/** What the full-size image dialog shows: a portfolio photo or one side of the Aadhaar card. */
-type Viewing = { title: string; url: string }
-
-const SERVICE_STATUS: Record<Exclude<ServiceStatus, 'approved'>, { label: string; className: string }> = {
-  pending: { label: 'Pending review', className: 'bg-[#FDF0DC] text-[#9A6514]' },
-  rejected: { label: 'Rejected', className: 'bg-[#FBE3E3] text-[#A33A3A]' },
-}
-
-const STATUS: Record<ArtistStatus, { label: string; className: string }> = {
-  draft: { label: 'Draft', className: 'bg-muted text-muted-foreground' },
-  pending: { label: 'Pending review', className: 'bg-[#FDF0DC] text-[#9A6514]' },
-  approved: { label: 'Approved', className: 'bg-[#E3F1E7] text-[#2F6B47]' },
-  rejected: { label: 'Rejected', className: 'bg-[#FBE3E3] text-[#A33A3A]' },
-}
-
+/** The design's KYC review: checklist, the evidence in tabs, and the decision column. */
 export function ArtistReviewPage() {
   const { id = '' } = useParams()
   const artist = useArtist(id)
   const categories = useCategories()
   const review = useReviewArtist(id)
+  const suspension = useSuspension(id)
   const [rejecting, setRejecting] = useState(false)
+  const [suspending, setSuspending] = useState(false)
   const [viewing, setViewing] = useState<Viewing | null>(null)
 
-  if (artist.isPending) return <Skeleton className="h-96 w-full rounded-xl" />
+  if (artist.isPending) return <Skeleton className="h-96 w-full rounded-2xl" />
   if (artist.isError) {
     return (
       <div className="py-20 text-center">
         <p className="font-medium">{artist.error instanceof ApiError && artist.error.code === 'not_found' ? 'Artist not found' : 'Couldn’t load this artist'}</p>
-        <Button variant="link" render={<Link to="/artists" />}>Back to Verification</Button>
+        <Button variant="link" render={<Link to={PATHS.artists} />}>Back to Verification</Button>
       </div>
     )
   }
@@ -52,8 +47,8 @@ export function ArtistReviewPage() {
   const a = artist.data
   const byId = new Map(categories.data?.map((c) => [c.id, c]))
   // "Makeup › Bridal"; rows from before subcategories point straight at a top-level category.
-  const placeOf = (id: number) => {
-    const c: AdminCategory | undefined = byId.get(id)
+  const placeOf = (subId: number) => {
+    const c: AdminCategory | undefined = byId.get(subId)
     const parent = c?.parent_id != null ? byId.get(c.parent_id) : undefined
     return c ? (parent ? `${parent.name} › ${c.name}` : c.name) : '—'
   }
@@ -65,123 +60,76 @@ export function ArtistReviewPage() {
       toast.success(decision.action === 'approve' ? `${a.business_name} is approved and live` : `${a.business_name} was sent back with your note`)
       setRejecting(false)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+      toastError(e)
+    }
+  }
+
+  const changeSuspension = async (change: { action: 'suspend'; reason: string } | { action: 'reinstate' }) => {
+    try {
+      await suspension.mutateAsync(change)
+      toast.success(change.action === 'suspend' ? `${a.business_name} is suspended` : `${a.business_name} is reinstated and live again`)
+      setSuspending(false)
+    } catch (e) {
+      toastError(e)
     }
   }
 
   return (
-    <>
-      <Link to="/artists" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Verification
-      </Link>
+    <div className="flex flex-col">
+      <nav aria-label="Breadcrumb" className="text-[12.5px] text-muted-foreground">
+        <Link to={PATHS.artists} className="font-semibold text-primary hover:text-primary-hover">Verification</Link> › {a.business_name}
+      </nav>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <Avatar className="size-16">
-          {a.photo_url && <AvatarImage src={a.photo_url} alt="" />}
-          <AvatarFallback className="text-xl">{a.business_name.slice(0, 1)}</AvatarFallback>
-        </Avatar>
+      <div className="mt-3 flex items-center gap-3.5">
+        <InitialsAvatar name={a.business_name} photoUrl={a.photo_url} size={64} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{a.business_name}</h1>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS[a.status].className}`}>{STATUS[a.status].label}</span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{a.city} · submitted {dateTime(a.submitted_at)}</p>
+          <h1 className="text-[23.4px] leading-none font-semibold tracking-[-0.025em]">{a.business_name}</h1>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            {[owner, a.categories.map((c) => c.name).join(', '), a.city, `Submitted ${dateTime(a.submitted_at)}`].filter(Boolean).join(' · ')}
+          </p>
         </div>
-        {a.status === 'pending' && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setRejecting(true)} disabled={review.isPending}>
-              <X /> Reject
-            </Button>
-            <Button onClick={() => { void decide({ action: 'approve' }) }} disabled={review.isPending}>
-              <Check /> {review.isPending ? 'Saving…' : 'Approve'}
-            </Button>
-          </div>
-        )}
+        <Badge variant={ARTIST_STATUS[a.status].tone} className="px-3 py-[5px] text-xs">{ARTIST_STATUS[a.status].label}</Badge>
       </div>
 
+      {a.status === 'suspended' && (
+        <div className="mt-4 rounded-xl bg-danger-soft p-3.5 text-[13px] text-destructive">
+          <span className="font-semibold">Suspended:</span> hidden from clients and can’t take new bookings until reinstated.
+        </div>
+      )}
+
       {a.status === 'rejected' && a.rejection_reason && (
-        <div className="mb-6 rounded-xl border border-[#F3C9C9] bg-[#FBE3E3] p-4 text-sm text-[#A33A3A]">
+        <div className="mt-4 rounded-xl bg-danger-soft p-3.5 text-[13px] text-destructive">
           <span className="font-semibold">Sent back:</span> {a.rejection_reason}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <IdentityCard key={a.id} artistId={a.id} kyc={a.kyc} onView={setViewing} onExpired={() => { void artist.refetch() }} />
+      <div className="mt-4 grid gap-3.5 lg:grid-cols-[250px_1fr_280px]">
+        <KycChecklist artist={a} />
 
-          <Card>
-            <CardHeader><CardTitle>Services · {a.services.length}</CardTitle></CardHeader>
-            <CardContent className="px-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-6">Service</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead className="pr-6 text-right">Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {a.services.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="pl-6">
-                        <div className="flex flex-wrap items-center gap-1.5 font-medium">
-                          {s.name}
-                          {s.template_id === null && <Badge variant="outline">Custom</Badge>}
-                          {s.status !== 'approved' && (
-                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${SERVICE_STATUS[s.status].className}`}>{SERVICE_STATUS[s.status].label}</span>
-                          )}
-                        </div>
-                        {s.description && <div className="text-xs text-muted-foreground">{s.description}</div>}
-                      </TableCell>
-                      <TableCell>{placeOf(s.subcategory_id)}</TableCell>
-                      <TableCell>{duration(s.duration_minutes)}</TableCell>
-                      <TableCell className="pr-6 text-right font-medium tabular-nums">{rupees(s.price_paise)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <Panel className="p-3.5">
+          <Tabs defaultValue="identity">
+            <TabsList variant="segment" aria-label="Evidence">
+              <TabsTrigger value="identity">Aadhaar</TabsTrigger>
+              <TabsTrigger value="portfolio">Portfolio ({a.photos.length})</TabsTrigger>
+              <TabsTrigger value="services">Services ({a.services.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="identity" className="mt-3 flex">
+              <IdentityPanel key={a.id} artistId={a.id} kyc={a.kyc} onView={setViewing} onExpired={() => { void artist.refetch() }} />
+            </TabsContent>
+            <TabsContent value="portfolio" className="mt-3"><PortfolioGrid photos={a.photos} onView={setViewing} /></TabsContent>
+            <TabsContent value="services" className="mt-3"><ServicesList services={a.services} placeOf={placeOf} /></TabsContent>
+          </Tabs>
+        </Panel>
 
-          <Card>
-            <CardHeader><CardTitle>Portfolio · {a.photos.length}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {a.photos.map((p, i) => (
-                  <button key={p.id} type="button" onClick={() => setViewing({ title: 'Portfolio photo', url: p.full_url })} className="group relative overflow-hidden rounded-lg bg-muted" aria-label={`Open photo ${i + 1}`}>
-                    <img src={p.card_url} alt="" className="aspect-[4/5] w-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy" />
-                    {i === 0 && <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold">Cover</span>}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Account</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Row label="Name" value={owner} />
-              <Row label="Phone" value={a.owner.phone} />
-              <Row label="Email" value={a.owner.email ?? '—'} />
-              <Row label="Reviewed" value={dateTime(a.reviewed_at)} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Offers</CardTitle></CardHeader>
-            <CardContent className="flex flex-wrap gap-1.5">
-              {a.categories.map((c) => <Badge key={c.id} variant="secondary">{c.name}</Badge>)}
-            </CardContent>
-          </Card>
-          {a.bio && (
-            <Card>
-              <CardHeader><CardTitle>About</CardTitle></CardHeader>
-              <CardContent className="text-sm whitespace-pre-line">{a.bio}</CardContent>
-            </Card>
-          )}
-        </div>
+        <DecisionColumn
+          artist={a}
+          owner={owner}
+          pending={review.isPending || suspension.isPending}
+          onApprove={() => { void decide({ action: 'approve' }) }}
+          onReject={() => setRejecting(true)}
+          onSuspend={() => setSuspending(true)}
+          onReinstate={() => { void changeSuspension({ action: 'reinstate' }) }}
+        />
       </div>
 
       <RejectReasonDialog
@@ -194,95 +142,84 @@ export function ArtistReviewPage() {
         onSubmit={(reason) => { void decide({ action: 'reject', reason }) }}
       />
 
+      <RejectReasonDialog
+        open={suspending}
+        title={`Suspend ${a.business_name}?`}
+        description="Their profile is hidden and they can’t take new bookings until reinstated. Existing bookings stay as they are."
+        placeholder="e.g. Three customers reported no-shows this month."
+        label="Reason"
+        submitLabel="Suspend"
+        dismissLabel="Keep live"
+        requiredMessage="Add a reason for suspending."
+        pending={suspension.isPending}
+        onClose={() => setSuspending(false)}
+        onSubmit={(reason) => { void changeSuspension({ action: 'suspend', reason }) }}
+      />
+
       <Dialog open={viewing !== null} onOpenChange={(open) => !open && setViewing(null)}>
         <DialogContent className="max-w-3xl p-2 sm:max-w-3xl">
           <DialogTitle className="sr-only">{viewing?.title}</DialogTitle>
           {viewing && <img src={viewing.url} alt="" className="max-h-[80vh] w-full rounded-md object-contain" />}
         </DialogContent>
       </Dialog>
-    </>
-  )
-}
-
-/**
- * Spec §3.1. The full number comes from a plain call held in this component's state (never the query or
- * mutation cache), so it disappears when the admin leaves the page. Keyed by artist id by the caller.
- */
-function IdentityCard({ artistId, kyc, onView, onExpired }: {
-  artistId: string
-  kyc: AdminKyc | null
-  onView: (image: Viewing) => void
-  onExpired: () => void
-}) {
-  const [revealed, setRevealed] = useState<string | null>(null)
-  const [revealing, setRevealing] = useState(false)
-  const refreshed = useRef(false) // a ref, so front and back failing in the same tick still refetch only once
-
-  const reveal = async () => {
-    setRevealing(true)
-    try {
-      setRevealed((await revealAadhaar(artistId)).aadhaar_number)
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
-    } finally {
-      setRevealing(false)
-    }
-  }
-
-  // The card links expire after 5 minutes. On the first broken image, refetch the detail once for fresh links.
-  const expired = () => {
-    if (refreshed.current) return
-    refreshed.current = true
-    onExpired()
-  }
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Identity (Aadhaar)</CardTitle></CardHeader>
-      <CardContent>
-        {!kyc ? (
-          <p className="text-sm text-muted-foreground">No Aadhaar on file</p>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold tracking-wide tabular-nums">
-                  {revealed ? revealed.replace(/(\d{4})(?=\d)/g, '$1 ') : kyc.aadhaar_masked}
-                </span>
-                {!revealed && (
-                  <Button variant="outline" size="sm" onClick={() => { void reveal() }} disabled={revealing}>
-                    <Eye /> {revealing ? 'Revealing…' : 'Reveal'}
-                  </Button>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Reveals are logged.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {([['Front', kyc.front_url], ['Back', kyc.back_url]] as const).map(([side, url]) => (
-                <button
-                  key={side}
-                  type="button"
-                  onClick={() => onView({ title: `Aadhaar ${side.toLowerCase()}`, url })}
-                  className="overflow-hidden rounded-lg bg-muted text-left"
-                  aria-label={`Open Aadhaar ${side.toLowerCase()}`}
-                >
-                  <img src={url} alt={`Aadhaar ${side.toLowerCase()}`} onError={expired} className="aspect-[3/2] w-full object-cover" />
-                  <span className="block px-2 py-1 text-xs font-medium text-muted-foreground">{side}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
     </div>
+  )
+}
+
+interface DecisionColumnProps {
+  artist: ArtistDetail
+  owner: string
+  pending: boolean
+  onApprove: () => void
+  onReject: () => void
+  onSuspend: () => void
+  onReinstate: () => void
+}
+
+function DecisionColumn({ artist: a, owner, pending, onApprove, onReject, onSuspend, onReinstate }: DecisionColumnProps) {
+  const details = [
+    ['Name', owner],
+    ['Phone', a.owner.phone],
+    ['Email', a.owner.email ?? '—'],
+    ['Reviewed', dateTime(a.reviewed_at)],
+  ] as const
+  return (
+    <Panel className="flex flex-col gap-2.5 p-3.5">
+      <h2 className="text-[13px] font-bold">Account</h2>
+      <dl className="space-y-2 text-[12.5px]">
+        {details.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-right font-semibold">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {a.bio && (
+        <div className="rounded-xl bg-row-hover p-2.5 text-[12.5px] leading-normal whitespace-pre-line">
+          <b>About</b><br />{a.bio}
+        </div>
+      )}
+      <div className="flex-1" />
+      {a.status === 'pending' && (
+        <>
+          <Button className="h-11 rounded-xl text-sm font-semibold" onClick={onApprove} disabled={pending}>
+            {pending ? 'Saving…' : 'Approve & publish'}
+          </Button>
+          <Button variant="outline" className="h-10 rounded-xl text-[13px] font-semibold text-destructive" onClick={onReject} disabled={pending}>
+            Reject
+          </Button>
+        </>
+      )}
+      {a.status === 'approved' && (
+        <Button variant="outline" className="h-10 rounded-xl text-[13px] font-semibold text-destructive" onClick={onSuspend} disabled={pending}>
+          Suspend artist
+        </Button>
+      )}
+      {a.status === 'suspended' && (
+        <Button className="h-11 rounded-xl text-sm font-semibold" onClick={onReinstate} disabled={pending}>
+          {pending ? 'Saving…' : 'Reinstate'}
+        </Button>
+      )}
+    </Panel>
   )
 }

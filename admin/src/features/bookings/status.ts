@@ -1,18 +1,13 @@
 import type { BookingStatus } from '@/lib/types'
 
-export const AMBER = 'bg-[#FDF0DC] text-[#9A6514]'
-export const GREEN = 'bg-[#E3F1E7] text-[#2F6B47]'
-export const RED = 'bg-[#FBE3E3] text-[#A33A3A]'
-export const NEUTRAL = 'bg-[#F2EEF0] text-[#6E5262]'
-
-/** In the order the list's filter chips show them. */
-export const BOOKING_STATUSES: { value: BookingStatus; label: string; className: string }[] = [
-  { value: 'requested', label: 'Requested', className: AMBER },
-  { value: 'confirmed', label: 'Confirmed', className: GREEN },
-  { value: 'completed', label: 'Completed', className: NEUTRAL },
-  { value: 'cancelled', label: 'Cancelled', className: RED },
-  { value: 'declined', label: 'Declined', className: RED },
-  { value: 'expired', label: 'Expired', className: NEUTRAL },
+/** In the order the list's filter chips show them; `tone` is the status pill's Badge variant. */
+export const BOOKING_STATUSES: { value: BookingStatus; label: string; tone: 'warning' | 'success' | 'neutral' | 'danger' }[] = [
+  { value: 'requested', label: 'Requested', tone: 'warning' },
+  { value: 'confirmed', label: 'Confirmed', tone: 'success' },
+  { value: 'completed', label: 'Completed', tone: 'neutral' },
+  { value: 'cancelled', label: 'Cancelled', tone: 'danger' },
+  { value: 'declined', label: 'Declined', tone: 'danger' },
+  { value: 'expired', label: 'Expired', tone: 'neutral' },
 ]
 
 export const BY_VALUE = new Map(BOOKING_STATUSES.map((s) => [s.value, s]))

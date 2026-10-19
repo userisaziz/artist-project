@@ -2,206 +2,18 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import { createQueryClient } from './lib/query-client'
-import { API_URL } from './lib/api'
-import type { AdminBooking, AdminCategory, AdminKyc, AdminOverview, AdminReview, ArtistDetail, CustomServiceItem, ServiceTemplate, User } from './lib/types'
+import { ADMIN, KYC, artist, booking, calls, category, customService, db, installFakeBackend, requests, review } from './test/fake-backend'
+import { renderApp, renderSignedIn } from './test/render-app'
 
-// A tiny in-memory backend behind fetch: just enough of the API contract for these flows.
-const ADMIN: User = { id: 'u-admin', phone: '+919845000001', roles: ['admin'], active_role: null, first_name: 'Neha', last_name: 'Menon', email: null }
-
-// Generated Aadhaar number (not a real person's): 234123412346, so the masked form ends 2346.
-const KYC: AdminKyc = {
-  aadhaar_masked: '•••• •••• 2346',
-  front_url: 'https://fake.storage/private/artists/u-1/aadhaar/front.jpg?expires_at=1',
-  back_url: 'https://fake.storage/private/artists/u-1/aadhaar/back.jpg?expires_at=1',
-}
-
-function artist(overrides: Partial<ArtistDetail> = {}): ArtistDetail {
-  return {
-    id: 'a-1', status: 'pending', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', bio: null, photo_url: null,
-    categories: [{ id: 1, slug: 'mehendi', name: 'Mehendi' }],
-    services: [{ id: 's-1', category_id: 1, subcategory_id: 1, template_id: null, name: 'Bridal Classic', price_paise: 550000, duration_minutes: 180, description: null, status: 'approved', rejection_reason: null }],
-    photos: [], kyc: KYC, rejection_reason: null, submitted_at: '2026-10-10T09:41:00Z', reviewed_at: null,
-    owner: { id: 'u-1', phone: '+919845011111', first_name: 'Ayesha', last_name: null, email: null },
-    ...overrides,
-  }
-}
-
-const category = (overrides: Partial<AdminCategory> & Pick<AdminCategory, 'id' | 'name'>): AdminCategory => ({
-  slug: overrides.name.toLowerCase(), sort_order: 0, status: 'active', parent_id: null,
-  artist_count: 0, service_count: 0, child_count: 0, template_count: 0, ...overrides,
-})
-
-function customService(overrides: Partial<CustomServiceItem> = {}): CustomServiceItem {
-  return {
-    id: 'cs-1', artist_id: 'a-1', business_name: 'Ayesha Mehendi Art', category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
-    name: 'Glitter mehendi', price_paise: 150000, duration_minutes: 60, description: 'Gold glitter accents', status: 'pending',
-    rejection_reason: null, created_at: '2026-10-12T09:00:00Z', ...overrides,
-  }
-}
-
-// ₹5,500 service + ₹99 fee = ₹5,599; 30% deposit ₹1,680, balance ₹3,919; 10% commission ₹550, so the artist earns ₹4,950.
-function booking(overrides: Partial<AdminBooking> = {}): AdminBooking {
-  return {
-    id: 'b-1', code: 'BK-7F3K2Q', status: 'requested', start_at: '2026-10-20T05:30:00Z', end_at: '2026-10-20T08:30:00Z',
-    address: '12 Residency Road, Bangalore', note: 'Gate code 4512', service_name: 'Bridal Classic', duration_minutes: 180,
-    artist: { id: 'a-1', business_name: 'Ayesha Mehendi Art', photo_url: null, city: 'Bangalore' },
-    customer: { id: 'u-9', first_name: 'Priya', last_name: 'Rao', phone: '+919845022222' },
-    subtotal_paise: 550000, platform_fee_paise: 9900, total_paise: 559900, deposit_paise: 168000, balance_paise: 391900,
-    commission_paise: 55000, artist_earning_paise: 495000, deposit_paid_at: '2026-10-17T04:12:00Z', expires_at: '2026-10-17T07:11:00Z',
-    responded_at: null, cancelled_at: null, completed_at: null,
-    decline_reason: null, cancel_reason: null, cancelled_by: null, refund_due: null, created_at: '2026-10-17T04:11:00Z', ...overrides,
-  }
-}
-
-function review(overrides: Partial<AdminReview> = {}): AdminReview {
-  return {
-    id: 'r-1', rating: 2, text: 'Half the flowers were missing and the stage was set up two hours late.', reviewer_name: 'Priya R.',
-    service_name: 'Bridal Classic', created_at: '2026-10-14T09:00:00Z', reply: 'We are sorry, the supplier let us down.', replied_at: '2026-10-15T09:00:00Z',
-    status: 'flagged', flag: 'artist_report', report_reason: 'This customer never booked this service', moderator_note: null, moderated_at: null,
-    artist: { id: 'a-1', business_name: 'Ayesha Mehendi Art' }, customer: { id: 'u-9', name: 'Priya Rao', phone: '+919845022222' },
-    booking: { id: 'b-1', code: 'BK-7F3K2Q', service_name: 'Bridal Classic' }, ...overrides,
-  }
-}
-
-const OVERVIEW: AdminOverview = {
-  gross_paise_30d: 426000000, bookings_30d: 1284, awaiting_artist: 42, completed_30d: 902, cancelled_30d: 22,
-  pending_artists: 1, pending_custom_services: 0, flagged_reviews: 3,
-  bookings_by_week: Array.from({ length: 12 }, (_, i) => ({ week_start: new Date(Date.UTC(2026, 6, 27 + 7 * i)).toISOString().slice(0, 10), count: 10 + i })),
-}
-
-interface Db { categories: AdminCategory[]; templates: ServiceTemplate[]; customServices: CustomServiceItem[]; artist: ArtistDetail; bookings: AdminBooking[]; reviews: AdminReview[]; overview: AdminOverview; me: User }
-let db: Db
-let calls: { method: string; path: string; body: unknown }[]
-
-const json = (status: number, body?: unknown) =>
-  new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
-
-function route(method: string, path: string, body: any): Response {
-  const pair = (user: User) => ({ access_token: 'access', refresh_token: 'refresh', token_type: 'bearer', user })
-  if (method === 'POST' && path === '/auth/otp/request') return json(204)
-  if (method === 'POST' && path === '/auth/otp/verify') return json(200, pair(db.me))
-  if (method === 'POST' && path === '/auth/refresh') return json(200, pair(db.me))
-  if (method === 'GET' && path === '/users/me') return json(200, db.me)
-  if (method === 'GET' && path === '/admin/categories') return json(200, db.categories)
-  if (method === 'POST' && path === '/admin/categories') {
-    const created: AdminCategory = { id: db.categories.length + 1, slug: body.name.toLowerCase(), name: body.name, sort_order: db.categories.length, status: body.status, parent_id: body.parent_id ?? null, artist_count: 0, service_count: 0, child_count: 0, template_count: 0 }
-    db.categories = db.categories.map((c) => (c.id === created.parent_id ? { ...c, child_count: c.child_count + 1 } : c))
-    db.categories.push(created)
-    return json(201, created)
-  }
-  if (method === 'GET' && path.startsWith('/admin/service-templates?')) {
-    const sub = Number(new URLSearchParams(path.split('?')[1]).get('subcategory_id'))
-    return json(200, db.templates.filter((t) => t.subcategory_id === sub))
-  }
-  if (method === 'POST' && path === '/admin/service-templates') {
-    const created: ServiceTemplate = { id: 100 + db.templates.length, subcategory_id: body.subcategory_id, name: body.name, description: body.description, sort_order: db.templates.length, is_active: body.is_active, artist_count: 0 }
-    db.templates.push(created)
-    return json(201, created)
-  }
-  if (method === 'GET' && path.startsWith('/admin/custom-services?')) {
-    const status = new URLSearchParams(path.split('?')[1]).get('status')
-    return json(200, { items: db.customServices.filter((s) => s.status === status), next_cursor: null })
-  }
-  const decided = path.match(/^\/admin\/custom-services\/([^/]+)\/(approve|reject)$/)
-  if (method === 'POST' && decided) {
-    const [, id, action] = decided
-    const item = db.customServices.find((s) => s.id === id)
-    if (!item) return json(404, { code: 'not_found', message: 'Custom service not found' })
-    const next = { ...item, status: action === 'approve' ? 'approved' : 'rejected', rejection_reason: action === 'reject' ? body.reason : null } as CustomServiceItem
-    db.customServices = db.customServices.map((s) => (s.id === id ? next : s))
-    return json(200, next)
-  }
-  if (method === 'GET' && path.startsWith('/admin/artists?')) {
-    const status = new URLSearchParams(path.split('?')[1]).get('status')
-    const a = db.artist
-    const items = a.status === status ? [{ ...a, categories: a.categories.map((c) => c.name), service_count: a.services.length, photo_count: a.photos.length }] : []
-    return json(200, { items, next_cursor: null })
-  }
-  if (method === 'GET' && path === `/admin/artists/${db.artist.id}`) return json(200, db.artist)
-  if (method === 'POST' && path === `/admin/artists/${db.artist.id}/approve`) {
-    db.artist = { ...db.artist, status: 'approved', reviewed_at: '2026-10-10T10:00:00Z' }
-    return json(200, db.artist)
-  }
-  if (method === 'POST' && path === `/admin/artists/${db.artist.id}/reject`) {
-    db.artist = { ...db.artist, status: 'rejected', rejection_reason: body.reason }
-    return json(200, db.artist)
-  }
-  if (method === 'POST' && path === `/admin/artists/${db.artist.id}/kyc/reveal`) {
-    return db.artist.kyc ? json(200, { aadhaar_number: '234123412346' }) : json(404, { code: 'not_found', message: 'No Aadhaar on file' })
-  }
-  if (method === 'GET' && path === '/admin/overview') return json(200, db.overview)
-  if (method === 'GET' && path.startsWith('/admin/bookings?')) {
-    const query = new URLSearchParams(path.split('?')[1])
-    const status = query.get('status')
-    const q = query.get('q')?.toLowerCase()
-    const limit = Number(query.get('limit') ?? 20)
-    const start = Number(query.get('cursor') ?? 0)
-    const matches = db.bookings.filter((b) =>
-      (!status || b.status === status) &&
-      (!q || [b.code, b.customer.phone, b.artist.business_name].some((field) => field.toLowerCase().includes(q))))
-    const end = start + limit
-    return json(200, { items: matches.slice(start, end), next_cursor: end < matches.length ? String(end) : null })
-  }
-  const bookingPath = path.match(/^\/admin\/bookings\/([^/]+)(\/cancel)?$/)
-  if (bookingPath) {
-    const [, id, cancel] = bookingPath
-    const found = db.bookings.find((b) => b.id === id)
-    if (!found) return json(404, { code: 'not_found', message: 'Booking not found' })
-    if (method === 'GET' && !cancel) return json(200, found)
-    if (method === 'POST' && cancel) {
-      if (found.status !== 'requested' && found.status !== 'confirmed') return json(409, { code: 'conflict', message: `This booking is already ${found.status}` })
-      const next: AdminBooking = { ...found, status: 'cancelled', cancel_reason: body.reason, cancelled_by: 'admin', refund_due: true, cancelled_at: '2026-10-17T05:00:00Z' }
-      db.bookings = db.bookings.map((b) => (b.id === id ? next : b))
-      return json(200, next)
-    }
-  }
-  if (method === 'GET' && path.startsWith('/admin/reviews?')) {
-    const query = new URLSearchParams(path.split('?')[1])
-    const limit = Number(query.get('limit') ?? 20)
-    const start = Number(query.get('cursor') ?? 0)
-    const matches = db.reviews.filter((r) => r.status === query.get('status'))
-    const end = start + limit
-    return json(200, { items: matches.slice(start, end), next_cursor: end < matches.length ? String(end) : null })
-  }
-  const decision = path.match(/^\/admin\/reviews\/([^/]+)\/decision$/)
-  if (method === 'POST' && decision) {
-    const found = db.reviews.find((r) => r.id === decision[1])
-    if (!found) return json(404, { code: 'not_found', message: 'Review not found' })
-    if (found.status === 'removed') return json(409, { code: 'conflict', message: 'This review was removed' })
-    const status = ({ publish: 'published', hide: 'hidden', remove: 'removed' } as const)[body.decision as 'publish' | 'hide' | 'remove']
-    const next: AdminReview = { ...found, status, flag: status === 'published' ? null : found.flag, moderator_note: body.note ?? null, moderated_at: '2026-10-17T06:00:00Z' }
-    db.reviews = db.reviews.map((r) => (r.id === found.id ? next : r))
-    return json(200, next)
-  }
-  return json(404, { code: 'not_found', message: `No fake route for ${method} ${path}` })
-}
+// The fake backend (src/test/fake-backend.ts) stands in for the API behind fetch.
 
 beforeEach(() => {
-  db = { categories: [], templates: [], customServices: [], artist: artist(), bookings: [], reviews: [], overview: OVERVIEW, me: ADMIN }
-  calls = []
+  installFakeBackend()
   localStorage.clear()
   sessionStorage.clear()
   window.history.pushState({}, '', '/')
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit = {}) => {
-    const path = url.slice(API_URL.length)
-    const method = init.method ?? 'GET'
-    const body = init.body ? JSON.parse(String(init.body)) : undefined
-    calls.push({ method, path, body })
-    return route(method, path, body)
-  }))
 })
 afterEach(() => vi.unstubAllGlobals())
-
-const renderApp = (path = '/') => {
-  window.history.pushState({}, '', path)
-  return render(<App queryClient={createQueryClient()} />)
-}
-
-/** Start signed in: a stored refresh token restores the admin session on load. */
-const renderSignedIn = (path: string) => {
-  localStorage.setItem('atelier-admin.refresh', 'refresh')
-  return renderApp(path)
-}
 
 it('signs an admin in with phone + code and opens the Overview', async () => {
   const user = userEvent.setup()
@@ -213,7 +25,7 @@ it('signs an admin in with phone + code and opens the Overview', async () => {
   expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
   expect(window.location.pathname).toBe('/overview')
   expect(calls).toContainEqual({ method: 'POST', path: '/auth/otp/verify', body: { phone: '+919845000001', code: '123456' } })
-  expect(localStorage.getItem('atelier-admin.refresh')).toBe('refresh') // "Keep me signed in" is on by default
+  expect(db.refreshCookie).not.toBeNull() // the refresh token lives in the httpOnly cookie
 })
 
 it('without "Keep me signed in" the session lasts only for this browser session', async () => {
@@ -225,8 +37,36 @@ it('without "Keep me signed in" the session lasts only for this browser session'
   await screen.findByText(/We texted a 6-digit code/)
   await user.keyboard('123456')
   await screen.findByRole('heading', { name: /Neha/ })
-  expect(localStorage.getItem('atelier-admin.refresh')).toBeNull()
-  expect(sessionStorage.getItem('atelier-admin.refresh')).toBe('refresh')
+  const verify = requests.find((r) => r.path === '/auth/otp/verify')
+  expect(verify?.headers['x-session-transport']).toBe('cookie-session')
+  expect(verify?.credentials).toBe('include')
+})
+
+it('sends a signed-out deep link to /login, then back to that page after sign-in', async () => {
+  const user = userEvent.setup()
+  renderApp('/bookings?status=completed')
+  await user.type(await screen.findByLabelText('Phone number'), '9845000001')
+  expect(window.location.pathname).toBe('/login')
+  await user.click(screen.getByRole('button', { name: 'Sign in' }))
+  await screen.findByText(/We texted a 6-digit code/)
+  await user.keyboard('123456')
+  await waitFor(() => expect(window.location.pathname).toBe('/bookings'))
+  expect(window.location.search).toBe('?status=completed')
+})
+
+it('a signed-in admin visiting /login lands on the Overview', async () => {
+  renderSignedIn('/login')
+  expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/overview')
+})
+
+it('signing out returns to /login', async () => {
+  const user = userEvent.setup()
+  renderSignedIn('/overview')
+  await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+  expect(await screen.findByLabelText('Phone number')).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/login')
+  expect(db.refreshCookie).toBeNull()
 })
 
 it('refuses a non-admin account and stores no session', async () => {
@@ -240,8 +80,7 @@ it('refuses a non-admin account and stores no session', async () => {
   await screen.findByText(/We texted a 6-digit code/)
   await user.keyboard('123456')
   expect(await screen.findByText("This account isn't an admin.")).toBeInTheDocument()
-  expect(localStorage.getItem('atelier-admin.refresh')).toBeNull()
-  expect(sessionStorage.getItem('atelier-admin.refresh')).toBeNull()
+  expect(db.refreshCookie).toBeNull() // the cookie the verify call set was revoked again
 })
 
 it('creates the first category from the empty Catalog', async () => {
@@ -265,11 +104,12 @@ it('lists a pending artist and approves them', async () => {
   const user = userEvent.setup()
   renderSignedIn('/artists')
   await user.click(await screen.findByText('Ayesha Mehendi Art'))
+  await user.click(await screen.findByRole('tab', { name: 'Services (1)' }))
   expect(await screen.findByText('Bridal Classic')).toBeInTheDocument()
   expect(screen.getByText('₹5,500')).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: 'Approve' }))
+  await user.click(screen.getByRole('button', { name: 'Approve & publish' }))
   expect(await screen.findByText('Approved')).toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Approve & publish' })).not.toBeInTheDocument()
 })
 
 it('rejecting needs a reason, then shows it', async () => {
@@ -287,12 +127,13 @@ it('rejecting needs a reason, then shows it', async () => {
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/reject', body: { reason: 'Photos are blurry' } })
 })
 
-it('shows the masked Aadhaar above Services, and both card photos open full size', async () => {
+it('opens on the masked Aadhaar tab, and both card photos open full size', async () => {
   const user = userEvent.setup()
   renderSignedIn('/artists/a-1')
   expect(await screen.findByText('•••• •••• 2346')).toBeInTheDocument()
   expect(screen.getByText('Reveals are logged.')).toBeInTheDocument()
-  expect(screen.getByText('Identity (Aadhaar)').compareDocumentPosition(screen.getByText('Services · 1')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.getByRole('tab', { name: 'Aadhaar' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: 'Services (1)' })).toHaveAttribute('aria-selected', 'false')
   expect(screen.getByAltText('Aadhaar front')).toHaveAttribute('src', KYC.front_url)
   expect(screen.getByAltText('Aadhaar back')).toHaveAttribute('src', KYC.back_url)
 
@@ -304,7 +145,7 @@ it('shows the masked Aadhaar above Services, and both card photos open full size
 it('Reveal POSTs to the reveal endpoint and shows the full number without caching it', async () => {
   const user = userEvent.setup()
   const queryClient = createQueryClient()
-  localStorage.setItem('atelier-admin.refresh', 'refresh')
+  db.refreshCookie = 'refresh-1'
   window.history.pushState({}, '', '/artists/a-1')
   render(<App queryClient={queryClient} />)
 
@@ -322,7 +163,7 @@ it('says "No Aadhaar on file" when there is none, and Approve still works', asyn
   renderSignedIn('/artists/a-1')
   expect(await screen.findByText('No Aadhaar on file')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Reveal' })).not.toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: 'Approve' }))
+  await user.click(screen.getByRole('button', { name: 'Approve & publish' }))
   expect(await screen.findByText('Approved')).toBeInTheDocument()
 })
 
@@ -430,7 +271,7 @@ it('rejecting a custom service needs a reason', async () => {
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/custom-services/cs-1/reject', body: { reason: 'Already in the catalog' } })
 
-  await user.click(screen.getByRole('tab', { name: 'Rejected' }))
+  await user.click(screen.getByRole('button', { name: 'Rejected' }))
   expect(await screen.findByText('Sent back: Already in the catalog')).toBeInTheDocument()
 })
 
@@ -444,8 +285,10 @@ it('the review page shows Category › Subcategory and marks custom and pending 
       { id: 's-3', category_id: 1, subcategory_id: 1, template_id: null, name: 'Old custom', price_paise: 100000, duration_minutes: 30, description: null, status: 'approved', rejection_reason: null },
     ],
   })
+  const user = userEvent.setup()
   renderSignedIn('/artists/a-1')
   const row = (name: string) => screen.getByText(name).closest('tr') as HTMLElement
+  await user.click(await screen.findByRole('tab', { name: 'Services (3)' }))
   await screen.findByText('Glitter mehendi')
   expect(within(row('Bridal Classic')).getByText('Mehendi › Bridal')).toBeInTheDocument()
   expect(within(row('Bridal Classic')).queryByText('Custom')).not.toBeInTheDocument()
@@ -461,12 +304,14 @@ it('lands on the Overview by default, with KPIs, the weekly chart and the first 
   expect(window.location.pathname).toBe('/overview')
   expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
 
-  const kpi = (label: string) => screen.getByText(label).closest('[data-slot="card"]') as HTMLElement
+  const kpi = (label: string) => screen.getByRole('group', { name: label })
   await screen.findByText('₹42.6L')
-  expect(within(kpi('Gross bookings (30d)')).getByText('₹42.6L')).toBeInTheDocument()
-  expect(within(kpi('Bookings (30d)')).getByText('1,284')).toBeInTheDocument()
+  expect(within(kpi('Gross bookings')).getByText('₹42.6L')).toBeInTheDocument()
+  expect(within(kpi('Gross bookings')).getByText('▲ 12.4%')).toBeInTheDocument() // against the previous 30 days
+  expect(within(kpi('Bookings')).getByText('1,284')).toBeInTheDocument()
+  expect(within(kpi('New artists')).getByText('86')).toBeInTheDocument()
+  expect(within(kpi('New artists')).getByText('1 pending review')).toBeInTheDocument()
   expect(within(kpi('Awaiting artist')).getByText('42')).toBeInTheDocument()
-  expect(within(kpi('Pending verification')).getByText('1')).toBeInTheDocument()
 
   expect(screen.getAllByRole('listitem', { name: /^Week of/ })).toHaveLength(12)
   expect(screen.getByRole('listitem', { name: 'Week of 12 Oct: 21 bookings' })).toBeInTheDocument()
@@ -475,7 +320,7 @@ it('lands on the Overview by default, with KPIs, the weekly chart and the first 
   const artistLink = await screen.findByRole('link', { name: /Ayesha Mehendi Art/ })
   expect(artistLink).toHaveAttribute('href', '/artists/a-1')
   await user.click(screen.getByRole('link', { name: 'Open queue' }))
-  expect(await screen.findByRole('heading', { name: 'Verification' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: 'Verification queue' })).toBeInTheDocument()
 })
 
 it('filters bookings by status chip and by search', async () => {
@@ -485,23 +330,23 @@ it('filters bookings by status chip and by search', async () => {
   ]
   const user = userEvent.setup()
   renderSignedIn('/bookings')
-  expect(await screen.findByRole('link', { name: 'BK-7F3K2Q' })).toHaveAttribute('href', '/bookings/b-1')
-  expect(screen.getByText('BK-9H4M2P')).toBeInTheDocument()
-  const row = screen.getByText('BK-7F3K2Q').closest('tr') as HTMLElement
+  const row = await screen.findByRole('link', { name: /BK-7F3K2Q/ })
+  expect(row).toHaveAttribute('href', '/bookings/b-1')
+  expect(screen.getByText(/BK-9H4M2P/)).toBeInTheDocument()
   expect(within(row).getByText('₹5,599')).toBeInTheDocument()
   expect(within(row).getByText('Requested')).toBeInTheDocument()
   expect(within(row).getByText(/20 Oct.*11:00 am/i)).toBeInTheDocument() // 05:30 UTC is 11:00 IST
 
   await user.click(screen.getByRole('button', { name: 'Confirmed' }))
-  await waitFor(() => expect(screen.queryByText('BK-7F3K2Q')).not.toBeInTheDocument())
-  expect(screen.getByText('BK-9H4M2P')).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByText(/BK-7F3K2Q/)).not.toBeInTheDocument())
+  expect(screen.getByText(/BK-9H4M2P/)).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Confirmed' })).toHaveAttribute('aria-pressed', 'true')
   expect(calls.some((c) => c.path.startsWith('/admin/bookings?') && c.path.includes('status=confirmed'))).toBe(true)
 
   await user.click(screen.getByRole('button', { name: 'All' }))
-  await user.type(screen.getByRole('searchbox', { name: /Search/ }), 'ayesha')
-  await waitFor(() => expect(screen.queryByText('BK-9H4M2P')).not.toBeInTheDocument())
-  expect(await screen.findByText('BK-7F3K2Q')).toBeInTheDocument()
+  await user.type(screen.getByRole('searchbox', { name: 'Filter bookings' }), 'ayesha')
+  await waitFor(() => expect(screen.queryByText(/BK-9H4M2P/)).not.toBeInTheDocument())
+  expect(await screen.findByText(/BK-7F3K2Q/)).toBeInTheDocument()
   expect(calls.some((c) => c.path.includes('q=ayesha'))).toBe(true)
 })
 
@@ -509,10 +354,10 @@ it('loads the next page of bookings with "Load more"', async () => {
   db.bookings = Array.from({ length: 21 }, (_, i) => booking({ id: `b-${i}`, code: `BK-${String(i).padStart(6, '0')}` }))
   const user = userEvent.setup()
   renderSignedIn('/bookings')
-  expect(await screen.findByText('BK-000019')).toBeInTheDocument()
-  expect(screen.queryByText('BK-000020')).not.toBeInTheDocument()
+  expect(await screen.findByText(/BK-000019/)).toBeInTheDocument()
+  expect(screen.queryByText(/BK-000020/)).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Load more' }))
-  expect(await screen.findByText('BK-000020')).toBeInTheDocument()
+  expect(await screen.findByText(/BK-000020/)).toBeInTheDocument()
   expect(calls.some((c) => c.path.includes('cursor=20'))).toBe(true)
   expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
 })
@@ -527,6 +372,7 @@ it('booking detail shows the payment breakdown, and cancelling needs a reason', 
   expect(screen.getByRole('link', { name: 'Ayesha Mehendi Art' })).toHaveAttribute('href', '/artists/a-1')
   expect(screen.getByText('12 Residency Road, Bangalore')).toBeInTheDocument()
   expect(screen.getByText('Gate code 4512')).toBeInTheDocument()
+  await user.click(screen.getByRole('tab', { name: 'Payment' }))
   const payment = (label: string) => screen.getByText(label).closest('div') as HTMLElement
   expect(within(payment('Deposit paid')).getByText('₹1,680')).toBeInTheDocument()
   expect(within(payment('Balance')).getByText('₹3,919')).toBeInTheDocument()
@@ -566,7 +412,7 @@ it('the Reviews queue lists flagged reviews by default and filters by status chi
   const user = userEvent.setup()
   renderSignedIn('/reviews')
   expect(await screen.findByText('Priya R. → Ayesha Mehendi Art')).toBeInTheDocument()
-  const row = screen.getByText('Priya R. → Ayesha Mehendi Art').closest('tr') as HTMLElement
+  const row = screen.getByText('Priya R. → Ayesha Mehendi Art').closest('button, a') as HTMLElement
   expect(within(row).getByText('Bridal Classic · Oct 2026')).toBeInTheDocument()
   expect(within(row).getByText('★ 2')).toBeInTheDocument()
   expect(within(row).getByText('Reported by artist')).toBeInTheDocument()
@@ -581,12 +427,12 @@ it('the Reviews queue lists flagged reviews by default and filters by status chi
   expect(await screen.findByText('Vikram T. → Ink & Om Tattoo')).toBeInTheDocument()
   expect(screen.queryByText('Priya R. → Ayesha Mehendi Art')).not.toBeInTheDocument()
   expect(window.location.search).toBe('?status=hidden')
-  const hidden = screen.getByText('Vikram T. → Ink & Om Tattoo').closest('tr') as HTMLElement
+  const hidden = screen.getByText('Vikram T. → Ink & Om Tattoo').closest('button, a') as HTMLElement
   expect(within(hidden).getByText(`“${LONG_TEXT.slice(0, 80)}…”`)).toBeInTheDocument()
   expect(within(hidden).getByText('Contact details')).toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: 'Published' }))
-  const published = (await screen.findByText('Sneha K. → Meher by Riya')).closest('tr') as HTMLElement
+  const published = (await screen.findByText('Sneha K. → Meher by Riya')).closest('button, a') as HTMLElement
   expect(within(published).getByText('—')).toBeInTheDocument() // no flag
 })
 
@@ -640,9 +486,33 @@ it('removing a review asks for confirmation first', async () => {
   for (const name of ['Publish', 'Hide', 'Remove']) expect(within(panel).queryByRole('button', { name })).not.toBeInTheDocument()
 })
 
-it('the Overview shows the flagged reviews count, linking to the queue', async () => {
+it('the sidebar shows the flagged reviews count beside Reviews, linking to the queue', async () => {
+  db.reviews = [review({ id: 'r-1' }), review({ id: 'r-2' }), review({ id: 'r-3' })]
   renderSignedIn('/overview')
-  const card = (await screen.findByText('Flagged reviews')).closest('[data-slot="card"]') as HTMLElement
-  expect(await within(card).findByText('3')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /Flagged reviews/ })).toHaveAttribute('href', '/reviews')
+  const reviews = await screen.findByRole('link', { name: /^Reviews/ })
+  expect(reviews).toHaveAttribute('href', '/reviews')
+  expect(await within(reviews).findByText('3')).toBeInTheDocument()
+})
+
+it('the top bar search opens Bookings filtered by the query', async () => {
+  db.bookings = [booking()]
+  const user = userEvent.setup()
+  renderSignedIn('/overview')
+  await user.type(await screen.findByRole('searchbox', { name: 'Search bookings' }), 'BK-7F3K2Q{Enter}')
+  expect(await screen.findByRole('heading', { name: 'Bookings' })).toBeInTheDocument()
+  expect(window.location.search).toBe('?q=BK-7F3K2Q')
+  expect(screen.getByRole('searchbox', { name: 'Filter bookings' })).toHaveValue('BK-7F3K2Q')
+})
+
+it('the Overview city and date range filters go to the URL and the overview request', async () => {
+  const user = userEvent.setup()
+  renderSignedIn('/overview')
+  await user.click(await screen.findByRole('combobox', { name: 'Date range' }))
+  await user.click(await screen.findByRole('option', { name: 'Last 7 days' }))
+  await waitFor(() => expect(window.location.search).toBe('?period=7d'))
+  await waitFor(() => expect(calls.some((c) => c.path === '/admin/overview?period=7d')).toBe(true))
+
+  await user.click(screen.getByRole('combobox', { name: 'City' }))
+  await user.click(await screen.findByRole('option', { name: 'Mumbai' }))
+  await waitFor(() => expect(calls.some((c) => c.path === '/admin/overview?period=7d&city=Mumbai')).toBe(true))
 })

@@ -1,7 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { overviewKeys } from '@/features/overview/queries'
 import { api } from '@/lib/api'
-import type { AdminBooking, BookingPage, BookingStatus } from '@/lib/types'
+import type { AdminBooking, AdminOverview, BookingPage, BookingStatus } from '@/lib/types'
 
 const PAGE_SIZE = 20
 
@@ -33,6 +33,15 @@ export function useBookings(filter: BookingFilter) {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
     placeholderData: keepPreviousData,
+  })
+}
+
+/** The KPI strip over the list: the Overview's last-30-days, all-cities figures (same cache entry as the sidebar). */
+export function useBookingKpis() {
+  return useQuery({
+    queryKey: ['admin', 'overview', '30d', 'all'] as const,
+    queryFn: () => api<AdminOverview>('/admin/overview?period=30d'),
+    refetchInterval: 60_000,
   })
 }
 

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ApiError } from '@/lib/api'
+import { toastError } from '@/lib/notify'
 import type { AdminCategory, ServiceTemplate } from '@/lib/types'
 import { ServiceTemplateDialog } from './ServiceTemplateDialog'
 import { useDeleteServiceTemplate, useSaveServiceTemplate, useServiceTemplates } from './queries'
@@ -32,7 +32,7 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
   const setActive = (t: ServiceTemplate, is_active: boolean) =>
     save.mutate(
       { id: t.id, input: { is_active } },
-      { onError: (e) => toast.error(e instanceof ApiError ? e.message : 'Could not update the service') },
+      { onError: (e) => toastError(e, 'Could not update the service') },
     )
 
   const confirmDelete = async () => {
@@ -41,13 +41,13 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
       await remove.mutateAsync(deleting.id)
       toast.success(`“${deleting.name}” deleted`)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Could not delete the service')
+      toastError(e, 'Could not delete the service')
     }
     setDeleting(null)
   }
 
   return (
-    <section aria-label="Services" className="rounded-xl border bg-card">
+    <section aria-label="Services" className="overflow-hidden rounded-2xl border border-line bg-card">
       <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
         <h2 className="font-semibold">{category ? `${category.name} › ` : ''}{subcategory.name}</h2>
         <Button size="sm" onClick={() => setDialog({ template: null })}><Plus /> New service</Button>
