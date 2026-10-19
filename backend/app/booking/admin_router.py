@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.artist.schemas import RejectIn
 from app.booking.admin_service import AdminBookingService
+from app.booking.constants import OverviewPeriod
 from app.booking.dependencies import get_admin_booking_service
 from app.booking.schemas import AdminBookingOut, AdminBookingPage, AdminOverview
 from app.core.auth import audited_admin
@@ -30,7 +31,7 @@ async def list_bookings(
 @router.get("/bookings/{booking_id}", response_model=AdminBookingOut, summary="Any booking", status_code=200)
 async def get_booking(
     booking_id: uuid.UUID, bookings: AdminBookingService = Depends(get_admin_booking_service)
-) -> AdminBookingOut:
+) -> dict:
     return await bookings.get(booking_id)
 
 
@@ -42,10 +43,14 @@ async def get_booking(
 )
 async def cancel_booking(
     booking_id: uuid.UUID, body: RejectIn, bookings: AdminBookingService = Depends(get_admin_booking_service)
-) -> AdminBookingOut:
+) -> dict:
     return await bookings.cancel(booking_id, body.reason)
 
 
 @router.get("/overview", response_model=AdminOverview, summary="Overview KPIs", status_code=200)
-async def overview(bookings: AdminBookingService = Depends(get_admin_booking_service)) -> AdminOverview:
-    return await bookings.overview()
+async def overview(
+    period: OverviewPeriod = OverviewPeriod.last_30_days,
+    city: str | None = Query(None, min_length=1, max_length=60),
+    bookings: AdminBookingService = Depends(get_admin_booking_service),
+) -> dict:
+    return await bookings.overview(period, city)

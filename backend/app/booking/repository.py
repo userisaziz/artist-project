@@ -142,21 +142,31 @@ class BookingRepository:
             )
         ).scalar_one()
 
-    async def gross_since(self, since: datetime) -> int:
-        """Total value of bookings made since `since` that weren't declined or left to expire."""
+    async def gross(self, *where: ColumnElement[bool]) -> int:
+        """Total value of matching bookings, leaving out ones that were declined or left to expire."""
         return (
             await self.session.execute(
                 select(func.coalesce(func.sum(Booking.total_paise), 0)).where(
-                    Booking.created_at >= since, Booking.status.not_in((BookingStatus.declined, BookingStatus.expired))
+                    *where, Booking.status.not_in((BookingStatus.declined, BookingStatus.expired))
                 )
             )
         ).scalar_one()
 
-    async def weekly_counts(self, since: datetime) -> dict[date, int]:
-        """Bookings created per IST week (Monday start) since `since`."""
+    async def approved_artist_cities(self) -> list[str]:
+        """Every city with at least one approved artist, A to Z."""
+        rows = await self.session.execute(
+            select(ArtistProfile.city)
+            .where(ArtistProfile.status == ArtistStatus.approved)
+            .distinct()
+            .order_by(ArtistProfile.city)
+        )
+        return list(rows.scalars())
+
+    async def weekly_counts(self, since: datetime, *where: ColumnElement[bool]) -> dict[date, int]:
+        """Matching bookings created per IST week (Monday start) since `since`."""
         week_of = cast(func.date_trunc("week", func.timezone("Asia/Kolkata", Booking.created_at)), Date)
         rows = await self.session.execute(
-            select(week_of, func.count()).where(Booking.created_at >= since).group_by(week_of)
+            select(week_of, func.count()).where(Booking.created_at >= since, *where).group_by(week_of)
         )
         return dict(rows.all())
 

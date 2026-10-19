@@ -346,11 +346,15 @@ async def test_admin_overview_counts(client, engine):
     await client.post(f"/api/v1/artists/me/bookings/{b['id']}/decline", headers=artist["headers"], json={})
 
     o = (await client.get("/api/v1/admin/overview", headers=admin)).json()
-    assert o["bookings_30d"] == 2
-    assert o["gross_paise_30d"] == a["total_paise"]  # the declined one isn't gross
+    assert o["period_days"] == 30
+    assert o["bookings"] == 2
+    assert o["gross_paise"] == a["total_paise"]  # the declined one isn't gross
+    assert (o["bookings_previous"], o["gross_paise_previous"]) == (0, 0)
     assert o["awaiting_artist"] == 1
-    assert o["completed_30d"] == 0
-    assert o["cancelled_30d"] == 0
+    assert o["completed"] == 0
+    assert o["cancelled"] == 0
+    assert o["new_artists"] == 1
+    assert o["cities"] == ["Bangalore"]
     assert o["pending_artists"] == 0
     assert o["pending_custom_services"] == 0
     assert len(o["bookings_by_week"]) == 12
@@ -447,3 +451,24 @@ async def test_the_database_refuses_overlapping_active_bookings_for_one_artist(c
                 ),
                 {"id": b["id"]},
             )
+
+
+async def test_admin_overview_filters_by_city_and_period(client, engine, travel):
+    admin, artist, customer = await setup(client, engine)
+    mumbai = await approved_artist(client, engine, "+919845091002", admin, name="Meher by Riya", city="Mumbai")
+    await book(client, customer, artist, slot(5, 9))
+    m = (await book(client, customer, mumbai, slot(5, 9))).json()
+
+    o = (await client.get("/api/v1/admin/overview?city=Mumbai", headers=admin)).json()
+    assert (o["bookings"], o["gross_paise"], o["new_artists"]) == (1, m["total_paise"], 1)
+    assert o["cities"] == ["Bangalore", "Mumbai"]  # every city stays pickable while one is selected
+    assert (await client.get("/api/v1/admin/overview?city=Pune", headers=admin)).json()["bookings"] == 0
+
+    today = (await client.get("/api/v1/admin/overview?period=today", headers=admin)).json()
+    assert (today["period_days"], today["bookings"]) == (1, 2)
+
+    travel(datetime.now().astimezone() + timedelta(days=8))
+    week = (await client.get("/api/v1/admin/overview?period=7d", headers=admin)).json()
+    assert (week["period_days"], week["bookings"], week["bookings_previous"]) == (7, 0, 2)
+    assert (await client.get("/api/v1/admin/overview?period=quarter", headers=admin)).json()["period_days"] == 90
+    assert (await client.get("/api/v1/admin/overview?period=year", headers=admin)).status_code == 422

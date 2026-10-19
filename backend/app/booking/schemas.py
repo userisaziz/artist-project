@@ -120,12 +120,19 @@ class WeekCount(APIModel):
 
 
 class AdminOverview(APIModel):
-    gross_paise_30d: int
-    bookings_30d: int
+    """Booking figures cover the chosen period (and city); `_previous` is the same-length period before it."""
+
+    period_days: int
+    gross_paise: int
+    gross_paise_previous: int
+    bookings: int
+    bookings_previous: int
+    completed: int
+    cancelled: int
+    new_artists: int  # approved during the period
     awaiting_artist: int
-    completed_30d: int
-    cancelled_30d: int
     pending_artists: int
     pending_custom_services: int
     flagged_reviews: int  # flagged, or auto-hidden with no moderator decision yet
     bookings_by_week: list[WeekCount]
+    cities: list[str]  # every city with an approved artist, for the city filter
