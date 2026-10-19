@@ -43,7 +43,9 @@ class AdminBookingService(BookingService):
         booking.cancelled_at = self.clock.now()
         booking.cancelled_by = "admin"
         booking.cancel_reason = reason.strip()
-        booking.refund_due = True  # the platform called it off: the customer gets the deposit back
+        booking.refund_due = (
+            True if booking.deposit_paise else None
+        )  # the platform called it off: the customer gets the deposit back
         return await self.save(booking_id, view="admin")
 
     async def overview(self) -> dict:

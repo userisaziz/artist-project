@@ -14,7 +14,7 @@ import { useArtistPublic, directoryKeys } from '../../../src/hooks/directory/dir
 import { useBookingWrite } from '../../../src/hooks/bookings/bookings';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
-import { freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
+import { DEPOSIT_PERCENT, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { formatPrice } from '../../../src/utils/common/format';
@@ -26,7 +26,10 @@ const MAX_ADDRESS = 300;
 const MAX_NOTE = 500;
 const TAKEN = 'That time was just taken. Pick another slot.';
 
-// Spec §2 Review & pay (step 2 of 2): summary, address and note, the breakdown, then the (mocked) deposit.
+const TITLE = IN_APP_PAYMENTS ? 'Review & pay' : 'Review & request';
+
+// Spec §2 Review (step 2 of 2): summary, address and note, the breakdown, then the deposit, or (phase 1, no
+// in-app payments) the request, with the artist paid directly after the service.
 export default function ReviewAndPay() {
   const theme = useTheme();
   const router = useRouter();
@@ -47,17 +50,19 @@ export default function ReviewAndPay() {
   if (!artist.data || !service) {
     return (
       <View style={{ flex: 1, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, backgroundColor: theme.colors.background }}>
-        <BackHeader title="Review & pay" step="Step 2 of 2" />
+        <BackHeader title={TITLE} step="Step 2 of 2" />
         {artist.isError ? <ErrorView error={artist.error} onRetry={() => { void artist.refetch(); }} /> : <LoadingView />}
       </View>
     );
   }
-  const money = priceBreakdown(service.price_paise);
+  const money = priceBreakdown(service.price_paise, IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0);
   const start = Date.parse(startAt);
   const refundUntil = freeCancelUntil(start);
-  const cancelLine = refundUntil > now
-    ? `Free cancellation until ${formatWhen(refundUntil)}`
-    : 'This starts within 72 hours, so the deposit isn’t refundable if you cancel.';
+  const cancelLine = !IN_APP_PAYMENTS
+    ? 'Nothing is paid in the app. You can cancel any time before the start.'
+    : refundUntil > now
+      ? `Free cancellation until ${formatWhen(refundUntil)}`
+      : 'This starts within 72 hours, so the deposit isn’t refundable if you cancel.';
 
   const pay = async () => {
     if (paying) return;
@@ -82,7 +87,7 @@ export default function ReviewAndPay() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingBottom: 120 + insets.bottom, gap: 16 }}>
-        <BackHeader title="Review & pay" step="Step 2 of 2" />
+        <BackHeader title={TITLE} step="Step 2 of 2" />
         <Card>
           <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{service.name}</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{artist.data.business_name}</AppText>
@@ -102,12 +107,14 @@ export default function ReviewAndPay() {
         </Card>
         <View style={{ gap: 4 }}>
           <AppText variant="caption" style={{ color: theme.colors.confirmedInk }}>{cancelLine}</AppText>
-          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Test mode: no real payment is taken.</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>
+            {IN_APP_PAYMENTS ? 'Test mode: no real payment is taken.' : `Pay ${artist.data.business_name} directly after the service.`}
+          </AppText>
         </View>
         {error ? <AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>
-        <AppButton label={`Pay deposit · ${formatPrice(money.deposit_paise)}`} loading={paying} onPress={() => { void pay(); }} />
+        <AppButton label={IN_APP_PAYMENTS ? `Pay deposit · ${formatPrice(money.deposit_paise)}` : 'Request booking'} loading={paying} onPress={() => { void pay(); }} />
       </View>
     </View>
   );

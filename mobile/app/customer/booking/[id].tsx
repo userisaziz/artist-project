@@ -57,9 +57,11 @@ export default function BookingDetail() {
   const start = Date.parse(b.start_at);
   const cancellable = (b.status === 'requested' || b.status === 'confirmed') && now < start;
   const deposit = formatPrice(b.deposit_paise);
-  const refundNote = refundDueOnCustomerCancel(start, now)
-    ? `Your ${deposit} deposit will be refunded.`
-    : `It’s less than 72 hours to the start, so the ${deposit} deposit won’t be refunded.`;
+  const refundNote = !b.deposit_paise
+    ? 'The artist will be told you cancelled.'
+    : refundDueOnCustomerCancel(start, now)
+      ? `Your ${deposit} deposit will be refunded.`
+      : `It’s less than 72 hours to the start, so the ${deposit} deposit won’t be refunded.`;
   const reason = b.decline_reason ?? b.cancel_reason;
   const ended = refundLine(b);
 
@@ -105,7 +107,7 @@ export default function BookingDetail() {
       {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}
       {ended ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{ended}</AppText> : null}
       {b.status === 'requested' ? (
-        <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>The artist has 3 hours to confirm. If they don’t, the deposit is refunded.</AppText>
+        <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? 'The artist has 3 hours to confirm. If they don’t, the deposit is refunded.' : 'The artist has 3 hours to confirm. If they don’t, the request expires.'}</AppText>
       ) : null}
 
       <AppButton label="Message artist" variant="secondary" loading={chat.openingId === b.artist.id} onPress={() => { void chat.open(b.artist.id); }} />

@@ -11,7 +11,8 @@ interface BreakdownProps {
   paid?: boolean;
 }
 
-/** Spec §2 Review & pay: service, platform fee (or Waived), total, deposit, balance after the service. */
+/** Spec §2 Review: service, platform fee (or Waived), total, then the deposit and balance, or (no deposit)
+ *  what is paid to the artist after the service. */
 export function Breakdown({ money, paid = false }: BreakdownProps) {
   const theme = useTheme();
   return (
@@ -20,8 +21,14 @@ export function Breakdown({ money, paid = false }: BreakdownProps) {
       <InfoRow label="Platform fee" value={money.platform_fee_paise ? formatPrice(money.platform_fee_paise) : 'Waived'} />
       <View style={{ height: 1, backgroundColor: theme.colors.separator, marginVertical: 6 }} />
       <InfoRow label="Total" value={formatPrice(money.total_paise)} strong />
-      <InfoRow label={paid ? 'Deposit paid' : `Deposit today (${DEPOSIT_PERCENT}%)`} value={formatPrice(money.deposit_paise)} tint={theme.colors.brand} />
-      <InfoRow label="Balance after the service" value={formatPrice(money.balance_paise)} />
+      {money.deposit_paise ? (
+        <>
+          <InfoRow label={paid ? 'Deposit paid' : `Deposit today (${DEPOSIT_PERCENT}%)`} value={formatPrice(money.deposit_paise)} tint={theme.colors.brand} />
+          <InfoRow label="Balance after the service" value={formatPrice(money.balance_paise)} />
+        </>
+      ) : (
+        <InfoRow label="Pay the artist after the service" value={formatPrice(money.balance_paise)} tint={theme.colors.brand} />
+      )}
     </View>
   );
 }

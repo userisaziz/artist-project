@@ -43,7 +43,9 @@ export default function BookingRequested() {
             <InfoRow label="Booking" value={booking.data.code} />
             <InfoRow label="Service" value={booking.data.service_name} />
             <InfoRow label="When" value={formatWhen(booking.data.start_at)} />
-            <InfoRow label="Deposit paid" value={formatPrice(booking.data.deposit_paise)} />
+            {booking.data.deposit_paise
+              ? <InfoRow label="Deposit paid" value={formatPrice(booking.data.deposit_paise)} />
+              : <InfoRow label="Pay the artist after the service" value={formatPrice(booking.data.total_paise)} />}
           </Card>
         </>
       ) : null}

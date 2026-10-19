@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Date, Row, Select, and_, cast, func, or_, select, update
+from sqlalchemy import ColumnElement, Date, Row, Select, and_, case, cast, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -167,7 +167,7 @@ class BookingRepository:
         await self.session.execute(
             update(Booking)
             .where(Booking.status == BookingStatus.requested, Booking.expires_at <= now, *scope)
-            .values(status=BookingStatus.expired, refund_due=True)
+            .values(status=BookingStatus.expired, refund_due=case((Booking.deposit_paise > 0, True), else_=None))
             .execution_options(synchronize_session=False)
         )
 

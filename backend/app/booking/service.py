@@ -213,7 +213,7 @@ class BookingService:
             subtotal_paise=p.subtotal_paise,
             platform_fee_paise=p.platform_fee_paise,
             total_paise=p.total_paise,
-            deposit_paise=p.deposit_paise,
+            deposit_paise=0 if provider == "direct" else p.deposit_paise,
             commission_paise=p.commission_paise,
             # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
             # "mock" (never in production) counts the deposit as paid.
@@ -258,7 +258,7 @@ class BookingService:
         booking.cancelled_at = now
         booking.cancelled_by = "customer"
         booking.cancel_reason = clean_reason(reason)
-        booking.refund_due = rules.customer_refund_due(booking.start_at, now)
+        booking.refund_due = rules.customer_refund_due(booking.start_at, now) if booking.deposit_paise else None
         return await self.save(booking_id, mine, view="customer")
 
     # --- artist ---------------------------------------------------------------------------------
@@ -311,7 +311,7 @@ class BookingService:
         booking.status = BookingStatus.declined
         booking.responded_at = self.clock.now()
         booking.decline_reason = clean_reason(reason)
-        booking.refund_due = True
+        booking.refund_due = True if booking.deposit_paise else None
         return await self.save(booking_id, theirs, view="artist")
 
     async def complete(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:

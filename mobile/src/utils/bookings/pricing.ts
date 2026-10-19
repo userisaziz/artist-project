@@ -5,6 +5,9 @@ import { istDateKey, istDayStart } from '../common/time';
 export const PLATFORM_FEE_PAISE = 9_900;          // ₹99
 export const FEE_WAIVER_FROM_PAISE = 2_500_000;   // fee waived at ₹25,000 and up
 export const DEPOSIT_PERCENT = 30;
+/** Phase 1 takes no payments in the app (backend PAYMENT_PROVIDER=direct): no deposit, the customer pays the
+ *  artist directly after the service. Phase 2 turns this on. */
+export const IN_APP_PAYMENTS = false;
 export const COMMISSION_PERCENT = 10;
 export const ACCEPT_WINDOW_HOURS = 3;
 export const FREE_CANCEL_HOURS = 72;
@@ -26,10 +29,10 @@ export interface PriceBreakdown {
   artist_earning_paise: number;
 }
 
-export function priceBreakdown(subtotal: number): PriceBreakdown {
+export function priceBreakdown(subtotal: number, depositPercent = DEPOSIT_PERCENT): PriceBreakdown {
   const fee = subtotal >= FEE_WAIVER_FROM_PAISE ? 0 : PLATFORM_FEE_PAISE;
   const total = subtotal + fee;
-  const deposit = Math.round((total * DEPOSIT_PERCENT) / (100 * RUPEE)) * RUPEE; // nearest whole rupee
+  const deposit = Math.round((total * depositPercent) / (100 * RUPEE)) * RUPEE; // nearest whole rupee
   const commission = Math.round((subtotal * COMMISSION_PERCENT) / 100);
   return {
     subtotal_paise: subtotal, platform_fee_paise: fee, total_paise: total,

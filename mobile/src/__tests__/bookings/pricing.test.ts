@@ -88,3 +88,10 @@ describe('refunds', () => {
     expect(refundDueOnCustomerCancel(start, start - 72 * HOUR + 1)).toBe(false);
   });
 });
+
+describe('without in-app payments (phase 1)', () => {
+  it('takes no deposit, so the whole total is paid to the artist after the service', () => {
+    const b = priceBreakdown(450_000, 0);
+    expect([b.total_paise, b.deposit_paise, b.balance_paise]).toEqual([459_900, 0, 459_900]);
+  });
+});
