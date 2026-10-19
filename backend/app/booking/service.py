@@ -199,6 +199,7 @@ class BookingService:
 
         p = rules.price(service.price_paise)
         provider = self.settings.payment_provider
+        direct = provider == "direct"
         booking = Booking(
             code=new_code(),
             customer_id=customer.id,
@@ -211,9 +212,11 @@ class BookingService:
             address=data.address,
             note=data.note,
             subtotal_paise=p.subtotal_paise,
-            platform_fee_paise=p.platform_fee_paise,
-            total_paise=p.total_paise,
-            deposit_paise=0 if provider == "direct" else p.deposit_paise,
+            # Phase 1 ("direct"): no in-app payments, so no platform fee and no deposit; the customer pays the
+            # artist the service price after the service.
+            platform_fee_paise=0 if direct else p.platform_fee_paise,
+            total_paise=p.subtotal_paise if direct else p.total_paise,
+            deposit_paise=0 if direct else p.deposit_paise,
             commission_paise=p.commission_paise,
             # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
             # "mock" (never in production) counts the deposit as paid.

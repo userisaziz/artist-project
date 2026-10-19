@@ -422,12 +422,13 @@ async def test_calendar_and_reason_inputs_are_validated(client, engine):
 
 async def test_direct_bookings_take_no_deposit_and_owe_no_refund(client, engine, override):
     """Phase 1 (PAYMENT_PROVIDER=direct): no in-app payments. The customer pays the artist after the service,
-    so a request holds no deposit and nothing is ever due back."""
+    so a request holds no deposit, carries no platform fee, and nothing is ever due back."""
     override(get_booking_settings, lambda: BookingSettings(environment="production", payment_provider="direct"))
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
     assert (b["status"], b["deposit_paise"], b["deposit_paid_at"]) == ("requested", 0, None)
-    assert (b["total_paise"], b["balance_paise"]) == (559900, 559900)
+    # Nobody collects a platform fee without in-app payments: the customer pays the artist the service price.
+    assert (b["platform_fee_paise"], b["total_paise"], b["balance_paise"]) == (0, 550000, 550000)
 
     cancelled = await client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=customer, json={"reason": None})
     assert (cancelled.json()["status"], cancelled.json()["refund_due"]) == ("cancelled", None)
