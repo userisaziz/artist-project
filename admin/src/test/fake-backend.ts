@@ -129,6 +129,11 @@ function route(method: string, path: string, body: any): Response {
     db.categories.push(created)
     return json(201, created)
   }
+  if (method === 'PATCH' && path.startsWith('/admin/categories/')) {
+    const id = Number(path.split('/').pop())
+    db.categories = db.categories.map((c) => (c.id === id ? { ...c, ...body } : c))
+    return json(200, db.categories.find((c) => c.id === id))
+  }
   if (method === 'GET' && path.startsWith('/admin/service-templates?')) {
     const sub = Number(new URLSearchParams(path.split('?')[1]).get('subcategory_id'))
     return json(200, db.templates.filter((t) => t.subcategory_id === sub))

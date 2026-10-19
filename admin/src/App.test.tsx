@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import { createQueryClient } from './lib/query-client'
-import { ADMIN, KYC, artist, booking, calls, category, customService, db, installFakeBackend, requests, review } from './test/fake-backend'
+import { ADMIN, KYC, artist, booking, calls, category, customService, db, installFakeBackend, json, requests, review } from './test/fake-backend'
 import { renderApp, renderSignedIn } from './test/render-app'
 
 // The fake backend (src/test/fake-backend.ts) stands in for the API behind fetch.
@@ -96,7 +96,7 @@ it('creates the first category from the empty Catalog', async () => {
   await user.type(within(dialog).getByLabelText('Name'), 'Mehendi')
   await user.click(within(dialog).getByRole('button', { name: 'Create category' }))
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-  expect(await screen.findByRole('cell', { name: /^Mehendi/ })).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Mehendi' })).toBeInTheDocument()
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/categories', body: { name: 'Mehendi', status: 'draft' } })
 })
 
@@ -231,10 +231,43 @@ it('delete is disabled with a reason for categories and services in use', async 
   expect(screen.getByRole('button', { name: 'Delete HD Bridal Makeup' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Delete HD Bridal Makeup' })).toHaveAttribute('title', 'Artists offer it — deactivate it instead')
   expect(screen.getByRole('button', { name: 'Delete Old look' })).toBeEnabled()
-  expect(screen.getByRole('button', { name: 'Delete Makeup' })).toBeDisabled()
 
-  await user.click(screen.getByRole('button', { name: 'Makeup' }))
-  expect(screen.getByRole('button', { name: 'Delete Bridal' })).toHaveAttribute('title', 'In use — deactivate it instead')
+  await user.click(screen.getByRole('button', { name: 'More actions for Makeup' }))
+  expect(await screen.findByRole('menuitem', { name: 'Delete' })).toHaveAttribute('aria-disabled', 'true')
+  expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveAttribute('title', 'In use — archive it instead')
+})
+
+it('shows catalog KPIs and archives a category from its row menu', async () => {
+  db.categories = [
+    category({ id: 1, name: 'Mehendi', artist_count: 12, service_count: 30, child_count: 2, status: 'active' }),
+    category({ id: 2, name: 'Bridal', parent_id: 1, template_count: 3 }),
+    category({ id: 3, name: 'Arabic', parent_id: 1, template_count: 1 }),
+    category({ id: 4, name: 'Nail art', status: 'draft' }),
+  ]
+  const user = userEvent.setup()
+  renderSignedIn('/categories')
+
+  expect(await screen.findByText('Bridal, Arabic')).toBeInTheDocument() // subcategories under the name
+  expect(within(screen.getByRole('group', { name: 'Categories' })).getByText('2')).toBeInTheDocument()
+  expect(within(screen.getByRole('group', { name: 'Categories' })).getByText('+ 2 subcategories')).toBeInTheDocument()
+  expect(within(screen.getByRole('group', { name: 'Catalogue services' })).getByText('4')).toBeInTheDocument()
+  expect(within(screen.getByRole('group', { name: 'Top category' })).getByText('Mehendi')).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Draft 1' }))
+  expect(window.location.search).toBe('?status=draft')
+  expect(screen.queryByRole('button', { name: 'Mehendi' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'All 2' }))
+
+  await user.click(screen.getByRole('button', { name: 'More actions for Mehendi' }))
+  await user.click(await screen.findByRole('menuitem', { name: 'Archive' }))
+  await waitFor(() => expect(calls).toContainEqual({ method: 'PATCH', path: '/admin/categories/1', body: { status: 'inactive' } }))
+  expect(await screen.findByText('“Mehendi” is now inactive')).toBeInTheDocument()
+})
+
+it('shows an error state when the catalog fails to load', async () => {
+  db.overrides['/admin/categories'] = () => json(500, { code: 'server_error', message: 'Database unavailable' })
+  renderSignedIn('/categories')
+  expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t load categories.')
 })
 
 it('approves a custom service from the queue', async () => {

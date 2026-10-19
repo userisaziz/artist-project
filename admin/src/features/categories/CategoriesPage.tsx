@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -12,20 +12,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { FilterChips } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { GridHeader } from '@/components/console/grid-header'
+import { GridMessage } from '@/components/console/grid-message'
+import { Panel } from '@/components/console/panel'
+import { PanelFooter } from '@/components/console/panel-footer'
+import { PanelToolbar } from '@/components/console/panel-toolbar'
 import { toastError } from '@/lib/notify'
-import { cn } from '@/lib/utils'
 import type { AdminCategory, CategoryStatus } from '@/lib/types'
+import { CatalogKpis } from './CatalogKpis'
+import { CategoryActions } from './CategoryActions'
 import { CategoryDialog } from './CategoryDialog'
+import { CategoryRow } from './CategoryRow'
 import { ServiceTemplatesPane } from './ServiceTemplatesPane'
 import { useCategories, useDeleteCategory, useSaveCategory } from './queries'
-import { STATUS_LABEL, StatusSelect } from './StatusSelect'
+import { STATUS_LABEL } from './StatusSelect'
 
-const inUse = (c: AdminCategory) => c.artist_count + c.service_count + c.child_count + c.template_count > 0
+const COLUMNS = 'minmax(0,2fr) .7fr .7fr .9fr 96px'
+type StatusFilter = CategoryStatus | 'all'
+const FILTERS: StatusFilter[] = ['all', 'active', 'draft', 'inactive']
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 /** Two panes: categories with their subcategories on the left, the selected subcategory's services (`?sub=`) on the right. */
 export function CategoriesPage() {
@@ -44,6 +53,20 @@ export function CategoriesPage() {
   const byId = (id: number | null) => all.find((c) => c.id === id) ?? null
   const subId = Number(params.get('sub')) || null
   const selected = byId(subId)?.parent_id != null ? byId(subId) : null
+  const filter = FILTERS.find((f) => f === params.get('status')) ?? 'all'
+  const shown = filter === 'all' ? topLevel : topLevel.filter((c) => c.status === filter)
+  const chips = FILTERS.map((f) => ({
+    value: f,
+    label: `${f === 'all' ? 'All' : STATUS_LABEL[f]} ${f === 'all' ? topLevel.length : topLevel.filter((c) => c.status === f).length}`,
+  }))
+
+  const updateParams = (key: string, value: string | null) =>
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (value === null) next.delete(key)
+      else next.set(key, value)
+      return next
+    })
 
   const toggle = (id: number) =>
     setExpanded((open) => {
@@ -51,12 +74,14 @@ export function CategoriesPage() {
       if (!next.delete(id)) next.add(id)
       return next
     })
-  const select = (sub: AdminCategory) => setParams({ sub: String(sub.id) })
 
   const setStatus = (c: AdminCategory, status: CategoryStatus) =>
     save.mutate(
       { id: c.id, input: { status } },
-      { onError: (e) => toastError(e, 'Could not update the category') },
+      {
+        onSuccess: () => toast.success(`“${c.name}” is now ${STATUS_LABEL[status].toLowerCase()}`),
+        onError: (e) => toastError(e, 'Could not update the category'),
+      },
     )
 
   const confirmDelete = async () => {
@@ -64,114 +89,95 @@ export function CategoriesPage() {
     try {
       await remove.mutateAsync(deleting.id)
       toast.success(`“${deleting.name}” deleted`)
-      if (deleting.id === subId) setParams({})
+      if (deleting.id === subId) updateParams('sub', null)
     } catch (e) {
       toastError(e, 'Could not delete the category')
     }
     setDeleting(null)
   }
 
-  const row = (c: AdminCategory, sub: boolean) => (
-    <TableRow key={c.id} data-state={sub && c.id === selected?.id ? 'selected' : undefined}>
-      <TableCell className={cn('font-medium', sub ? 'pl-11' : 'pl-2')}>
-        <div className="flex items-center gap-1">
-          {sub ? (
-            <button type="button" className="text-left hover:underline" aria-pressed={c.id === selected?.id} onClick={() => select(c)}>{c.name}</button>
-          ) : (
-            <button type="button" className="flex items-center gap-1 text-left" aria-expanded={expanded.has(c.id)} onClick={() => toggle(c.id)}>
-              {expanded.has(c.id) ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
-              {c.name}
-            </button>
-          )}
-          {c.status !== 'active' && <Badge variant="outline" className="ml-2">{STATUS_LABEL[c.status]}</Badge>}
-        </div>
-      </TableCell>
-      <TableCell className="text-right tabular-nums">{sub ? c.template_count : c.artist_count}</TableCell>
-      <TableCell>
-        <StatusSelect value={c.status} onChange={(s) => setStatus(c, s)} label={`${c.name} status`} />
-      </TableCell>
-      <TableCell className="pr-4 text-right whitespace-nowrap">
-        <Button variant="ghost" size="icon" aria-label={`Edit ${c.name}`} onClick={() => setDialog({ category: c, parent: byId(c.parent_id) })}><Pencil /></Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Delete ${c.name}`}
-          disabled={inUse(c)}
-          title={inUse(c) ? 'In use — deactivate it instead' : undefined}
-          onClick={() => setDeleting(c)}
-        >
-          <Trash2 />
-        </Button>
-      </TableCell>
-    </TableRow>
+  const actions = (c: AdminCategory) => (
+    <CategoryActions
+      category={c}
+      onEdit={() => setDialog({ category: c, parent: byId(c.parent_id) })}
+      onAddSubcategory={c.parent_id === null ? () => { setExpanded((open) => new Set(open).add(c.id)); setDialog({ category: null, parent: c }) } : undefined}
+      onStatus={(s) => setStatus(c, s)}
+      onDelete={() => setDeleting(c)}
+    />
   )
 
   return (
     <>
       <PageHeader
         title="Catalog"
-        subtitle="Categories, their subcategories, and the services artists pick from during onboarding."
+        subtitle="Service categories, their subcategories, and the services artists pick from."
         action={<Button size="page" onClick={() => setDialog({ category: null, parent: null })}><Plus /> New category</Button>}
       />
 
-      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <section aria-label="Categories" className="overflow-hidden rounded-2xl border border-line bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4">Categories</TableHead>
-                <TableHead className="text-right" title="Artists for a category, services for a subcategory">In use</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.isPending &&
-                Array.from({ length: 4 }, (_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={4} className="pl-4"><Skeleton className="h-6 w-full" /></TableCell>
-                  </TableRow>
+      <CatalogKpis categories={categories.data} />
+
+      <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <Panel aria-label="Categories" className="flex flex-col">
+          <PanelToolbar>
+            <FilterChips chips={chips} value={filter} onChange={(next) => updateParams('status', next === 'all' ? null : next)} />
+          </PanelToolbar>
+          <GridHeader columns={COLUMNS} labels={['Category', 'Artists', 'Listings', 'Status', '']} />
+          {categories.isPending && <GridMessage state="loading" />}
+          {categories.isError && <GridMessage state="error">Couldn’t load categories. {categories.error.message}</GridMessage>}
+          {categories.isSuccess && all.length === 0 && (
+            <GridMessage state="empty">
+              <p className="font-medium text-foreground">No categories yet</p>
+              <p className="mt-1">Create the first one — artists need at least one to finish onboarding.</p>
+            </GridMessage>
+          )}
+          {categories.isSuccess && all.length > 0 && shown.length === 0 && (
+            <GridMessage state="empty">No {STATUS_LABEL[filter as CategoryStatus].toLowerCase()} categories.</GridMessage>
+          )}
+          {shown.map((c) => {
+            const subs = childrenOf(c.id)
+            const open = expanded.has(c.id)
+            return (
+              <Fragment key={c.id}>
+                <CategoryRow
+                  category={c}
+                  columns={COLUMNS}
+                  meta={subs.length ? subs.map((s) => s.name).join(', ') : 'No subcategories yet'}
+                  expanded={open}
+                  onOpen={() => toggle(c.id)}
+                  actions={actions(c)}
+                />
+                {open && subs.map((s) => (
+                  <CategoryRow
+                    key={s.id}
+                    category={s}
+                    columns={COLUMNS}
+                    meta={plural(s.template_count, 'catalogue service')}
+                    selected={s.id === selected?.id}
+                    onOpen={() => updateParams('sub', String(s.id))}
+                    actions={actions(s)}
+                  />
                 ))}
-              {categories.isError && (
-                <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-destructive">Couldn’t load categories. {categories.error.message}</TableCell>
-                </TableRow>
-              )}
-              {categories.data?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="py-12 text-center">
-                    <p className="font-medium">No categories yet</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Create the first one — artists need at least one to finish onboarding.</p>
-                  </TableCell>
-                </TableRow>
-              )}
-              {topLevel.map((c) => (
-                <Fragment key={c.id}>
-                  {row(c, false)}
-                  {expanded.has(c.id) && (
-                    <>
-                      {childrenOf(c.id).map((s) => row(s, true))}
-                      <TableRow>
-                        <TableCell colSpan={4} className="pl-10">
-                          <Button variant="ghost" size="sm" onClick={() => setDialog({ category: null, parent: c })}>
-                            <Plus /> Subcategory
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </section>
+                {open && (
+                  <div className="border-b border-line-soft py-1.5 pl-14">
+                    <Button variant="ghost" size="sm" onClick={() => setDialog({ category: null, parent: c })}>
+                      <Plus /> Subcategory
+                    </Button>
+                  </div>
+                )}
+              </Fragment>
+            )
+          })}
+          {categories.isSuccess && all.length > 0 && (
+            <PanelFooter>Open a category to see its subcategories; pick one to manage its services.</PanelFooter>
+          )}
+        </Panel>
 
         {selected ? (
           <ServiceTemplatesPane category={byId(selected.parent_id)} subcategory={selected} />
         ) : (
-          <section aria-label="Services" className="overflow-hidden rounded-2xl border border-line bg-card px-6 py-16 text-center text-sm text-muted-foreground">
+          <Panel aria-label="Services" className="px-6 py-16 text-center text-sm text-muted-foreground">
             Pick a subcategory to manage its services.
-          </section>
+          </Panel>
         )}
       </div>
 

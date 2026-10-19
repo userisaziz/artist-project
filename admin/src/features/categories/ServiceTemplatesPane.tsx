@@ -12,13 +12,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { GridHeader } from '@/components/console/grid-header'
+import { GridMessage } from '@/components/console/grid-message'
+import { GridRow } from '@/components/console/grid-row'
+import { Panel } from '@/components/console/panel'
 import { toastError } from '@/lib/notify'
 import type { AdminCategory, ServiceTemplate } from '@/lib/types'
 import { ServiceTemplateDialog } from './ServiceTemplateDialog'
 import { useDeleteServiceTemplate, useSaveServiceTemplate, useServiceTemplates } from './queries'
+
+const COLUMNS = '40px minmax(0,1fr) 64px 56px 72px'
 
 /** Right pane of the Catalog: the service list artists pick from under one subcategory. */
 export function ServiceTemplatesPane({ category, subcategory }: { category: AdminCategory | null; subcategory: AdminCategory }) {
@@ -47,69 +51,44 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
   }
 
   return (
-    <section aria-label="Services" className="overflow-hidden rounded-2xl border border-line bg-card">
-      <div className="flex items-center justify-between gap-4 border-b px-4 py-3">
-        <h2 className="font-semibold">{category ? `${category.name} › ` : ''}{subcategory.name}</h2>
+    <Panel aria-label="Services" className="flex flex-col">
+      <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
+        <h2 className="font-bold">{category ? `${category.name} › ` : ''}{subcategory.name}</h2>
         <Button size="sm" onClick={() => setDialog({ template: null })}><Plus /> New service</Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16 pl-4">Order</TableHead>
-            <TableHead>Service</TableHead>
-            <TableHead className="text-right">Artists</TableHead>
-            <TableHead>Active</TableHead>
-            <TableHead className="w-24" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {templates.isPending &&
-            Array.from({ length: 3 }, (_, i) => (
-              <TableRow key={i}>
-                <TableCell colSpan={5} className="pl-4"><Skeleton className="h-6 w-full" /></TableCell>
-              </TableRow>
-            ))}
-          {templates.isError && (
-            <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-destructive">Couldn’t load services. {templates.error.message}</TableCell>
-            </TableRow>
-          )}
-          {templates.data?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center">
-                <p className="font-medium">No services yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">Artists in {subcategory.name} can’t add a service until this list has one.</p>
-              </TableCell>
-            </TableRow>
-          )}
-          {templates.data?.map((t) => (
-            <TableRow key={t.id}>
-              <TableCell className="pl-4 text-muted-foreground tabular-nums">{t.sort_order}</TableCell>
-              <TableCell>
-                <p className="font-medium">{t.name}</p>
-                {t.description && <p className="text-sm whitespace-normal text-muted-foreground">{t.description}</p>}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{t.artist_count}</TableCell>
-              <TableCell>
-                <Switch checked={t.is_active} onCheckedChange={(v) => setActive(t, v)} aria-label={`${t.name} active`} />
-              </TableCell>
-              <TableCell className="pr-4 text-right whitespace-nowrap">
-                <Button variant="ghost" size="icon" aria-label={`Edit ${t.name}`} onClick={() => setDialog({ template: t })}><Pencil /></Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Delete ${t.name}`}
-                  disabled={t.artist_count > 0}
-                  title={t.artist_count > 0 ? 'Artists offer it — deactivate it instead' : undefined}
-                  onClick={() => setDeleting(t)}
-                >
-                  <Trash2 />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <GridHeader columns={COLUMNS} labels={['#', 'Service', 'Artists', 'Active', '']} />
+      {templates.isPending && <GridMessage state="loading" />}
+      {templates.isError && <GridMessage state="error">Couldn’t load services. {templates.error.message}</GridMessage>}
+      {templates.data?.length === 0 && (
+        <GridMessage state="empty">
+          <p className="font-medium text-foreground">No services yet</p>
+          <p className="mt-1">Artists in {subcategory.name} can’t add a service until this list has one.</p>
+        </GridMessage>
+      )}
+      {templates.data?.map((t) => (
+        <GridRow key={t.id} columns={COLUMNS}>
+          <span className="text-muted-foreground tabular-nums">{t.sort_order}</span>
+          <div className="min-w-0">
+            <div className="truncate font-bold">{t.name}</div>
+            {t.description && <div className="text-[11.5px] text-muted-foreground">{t.description}</div>}
+          </div>
+          <span className="tabular-nums">{t.artist_count}</span>
+          <Switch checked={t.is_active} onCheckedChange={(v) => setActive(t, v)} aria-label={`${t.name} active`} />
+          <div className="flex justify-end">
+            <Button variant="ghost" size="icon-sm" aria-label={`Edit ${t.name}`} onClick={() => setDialog({ template: t })}><Pencil /></Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Delete ${t.name}`}
+              disabled={t.artist_count > 0}
+              title={t.artist_count > 0 ? 'Artists offer it — deactivate it instead' : undefined}
+              onClick={() => setDeleting(t)}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        </GridRow>
+      ))}
 
       <ServiceTemplateDialog open={dialog !== null} subcategory={subcategory} template={dialog?.template ?? null} onClose={() => setDialog(null)} />
 
@@ -125,6 +104,6 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </Panel>
   )
 }
