@@ -1,11 +1,15 @@
 /** Which side of a conversation a message came from, and which side the reader is on. */
 export type ChatSide = 'customer' | 'artist';
 
+/** Only on the reader's own message: held while an admin checks contact details, or hidden (never delivered). */
+export type ChatModeration = 'held' | 'hidden';
+
 export interface ChatMessage {
   id: string;
   sender: ChatSide;
   text: string;
   created_at: string;
+  moderation: ChatModeration | null;
 }
 
 export interface Counterpart {

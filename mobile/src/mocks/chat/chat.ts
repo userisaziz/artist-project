@@ -13,5 +13,5 @@ export function conversationFixture(overrides: Partial<Conversation> = {}): Conv
 }
 
 export function messageFixture(overrides: Partial<ChatMessage> = {}): ChatMessage {
-  return { id: 'm1', sender: 'customer', text: 'Hi!', created_at: '2026-10-09T08:58:00Z', ...overrides };
+  return { id: 'm1', sender: 'customer', text: 'Hi!', created_at: '2026-10-09T08:58:00Z', moderation: null, ...overrides };
 }

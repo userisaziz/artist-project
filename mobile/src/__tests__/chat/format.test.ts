@@ -25,7 +25,7 @@ it('the booking tag names the stage and the IST day', () => {
 });
 
 it('thread rows put a day separator above each day’s first message (inverted list order)', () => {
-  const msg = (id: string, at: string) => ({ id, sender: 'customer' as const, text: id, created_at: at });
+  const msg = (id: string, at: string) => ({ id, sender: 'customer' as const, text: id, created_at: at, moderation: null });
   const rows = threadRows([msg('c', '2026-10-09T08:00:00Z'), msg('b', '2026-10-09T07:00:00Z'), msg('a', '2026-10-08T07:00:00Z')], NOW);
   expect(rows.map((r) => (r.kind === 'day' ? r.label : r.message.id))).toEqual(['c', 'b', 'Today', 'a', 'Yesterday']);
 });

@@ -79,6 +79,24 @@ it('a failed send keeps the draft and says why', async () => {
   expect(await screen.findByText(/too many|try again/i)).toBeTruthy();
 });
 
+it('a message with contact details shows as under review, and a hidden one as not delivered', async () => {
+  serve({
+    'GET /conversations/c1': conversationFixture(),
+    'GET /conversations/c1/messages': {
+      items: [
+        messageFixture({ id: 'm2', text: 'mail me at a@b.com', moderation: 'hidden', created_at: '2026-10-09T08:59:00Z' }),
+        messageFixture({ id: 'm1', text: 'Call me on 98450 67890', moderation: 'held' }),
+      ],
+      next_cursor: null,
+    },
+  });
+  await wrap(<ChatThread side="customer" conversationId="c1" />);
+
+  expect(await screen.findByText('Call me on 98450 67890')).toBeTruthy();
+  expect(screen.getByText(/Under review · contact details are checked before delivery/)).toBeTruthy();
+  expect(screen.getByText(/Not delivered · contact details aren’t allowed before booking/)).toBeTruthy();
+});
+
 it('the artist inbox shows each client with unread count and booking tag, and opens one', async () => {
   serve({ 'GET /artists/me/conversations': { items: [conversationFixture()], next_cursor: null } });
   const onOpen = jest.fn();
