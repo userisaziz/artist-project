@@ -5,12 +5,12 @@ import uuid
 from collections.abc import Sequence
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Select, delete, exists, func, literal, select
+from sqlalchemy import ColumnElement, Select, delete, exists, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
-from app.feed.models import ArtistFollow, Post, PostLike
+from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset
 
@@ -27,10 +27,6 @@ class PostRow(NamedTuple):
     following: bool
 
 
-def like_count(post_id: ColumnElement) -> ColumnElement[int]:
-    return select(func.count()).where(PostLike.post_id == post_id).scalar_subquery()
-
-
 def rows_query(reader_id: uuid.UUID | None) -> Select:
     """A post with its artist card, like count, and whether `reader_id` likes it and follows the artist."""
     liked = exists().where(PostLike.post_id == Post.id, PostLike.user_id == reader_id) if reader_id else literal(False)
@@ -44,7 +40,7 @@ def rows_query(reader_id: uuid.UUID | None) -> Select:
         ArtistProfile.business_name,
         ArtistProfile.photo_key,
         ArtistProfile.city,
-        like_count(Post.id),
+        Post.like_count,
         liked,
         following,
     ).join(ArtistProfile, ArtistProfile.id == Post.artist_id)
@@ -75,7 +71,11 @@ class FeedRepository:
     async def services(self, service_ids: list[uuid.UUID]) -> dict[uuid.UUID, ArtistServiceItem]:
         if not service_ids:
             return {}
-        rows = await self.session.scalars(select(ArtistServiceItem).where(ArtistServiceItem.id.in_(service_ids)))
+        rows = await self.session.scalars(
+            select(ArtistServiceItem).where(
+                ArtistServiceItem.id.in_(service_ids), ArtistServiceItem.status == ArtistServiceStatus.approved
+            )
+        )
         return {s.id: s for s in rows}
 
     async def bookable_service(self, service_id: uuid.UUID, artist_id: uuid.UUID) -> bool:
@@ -88,18 +88,42 @@ class FeedRepository:
         )
         return found is not None
 
+    async def any_key_in_use(self, keys: list[str]) -> bool:
+        """Whether any of these image keys is already a post's photo or cover."""
+        photo = select(PostPhoto.storage_key).where(PostPhoto.storage_key.in_(keys))
+        cover = select(Post.cover_key).where(Post.cover_key.in_(keys))
+        return await self.session.scalar(select(exists(photo.union_all(cover).subquery()))) or False
+
     async def is_visible_artist(self, artist_id: uuid.UUID) -> bool:
         found = await self.session.scalar(select(ArtistProfile.id).where(ArtistProfile.id == artist_id, VISIBLE))
         return found is not None
 
-    async def like(self, post_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        await self.session.execute(insert(PostLike).values(post_id=post_id, user_id=user_id).on_conflict_do_nothing())
+    async def like(self, post_id: uuid.UUID, user_id: uuid.UUID) -> int:
+        """Adds the like if it's new; returns the post's like count."""
+        added = await self.session.scalar(
+            insert(PostLike)
+            .values(post_id=post_id, user_id=user_id)
+            .on_conflict_do_nothing()
+            .returning(PostLike.post_id)
+        )
+        return await self._bump(post_id, 1 if added else 0)
 
-    async def unlike(self, post_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        await self.session.execute(delete(PostLike).where(PostLike.post_id == post_id, PostLike.user_id == user_id))
+    async def unlike(self, post_id: uuid.UUID, user_id: uuid.UUID) -> int:
+        """Removes the like if there is one; returns the post's like count."""
+        removed = await self.session.scalar(
+            delete(PostLike).where(PostLike.post_id == post_id, PostLike.user_id == user_id).returning(PostLike.post_id)
+        )
+        return await self._bump(post_id, -1 if removed else 0)
 
-    async def like_count(self, post_id: uuid.UUID) -> int:
-        return await self.session.scalar(select(like_count(literal(post_id))))
+    async def _bump(self, post_id: uuid.UUID, by: int) -> int:
+        """One atomic UPDATE … RETURNING, so concurrent likes never lose a count."""
+        return await self.session.scalar(
+            update(Post)
+            .where(Post.id == post_id)
+            .values(like_count=Post.like_count + by)
+            .returning(Post.like_count)
+            .execution_options(synchronize_session=False)
+        )
 
     async def follow(self, user_id: uuid.UUID, artist_id: uuid.UUID) -> None:
         await self.session.execute(

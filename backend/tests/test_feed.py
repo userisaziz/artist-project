@@ -200,3 +200,52 @@ def test_excerpt_skips_headings_and_cuts_long_paragraphs_at_a_word():
     assert cut.startswith("henna henna") and cut.endswith("…")
     assert len(cut) <= 201 and not cut[:-1].endswith(" ")
     assert read_minutes("word " * 401) == 3
+
+
+async def test_fields_must_fit_the_kind_and_images_belong_to_one_post(client, engine):
+    _, artist, _ = await setup(client, engine)
+    key = await upload_key(client, artist["headers"], "post")
+    photo = {"key": key, "width": 10, "height": 10}
+
+    cover_on_photos = await client.post(
+        MINE, headers=artist["headers"], json={"kind": "photos", "text": "x", "photos": [photo], "cover": photo}
+    )
+    photos_on_article = await client.post(
+        MINE, headers=artist["headers"], json={"kind": "article", "title": "Title", "text": "x", "photos": [photo]}
+    )
+    duplicate = await client.post(
+        MINE, headers=artist["headers"], json={"kind": "photos", "text": "x", "photos": [photo, photo]}
+    )
+    first = await client.post(MINE, headers=artist["headers"], json={"kind": "photos", "text": "x", "photos": [photo]})
+    reused = await client.post(
+        MINE, headers=artist["headers"], json={"kind": "article", "title": "Title", "text": "x", "cover": photo}
+    )
+
+    assert [r.status_code for r in (cover_on_photos, photos_on_article, duplicate)] == [422, 422, 422]
+    assert first.status_code == 201
+    assert reused.status_code == 409
+
+
+async def test_like_counts_stay_exact_through_repeats(client, engine):
+    _, artist, customer = await setup(client, engine)
+    p = (await photo_post(client, artist)).json()
+    like = f"{FEED}/posts/{p['id']}/like"
+
+    for _ in range(3):
+        await client.put(like, headers=customer)
+    await client.delete(like, headers=customer)
+    after = await client.delete(like, headers=customer)
+
+    assert after.json() == {"liked": False, "like_count": 0}
+    assert (await client.get(f"{FEED}/posts/{p['id']}", headers=customer)).json()["like_count"] == 0
+
+
+async def test_a_linked_service_that_is_no_longer_approved_is_not_shown(client, engine):
+    _, artist, customer = await setup(client, engine)
+    p = (await photo_post(client, artist, service_id=artist["service_id"])).json()
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE artist_service_item SET status='rejected' WHERE id=:id"), {"id": artist["service_id"]}
+        )
+
+    assert (await client.get(f"{FEED}/posts/{p['id']}", headers=customer)).json()["service"] is None

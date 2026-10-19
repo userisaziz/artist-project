@@ -5,10 +5,11 @@ import uuid
 from typing import Any
 
 from sqlalchemy import ColumnElement
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.booking.service import approved_artist_id
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.feed.constants import CAPTION_MAX, MAX_PHOTOS, TITLE_MIN, FeedTab, PostKind, PostTopic
 from app.feed.models import Post, PostPhoto
 from app.feed.repository import VISIBLE, FeedRepository, PostRow, followed_by
@@ -86,10 +87,20 @@ class FeedService:
                 raise ValidationError(f"A photo post needs 1 to {MAX_PHOTOS} photos")
             if len(data.text) > CAPTION_MAX:
                 raise ValidationError(f"Captions stop at {CAPTION_MAX} characters")
-        elif not data.title or len(data.title) < TITLE_MIN:
-            raise ValidationError("An article needs a title")
-        for photo in [*data.photos, *([data.cover] if data.cover else [])]:
+            if data.cover or data.title:
+                raise ValidationError("Photo posts have photos and a caption, no cover or title")
+        else:
+            if not data.title or len(data.title) < TITLE_MIN:
+                raise ValidationError("An article needs a title")
+            if data.photos:
+                raise ValidationError("Articles have a cover photo, not a photo set")
+        images = [*data.photos, *([data.cover] if data.cover else [])]
+        if len({p.key for p in images}) != len(images):
+            raise ValidationError("Each photo can be used once")
+        for photo in images:
             self._check_key(user, photo)
+        if await self.posts.any_key_in_use([p.key for p in images]):
+            raise ConflictError("That photo is already used in another post")
         if data.service_id and not await self.posts.bookable_service(data.service_id, artist_id):
             raise ValidationError("Link one of your own approved services")
         if review_filters.review_flag(f"{data.title or ''}\n{data.text}"):
@@ -115,7 +126,10 @@ class FeedService:
             ],
         )
         self.posts.add(post)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:  # uq on cover_key / storage_key: the image is already another post's
+            raise ConflictError("That photo is already used in another post") from exc
         row = await self.posts.row(None, post.id)
         return (await self._out([row], full=True))[0]
 
@@ -158,11 +172,8 @@ class FeedService:
 
     async def set_like(self, reader: User, post_id: uuid.UUID, liked: bool) -> dict[str, Any]:
         await self.visible_post(reader, post_id)
-        if liked:
-            await self.posts.like(post_id, reader.id)
-        else:
-            await self.posts.unlike(post_id, reader.id)
-        return {"liked": liked, "like_count": await self.posts.like_count(post_id)}
+        count = await (self.posts.like(post_id, reader.id) if liked else self.posts.unlike(post_id, reader.id))
+        return {"liked": liked, "like_count": count}
 
     async def set_follow(self, reader: User, artist_id: uuid.UUID, following: bool) -> dict[str, Any]:
         if not await self.posts.is_visible_artist(artist_id):

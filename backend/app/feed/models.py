@@ -38,6 +38,8 @@ class Post(Base, TimestampMixin):
     service_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("artist_service_item.id", ondelete="SET NULL")
     )
+    # Kept by the like/unlike statements (only when a row actually changes), so cards never count likes.
+    like_count: Mapped[int] = mapped_column(Integer, default=0, server_default=sa.text("0"), nullable=False)
     photos: Mapped[list["PostPhoto"]] = relationship(
         lazy="selectin", cascade="all, delete-orphan", order_by="PostPhoto.sort_order"
     )
@@ -45,7 +47,11 @@ class Post(Base, TimestampMixin):
     __table_args__ = (
         sa.Index("ix_feed_post_created", "created_at", "id"),
         sa.Index("ix_feed_post_artist_created", "artist_id", "created_at", "id"),
+        sa.Index("ix_feed_post_article_created", "created_at", "id", postgresql_where=sa.text("kind = 'article'")),
+        # An image belongs to one post, so deleting a post can delete its images.
+        sa.Index("uq_feed_post_cover_key", "cover_key", unique=True),
         sa.CheckConstraint("kind <> 'article' OR title IS NOT NULL", name="article_has_title"),
+        sa.CheckConstraint("like_count >= 0", name="like_count_non_negative"),
     )
 
 
@@ -58,7 +64,7 @@ class PostPhoto(Base):
     post_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("feed_post.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    storage_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     width: Mapped[int] = mapped_column(Integer, nullable=False)
     height: Mapped[int] = mapped_column(Integer, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
