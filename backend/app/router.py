@@ -18,6 +18,7 @@ from app.customer import admin_router as customer_admin
 from app.directory import router as directory
 from app.feed import artist_router as artist_feed
 from app.feed import router as feed
+from app.report import admin_router as report_admin
 from app.review import admin_router as admin_reviews
 from app.review import artist_router as artist_reviews
 from app.support import admin_router as support_admin
@@ -47,3 +48,4 @@ api_router.include_router(catalog_admin.router)
 api_router.include_router(customer_admin.router)
 api_router.include_router(support.router)
 api_router.include_router(support_admin.router)
+api_router.include_router(report_admin.router)
