@@ -5,10 +5,11 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import Field, StringConstraints
+from pydantic import Field, StringConstraints, model_validator
 
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
+from app.subcategory_request.schemas import SuggestedSubcategoryIn, SuggestedSubcategoryOut
 
 
 class CategoryOut(ORMModel):
@@ -43,7 +44,7 @@ class ServicePatch(APIModel):
 class ServiceOut(APIModel):
     id: uuid.UUID
     category_id: int
-    subcategory_id: int  # the same column; pre-#6 rows point at a top-level category
+    subcategory_id: int  # the same column; pre-#6 rows and suggestion-waiting rows point at a top-level category
     template_id: int | None  # None = custom service
     name: str
     price_paise: int
@@ -51,16 +52,25 @@ class ServiceOut(APIModel):
     description: str | None = None
     status: ArtistServiceStatus
     rejection_reason: str | None
+    suggested_subcategory: SuggestedSubcategoryOut | None = None  # the artist's own suggestion it was filed under
 
 
 class CustomServiceIn(APIModel):
-    """After approval: the artist's own service under any active subcategory; waits for admin review."""
+    """After approval: the artist's own service under any active subcategory, or under a subcategory they suggest
+    (exactly one of the two); waits for admin review."""
 
-    subcategory_id: int
+    subcategory_id: int | None = None
+    suggested_subcategory: SuggestedSubcategoryIn | None = None
     name: str = Field(min_length=1, max_length=120)
     price_paise: int = Field(gt=0, le=100_000_000)
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def one_place(self) -> "CustomServiceIn":
+        if (self.subcategory_id is None) == (self.suggested_subcategory is None):
+            raise ValueError("Pick a subcategory or suggest one, not both")
+        return self
 
 
 class CustomServicePatch(APIModel):
@@ -143,7 +153,7 @@ class AdminKycOut(APIModel):
 
 class AdminArtistDetail(ArtistProfileOut):
     owner: ArtistOwner
-    kyc: AdminKycOut | None  # admin shape replaces the artist's {aadhaar_last4}
+    kyc: AdminKycOut | None  # type: ignore[assignment]  # admin shape deliberately replaces {aadhaar_last4}
 
 
 class RevealOut(APIModel):

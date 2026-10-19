@@ -143,6 +143,7 @@ async def test_service_crud(client):
         "description": None,
         "status": "approved",
         "rejection_reason": None,
+        "suggested_subcategory": None,
     }
     assert service["subcategory_id"] == service["category_id"] != cats["makeup"]  # stored on the subcategory
 

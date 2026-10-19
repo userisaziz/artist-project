@@ -15,6 +15,7 @@ from tests.support.auth import sign_in
 from tests.support.catalog import categories, seed_categories
 
 EXPECTED_TABLES = {
+    "subcategory_request",
     "user_account",
     "user_role_grant",
     "auth_otp_code",

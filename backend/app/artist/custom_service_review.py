@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.artist.repository import ArtistRepository, CustomServiceRow
 from app.core.exceptions import ConflictError, NotFoundError
 from app.shared.enums import ArtistServiceStatus
+from app.subcategory_request.constants import SubcategoryRequestStatus
 
 
 class CustomServiceReview:
@@ -27,6 +28,9 @@ class CustomServiceReview:
         item = row.item
         if item.status != ArtistServiceStatus.pending:
             raise ConflictError(f"Service is {item.status.value}, not pending")
+        waiting = item.subcategory_request
+        if waiting is not None and waiting.status == SubcategoryRequestStatus.pending:
+            raise ConflictError(f"Decide on the suggested subcategory “{waiting.name}” first")
         item.status = status
         item.rejection_reason = reason
         await self.session.flush()

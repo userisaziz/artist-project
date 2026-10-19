@@ -6,6 +6,8 @@ artists can propose custom services, which wait for admin review one by one.
 """
 
 import uuid
+from collections.abc import Sequence
+from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,6 +35,7 @@ from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.shared.clock import Clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
+from app.subcategory_request import service as subcategory_request_service
 from app.upload.service import ImageStorage
 from app.user.models import User
 
@@ -62,7 +65,7 @@ class ArtistService:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         return profile
 
-    async def _categories(self, ids: list[int], current: list[Category] = ()) -> list[Category]:
+    async def _categories(self, ids: list[int], current: Sequence[Category] = ()) -> list[Category]:
         """Top-level categories an artist may pick: active ones, plus inactive ones the profile already has."""
         wanted = set(ids)
         kept = {c.id for c in current}
@@ -114,6 +117,7 @@ class ArtistService:
         if not (
             template
             and template.is_active
+            and subcategory is not None
             and subcategory.status == CategoryStatus.active
             and parent
             and parent.status == CategoryStatus.active
@@ -191,14 +195,23 @@ class ArtistService:
         return item
 
     async def add_custom_service(self, user: User, body: CustomServiceIn) -> ArtistProfile:
+        """Under an active subcategory, or under the artist's own suggestion (filed under its parent until an
+        admin decides on it; see app.subcategory_request)."""
         profile = await self._approved(user)
-        await self._subcategory(body.subcategory_id)
         name = body.name.strip()
         if not name:
             raise ValidationError("Name is required")
+        suggestion = None
+        if body.suggested_subcategory is not None:
+            requests = subcategory_request_service.SubcategoryRequestService(self.session, self.clock)
+            suggestion = await requests.suggest(profile.id, body.suggested_subcategory)
+            place = suggestion.parent_id
+        else:
+            place = (await self._subcategory(cast(int, body.subcategory_id))).id
         profile.services.append(
             ArtistServiceItem(
-                category_id=body.subcategory_id,
+                category_id=place,
+                subcategory_request=suggestion,
                 name=name,
                 price_paise=body.price_paise,
                 duration_minutes=body.duration_minutes,
@@ -215,9 +228,11 @@ class ArtistService:
         profile = await self._approved(user)
         item = self._custom(profile, service_id)
         changes = body.model_dump(exclude_unset=True)
+        left = None
         if changes.get("subcategory_id") is not None:
             await self._subcategory(changes["subcategory_id"])
             item.category_id = changes["subcategory_id"]
+            left, item.subcategory_request = item.suggestion_id, None  # moved off its suggestion
         if changes.get("name") is not None:
             changes["name"] = changes["name"].strip()
             if not changes["name"]:
@@ -230,12 +245,22 @@ class ArtistService:
         item.status = ArtistServiceStatus.pending
         item.rejection_reason = None
         await self.session.flush()
+        if left is not None:
+            await subcategory_request_service.SubcategoryRequestService(self.session, self.clock).withdraw_if_unused(
+                left
+            )
         return profile
 
     async def delete_custom_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
         profile = await self._approved(user)
-        profile.services.remove(self._custom(profile, service_id))
+        item = self._custom(profile, service_id)
+        left = item.suggestion_id
+        profile.services.remove(item)
         await self.session.flush()
+        if left is not None:
+            await subcategory_request_service.SubcategoryRequestService(self.session, self.clock).withdraw_if_unused(
+                left
+            )
         return profile
 
     async def add_photo(self, user: User, body: PhotoIn) -> ArtistProfile:

@@ -24,6 +24,7 @@ from app.platform import admin_router as platform_admin
 from app.report import admin_router as report_admin
 from app.review import admin_router as admin_reviews
 from app.review import artist_router as artist_reviews
+from app.subcategory_request import admin_router as subcategory_request_admin
 from app.support import admin_router as support_admin
 from app.support import router as support
 from app.upload import router as upload
@@ -55,3 +56,4 @@ api_router.include_router(report_admin.router)
 api_router.include_router(platform_admin.router)
 api_router.include_router(feed_admin.router)
 api_router.include_router(chat_admin.router)
+api_router.include_router(subcategory_request_admin.router)

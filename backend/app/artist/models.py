@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.catalog.models import Category, ServiceTemplate
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.models import Base, TimestampMixin
+from app.subcategory_request.models import SubcategoryRequest
 
 artist_categories = Table(
     "artist_category",
@@ -109,7 +110,12 @@ class ArtistServiceItem(Base, TimestampMixin):
         nullable=False,
     )
     rejection_reason: Mapped[str | None] = mapped_column(String(500))
+    # A custom service filed under a subcategory the artist suggested: it sits under the parent until approved.
+    suggestion_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("subcategory_request.id", ondelete="SET NULL"), index=True
+    )
     template: Mapped[ServiceTemplate | None] = relationship(lazy="selectin")
+    subcategory_request: Mapped[SubcategoryRequest | None] = relationship(lazy="selectin")
 
     __table_args__ = (
         sa.CheckConstraint("price_paise > 0", name="price_positive"),
@@ -123,7 +129,8 @@ class ArtistServiceItem(Base, TimestampMixin):
     @property
     def display_name(self) -> str:
         """Template rows follow the admin's current name; custom rows keep their own."""
-        return self.template.name if self.template else self.name
+        # ck_artist_service_item_name_or_template guarantees a name when there is no template.
+        return self.template.name if self.template else (self.name or "")
 
 
 class PortfolioPhoto(Base):

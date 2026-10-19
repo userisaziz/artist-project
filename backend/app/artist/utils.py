@@ -27,6 +27,9 @@ def service_out(item: ArtistServiceItem) -> dict:
         description=item.description,
         status=item.status,
         rejection_reason=item.rejection_reason,
+        suggested_subcategory=(
+            dict(id=r.id, name=r.name, status=r.status) if (r := item.subcategory_request) is not None else None
+        ),
     )
 
 
