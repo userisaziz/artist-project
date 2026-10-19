@@ -26,6 +26,8 @@ interface StorefrontProps {
   /** Opens the chat with this artist (customers only); `messaging` while it opens. */
   onMessage?: () => void;
   messaging?: boolean;
+  /** Opens a package's own page (Service detail). */
+  onOpenService?: (service: PublicService) => void;
 }
 
 const COVER_HEIGHT = 230;
@@ -42,7 +44,7 @@ function groupServices(services: PublicService[]): [string, PublicService[]][] {
 }
 
 /** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false }: StorefrontProps) {
+export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onOpenService }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
@@ -97,7 +99,7 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
             <View key={title} style={{ marginBottom: 12, gap: 8 }}>
               <AppText variant="eyebrow" style={{ color: theme.colors.brand, letterSpacing: 1.5 }}>{title.toUpperCase()}</AppText>
               {services.map((s) => (
-                <PackageCard key={s.id} service={s} selected={s.id === selectedId} bookable={bookable} onSelect={() => setSelectedId(s.id === selectedId ? null : s.id)} />
+                <PackageCard key={s.id} service={s} selected={s.id === selectedId} bookable={bookable} onSelect={() => setSelectedId(s.id === selectedId ? null : s.id)} onOpen={onOpenService ? () => onOpenService(s) : undefined} />
               ))}
             </View>
           ))}
@@ -161,18 +163,24 @@ function Stat({ value, label, accessibilityLabel }: { value: string; label: stri
 }
 
 interface PackageCardProps {
+  onOpen?: () => void;
   service: PublicService;
   selected: boolean;
   bookable: boolean;
   onSelect: () => void;
 }
 
-function PackageCard({ service, selected, bookable, onSelect }: PackageCardProps) {
+function PackageCard({ service, selected, bookable, onSelect, onOpen }: PackageCardProps) {
   const theme = useTheme();
   return (
     <View style={{ borderRadius: 16, borderWidth: selected ? 1.5 : 1, borderColor: selected ? theme.colors.brand : theme.colors.separator, backgroundColor: selected ? theme.colors.washTop : theme.colors.surface, padding: 14, gap: 4 }}>
       <AppText variant="subtitle" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{service.name}</AppText>
-      {service.description ? <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{service.description}</AppText> : null}
+      {service.description ? <AppText variant="caption" numberOfLines={2} style={{ color: theme.colors.textSecondary }}>{service.description}</AppText> : null}
+      {onOpen ? (
+        <Pressable accessibilityRole="link" accessibilityLabel={`Details of ${service.name}`} onPress={onOpen} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+          <AppText variant="caption" style={{ color: theme.colors.brand }}>Details</AppText>
+        </Pressable>
+      ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
         <AppText variant="label" style={{ flex: 1, color: theme.colors.textMuted }}>{`${formatDuration(service.duration_minutes)} · `}<AppText variant="label" style={{ color: theme.colors.brand }}>{formatPrice(service.price_paise)}</AppText></AppText>
         {bookable ? (

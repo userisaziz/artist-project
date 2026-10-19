@@ -12,6 +12,7 @@ export default function ArtistStorefrontScreen() {
       artistId={id ?? ''}
       onCheckAvailability={(service) => router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id ?? '', serviceId: service.id } })}
       onSeeAllReviews={() => router.push({ pathname: '/customer/artist/[id]/reviews', params: { id: id ?? '' } })}
+      onOpenService={(service) => router.push({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id: id ?? '', serviceId: service.id } })}
       onMessage={() => { void chat.open(id ?? ''); }}
       messaging={chat.openingId === id}
     />
