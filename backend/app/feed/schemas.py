@@ -6,7 +6,17 @@ from typing import Annotated
 
 from pydantic import Field, StringConstraints
 
-from app.feed.constants import MAX_PHOTOS, TEXT_MAX, TITLE_MAX, PostKind, PostTopic
+from app.feed.constants import (
+    MAX_PHOTOS,
+    MODERATION_NOTE_MAX,
+    TEXT_MAX,
+    TITLE_MAX,
+    Moderation,
+    ModerationDecision,
+    PostKind,
+    PostTopic,
+    ReportReason,
+)
 from app.shared.schemas import APIModel
 
 MAX_SIDE = 10000
@@ -67,6 +77,8 @@ class PostOut(APIModel):
     like_count: int
     liked: bool
     following: bool
+    featured: bool
+    moderation: Moderation  # always live in the customer feed; the artist and admins see takedowns
     created_at: datetime
 
 
@@ -82,3 +94,35 @@ class LikeOut(APIModel):
 
 class FollowOut(APIModel):
     following: bool
+
+
+class ReportIn(APIModel):
+    reason: ReportReason
+
+
+class ModerateIn(APIModel):
+    decision: ModerationDecision
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=MODERATION_NOTE_MAX)] | None = None
+
+
+class AdminPostOut(PostOut):
+    report_count: int  # open (unresolved) reports
+    moderation_note: str | None
+
+
+class AdminPostPage(APIModel):
+    items: list[AdminPostOut]
+    next_cursor: str | None
+
+
+class AdminFeedCounts(APIModel):
+    all: int
+    featured: int
+    reported: int
+    hidden: int
+
+
+class AdminFeedSummary(APIModel):
+    counts: AdminFeedCounts
+    posts_7d: int
+    featured_slots: int

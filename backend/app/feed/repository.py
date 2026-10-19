@@ -3,18 +3,25 @@ shaping stays in the service."""
 
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Select, delete, exists, literal, select, update
+from sqlalchemy import ColumnElement, Select, and_, delete, exists, func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
-from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto
+from app.feed.constants import Moderation
+from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto, PostReport
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset
 
-VISIBLE = ArtistProfile.status == ArtistStatus.approved
+ARTIST_VISIBLE = ArtistProfile.status == ArtistStatus.approved
+VISIBLE = and_(ARTIST_VISIBLE, Post.moderation == Moderation.live)  # what customers may see
+NOT_FEATURED = Post.featured_at.is_(None)
+OPEN_REPORTS = (
+    select(func.count()).where(PostReport.post_id == Post.id, PostReport.resolved_at.is_(None)).scalar_subquery()
+)
 
 
 class PostRow(NamedTuple):
@@ -25,6 +32,7 @@ class PostRow(NamedTuple):
     like_count: int
     liked: bool
     following: bool
+    report_count: int
 
 
 def rows_query(reader_id: uuid.UUID | None) -> Select:
@@ -43,6 +51,7 @@ def rows_query(reader_id: uuid.UUID | None) -> Select:
         Post.like_count,
         liked,
         following,
+        OPEN_REPORTS,
     ).join(ArtistProfile, ArtistProfile.id == Post.artist_id)
 
 
@@ -95,7 +104,7 @@ class FeedRepository:
         return await self.session.scalar(select(exists(photo.union_all(cover).subquery()))) or False
 
     async def is_visible_artist(self, artist_id: uuid.UUID) -> bool:
-        found = await self.session.scalar(select(ArtistProfile.id).where(ArtistProfile.id == artist_id, VISIBLE))
+        found = await self.session.scalar(select(ArtistProfile.id).where(ArtistProfile.id == artist_id, ARTIST_VISIBLE))
         return found is not None
 
     async def like(self, post_id: uuid.UUID, user_id: uuid.UUID) -> int:
@@ -134,6 +143,45 @@ class FeedRepository:
         await self.session.execute(
             delete(ArtistFollow).where(ArtistFollow.user_id == user_id, ArtistFollow.artist_id == artist_id)
         )
+
+    async def featured_rows(self, reader_id: uuid.UUID | None, limit: int) -> list[PostRow]:
+        """Visible featured posts, most recently featured first."""
+        query = rows_query(reader_id).where(VISIBLE, Post.featured_at.is_not(None)).order_by(Post.featured_at.desc())
+        return [PostRow(*r) for r in (await self.session.execute(query.limit(limit))).all()]
+
+    async def featured_count(self) -> int:
+        return await self.session.scalar(select(func.count()).where(Post.featured_at.is_not(None)))
+
+    async def locked(self, post_id: uuid.UUID) -> Post | None:
+        return await self.session.scalar(select(Post).where(Post.id == post_id).with_for_update())
+
+    async def report(self, post_id: uuid.UUID, user_id: uuid.UUID, reason: str) -> None:
+        await self.session.execute(
+            insert(PostReport).values(post_id=post_id, user_id=user_id, reason=reason).on_conflict_do_nothing()
+        )
+
+    async def resolve_reports(self, post_id: uuid.UUID, at: datetime) -> None:
+        await self.session.execute(
+            update(PostReport)
+            .where(PostReport.post_id == post_id, PostReport.resolved_at.is_(None))
+            .values(resolved_at=at)
+            .execution_options(synchronize_session=False)
+        )
+
+    async def admin_counts(self, since: datetime) -> dict[str, int]:
+        not_removed = Post.moderation != Moderation.removed
+        row = (
+            await self.session.execute(
+                select(
+                    func.count().filter(not_removed),
+                    func.count().filter(Post.featured_at.is_not(None)),
+                    func.count().filter(Post.moderation == Moderation.live, OPEN_REPORTS > 0),
+                    func.count().filter(Post.moderation == Moderation.hidden),
+                    func.count().filter(not_removed, Post.created_at >= since),
+                ).select_from(Post)
+            )
+        ).one()
+        return {"all": row[0], "featured": row[1], "reported": row[2], "hidden": row[3], "recent": row[4]}
 
     def add(self, post: Post) -> None:
         self.session.add(post)

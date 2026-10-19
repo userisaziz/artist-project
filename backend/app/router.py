@@ -17,6 +17,7 @@ from app.chat import artist_router as artist_chat
 from app.chat import router as chat
 from app.customer import admin_router as customer_admin
 from app.directory import router as directory
+from app.feed import admin_router as feed_admin
 from app.feed import artist_router as artist_feed
 from app.feed import router as feed
 from app.platform import admin_router as platform_admin
@@ -52,4 +53,5 @@ api_router.include_router(support.router)
 api_router.include_router(support_admin.router)
 api_router.include_router(report_admin.router)
 api_router.include_router(platform_admin.router)
+api_router.include_router(feed_admin.router)
 api_router.include_router(chat_admin.router)

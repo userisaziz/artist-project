@@ -8,11 +8,12 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.feed.constants import TITLE_MAX, PostKind, PostTopic
+from app.feed.constants import MODERATION_NOTE_MAX, TITLE_MAX, Moderation, PostKind, PostTopic
 from app.shared.models import Base, TimestampMixin
 
 post_kind_enum = Enum(PostKind, name="feed_post_kind", values_callable=lambda e: [m.value for m in e])
 post_topic_enum = Enum(PostTopic, name="feed_post_topic", values_callable=lambda e: [m.value for m in e])
+moderation_enum = Enum(Moderation, name="feed_post_moderation", values_callable=lambda e: [m.value for m in e])
 
 
 class Post(Base, TimestampMixin):
@@ -40,6 +41,11 @@ class Post(Base, TimestampMixin):
     )
     # Kept by the like/unlike statements (only when a row actually changes), so cards never count likes.
     like_count: Mapped[int] = mapped_column(Integer, default=0, server_default=sa.text("0"), nullable=False)
+    moderation: Mapped[Moderation] = mapped_column(
+        moderation_enum, default=Moderation.live, server_default=sa.text("'live'"), nullable=False
+    )
+    moderation_note: Mapped[str | None] = mapped_column(String(MODERATION_NOTE_MAX))
+    featured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # set while featured
     photos: Mapped[list["PostPhoto"]] = relationship(
         lazy="selectin", cascade="all, delete-orphan", order_by="PostPhoto.sort_order"
     )
@@ -92,3 +98,19 @@ class ArtistFollow(Base):
         UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PostReport(Base):
+    """A customer's report of a post; one per person per post. "Keep" resolves the open ones."""
+
+    __tablename__ = "feed_post_report"
+
+    post_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("feed_post.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
+    )
+    reason: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -1,11 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.core.auth import current_customer
 from app.feed.constants import FeedTab
 from app.feed.dependencies import get_feed_service, limit_reactions
-from app.feed.schemas import FollowOut, LikeOut, PostOut, PostPage
+from app.feed.schemas import FollowOut, LikeOut, PostOut, PostPage, ReportIn
 from app.feed.service import FeedService
 from app.shared.responses import errors
 from app.user.models import User
@@ -83,3 +83,19 @@ async def unfollow_artist(
     artist_id: uuid.UUID, user: User = Depends(current_customer), feed: FeedService = Depends(get_feed_service)
 ) -> dict:
     return await feed.set_follow(user, artist_id, following=False)
+
+
+@router.post(
+    "/posts/{post_id}/report",
+    status_code=204,
+    summary="Report a post to the moderators",
+    response_class=Response,
+    dependencies=[Depends(limit_reactions)],
+)
+async def report_post(
+    post_id: uuid.UUID,
+    body: ReportIn,
+    user: User = Depends(current_customer),
+    feed: FeedService = Depends(get_feed_service),
+) -> None:
+    await feed.report(user, post_id, body.reason)

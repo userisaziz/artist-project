@@ -2,6 +2,7 @@
 artists. Posts of artists who are no longer approved disappear (404), like the storefront."""
 
 import uuid
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import ColumnElement
@@ -10,13 +11,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.booking.service import approved_artist_id
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.feed.constants import CAPTION_MAX, MAX_PHOTOS, TITLE_MIN, FeedTab, PostKind, PostTopic
+from app.feed.constants import (
+    CAPTION_MAX,
+    MAX_PHOTOS,
+    RECENT_DAYS,
+    TITLE_MIN,
+    AdminFeedView,
+    FeedTab,
+    Moderation,
+    ModerationDecision,
+    PostKind,
+    PostTopic,
+)
 from app.feed.models import Post, PostPhoto
-from app.feed.repository import VISIBLE, FeedRepository, PostRow, followed_by
+from app.feed.repository import NOT_FEATURED, OPEN_REPORTS, VISIBLE, FeedRepository, PostRow, followed_by
 from app.feed.schemas import PhotoIn, PostIn
 from app.feed.utils import excerpt, read_minutes
 from app.review import filters as review_filters
 from app.review import service as review_service
+from app.shared.clock import Clock
 from app.shared.pagination import split_page
 from app.upload.service import ImageStorage
 from app.user.models import User
@@ -25,10 +38,11 @@ DEFAULT_TOPIC = {PostKind.photos: PostTopic.look, PostKind.article: PostTopic.gu
 
 
 class FeedService:
-    def __init__(self, session: AsyncSession, storage: ImageStorage):
+    def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
         self.posts = FeedRepository(session)
         self.storage = storage
+        self.clock = clock
 
     # --- shaping --------------------------------------------------------------------------------
 
@@ -71,6 +85,8 @@ class FeedService:
             "like_count": row.like_count,
             "liked": row.liked,
             "following": row.following,
+            "featured": p.featured_at is not None,
+            "moderation": p.moderation,
             "created_at": p.created_at,
         }
 
@@ -157,8 +173,12 @@ class FeedService:
             where.append(followed_by(reader.id))
         elif tab == "stories":
             where.append(Post.kind == PostKind.article)
+        else:  # For you: featured posts lead the first page, so the newest-first pages skip them
+            where.append(NOT_FEATURED)
         rows = await self.posts.page_rows(reader.id, where, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (r.post.created_at, r.post.id))
+        if tab == "for_you" and cursor is None:
+            page = [*await self.posts.featured_rows(reader.id, limit), *page]
         return await self._out(page, full=False), next_cursor
 
     async def visible_post(self, reader: User, post_id: uuid.UUID) -> PostRow:
@@ -183,3 +203,77 @@ class FeedService:
         else:
             await self.posts.unfollow(reader.id, artist_id)
         return {"following": following}
+
+    async def report(self, reader: User, post_id: uuid.UUID, reason: str) -> None:
+        """One report per person per post; reporting again changes nothing."""
+        await self.visible_post(reader, post_id)
+        await self.posts.report(post_id, reader.id, reason)
+
+    # --- admin ------------------------------------------------------------------------------------
+
+    def _admin(self, shaped: dict[str, Any], row: PostRow) -> dict[str, Any]:
+        return {**shaped, "report_count": row.report_count, "moderation_note": row.post.moderation_note}
+
+    async def _admin_out(self, rows: list[PostRow]) -> list[dict[str, Any]]:
+        shaped = await self._out(rows, full=True)
+        return [self._admin(s, r) for s, r in zip(shaped, rows, strict=True)]
+
+    async def admin_list(self, view: AdminFeedView, limit: int, cursor: str | None):
+        where: list[ColumnElement[bool]]
+        if view == "featured":
+            where = [Post.featured_at.is_not(None)]
+        elif view == "reported":
+            where = [Post.moderation == Moderation.live, OPEN_REPORTS > 0]
+        elif view == "hidden":
+            where = [Post.moderation == Moderation.hidden]
+        else:
+            where = [Post.moderation != Moderation.removed]
+        rows = await self.posts.page_rows(None, where, limit=limit, cursor=cursor)
+        page, next_cursor = split_page(rows, limit, lambda r: (r.post.created_at, r.post.id))
+        return await self._admin_out(page), next_cursor
+
+    async def admin_summary(self, slots: int) -> dict[str, Any]:
+        counts = await self.posts.admin_counts(self.clock.now() - timedelta(days=RECENT_DAYS))
+        recent = counts.pop("recent")
+        return {"counts": counts, "posts_7d": recent, "featured_slots": slots}
+
+    async def _admin_post(self, post_id: uuid.UUID) -> dict[str, Any]:
+        row = await self.posts.row(None, post_id)
+        if row is None:
+            raise NotFoundError("Post not found")
+        return (await self._admin_out([row]))[0]
+
+    async def _locked(self, post_id: uuid.UUID) -> Post:
+        post = await self.posts.locked(post_id)
+        if post is None:
+            raise NotFoundError("Post not found")
+        return post
+
+    async def moderate(self, post_id: uuid.UUID, decision: ModerationDecision, note: str | None) -> dict[str, Any]:
+        """keep: live, open reports resolved. hide: out of the feed (the artist still sees it). remove: final."""
+        post = await self._locked(post_id)
+        if post.moderation == Moderation.removed:
+            raise ConflictError("This post was removed")
+        if decision == "keep":
+            post.moderation = Moderation.live
+            await self.posts.resolve_reports(post.id, self.clock.now())
+        else:
+            post.moderation = Moderation.hidden if decision == "hide" else Moderation.removed
+            post.featured_at = None
+        if note is not None:  # omitted keeps the note; an empty one clears it
+            post.moderation_note = note or None
+        await self.session.flush()
+        return await self._admin_post(post_id)
+
+    async def set_featured(self, post_id: uuid.UUID, featured: bool, slots: int) -> dict[str, Any]:
+        post = await self._locked(post_id)
+        if featured and post.featured_at is None:
+            if post.moderation != Moderation.live:
+                raise ConflictError("Only live posts can be featured")
+            if await self.posts.featured_count() >= slots:
+                raise ConflictError(f"All {slots} featured slots are taken. Unfeature a post first.")
+            post.featured_at = self.clock.now()
+        elif not featured:
+            post.featured_at = None
+        await self.session.flush()
+        return await self._admin_post(post_id)
