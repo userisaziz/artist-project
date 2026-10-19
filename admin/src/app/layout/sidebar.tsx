@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useDirectorySummary, usePendingCount } from '@/features/artists/queries'
 import { useCustomServicePendingCount } from '@/features/custom-services/queries'
 import { useEnquirySummary } from '@/features/enquiries/queries'
+import { useSubcategoryRequestSummary } from '@/features/subcategory-requests/queries'
 import { useOverview } from '@/features/overview/queries'
 import { useReviewPendingCount } from '@/features/reviews/queries'
 import { useAuth } from '@/lib/auth-context'
@@ -20,6 +21,7 @@ export function Sidebar() {
   const counts: Record<NavCount, string | number | null | undefined> = {
     pendingArtists: usePendingCount().data,
     heldEnquiries: useEnquirySummary().data?.counts.held,
+    pendingSubcategories: useSubcategoryRequestSummary().data?.counts.pending,
     artistsTotal: useDirectorySummary().data?.counts.all,
     bookings30d: useOverview().data?.bookings,
     flaggedReviews: useReviewPendingCount().data,

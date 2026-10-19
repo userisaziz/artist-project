@@ -17,6 +17,7 @@ export const PATHS = {
   reviews: '/reviews',
   categories: '/categories',
   enquiries: '/enquiries',
+  subcategoryRequests: '/subcategory-requests',
   customers: '/customers',
   customerDetail: '/customers/:id',
   support: '/support',

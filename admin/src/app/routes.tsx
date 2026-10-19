@@ -21,6 +21,7 @@ const FeedModerationPage = lazy(() => import('@/features/feed/FeedModerationPage
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
 const SupportPage = lazy(() => import('@/features/support/SupportPage').then(m => ({ default: m.SupportPage })))
+const SubcategoryRequestsPage = lazy(() => import('@/features/subcategory-requests/SubcategoryRequestsPage').then(m => ({ default: m.SubcategoryRequestsPage })))
 const EnquiriesPage = lazy(() => import('@/features/enquiries/EnquiriesPage').then(m => ({ default: m.EnquiriesPage })))
 const CategoriesPage = lazy(() => import('@/features/categories/CategoriesPage').then(m => ({ default: m.CategoriesPage })))
 
@@ -48,6 +49,7 @@ export function AppRoutes() {
           <Route path={PATHS.reviews} element={<ReviewsPage />} />
           <Route path={PATHS.categories} element={<CategoriesPage />} />
           <Route path={PATHS.enquiries} element={<EnquiriesPage />} />
+          <Route path={PATHS.subcategoryRequests} element={<SubcategoryRequestsPage />} />
           <Route path={PATHS.customers} element={<CustomersPage />} />
           <Route path={PATHS.customerDetail} element={<CustomerDetailPage />} />
           <Route path={PATHS.support} element={<SupportPage />} />

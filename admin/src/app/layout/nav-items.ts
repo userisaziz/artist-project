@@ -1,7 +1,7 @@
 import { PATHS } from '@/lib/paths'
 
 /** Which live figure, if any, sits beside a sidebar item (AppShell resolves each one). */
-export type NavCount = 'heldEnquiries' | 'pendingArtists' | 'artistsTotal' | 'bookings30d' | 'flaggedReviews' | 'pendingCustomServices'
+export type NavCount = 'heldEnquiries' | 'pendingSubcategories' | 'pendingArtists' | 'artistsTotal' | 'bookings30d' | 'flaggedReviews' | 'pendingCustomServices'
 
 export interface NavItem {
   to: string
@@ -25,6 +25,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: PATHS.reviews, label: 'Reviews', count: 'flaggedReviews' },
   { to: PATHS.feed, label: 'Feed' },
   { to: PATHS.categories, label: 'Catalog' },
+  { to: PATHS.subcategoryRequests, label: 'Subcategories', count: 'pendingSubcategories' },
   { to: PATHS.customServices, label: 'Custom services', count: 'pendingCustomServices' },
   { to: PATHS.enquiries, label: 'Enquiries', count: 'heldEnquiries' },
   { to: PATHS.support, label: 'Support' },
