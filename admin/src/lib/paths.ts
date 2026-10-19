@@ -22,6 +22,7 @@ export const PATHS = {
   support: '/support',
   reports: '/reports',
   settings: '/settings',
+  feed: '/feed',
 } as const
 
 /** Where signed-in admins land by default. */
