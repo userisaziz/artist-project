@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile
 from app.booking.models import Booking
-from app.chat.constants import ChatSide
+from app.chat.constants import ChatSide, MessageModeration
 from app.chat.models import Conversation, Message
 from app.shared.enums import ArtistStatus, BookingStatus
 from app.shared.pagination import keyset
@@ -36,11 +36,17 @@ class ConversationRow(NamedTuple):
     booking_start_at: datetime | None
 
 
-def rows_query(side: ChatSide, now: datetime) -> Select:
-    """A conversation with both parties' names, its last message, the reader's unread count and the booking tag."""
+def visible_to(side: ChatSide) -> ColumnElement[bool]:
+    """The sender sees all their own messages; the other side never sees one that is held or hidden."""
+    return or_(Message.sender == side, Message.moderation.is_(None), Message.moderation == MessageModeration.allowed)
+
+
+def rows_query(side: ChatSide, now: datetime, *, with_message: bool = False) -> Select:
+    """A conversation with both parties' names, its last message, the reader's unread count and the booking tag.
+    `with_message`: only conversations with at least one message this reader can see."""
     last = (
         select(Message.sender, Message.text, Message.created_at)
-        .where(Message.conversation_id == Conversation.id)
+        .where(Message.conversation_id == Conversation.id, visible_to(side))
         .order_by(Message.created_at.desc(), Message.id.desc())
         .limit(1)
         .lateral("last_message")
@@ -51,6 +57,7 @@ def rows_query(side: ChatSide, now: datetime) -> Select:
         .where(
             Message.conversation_id == Conversation.id,
             Message.sender != side,
+            visible_to(side),
             or_(read_at.is_(None), Message.created_at > read_at),
         )
         .scalar_subquery()
@@ -66,7 +73,7 @@ def rows_query(side: ChatSide, now: datetime) -> Select:
         .limit(1)
         .lateral("tag_booking")
     )
-    return (
+    query = (
         select(
             Conversation,
             ArtistProfile.business_name,
@@ -89,6 +96,7 @@ def rows_query(side: ChatSide, now: datetime) -> Select:
         .outerjoin(last, true())
         .outerjoin(booking, true())
     )
+    return query.where(last.c.created_at.is_not(None)) if with_message else query
 
 
 def customer_name_matches(pattern: str) -> ColumnElement[bool]:
@@ -108,10 +116,10 @@ class ChatRepository:
         limit: int,
         cursor: str | None,
     ) -> list[ConversationRow]:
-        """Conversations with at least one message, latest first; `limit + 1` rows so the caller can tell
-        whether there is more."""
+        """Conversations with at least one message the reader can see, latest first; `limit + 1` rows so the
+        caller can tell whether there is more. (Ordered by the latest message of either side, held ones included.)"""
         query = keyset(
-            rows_query(side, now).where(Conversation.last_message_at.is_not(None), *where),
+            rows_query(side, now, with_message=True).where(Conversation.last_message_at.is_not(None), *where),
             Conversation.last_message_at,
             Conversation.id,
             descending=True,
@@ -157,10 +165,12 @@ class ChatRepository:
             )
         ).scalar_one()
 
-    async def message_page(self, conversation_id: uuid.UUID, *, limit: int, cursor: str | None) -> list[Message]:
-        """Newest first, keyset on (created_at, id), `limit + 1` rows."""
+    async def message_page(
+        self, conversation_id: uuid.UUID, side: ChatSide, *, limit: int, cursor: str | None
+    ) -> list[Message]:
+        """What `side` can see, newest first, keyset on (created_at, id), `limit + 1` rows."""
         query = keyset(
-            select(Message).where(Message.conversation_id == conversation_id),
+            select(Message).where(Message.conversation_id == conversation_id, visible_to(side)),
             Message.created_at,
             Message.id,
             descending=True,

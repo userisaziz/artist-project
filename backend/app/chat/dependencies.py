@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.booking.service import approved_artist_id
 from app.chat import constants
+from app.chat.admin_service import EnquiryAdminService
 from app.chat.constants import ChatSide
 from app.chat.models import Conversation
 from app.chat.service import ChatService, Participant
@@ -72,3 +73,9 @@ async def limit_messages(
     _hourly: None = Depends(limit_hourly_messages), _burst: None = Depends(limit_message_burst)
 ) -> None:
     """Sends: at most 20 a minute and 300 an hour per user."""
+
+
+def get_enquiry_admin_service(
+    session: AsyncSession = Depends(get_db, scope="function"), clock: Clock = Depends(get_clock)
+) -> EnquiryAdminService:
+    return EnquiryAdminService(session, clock)

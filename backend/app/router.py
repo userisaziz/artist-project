@@ -12,6 +12,7 @@ from app.booking import artist_router as artist_bookings
 from app.booking import router as bookings
 from app.catalog import admin_router as catalog_admin
 from app.catalog import router as catalog
+from app.chat import admin_router as chat_admin
 from app.chat import artist_router as artist_chat
 from app.chat import router as chat
 from app.customer import admin_router as customer_admin
@@ -51,3 +52,4 @@ api_router.include_router(support.router)
 api_router.include_router(support_admin.router)
 api_router.include_router(report_admin.router)
 api_router.include_router(platform_admin.router)
+api_router.include_router(chat_admin.router)

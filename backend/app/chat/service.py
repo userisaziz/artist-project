@@ -10,10 +10,10 @@ from sqlalchemy import ColumnElement
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chat.constants import ChatSide
+from app.chat.constants import ChatSide, MessageModeration
 from app.chat.models import Conversation, Message
 from app.chat.repository import ChatRepository, ConversationRow, customer_name_matches
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.review import filters as review_filters
 from app.shared.clock import Clock
 from app.shared.enums import BookingStatus
@@ -48,7 +48,9 @@ def customer_name(first: str | None, last: str | None) -> str:
 
 
 def message_out(m: Message) -> dict[str, Any]:
-    return {"id": m.id, "sender": m.sender, "text": m.text, "created_at": m.created_at}
+    """`moderation` is shown only while it matters to the sender: held or hidden. Allowed reads as normal."""
+    pending = m.moderation if m.moderation in (MessageModeration.held, MessageModeration.hidden) else None
+    return {"id": m.id, "sender": m.sender, "text": m.text, "created_at": m.created_at, "moderation": pending}
 
 
 def conversation_out(row: ConversationRow, side: ChatSide, storage: ImageStorage) -> dict[str, Any]:
@@ -147,21 +149,28 @@ class ChatService:
         )
         return [conversation_out(r, participant.side, self.storage) for r in page], next_cursor
 
-    async def messages(self, conversation: Conversation, limit: int, cursor: str | None):
-        rows = await self.chats.message_page(conversation.id, limit=limit, cursor=cursor)
+    async def messages(self, participant: Participant, conversation: Conversation, limit: int, cursor: str | None):
+        rows = await self.chats.message_page(conversation.id, participant.side, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda m: (m.created_at, m.id))
         return [message_out(m) for m in page], next_cursor
 
     async def send(self, participant: Participant, conversation: Conversation, text: str) -> dict[str, Any]:
         """Under the conversation's row lock, so message times strictly increase in commit order and a read
-        mark taken after a send always covers it. Writing counts as reading for the sender."""
-        if review_filters.review_flag(text):
-            raise ValidationError("Messages can't include phone numbers, emails, links or blocked words")
+        mark taken after a send always covers it. Writing counts as reading for the sender.
+        A message the contact filter catches is saved but held: only the sender sees it until an admin decides."""
+        flag = review_filters.review_flag(text)
         if participant.side == ChatSide.customer and not await self.chats.approved_artist_owner(conversation.artist_id):
             raise ConflictError("This artist isn't taking messages right now")
         locked = await self.chats.locked(conversation.id)
         at = self._next_time(locked.last_message_at)
-        message = Message(conversation_id=locked.id, sender=participant.side, text=text, created_at=at)
+        message = Message(
+            conversation_id=locked.id,
+            sender=participant.side,
+            text=text,
+            created_at=at,
+            flag=flag,
+            moderation=MessageModeration.held if flag else None,
+        )
         self.chats.add(message)
         locked.last_message_at = at
         self._mark_read(participant, locked, at)

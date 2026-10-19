@@ -238,14 +238,68 @@ async def test_each_side_reads_one_conversation_from_its_own_view(client, engine
     assert other.status_code == 404
 
 
-async def test_messages_with_contact_details_are_refused(client, engine):
+async def test_messages_with_contact_details_are_held_for_review(client, engine):
     _, artist, customer = await setup(client, engine)
     c = (await open_chat(client, customer, artist["id"])).json()
 
     for body in ("Call me on 98450 67890", "mail me at a@b.com", "see www.mysite.in"):
         response = await send(client, customer, c["id"], body)
-        assert response.status_code == 422, body
-    assert (await send(client, customer, c["id"], "Saturday 10 Oct at 11:00 works")).status_code == 201
+        assert response.status_code == 201, body
+        assert response.json()["moderation"] == "held"
+    clean = (await send(client, customer, c["id"], "Saturday 10 Oct at 11:00 works")).json()
+    assert clean["moderation"] is None
+
+    mine = (await client.get(f"/api/v1/conversations/{c['id']}/messages", headers=customer)).json()["items"]
+    assert [m["moderation"] for m in mine] == [None, "held", "held", "held"]  # the sender sees their own, marked
+    base = f"/api/v1/artists/me/conversations/{c['id']}"
+    theirs = (await client.get(f"{base}/messages", headers=artist["headers"])).json()["items"]
+    assert [m["text"] for m in theirs] == ["Saturday 10 Oct at 11:00 works"]
+    inbox = (await client.get("/api/v1/artists/me/conversations", headers=artist["headers"])).json()["items"]
+    assert inbox[0]["unread_count"] == 1
+    assert inbox[0]["last_message"]["text"] == "Saturday 10 Oct at 11:00 works"
+
+
+async def test_an_artist_sees_no_conversation_whose_only_message_is_held(client, engine):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    await send(client, customer, c["id"], "Call me on 98450 67890")
+
+    inbox = (await client.get("/api/v1/artists/me/conversations", headers=artist["headers"])).json()["items"]
+    one = (await client.get(f"/api/v1/artists/me/conversations/{c['id']}", headers=artist["headers"])).json()
+
+    assert inbox == []
+    assert (one["last_message"], one["unread_count"]) == (None, 0)
+
+
+async def test_admin_allows_or_hides_held_enquiries(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    phone = (await send(client, customer, c["id"], "Call me on 98450 67890")).json()
+    email = (await send(client, customer, c["id"], "mail me at a@b.com")).json()
+    await send(client, customer, c["id"], "Is the venue covered?")
+
+    held = (await client.get("/api/v1/admin/enquiries?status=held", headers=admin)).json()
+    assert [m["id"] for m in held["items"]] == [email["id"], phone["id"]]  # newest first
+    first = held["items"][1]
+    assert (first["flag"], first["status"], first["sender"]) == ("contact_info", "held", "customer")
+    assert first["artist"]["name"] == "Ayesha Mehendi Art"
+    assert first["conversation_id"] == c["id"]
+    summary = (await client.get("/api/v1/admin/enquiries/summary", headers=admin)).json()
+    assert summary["counts"] == {"held": 2, "allowed": 0, "hidden": 0}
+    assert (summary["messages_7d"], summary["flagged_7d"]) == (3, 2)
+
+    allowed = await client.post(f"/api/v1/admin/enquiries/{phone['id']}/allow", headers=admin)
+    hidden = await client.post(f"/api/v1/admin/enquiries/{email['id']}/hide", headers=admin)
+    assert (allowed.status_code, allowed.json()["status"]) == (200, "allowed")
+    assert (hidden.status_code, hidden.json()["status"]) == (200, "hidden")
+    assert (await client.post(f"/api/v1/admin/enquiries/{phone['id']}/hide", headers=admin)).status_code == 409
+
+    base = f"/api/v1/artists/me/conversations/{c['id']}"
+    theirs = (await client.get(f"{base}/messages", headers=artist["headers"])).json()["items"]
+    assert [m["text"] for m in theirs] == ["Is the venue covered?", "Call me on 98450 67890"]
+    mine = (await client.get(f"/api/v1/conversations/{c['id']}/messages", headers=customer)).json()["items"]
+    assert [m["moderation"] for m in mine] == [None, "hidden", None]  # allowed reads as a normal message
+    assert (await client.get("/api/v1/admin/enquiries", headers=customer)).status_code == 403
 
 
 async def test_messages_keep_sending_order_under_one_clock_reading(client, engine, travel):

@@ -15,3 +15,16 @@ class ChatSide(str, enum.Enum):
 
     customer = "customer"
     artist = "artist"
+
+
+class MessageModeration(str, enum.Enum):
+    """A message the contact filter caught. `held`: only the sender sees it until an admin decides; `allowed`:
+    delivered as normal; `hidden`: never delivered, the sender is told why. Unflagged messages have none."""
+
+    held = "held"
+    allowed = "allowed"
+    hidden = "hidden"
+
+
+ENQUIRIES_PER_PAGE = 20
+ENQUIRY_SUMMARY_DAYS = 7

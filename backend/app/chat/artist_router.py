@@ -61,9 +61,10 @@ async def list_messages(
     limit: int = Query(30, ge=1, le=100),
     cursor: str | None = None,
     conversation: Conversation = Depends(valid_artist_conversation),
+    participant: Participant = Depends(artist_participant),
     chats: ChatService = Depends(get_chat_service),
 ) -> dict:
-    items, next_cursor = await chats.messages(conversation, limit, cursor)
+    items, next_cursor = await chats.messages(participant, conversation, limit, cursor)
     return {"items": items, "next_cursor": next_cursor}
 
 
