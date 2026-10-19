@@ -90,8 +90,8 @@ describe('refunds', () => {
 });
 
 describe('without in-app payments (phase 1)', () => {
-  it('takes no deposit, so the whole total is paid to the artist after the service', () => {
-    const b = priceBreakdown(450_000, 0);
-    expect([b.total_paise, b.deposit_paise, b.balance_paise]).toEqual([459_900, 0, 459_900]);
+  it('takes no deposit and no platform fee: the service price is paid to the artist after the service', () => {
+    const b = priceBreakdown(450_000, 0, false);
+    expect([b.platform_fee_paise, b.total_paise, b.deposit_paise, b.balance_paise]).toEqual([0, 450_000, 0, 450_000]);
   });
 });

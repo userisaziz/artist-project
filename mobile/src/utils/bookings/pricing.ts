@@ -29,8 +29,9 @@ export interface PriceBreakdown {
   artist_earning_paise: number;
 }
 
-export function priceBreakdown(subtotal: number, depositPercent = DEPOSIT_PERCENT): PriceBreakdown {
-  const fee = subtotal >= FEE_WAIVER_FROM_PAISE ? 0 : PLATFORM_FEE_PAISE;
+/** With `platformFee` off (phase 1, no in-app payments) nobody collects the fee: the total is the service price. */
+export function priceBreakdown(subtotal: number, depositPercent = DEPOSIT_PERCENT, platformFee = true): PriceBreakdown {
+  const fee = !platformFee || subtotal >= FEE_WAIVER_FROM_PAISE ? 0 : PLATFORM_FEE_PAISE;
   const total = subtotal + fee;
   const deposit = Math.round((total * depositPercent) / (100 * RUPEE)) * RUPEE; // nearest whole rupee
   const commission = Math.round((subtotal * COMMISSION_PERCENT) / 100);

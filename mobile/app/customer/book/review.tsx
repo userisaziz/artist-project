@@ -55,7 +55,7 @@ export default function ReviewAndPay() {
       </View>
     );
   }
-  const money = priceBreakdown(service.price_paise, IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0);
+  const money = priceBreakdown(service.price_paise, IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
   const start = Date.parse(startAt);
   const refundUntil = freeCancelUntil(start);
   const cancelLine = !IN_APP_PAYMENTS
