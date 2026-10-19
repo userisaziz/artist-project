@@ -10,7 +10,7 @@ import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
 import { errorMessage } from '../../../src/core/api/error-message';
 
-// Spec §2 Profile tab: name and phone, My bookings, Messages, Help & support, the artist side (PUT /users/me/role), Log out.
+// Spec §2 Profile tab: name and phone, My bookings, My orders, Messages, Help & support, the artist side (PUT /users/me/role), Log out.
 export default function CustomerProfile() {
   const theme = useTheme();
   const router = useRouter();
@@ -43,6 +43,7 @@ export default function CustomerProfile() {
 
       <View style={{ marginTop: 24, borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, paddingHorizontal: 14 }}>
         <MenuRow label="My bookings" onPress={() => router.navigate('/customer/bookings')} />
+        <MenuRow label="My orders" onPress={() => router.push('/customer/shop/orders')} />
         <MenuRow label="Messages" onPress={() => router.push('/customer/messages')} />
         <MenuRow label="Help & support" onPress={() => router.push('/customer/support')} />
       </View>

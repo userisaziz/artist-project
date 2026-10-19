@@ -7,7 +7,7 @@ const TABS: { name: string; title: string; icon: TabIconName }[] = [
   { name: 'home', title: 'Home', icon: 'home' },
   { name: 'explore', title: 'Explore', icon: 'explore' },
   { name: 'feed', title: 'Feed', icon: 'feed' },
-  { name: 'bookings', title: 'Bookings', icon: 'bookings' },
+  { name: 'shop', title: 'Shop', icon: 'shop' },
   { name: 'profile', title: 'Profile', icon: 'profile' },
 ];
 
@@ -32,6 +32,8 @@ export default function CustomerTabs() {
           options={{ title: t.title, tabBarAccessibilityLabel: `${t.title} tab`, tabBarIcon: ({ color }) => <TabIcon name={t.icon} color={color} /> }}
         />
       ))}
+      {/* Bookings live under Profile → My bookings, as in the design; the route stays, off the tab bar. */}
+      <Tabs.Screen name="bookings" options={{ href: null }} />
     </Tabs>
   );
 }

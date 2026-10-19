@@ -1,7 +1,7 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { ColorValue } from 'react-native';
 
-export type TabIconName = 'home' | 'explore' | 'bookings' | 'profile' | 'calendar' | 'messages' | 'feed';
+export type TabIconName = 'home' | 'explore' | 'bookings' | 'profile' | 'calendar' | 'messages' | 'feed' | 'shop';
 
 /** Atelier tab bar glyphs (24px line icons from the prototype). */
 export function TabIcon({ name, color }: { name: TabIconName; color: ColorValue }) {
@@ -15,6 +15,8 @@ export function TabIcon({ name, color }: { name: TabIconName; color: ColorValue 
       return <Svg {...common}><Path d="M9 11l3 3 8-8" /><Path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></Svg>;
     case 'calendar':
       return <Svg {...common}><Rect x={3} y={5} width={18} height={16} rx={3} /><Path d="M3 10h18M8 3v4M16 3v4" /></Svg>;
+    case 'shop':
+      return <Svg {...common}><Path d="M5 8h14l-1.2 12H6.2z" /><Path d="M9 8V6.5a3 3 0 0 1 6 0V8" /></Svg>;
     case 'feed':
       return <Svg {...common}><Rect x={3} y={3} width={18} height={18} rx={5} /><Path d="M10 8.5v7l6-3.5z" /></Svg>;
     case 'messages':
