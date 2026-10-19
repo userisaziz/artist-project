@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
+import { Icon } from '../common/Icon';
 
 /** Design "Common questions" row: the question, opening to its answer. */
 export function FaqItem({ question, answer }: { question: string; answer: string }) {
@@ -16,7 +17,7 @@ export function FaqItem({ question, answer }: { question: string; answer: string
         style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12 }}
       >
         <AppText variant="label" style={{ flex: 1, color: theme.colors.textPrimary }}>{question}</AppText>
-        <AppText style={{ color: theme.colors.brand, fontSize: 18 }}>{open ? '−' : '+'}</AppText>
+        <Icon name={open ? 'minus' : 'plus'} size={18} color={theme.colors.brand} />
       </Pressable>
       {open ? <AppText variant="body" style={{ paddingBottom: 14, color: theme.colors.textSecondary }}>{answer}</AppText> : null}
     </View>

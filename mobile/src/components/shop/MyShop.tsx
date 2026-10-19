@@ -12,6 +12,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useMyProducts, useShopOrders, useShopSummary, useUpdateProduct } from '../../hooks/shop/shop';
 import { formatPrice } from '../../utils/common/format';
+import { Icon } from '../common/Icon';
 
 const THUMB = 56;
 const LOW_STOCK = 5;
@@ -45,8 +46,9 @@ export function MyShop({ onAddProduct, onOpenSettings }: { onAddProduct: () => v
         </View>
       </View>
       {summary?.to_pack ? (
-        <Pressable accessibilityRole="button" onPress={() => setTab('orders')} style={{ marginTop: 10, borderRadius: theme.radii.md, backgroundColor: theme.colors.pendingSoft, padding: 12 }}>
-          <AppText variant="label" style={{ color: theme.colors.pendingInk }}>{`${summary.to_pack} order${summary.to_pack === 1 ? '' : 's'} to pack ›`}</AppText>
+        <Pressable accessibilityRole="button" onPress={() => setTab('orders')} style={{ marginTop: 10, borderRadius: theme.radii.md, backgroundColor: theme.colors.pendingSoft, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <AppText variant="label" style={{ color: theme.colors.pendingInk }}>{`${summary.to_pack} order${summary.to_pack === 1 ? '' : 's'} to pack`}</AppText>
+          <Icon name="chevron-right" size={18} color={theme.colors.pendingInk} />
         </Pressable>
       ) : null}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>

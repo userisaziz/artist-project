@@ -5,8 +5,9 @@ import { errorMessage } from '../../core/api/error-message';
 import { useToggleLike } from '../../hooks/feed/feed';
 import { compactCount } from '../../utils/feed/article';
 import type { Post } from '../../types/feed/feed';
+import { Icon } from '../common/Icon';
 
-/** ♥ and the like count; tapping toggles the reader's like. */
+/** A heart and the like count; tapping toggles the reader's like. */
 export function LikeButton({ post }: { post: Post }) {
   const theme = useTheme();
   const like = useToggleLike();
@@ -21,7 +22,7 @@ export function LikeButton({ post }: { post: Post }) {
       onPress={() => like.mutate(post, { onError: (e) => Alert.alert('Couldn’t update', errorMessage(e)) })}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
     >
-      <AppText style={{ fontSize: 20, color: post.liked ? theme.colors.brand : theme.colors.textSecondary }}>{post.liked ? '♥' : '♡'}</AppText>
+      <Icon name="heart" size={20} color={post.liked ? theme.colors.brand : theme.colors.textSecondary} filled={post.liked} />
       <AppText variant="label" style={{ fontSize: 13, color: theme.colors.textPrimary }}>{compactCount(post.like_count)}</AppText>
     </Pressable>
   );

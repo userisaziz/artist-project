@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { fieldBorder } from '../common/FieldHalo';
 import { useTheme } from '../../core/theme/theme-provider';
+import { Icon } from '../common/Icon';
 
 /** Field-styled button that opens a bottom-sheet list of the supported cities. */
 export function CityField({ value, cities, onChange }: { value: string | null; cities: string[]; onChange: (city: string) => void }) {
@@ -35,7 +36,7 @@ export function CityField({ value, cities, onChange }: { value: string | null; c
               style={{ paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between' }}
             >
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{city}</AppText>
-              {city === value ? <AppText style={{ color: theme.colors.brand }}>✓</AppText> : null}
+              {city === value ? <Icon name="check" size={18} color={theme.colors.brand} /> : null}
             </Pressable>
           ))}
         </View>

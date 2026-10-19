@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import type { StarRating } from '../../types/reviews/reviews';
+import { Icon } from '../common/Icon';
 
 const VALUES: StarRating[] = [1, 2, 3, 4, 5];
 const STAR_SIZE = 34;
@@ -30,7 +31,7 @@ export function StarPicker({ value, onChange, disabled = false }: StarPickerProp
             onPress={() => onChange(n)}
             style={{ width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' }}
           >
-            <AppText style={{ fontSize: STAR_SIZE, lineHeight: STAR_SIZE + 6, color: lit ? theme.colors.brand : theme.colors.border }}>★</AppText>
+            <Icon name="star" size={STAR_SIZE} color={lit ? theme.colors.brand : theme.colors.border} filled={lit} />
           </Pressable>
         );
       })}

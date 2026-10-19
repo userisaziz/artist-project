@@ -9,6 +9,7 @@ import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRang
 import { useNow } from '../../../src/hooks/common/use-now';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 import type { Booking } from '../../../src/types/bookings/bookings';
+import { Icon } from '../../../src/components/common/Icon';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const SHOWN: Booking['status'][] = ['requested', 'confirmed', 'completed']; // ended-without-service bookings hold no time
@@ -43,10 +44,10 @@ export default function ArtistCalendar() {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <AppText variant="subtitle" style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}>{formatMonth(visible.year, visible.month)}</AppText>
           <Pressable accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={8} onPress={() => move(-1)} style={{ paddingHorizontal: 10 }}>
-            <AppText style={{ fontSize: 20, color: theme.colors.brand }}>‹</AppText>
+            <Icon name="chevron-left" size={22} color={theme.colors.brand} />
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Next month" hitSlop={8} onPress={() => move(1)} style={{ paddingHorizontal: 10 }}>
-            <AppText style={{ fontSize: 20, color: theme.colors.brand }}>›</AppText>
+            <Icon name="chevron-right" size={22} color={theme.colors.brand} />
           </Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>

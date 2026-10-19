@@ -10,6 +10,7 @@ import { useCategories } from '../../../src/hooks/artist-onboarding/artist-onboa
 import { useArtistList } from '../../../src/hooks/directory/directory';
 import { useDebounced } from '../../../src/hooks/common/use-debounced';
 import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
+import { Icon } from '../../../src/components/common/Icon';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -44,7 +45,7 @@ export default function Explore() {
       <View style={{ paddingHorizontal: theme.spacing.md }}>
         <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Explore</AppText>
         <View style={{ marginTop: 12, height: 48, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
-          <AppText style={{ color: theme.colors.brand, fontSize: 18 }}>⌕</AppText>
+          <Icon name="search" size={18} color={theme.colors.brand} />
           <TextInput
             accessibilityLabel="Search artists"
             placeholder="Search artists or services"

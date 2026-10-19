@@ -73,7 +73,7 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
             hitSlop={8}
             style={{ height: 32, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: theme.colors.brandSoft }}
           >
-            <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}>★ Review</AppText>
+            <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}>Rate it</AppText>
           </Pressable>
         ) : null}
       </View>

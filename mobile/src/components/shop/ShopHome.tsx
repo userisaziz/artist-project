@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../common/AppText';
+import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
@@ -12,6 +12,7 @@ import { useDebouncedValue } from '../../hooks/common/use-debounced-value';
 import { useProducts } from '../../hooks/shop/shop';
 import { cartCount } from '../../utils/shop/cart';
 import type { ShopCategory } from '../../types/shop/shop';
+import { Icon } from '../common/Icon';
 
 const CATEGORIES: { key: ShopCategory | null; label: string }[] = [
   { key: null, label: 'All' },
@@ -36,7 +37,10 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.spacing.md }}>
-        <AppText variant="display" style={{ flex: 1, fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Shop <Accent>✦</Accent></AppText>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Shop</AppText>
+          <Icon name="sparkles" size={20} color={theme.colors.brand} />
+        </View>
         <Pressable accessibilityRole="button" accessibilityLabel={inCart ? `Cart, ${inCart} items` : 'Cart, empty'} onPress={onOpenCart} hitSlop={8} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator }}>
           <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{`Cart${inCart ? ` · ${inCart}` : ''}`}</AppText>
         </Pressable>

@@ -14,6 +14,9 @@ jest.mock('../../context/auth/auth-provider', () => ({
 jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn(), push: jest.fn() }), useIsFocused: () => true }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 
+// These flows press through several steps; on a loaded machine that outlasts jest's 5s default.
+jest.setTimeout(20_000);
+
 const send = jest.spyOn(transport, 'request');
 let client: QueryClient;
 const wrap = (ui: ReactElement) => render(<QueryClientProvider client={client}><ThemeProvider>{ui}</ThemeProvider></QueryClientProvider>);

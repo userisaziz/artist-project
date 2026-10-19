@@ -6,6 +6,7 @@ import { errorMessage } from '../../core/api/error-message';
 import { useToggleFollow } from '../../hooks/feed/feed';
 import { shortAgo } from '../../utils/common/time';
 import type { Post } from '../../types/feed/feed';
+import { Icon } from '../common/Icon';
 
 interface PostAuthorProps {
   post: Post;
@@ -28,9 +29,10 @@ export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
       <Pressable accessibilityRole="button" accessibilityLabel={`Open ${artist.business_name}`} onPress={() => onOpenArtist(artist.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
         <Avatar uri={artist.photo_url} name={artist.business_name} size={40} />
         <View style={{ flex: 1 }}>
-          <AppText variant="subtitle" numberOfLines={1} style={{ fontSize: 14.5, color: theme.colors.textPrimary }}>
-            {artist.business_name} <AppText style={{ color: theme.colors.brand, fontSize: 13 }}>✓</AppText>
-          </AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <AppText variant="subtitle" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14.5, color: theme.colors.textPrimary }}>{artist.business_name}</AppText>
+            <Icon name="verified" size={14} color={theme.colors.brand} label="Verified artist" />
+          </View>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${artist.city} · ${shortAgo(post.created_at, now)}`}</AppText>
         </View>
       </Pressable>

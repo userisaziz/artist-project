@@ -11,6 +11,7 @@ import { errorMessage } from '../../core/api/error-message';
 import { pickImages, uploadImage, type PickedImage } from '../../api/artist-onboarding/upload';
 import { useCreatePost } from '../../hooks/feed/feed';
 import type { PhotoInput, PostKind, PostTopic } from '../../types/feed/feed';
+import { Icon } from '../common/Icon';
 
 const MAX_PHOTOS = 10;
 const TITLE_MAX = 140;
@@ -135,7 +136,7 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
               onPress={() => (article ? setCover(null) : setPhotos((all) => all.filter((_, j) => j !== i)))}
             >
               <Photo uri={p.uri} style={{ width: article ? TILE * 2 : TILE, height: TILE, borderRadius: theme.radii.md }} />
-              <AppText style={{ position: 'absolute', top: 4, right: 8, color: theme.colors.textOnBrand }}>✕</AppText>
+              <View style={{ position: 'absolute', top: 4, right: 4 }}><Icon name="close" size={16} color={theme.colors.textOnBrand} /></View>
             </Pressable>
           ))}
           {(article ? !cover : photos.length < MAX_PHOTOS) ? (
@@ -164,8 +165,8 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
         />
         {article ? (
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Chip label="H  Heading" selected={false} onPress={() => insert('## ')} />
-            <Chip label="❝  Quote" selected={false} onPress={() => insert('> ')} />
+            <Chip label="Heading" selected={false} onPress={() => insert('## ')} />
+            <Chip label="Quote" selected={false} onPress={() => insert('> ')} />
           </View>
         ) : null}
 

@@ -122,7 +122,7 @@ export default function PortfolioStep() {
       ) : (
         <View style={{ marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: theme.colors.washTop }}>
           <AppText variant="caption" style={{ color: theme.colors.textSecondary, lineHeight: 19 }}>
-            <AppText variant="caption" style={{ color: theme.colors.brand, fontFamily: theme.typography.label.fontFamily }}>✦ Tip: </AppText>
+            <AppText variant="caption" style={{ color: theme.colors.brand, fontFamily: theme.typography.label.fontFamily }}>Tip: </AppText>
             Daylight photos of finished work get more bookings than studio shots. Long-press a photo to make it your cover or remove it.
           </AppText>
         </View>

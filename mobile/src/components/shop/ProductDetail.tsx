@@ -12,6 +12,7 @@ import { useCart } from '../../context/shop/cart-context';
 import { useProduct } from '../../hooks/shop/shop';
 import { METHOD_LABEL } from '../../utils/shop/cart';
 import { formatPrice } from '../../utils/common/format';
+import { Icon } from '../common/Icon';
 
 const LOW_STOCK = 5;
 
@@ -45,7 +46,8 @@ export function ProductDetail({ productId, onOpenCart, onCheckout }: { productId
         <View style={{ padding: theme.spacing.md, gap: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Avatar uri={p.seller.photo_url} name={p.seller.business_name} size={28} />
-            <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{`${p.seller.business_name} ✓`}</AppText>
+            <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{p.seller.business_name}</AppText>
+            <Icon name="verified" size={16} color={theme.colors.brand} label="Verified artist" />
           </View>
           <AppText variant="display" style={{ fontSize: 26, lineHeight: 30, color: theme.colors.heading }}>{p.name}</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${p.category_label} · ${p.sold} sold · ships from ${p.seller.city}`}</AppText>

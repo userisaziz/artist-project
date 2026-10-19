@@ -38,7 +38,7 @@ afterEach(() => client.clear());
 afterAll(() => send.mockRestore());
 
 it('a customer reads the thread, it is marked read, and a sent message appears', async () => {
-  const theirs = messageFixture({ id: 'm1', sender: 'artist', text: 'Of course 💗 Here’s a quote.' });
+  const theirs = messageFixture({ id: 'm1', sender: 'artist', text: 'Of course. Here’s a quote.' });
   const mine = messageFixture({ id: 'm2', sender: 'customer', text: 'Can we do Saturday?', created_at: '2026-10-09T09:00:00Z' });
   const conversation = conversationFixture({ counterpart: { id: 'a1', name: 'Ayesha Mehendi Art', photo_url: null } });
   const stored = [theirs]; // the server's thread, newest first
@@ -51,7 +51,7 @@ it('a customer reads the thread, it is marked read, and a sent message appears',
   });
   await wrap(<ChatThread side="customer" conversationId="c1" />);
 
-  expect(await screen.findByText('Of course 💗 Here’s a quote.')).toBeTruthy();
+  expect(await screen.findByText('Of course. Here’s a quote.')).toBeTruthy();
   expect(await screen.findByText('Ayesha Mehendi Art')).toBeTruthy();
   await waitFor(() => expect(send.mock.calls.some(([r]) => r.path === '/conversations/c1/read')).toBe(true));
 

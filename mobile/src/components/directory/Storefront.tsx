@@ -15,6 +15,7 @@ import { useArtistPublic } from '../../hooks/directory/directory';
 import { StorefrontReviews } from '../reviews/StorefrontReviews';
 import { formatAverage, ratingLong, reviewCountLabel } from '../../utils/reviews/format';
 import type { PublicService } from '../../types/directory/directory';
+import { Icon } from '../common/Icon';
 
 interface StorefrontProps {
   artistId: string;
@@ -73,14 +74,17 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
             <Avatar uri={artist.photo_url} name={artist.business_name} size={AVATAR} />
           </View>
           <View style={{ marginTop: 10, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radii.pill, backgroundColor: theme.colors.confirmedSoft }}>
-            <AppText variant="label" style={{ fontSize: 11.5, color: theme.colors.confirmedInk }}>✓ Verified artist</AppText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Icon name="verified" size={14} color={theme.colors.confirmedInk} />
+              <AppText variant="label" style={{ fontSize: 11.5, color: theme.colors.confirmedInk }}>Verified artist</AppText>
+            </View>
           </View>
           <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading, marginTop: 8 }}>{artist.business_name}</AppText>
           <AppText variant="body" style={{ color: theme.colors.textMuted }}>{categoryLine(artist)}</AppText>
 
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
             <Stat
-              value={artist.rating === null || !artist.review_count ? 'New' : `★ ${formatAverage(artist.rating)}`}
+              value={artist.rating === null || !artist.review_count ? 'New' : formatAverage(artist.rating)}
               label={reviewCountLabel(artist.review_count)}
               accessibilityLabel={ratingLong(artist.rating, artist.review_count)}
             />
@@ -179,7 +183,7 @@ function PackageCard({ service, selected, bookable, onSelect }: PackageCardProps
             onPress={onSelect}
             style={{ height: 34, paddingHorizontal: 16, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: selected ? theme.colors.brand : theme.colors.brandSoft }}
           >
-            <AppText variant="label" style={{ fontSize: 13, color: selected ? theme.colors.textOnBrand : theme.colors.brand }}>{selected ? '✓ Selected' : 'Select'}</AppText>
+            <AppText variant="label" style={{ fontSize: 13, color: selected ? theme.colors.textOnBrand : theme.colors.brand }}>{selected ? 'Selected' : 'Select'}</AppText>
           </Pressable>
         ) : null}
       </View>

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
 import { useTheme } from '../../core/theme/theme-provider';
+import { Icon } from './Icon';
 
 const AUTH_STEPS = 3; // Log in → Verify → Your details (artist onboarding passes its own count)
 
@@ -29,7 +30,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
                 onPress={onBack}
                 style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
               >
-                <AppText style={{ fontSize: 20, lineHeight: 24, color: theme.colors.textPrimary }}>‹</AppText>
+                <Icon name="chevron-left" size={22} />
               </Pressable>
             ) : null}
             {step ? (

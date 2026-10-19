@@ -13,20 +13,19 @@ export function reviewCountLabel(count: number): string {
   return `${count} ${count === 1 ? 'review' : 'reviews'}`;
 }
 
-/** Artist cards: "★ 4.9 (128)", or "New" when there are no public reviews. */
+/** Artist cards: "4.9 (128)" (shown beside a star icon), or "New" when there are no public reviews. */
 export function ratingShort(rating: number | null, count: number): string {
-  return rating === null || !count ? 'New' : `★ ${formatAverage(rating)} (${count})`;
+  return rating === null || !count ? 'New' : `${formatAverage(rating)} (${count})`;
 }
 
-/** Storefront stats: "★ 4.9 · 128 reviews", or "New". */
+/** Storefront rating, read aloud: "Rated 4.9 out of 5, 128 reviews", or "New". */
 export function ratingLong(rating: number | null, count: number): string {
-  return rating === null || !count ? 'New' : `★ ${formatAverage(rating)} · ${reviewCountLabel(count)}`;
+  return rating === null || !count ? 'New' : `Rated ${formatAverage(rating)} out of ${MAX_STARS}, ${reviewCountLabel(count)}`;
 }
 
-/** "★★★★☆", rounded to the nearest whole star. */
-export function starString(rating: number): string {
-  const full = Math.min(MAX_STARS, Math.max(0, Math.round(rating)));
-  return '★'.repeat(full) + '☆'.repeat(MAX_STARS - full);
+/** How many of the five stars are filled, rounded to the nearest whole star. */
+export function filledStars(rating: number): number {
+  return Math.min(MAX_STARS, Math.max(0, Math.round(rating)));
 }
 
 /** "Bridal Classic · Sep 2026" */

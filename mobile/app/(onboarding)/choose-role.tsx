@@ -10,6 +10,7 @@ import { AppText, Accent } from '../../src/components/common/AppText';
 import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/context/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
+import { Icon } from '../../src/components/common/Icon';
 
 const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // design's role-client.jpg
 const ARTIST_PHOTO = require('../../assets/hero/role-artist.webp');     // design's role-creator.jpg
@@ -54,7 +55,7 @@ export default function ChooseRoleScreen() {
           onPress={back}
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
         >
-          <AppText style={{ fontSize: 20, lineHeight: 24, color: theme.colors.textPrimary }}>‹</AppText>
+          <Icon name="chevron-left" size={22} />
         </Pressable>
       </View>
       <View style={{ paddingTop: 22, paddingHorizontal: theme.spacing.xs }}>

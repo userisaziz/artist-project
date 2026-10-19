@@ -15,6 +15,7 @@ import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/hooks/reviews/reviews';
 import { formatAverage } from '../../../src/utils/reviews/format';
 import type { ReviewSummary } from '../../../src/types/reviews/reviews';
+import { Icon } from '../../../src/components/common/Icon';
 
 const COVER_HEIGHT = 170;
 
@@ -25,7 +26,7 @@ function reviewsDetail(summary: ReviewSummary | undefined): string {
 }
 const AVATAR = 84;
 
-// Spec §3 Me: avatar, business name and "✓ Verified", the public storefront, Reviews and My services (Increment 6),
+// Spec §3 Me: avatar, business name and "Verified", the public storefront, Reviews and My services (Increment 6),
 // the customer side, Log out.
 export default function ArtistMe() {
   const theme = useTheme();
@@ -62,7 +63,10 @@ export default function ArtistMe() {
         </View>
         <AppText variant="display" style={{ fontSize: 26, lineHeight: 30, color: theme.colors.heading, marginTop: 8 }}>{name}</AppText>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-          <AppText variant="label" style={{ color: theme.colors.confirmedInk }}>✓ Verified</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Icon name="verified" size={16} color={theme.colors.confirmedInk} />
+            <AppText variant="label" style={{ color: theme.colors.confirmedInk }}>Verified</AppText>
+          </View>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{profile?.city ?? ''}</AppText>
         </View>
         <View style={{ marginTop: 16 }}>
@@ -87,7 +91,7 @@ export default function ArtistMe() {
             <AppText variant="subtitle" style={{ fontSize: 14.5, color: theme.colors.textPrimary }}>Switch to customer</AppText>
             <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Book other artists with the same account</AppText>
           </View>
-          <AppText style={{ color: theme.colors.brand, fontSize: 18 }}>⇄</AppText>
+          <Icon name="arrow-left-right" size={20} color={theme.colors.brand} />
         </Pressable>
         {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: 8 }}>{error}</AppText> : null}
 

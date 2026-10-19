@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FlatList, ScrollView, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Accent } from '../common/AppText';
+import { AppText } from '../common/AppText';
 import { Chip } from '../common/Chip';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
 import { ArticleCard } from './ArticleCard';
@@ -12,6 +12,7 @@ import { useFeed } from '../../hooks/feed/feed';
 import { useNow } from '../../hooks/common/use-now';
 import type { FeedTab } from '../../types/feed/feed';
 import type { FeedNavigation } from './navigation';
+import { Icon } from '../common/Icon';
 
 const TABS: { key: FeedTab; label: string; empty: string }[] = [
   { key: 'for_you', label: 'For you', empty: 'Nothing here yet. Artists’ looks and guides will show up here.' },
@@ -33,7 +34,10 @@ export function FeedList({ nav }: { nav: FeedNavigation }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ paddingHorizontal: theme.spacing.md }}>
-        <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Feed <Accent>✦</Accent></AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Feed</AppText>
+          <Icon name="sparkles" size={20} color={theme.colors.brand} />
+        </View>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: theme.spacing.md, paddingVertical: 12 }} style={{ flexGrow: 0 }}>
         {TABS.map((t) => <Chip key={t.key} label={t.label} selected={t.key === tab} onPress={() => setTab(t.key)} />)}

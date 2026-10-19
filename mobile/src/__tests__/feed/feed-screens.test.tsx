@@ -98,7 +98,7 @@ it('an artist publishes an article with a cover and a linked service', async () 
   await fireEvent.press(screen.getByRole('button', { name: 'Add a cover photo' }));
   await fireEvent.changeText(screen.getByLabelText('Title'), 'Darkest stain');
   await fireEvent.changeText(screen.getByLabelText('Article'), 'Book it early.');
-  await fireEvent.press(screen.getByText('❝  Quote'));
+  await fireEvent.press(screen.getByText('Quote'));
   await fireEvent.press(screen.getByText('Bridal Classic'));
   await fireEvent.press(screen.getByRole('button', { name: 'Post' }));
 

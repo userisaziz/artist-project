@@ -7,7 +7,7 @@ export function postFixture(overrides: Partial<Post> = {}): Post {
     kind: 'photos',
     topic: 'look',
     title: null,
-    text: 'Priya’s bridal set: hidden initials and a peacock on the palm 💗',
+    text: 'Priya’s bridal set: hidden initials and a peacock on the palm',
     excerpt: null,
     body: null,
     read_minutes: null,

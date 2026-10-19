@@ -8,6 +8,7 @@ import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/context/auth/auth-provider';
 import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
 import { useArtistFlow } from '../../src/context/artist-onboarding/flow-context';
+import { Icon } from '../../src/components/common/Icon';
 
 // Atelier hi-fi "onbDone": the review timeline. A rejection shows the admin's reason and "Edit and resubmit" instead.
 export default function InReviewScreen() {
@@ -81,7 +82,7 @@ function Milestone({ state, title, detail }: { state: 'done' | 'current' | 'next
           borderColor: state === 'current' ? theme.colors.accent : theme.colors.border,
         }}
       >
-        {state === 'done' ? <AppText style={{ fontSize: 13, color: theme.colors.textOnBrand }}>✓</AppText> : null}
+        {state === 'done' ? <Icon name="check" size={13} color={theme.colors.textOnBrand} /> : null}
         {state === 'current' ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.accent }} /> : null}
       </View>
       <View>

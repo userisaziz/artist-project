@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText } from './AppText';
 import { useTheme } from '../../core/theme/theme-provider';
+import { Icon } from './Icon';
 
 interface BackHeaderProps {
   title?: string;
@@ -23,7 +24,7 @@ export function BackHeader({ title, step, onBack }: BackHeaderProps) {
         hitSlop={8}
         style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
       >
-        <AppText style={{ fontSize: 20, lineHeight: 24, color: theme.colors.textPrimary }}>‹</AppText>
+        <Icon name="chevron-left" size={22} />
       </Pressable>
       <AppText variant="title" style={{ flex: 1, color: theme.colors.heading }}>{title ?? ''}</AppText>
       {step ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{step}</AppText> : null}

@@ -1,5 +1,6 @@
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppText } from './AppText';
+import { Icon } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 
 interface MenuRowProps {
@@ -20,7 +21,10 @@ export function MenuRow({ label, onPress, detail }: MenuRowProps) {
       style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14 }}
     >
       <AppText variant="body" style={{ color: theme.colors.textPrimary, fontFamily: theme.typography.label.fontFamily }}>{label}</AppText>
-      <AppText style={{ color: theme.colors.textMuted }}>{detail ? `${detail} ›` : '›'}</AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {detail ? <AppText style={{ color: theme.colors.textMuted }}>{detail}</AppText> : null}
+        <Icon name="chevron-right" size={18} color={theme.colors.textMuted} />
+      </View>
     </Pressable>
   );
 }

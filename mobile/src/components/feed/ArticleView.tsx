@@ -16,6 +16,7 @@ import { usePost } from '../../hooks/feed/feed';
 import { useNow } from '../../hooks/common/use-now';
 import { articleBlocks, topicLabel } from '../../utils/feed/article';
 import type { FeedNavigation } from './navigation';
+import { Icon } from '../common/Icon';
 
 const HERO_HEIGHT = 260;
 
@@ -41,7 +42,7 @@ export function ArticleView({ postId, nav }: { postId: string; nav: FeedNavigati
   const { artist, service } = p;
   const firstName = artist.business_name.split(' ')[0];
   const book = () => (service ? nav.book(artist.id, service.id) : nav.openArtist(artist.id));
-  const rating = artist.rating_average ? `★ ${artist.rating_average} (${artist.rating_count}) · ${artist.city}` : artist.city;
+  const rating = artist.rating_average ? `Rated ${artist.rating_average} (${artist.rating_count}) · ${artist.city}` : artist.city;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -68,7 +69,7 @@ export function ArticleView({ postId, nav }: { postId: string; nav: FeedNavigati
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{artist.business_name}</AppText>
               <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{rating}</AppText>
             </View>
-            <AppText style={{ color: theme.colors.textMuted, fontSize: 18 }}>›</AppText>
+            <Icon name="chevron-right" size={20} color={theme.colors.textMuted} />
           </Pressable>
         </View>
       </ScrollView>

@@ -11,6 +11,7 @@ import { formatDuration, formatPrice } from '../../../src/utils/common/format';
 import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 import type { CatalogCategory } from '../../../src/types/catalog/catalog';
+import { Icon } from '../../../src/components/common/Icon';
 
 // Step 2 of 4 (not drawn in the design; follows the Profile step): the artist's service menu.
 export default function ServicesStep() {
@@ -56,7 +57,7 @@ export default function ServicesStep() {
               </AppText>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${s.name}`} onPress={() => { void remove(s.id); }} hitSlop={8}>
-              <AppText style={{ fontSize: 18, color: theme.colors.textMuted }}>✕</AppText>
+              <Icon name="close" size={18} color={theme.colors.textMuted} />
             </Pressable>
           </View>
         ))}

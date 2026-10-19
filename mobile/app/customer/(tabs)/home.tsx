@@ -11,6 +11,7 @@ import { useArtistList } from '../../../src/hooks/directory/directory';
 import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
 import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
+import { Icon } from '../../../src/components/common/Icon';
 
 const HERO_SLIDES = [
   { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: 'https://picsum.photos/seed/atelier-hero-bridal/900/600' },
@@ -63,7 +64,7 @@ export default function CustomerHome() {
           onPress={() => router.navigate('/customer/explore')}
           style={{ marginTop: 16, height: 48, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 }}
         >
-          <AppText style={{ color: theme.colors.brand, fontSize: 18 }}>⌕</AppText>
+          <Icon name="search" size={18} color={theme.colors.brand} />
           <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists or services</AppText>
         </Pressable>
 
