@@ -1,0 +1,103 @@
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import type { Page } from '../../core/api/types';
+import * as feedApi from '../../api/feed/feed';
+import { useAuth } from '../../context/auth/auth-provider';
+import { patchPosts } from '../../utils/feed/article';
+import type { FeedTab, Post, PostInput } from '../../types/feed/feed';
+
+// Keyed by user id, so another account on the device never sees cached likes and follows.
+export const feedKeys = {
+  all: ['feed'] as const,
+  lists: (userId: string | undefined) => ['feed', userId, 'list'] as const,
+  list: (userId: string | undefined, tab: FeedTab) => ['feed', userId, 'list', tab] as const,
+  post: (userId: string | undefined, id: string) => ['feed', userId, 'post', id] as const,
+  mine: (userId: string | undefined) => ['feed', userId, 'mine'] as const,
+};
+
+export function useFeed(tab: FeedTab) {
+  const { user } = useAuth();
+  return useInfiniteQuery({
+    queryKey: feedKeys.list(user?.id, tab),
+    queryFn: ({ pageParam }) => feedApi.getFeed(tab, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
+    enabled: !!user,
+  });
+}
+
+export function usePost(id: string) {
+  const { user } = useAuth();
+  return useQuery({ queryKey: feedKeys.post(user?.id, id), queryFn: () => feedApi.getPost(id), enabled: !!user && !!id });
+}
+
+/** Applies `patch` to matching posts in every cached feed list and open post. */
+function usePatchPosts() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  return (match: (p: Post) => boolean, patch: Partial<Post>) => {
+    const patchPages = (data: InfiniteData<Page<Post>> | undefined) => patchPosts(data, match, patch);
+    client.setQueriesData({ queryKey: feedKeys.lists(user?.id) }, patchPages);
+    client.setQueriesData({ queryKey: feedKeys.mine(user?.id) }, patchPages);
+    client.setQueriesData({ queryKey: ['feed', user?.id, 'post'] }, (post: Post | undefined) => (post && match(post) ? { ...post, ...patch } : post));
+  };
+}
+
+/** Likes or unlikes `post` (whichever it isn't), then shows the server's count everywhere it's cached. */
+export function useToggleLike() {
+  const patch = usePatchPosts();
+  return useMutation({
+    mutationFn: (post: Post) => feedApi.setLike(post.id, !post.liked),
+    onSuccess: (result, post) => patch((p) => p.id === post.id, { liked: result.liked, like_count: result.like_count }),
+  });
+}
+
+export function useToggleFollow() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  const patch = usePatchPosts();
+  return useMutation({
+    mutationFn: ({ artistId, following }: { artistId: string; following: boolean }) => feedApi.setFollow(artistId, following),
+    onSuccess: (result, { artistId }) => {
+      patch((p) => p.artist.id === artistId, { following: result.following });
+      void client.invalidateQueries({ queryKey: feedKeys.list(user?.id, 'following') }); // in the background
+    },
+  });
+}
+
+export function useMyPosts() {
+  const { user } = useAuth();
+  return useInfiniteQuery({
+    queryKey: feedKeys.mine(user?.id),
+    queryFn: ({ pageParam }) => feedApi.listMyPosts(pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
+    enabled: !!user,
+  });
+}
+
+export function useCreatePost() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PostInput) => feedApi.createPost(input),
+    onSuccess: () => Promise.all([
+      client.invalidateQueries({ queryKey: feedKeys.mine(user?.id) }),
+      client.invalidateQueries({ queryKey: feedKeys.lists(user?.id) }),
+    ]),
+  });
+}
+
+export function useDeletePost() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => feedApi.deletePost(id),
+    onSuccess: (_, id) => {
+      client.removeQueries({ queryKey: feedKeys.post(user?.id, id) });
+      return Promise.all([
+        client.invalidateQueries({ queryKey: feedKeys.mine(user?.id) }),
+        client.invalidateQueries({ queryKey: feedKeys.lists(user?.id) }),
+      ]);
+    },
+  });
+}

@@ -6,6 +6,7 @@ import type { TabIconName } from '../../../src/components/common/TabIcon';
 const TABS: { name: string; title: string; icon: TabIconName }[] = [
   { name: 'home', title: 'Home', icon: 'home' },
   { name: 'explore', title: 'Explore', icon: 'explore' },
+  { name: 'feed', title: 'Feed', icon: 'feed' },
   { name: 'bookings', title: 'Bookings', icon: 'bookings' },
   { name: 'profile', title: 'Profile', icon: 'profile' },
 ];

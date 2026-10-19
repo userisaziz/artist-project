@@ -77,7 +77,7 @@ export interface KycInput {
   back_key: string;
 }
 
-export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar';
+export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post';
 
 /** POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API. */
 export interface UploadTicket {

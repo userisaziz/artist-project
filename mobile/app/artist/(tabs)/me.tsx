@@ -72,6 +72,7 @@ export default function ArtistMe() {
         <Card style={{ marginTop: 14, paddingVertical: 0 }}>
           <MenuRow label="Reviews" detail={reviewsDetail(reviews.data?.pages[0]?.summary)} onPress={() => router.push('/artist/reviews')} />
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
+          <MenuRow label="Posts & articles" detail="+ New post" onPress={() => router.push('/artist/posts')} />
           <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
         </Card>
 

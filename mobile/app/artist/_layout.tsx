@@ -47,6 +47,8 @@ export default function ArtistLayout() {
           <Stack.Screen name="reviews" />
           <Stack.Screen name="services" />
           <Stack.Screen name="chat/[id]" />
+          <Stack.Screen name="posts/index" />
+          <Stack.Screen name="posts/new" />
         </Stack.Protected>
       </Stack>
     </ArtistFlowContext.Provider>

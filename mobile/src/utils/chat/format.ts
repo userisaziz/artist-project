@@ -1,8 +1,5 @@
-import { addDays, formatDay, istDateKey } from '../common/time';
+import { addDays, formatDay, istDateKey, shortAgo } from '../common/time';
 import type { ChatBookingStatus, ChatMessage, ConversationBooking } from '../../types/chat/chat';
-
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
 
 const STAGE: Record<ChatBookingStatus, string> = {
   requested: 'Request',
@@ -15,15 +12,7 @@ const STAGE: Record<ChatBookingStatus, string> = {
 
 /** Inbox row time: 'now', '2m', '1h' within today (IST), then 'Yesterday', then 'Thu, 1 Oct'. */
 export function inboxTime(at: string, now: number): string {
-  const ago = Math.max(0, now - Date.parse(at)); // a clock-skewed future time reads as 'now'
-  const day = istDateKey(at);
-  const today = istDateKey(now);
-  if (day === today) {
-    if (ago < MINUTE_MS) return 'now';
-    if (ago < HOUR_MS) return `${Math.floor(ago / MINUTE_MS)}m`;
-    return `${Math.floor(ago / HOUR_MS)}h`;
-  }
-  return day === addDays(today, -1) ? 'Yesterday' : formatDay(day);
+  return shortAgo(at, now);
 }
 
 /** Thread separator for an IST day: 'Today', 'Yesterday' or 'Sat, 3 Oct'. */

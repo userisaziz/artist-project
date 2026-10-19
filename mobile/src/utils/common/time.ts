@@ -108,3 +108,19 @@ export function monthRange(year: number, month: number) {
   const next = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
   return { from, to: addDays(next, -1) };
 }
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+
+/** Short age of a past moment: 'now', '2m', '1h' within today (IST), then 'Yesterday', then 'Thu, 1 Oct'. */
+export function shortAgo(at: Instant, now: number): string {
+  const ago = Math.max(0, now - toMs(at)); // a clock-skewed future time reads as 'now'
+  const day = istDateKey(at);
+  const today = istDateKey(now);
+  if (day === today) {
+    if (ago < MINUTE_MS) return 'now';
+    if (ago < HOUR_MS) return `${Math.floor(ago / MINUTE_MS)}m`;
+    return `${Math.floor(ago / HOUR_MS)}h`;
+  }
+  return day === addDays(today, -1) ? 'Yesterday' : formatDay(day);
+}
