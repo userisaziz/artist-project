@@ -15,6 +15,9 @@ const MAX_NAME = 120; // backend CustomServiceIn
 const MAX_RUPEES = 1_000_000; // price_paise ≤ 100 000 000
 const MAX_MINUTES = 1440;
 const MAX_DESCRIPTION = 1000;
+const MAX_SUGGESTION = 100; // backend SuggestedSubcategoryIn.name
+/** The subcategory picker's "Suggest a new one" choice. */
+const SUGGEST = -1;
 
 interface CustomServiceSheetProps {
   /** The catalog tree (any active subcategory may hold a custom service). */
@@ -35,13 +38,15 @@ function categoryOf(categories: CatalogCategory[], subId: number | undefined): n
  */
 export function CustomServiceSheet({ categories, service, onClose, onSubmit }: CustomServiceSheetProps) {
   const theme = useTheme();
-  const withSubs = categories.filter((c) => c.subcategories.length);
+  // Adding can suggest a subcategory under any category; editing moves a service to an existing one only.
+  const withSubs = service ? categories.filter((c) => c.subcategories.length) : categories;
   const [categoryId, setCategoryId] = useState<number | null>(categoryOf(withSubs, service?.subcategory_id));
   const [subId, setSubId] = useState<number | null>(service && categoryOf(withSubs, service.subcategory_id) !== null ? service.subcategory_id : null);
   const [name, setName] = useState(service?.name ?? '');
   const [price, setPrice] = useState(service ? String(Math.round(service.price_paise / 100)) : '');
   const [minutes, setMinutes] = useState(service ? String(service.duration_minutes) : '');
   const [description, setDescription] = useState(service?.description ?? '');
+  const [suggestion, setSuggestion] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const category = withSubs.find((c) => c.id === categoryId) ?? null;
@@ -49,18 +54,20 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
   const pickCategory = (id: number) => {
     const next = withSubs.find((c) => c.id === id);
     setCategoryId(id);
-    setSubId(next?.subcategories.length === 1 ? next.subcategories[0].id : null);
+    setSubId(next?.subcategories.length === 1 ? next.subcategories[0].id : !service && next?.subcategories.length === 0 ? SUGGEST : null);
   };
 
   /** The input, or a message for the first problem. */
   const validate = (): CustomServiceInput | string => {
     const rupees = Number(price);
     const mins = Number(minutes);
-    if (subId === null) return 'Pick a category and a subcategory.';
+    if (subId === null || categoryId === null) return 'Pick a category and a subcategory.';
+    if (subId === SUGGEST && !suggestion.trim()) return 'Name the subcategory you’d like us to add.';
     if (!name.trim()) return 'Enter a name for the service.';
     if (!Number.isInteger(rupees) || rupees <= 0 || rupees > MAX_RUPEES) return 'Enter a price above ₹0.';
     if (!Number.isInteger(mins) || mins <= 0 || mins > MAX_MINUTES) return 'Enter a duration between 1 and 1440 minutes.';
-    return { subcategory_id: subId, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null };
+    const place = subId === SUGGEST ? { suggested_subcategory: { parent_id: categoryId, name: suggestion.trim() } } : { subcategory_id: subId };
+    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null };
   };
 
   const save = async () => {
@@ -93,6 +100,15 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
       {category ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {category.subcategories.map((s) => <Chip key={s.id} label={s.name} selected={subId === s.id} onPress={() => setSubId(s.id)} />)}
+          {!service ? <Chip label="+ Suggest a new one" selected={subId === SUGGEST} onPress={() => setSubId(SUGGEST)} /> : null}
+        </View>
+      ) : null}
+      {subId === SUGGEST ? (
+        <View style={{ gap: 6 }}>
+          <AppTextField label="New subcategory" value={suggestion} onChangeText={setSuggestion} maxLength={MAX_SUGGESTION} placeholder="e.g. Couple portrait" />
+          <AppText variant="caption" style={{ color: theme.colors.textSecondary, lineHeight: 19 }}>
+            Only you see it until we add it to the catalog. Your service waits for that check.
+          </AppText>
         </View>
       ) : null}
       <AppTextField label="Service name" value={name} onChangeText={setName} maxLength={MAX_NAME} placeholder="e.g. Glitter Arabic" />

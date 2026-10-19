@@ -17,6 +17,8 @@ export interface ServiceItem {
   description: string | null;
   status: ServiceStatus; // onboarding picks from the admin's list, so those are approved at once
   rejection_reason: string | null;
+  /** The artist's own subcategory suggestion this service was filed under (it sits under the parent meanwhile). */
+  suggested_subcategory?: { id: string; name: string; status: 'pending' | 'approved' | 'rejected' } | null;
 }
 
 /** Image URLs are built by the server from the storage key; the app never builds storage URLs. */

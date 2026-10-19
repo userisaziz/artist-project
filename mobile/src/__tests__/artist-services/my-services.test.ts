@@ -24,3 +24,9 @@ it('groups services in menu order', () => {
 it('labels custom services Live, In review or Not approved', () => {
   expect([CUSTOM_STATUS_PILL.approved.label, CUSTOM_STATUS_PILL.pending.label, CUSTOM_STATUS_PILL.rejected.label]).toEqual(['Live', 'In review', 'Not approved']);
 });
+
+it('groups a service waiting on its own suggestion under "Parent › Suggestion (suggested)"', () => {
+  const waiting: ServiceItem = { ...svc('d', 1), suggested_subcategory: { id: 'r1', name: 'Couple portrait', status: 'pending' } };
+  const decided: ServiceItem = { ...svc('e', 101), suggested_subcategory: { id: 'r2', name: 'Bridal', status: 'approved' } };
+  expect(groupMyServices(tree, [waiting, decided]).map(([title]) => title)).toEqual(['Mehendi › Couple portrait (suggested)', 'Mehendi › Bridal']);
+});

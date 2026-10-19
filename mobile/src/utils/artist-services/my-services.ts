@@ -12,11 +12,18 @@ export function groupTitle(tree: CatalogCategory[], subcategoryId: number): stri
   return 'Other';
 }
 
+/** "Mehendi › Couple portrait (suggested)" while the artist's own suggestion waits; it sits under the parent. */
+export function serviceGroupTitle(tree: CatalogCategory[], service: ServiceItem): string {
+  const suggestion = service.suggested_subcategory;
+  const title = groupTitle(tree, service.subcategory_id);
+  return suggestion?.status === 'pending' ? `${title} › ${suggestion.name} (suggested)` : title;
+}
+
 /** Services grouped by "Category › Subcategory", in menu order. */
 export function groupMyServices(tree: CatalogCategory[], services: ServiceItem[]): [string, ServiceItem[]][] {
   const groups = new Map<string, ServiceItem[]>();
   for (const s of services) {
-    const title = groupTitle(tree, s.subcategory_id);
+    const title = serviceGroupTitle(tree, s);
     groups.set(title, [...(groups.get(title) ?? []), s]);
   }
   return [...groups.entries()];
