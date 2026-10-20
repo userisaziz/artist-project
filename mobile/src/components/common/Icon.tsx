@@ -2,6 +2,7 @@ import { View, type ColorValue } from 'react-native';
 import {
   ArrowLeftRight,
   BadgeCheck,
+  Bell,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +20,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 // The app's icons (lucide), behind one design-system component so features never import the library.
 const ICONS = {
   'arrow-left-right': ArrowLeftRight,
+  bell: Bell,
   check: Check,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,

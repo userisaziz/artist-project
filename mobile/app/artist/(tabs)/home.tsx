@@ -8,6 +8,7 @@ import { useAuth } from '../../../src/context/auth/auth-provider';
 import { useArtistBookings, useArtistDashboard } from '../../../src/hooks/bookings/bookings';
 import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
+import { NotificationBell } from '../../../src/components/notifications/NotificationBell';
 import { formatPrice } from '../../../src/utils/common/format';
 import { useArtistBookingActions } from '../../../src/hooks/bookings/artist-booking-actions';
 import { RequestCard } from '../../../src/components/bookings/RequestCard';
@@ -33,11 +34,14 @@ export default function ArtistHome() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: 12 }}>
-      <View>
-        <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(istDateKey(now))}</AppText>
-        <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>
-          {`${greeting(now)}, `}<Accent>{user?.first_name || 'there'}</Accent>
-        </AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(istDateKey(now))}</AppText>
+          <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>
+            {`${greeting(now)}, `}<Accent>{user?.first_name || 'there'}</Accent>
+          </AppText>
+        </View>
+        <NotificationBell onPress={() => router.push('/artist/notifications')} />
       </View>
 
       <View style={{ borderRadius: theme.radii.card, backgroundColor: theme.colors.brand, padding: 18, ...theme.shadows.md }}>

@@ -11,6 +11,7 @@ import { useArtistList } from '../../../src/hooks/directory/directory';
 import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
 import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
+import { NotificationBell } from '../../../src/components/notifications/NotificationBell';
 import { Icon } from '../../../src/components/common/Icon';
 
 const HERO_SLIDES = [
@@ -36,11 +37,14 @@ export default function CustomerHome() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }}>
-      <View style={{ paddingHorizontal: theme.spacing.md }}>
-        <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(istDateKey(now))}</AppText>
-        <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>
-          {`${greeting(now)}, `}<Accent>{user?.first_name || 'there'}</Accent>
-        </AppText>
+      <View style={{ paddingHorizontal: theme.spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(istDateKey(now))}</AppText>
+          <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>
+            {`${greeting(now)}, `}<Accent>{user?.first_name || 'there'}</Accent>
+          </AppText>
+        </View>
+        <NotificationBell onPress={() => router.push('/customer/notifications')} />
       </View>
 
       <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }} snapToInterval={slideWidth + theme.spacing.md} decelerationRate="fast">
