@@ -30,7 +30,7 @@ async def reply_to_review(
     body: ReplyIn,
     user: User = Depends(current_artist),
     reviews: ReviewService = Depends(get_review_service),
-) -> OwnReviewOut:
+) -> dict:
     return await reviews.reply(user, review_id, body.text)
 
 
@@ -42,5 +42,5 @@ async def report_review(
     body: ReportIn,
     user: User = Depends(current_artist),
     reviews: ReviewService = Depends(get_review_service),
-) -> OwnReviewOut:
+) -> dict:
     return await reviews.report(user, review_id, body.reason)

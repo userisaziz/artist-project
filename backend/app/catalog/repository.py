@@ -64,11 +64,11 @@ class CategoryRepository:
             .group_by(Category.parent_id),
             select(ServiceTemplate.subcategory_id, func.count()).group_by(ServiceTemplate.subcategory_id),
         )
-        counts = []
+        counts: list[dict[int, int]] = []
         for query in queries:
             if category_id is not None:
                 query = query.where(query.selected_columns[0] == category_id)
-            counts.append(dict((await self.session.execute(query)).all()))
+            counts.append({key: n for key, n in (await self.session.execute(query)).all() if key is not None})
         return {cid: Usage(*(c.get(cid, 0) for c in counts)) for cid in set().union(*counts)}
 
     async def name_or_slug_taken(self, slug: str, name: str, parent_id: int | None, exclude_id: int | None) -> bool:
@@ -81,9 +81,11 @@ class CategoryRepository:
         return bool(await self.session.scalar(query.limit(1)))
 
     async def next_sort_order(self, parent_id: int | None) -> int:
-        return await self.session.scalar(
-            select(func.coalesce(func.max(Category.sort_order) + 1, 0)).where(siblings(parent_id))
-        )
+        return (
+            await self.session.execute(
+                select(func.coalesce(func.max(Category.sort_order) + 1, 0)).where(siblings(parent_id))
+            )
+        ).scalar_one()
 
     def add(self, category: Category) -> None:
         self.session.add(category)
@@ -126,7 +128,7 @@ class TemplateRepository:
         )
         if template_id is not None:
             query = query.where(ArtistServiceItem.template_id == template_id)
-        return dict((await self.session.execute(query)).all())
+        return {key: n for key, n in (await self.session.execute(query)).all() if key is not None}
 
     async def name_taken(self, subcategory_id: int, name: str, exclude_id: int | None) -> bool:
         query = select(ServiceTemplate.id).where(
@@ -137,11 +139,13 @@ class TemplateRepository:
         return bool(await self.session.scalar(query.limit(1)))
 
     async def next_sort_order(self, subcategory_id: int) -> int:
-        return await self.session.scalar(
-            select(func.coalesce(func.max(ServiceTemplate.sort_order) + 1, 0)).where(
-                ServiceTemplate.subcategory_id == subcategory_id
+        return (
+            await self.session.execute(
+                select(func.coalesce(func.max(ServiceTemplate.sort_order) + 1, 0)).where(
+                    ServiceTemplate.subcategory_id == subcategory_id
+                )
             )
-        )
+        ).scalar_one()
 
     def add(self, template: ServiceTemplate) -> None:
         self.session.add(template)

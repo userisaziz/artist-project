@@ -32,6 +32,8 @@ class AdminArtistService:
         if profile is None or profile.status == ArtistStatus.draft:  # drafts aren't the admin's business yet
             raise NotFoundError("Artist not found")
         owner = await self.users.get(profile.user_id)
+        if owner is None:  # the FK makes this impossible; fail loudly rather than return half a record
+            raise NotFoundError("Artist not found")
         return profile, owner
 
     async def _decide(

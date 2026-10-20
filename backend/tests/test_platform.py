@@ -177,3 +177,23 @@ async def test_writes_commit_before_the_response_is_sent(engine, override):
             event.remove(Session, "after_commit", on_commit)
     assert response.status_code == 200
     assert order[-1] == "response" and "commit" in order
+
+
+async def test_metrics_count_requests_by_route_template(client):
+    await client.get("/health/live")
+    await client.get("/api/v1/artists/00000000-0000-0000-0000-000000000000")
+    body = (await client.get("/metrics")).text
+    assert 'http_requests_total{method="GET",route="/health/live",status="200"}' in body
+    assert 'route="/artists/{artist_id}"' in body  # the template, never the raw id
+    assert "00000000-0000-0000-0000-000000000000" not in body
+
+
+async def test_metrics_need_the_scrape_token_when_one_is_configured(client, override):
+    from pydantic import SecretStr
+
+    from app.core.config import get_settings
+
+    override(get_settings, lambda: get_settings().model_copy(update={"metrics_token": SecretStr("s" * 20)}))
+    assert (await client.get("/metrics")).status_code == 401
+    ok = await client.get("/metrics", headers={"Authorization": "Bearer " + "s" * 20})
+    assert ok.status_code == 200

@@ -37,7 +37,9 @@ Global settings live in `app/core/config.py`; each domain keeps its own in `app/
 | `OTP_MAX_ATTEMPTS` | `5` | Wrong guesses allowed before the code is burned |
 | `OTP_RESEND_COOLDOWN_SECONDS` | `60` | Faster re-requests get a `429 rate_limited` response |
 | `CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed browser origins outside `local` (any origin locally). `ADMIN_ORIGINS` still works |
-| `ALLOWED_HOSTS` | `["*"]` | Host headers the API answers to; set the public hostnames in production |
+| `ALLOWED_HOSTS` | `["*"]` | Host headers the API answers to. Production refuses `*` |
+| `FORWARDED_ALLOW_IPS` | empty | Proxy/load-balancer addresses trusted for `X-Forwarded-For`. Required in production, or every client shares one rate-limit bucket |
+| `METRICS_TOKEN` | unset | Bearer token for `GET /metrics` (16+ chars). Required in production |
 | `LOG_LEVEL`, `LOG_JSON` | `INFO`, auto | Logs are JSON everywhere except `local` unless `LOG_JSON` says otherwise |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_RECYCLE_SECONDS`, `DB_STATEMENT_TIMEOUT_MS` | `10`, `10`, `1800`, `15000` | Connection pool and per-statement timeout |
 | `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output (not allowed in production); `fast2sms` sends real SMS |
@@ -65,7 +67,7 @@ Every response carries an `X-Request-ID` header (a safe one sent by the client i
 | POST | `/auth/refresh` | none | `{refresh_token}` → new token pair (rotated) |
 | GET | `/users/me` | Bearer | Current user |
 | PATCH | `/users/me` | Bearer | Sign-up details: `{first_name, last_name?, email?, whatsapp_booking_updates?}` |
-| PUT | `/users/me/role` | Bearer | `{role: "customer" \| "artist"}`. Can be called once; sets `is_onboarded=true`. |
+| PUT | `/users/me/role` | Bearer | `{role: "customer" \| "artist"}`. Grants the role if new and shows that side; call again to switch. Sets `is_onboarded=true`. |
 | PUT | `/artists/me/kyc` | Bearer (artist) | Aadhaar verification: `{aadhaar_number, front_key, back_key}`. The number is validated and stored encrypted; the keys come from `/uploads/signature` with `purpose: "aadhaar"`. |
 | POST | `/uploads/signature` | Bearer | With `purpose: "aadhaar"`, signs an upload of an Aadhaar image to private storage. |
 | POST | `/admin/artists/{id}/kyc/reveal` | Bearer (admin) | Returns `{aadhaar_number}` in full. Admin-only. Each call is logged in `artist_aadhaar_reveal`, and the response is `Cache-Control: no-store`. |
@@ -99,7 +101,7 @@ Customers find approved artists and request a slot. The artist has 3 hours to an
 | GET | `/artists` | none | Approved artists, `?city=&category_id=&q=&limit=&cursor=` → `{items, next_cursor}` |
 | GET | `/artists/{id}` | none | Public profile: approved services, portfolio, completed bookings. Never KYC or phone. |
 | GET | `/artists/{id}/availability` | none | `?date=YYYY-MM-DD&service_id=` → hourly IST slots with `available` |
-| POST | `/bookings` | customer | `{artist_id, service_id, start_at, address, note?}`; the deposit is taken (mocked) |
+| POST | `/bookings` | customer | `{artist_id, service_id, start_at, address, note?}`; amounts are recorded and the customer pays the artist directly (`PAYMENT_PROVIDER=direct`) |
 | GET | `/bookings` · `/bookings/{id}` | customer | Own bookings, `?scope=upcoming\|past` |
 | POST | `/bookings/{id}/cancel` | customer | `{reason?}`. The deposit is refunded when cancelled 72 h or more ahead. |
 | GET | `/artists/me/bookings` | approved artist | `?scope=requests\|upcoming\|past`, or `?from=&to=` (IST dates) for the calendar |
@@ -165,6 +167,9 @@ Cross-domain imports name the module explicitly (`from app.review.models import 
 - **Release:** run `alembic upgrade head` from the same image as a separate step before rolling out the API.
 - **Probes:** liveness `GET /health/live`, readiness `GET /health/ready`.
 - **Housekeeping:** schedule `python -m scripts.maintenance` every few minutes. It prunes used sign-in codes, dead refresh tokens and closed rate-limit windows.
+- **Metrics:** `GET /metrics` (Prometheus, bearer `METRICS_TOKEN`): `http_requests_total` and `http_request_duration_seconds` per route template. The image aggregates across workers through `PROMETHEUS_MULTIPROC_DIR`.
+- **Rollback:** every migration has a reversible `downgrade()`. Roll back by redeploying the previous image, running `alembic downgrade <previous revision>` first only if that release added a migration the old code can't run with.
+- **Backups:** use the managed Postgres point-in-time recovery and test a restore before launch. Back up `AADHAAR_ENCRYPTION_KEY` separately from the database: stored Aadhaar numbers can't be decrypted without it.
 - **Logs:** JSON lines on stdout. The `art_circle.access` logger writes one line per request, `art_circle.audit` covers security events (sign-ins, rejected codes, refresh-token reuse, every admin change), and every line carries the `request_id`.
 - **Rate limits:** stored in Postgres, so every worker shares them. The auth endpoints are limited per IP and per phone; booking requests, reviews and upload signatures per user (`app/*/constants.py`).
 
@@ -182,9 +187,11 @@ alembic downgrade -1
 pytest                      # migrates art_circle_test to head, then truncates tables after each test
 pytest --cov=app            # with the 90% branch-coverage gate CI enforces (.coveragerc)
 ruff check . && ruff format --check .
+mypy                        # static types (mypy.ini)
+pip-audit -r requirements.lock   # known vulnerabilities in pinned dependencies
 alembic check               # models and migrations agree
 ```
 
-The suite forces `ENVIRONMENT=test`, console SMS, fake storage and mock payments, and points even the app's own engine at the test database. It never sends real SMS; OTPs are read from `ConsoleSMSProvider.sent`. Swap dependencies with the `override` fixture and move time with `travel`. CI (`.github/workflows/backend.yml`) runs lint, then migrations from an empty database (up, check, down to base, up), the tests with coverage, and the image build.
+The suite forces `ENVIRONMENT=test`, console SMS, fake storage and mock payments, and points even the app's own engine at the test database. It never sends real SMS; OTPs are read from `ConsoleSMSProvider.sent`. Swap dependencies with the `override` fixture and move time with `travel`. CI (`.github/workflows/backend.yml`) runs lint, mypy and pip-audit, then migrations from an empty database (up, check, down to base, up), the tests with coverage and the maintenance script, then builds the image, boots it against Postgres until `/health/ready` answers, and checks it refuses an unsafe production config.
 
 After changing `requirements.txt`, regenerate the lock in a clean venv: `python -m venv /tmp/lock && /tmp/lock/bin/pip install -r requirements.txt && /tmp/lock/bin/pip freeze --exclude pip > requirements.lock` (keep the header comment).

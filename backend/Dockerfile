@@ -16,7 +16,8 @@ ENV PATH="/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ENVIRONMENT=production \
-    WEB_CONCURRENCY=2
+    WEB_CONCURRENCY=2 \
+    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
 RUN groupadd --system app && useradd --system --gid app --home-dir /app --no-create-home app
 WORKDIR /app
 COPY --from=build /venv /venv
@@ -30,5 +31,5 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
     CMD ["python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=2).status != 200)"]
 # --proxy-headers: behind the load balancer, client IPs (rate limits, logs) come from X-Forwarded-For,
 # trusted only from FORWARDED_ALLOW_IPS (required in production; the app refuses to boot without it).
-# Graceful shutdown lets in-flight requests finish on deploy.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY} --proxy-headers --forwarded-allow-ips ${FORWARDED_ALLOW_IPS:-127.0.0.1} --timeout-graceful-shutdown 20 --no-server-header"]
+# Graceful shutdown lets in-flight requests finish on deploy. Metrics files from the last run are cleared first.
+CMD ["sh", "-c", "rm -rf $PROMETHEUS_MULTIPROC_DIR && mkdir -p $PROMETHEUS_MULTIPROC_DIR && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY} --proxy-headers --forwarded-allow-ips ${FORWARDED_ALLOW_IPS:-127.0.0.1} --timeout-graceful-shutdown 20 --no-server-header"]

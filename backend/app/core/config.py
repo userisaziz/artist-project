@@ -1,7 +1,7 @@
 """Global settings: environment, database, HTTP edge and the app-wide secrets (JWT, Aadhaar key).
 
-Domain-specific values live in each domain's own `config.py` (auth, booking, review, upload,
-artist), all built on `AppSettings` so they read the same `.env` and know the environment.
+Domain-specific values live in each domain's own `config.py` (auth, booking, catalog, review,
+upload), all built on `AppSettings` so they read the same `.env` and know the environment.
 A missing or unsafe value fails here at startup with a readable error, never at the first request.
 """
 
@@ -53,6 +53,8 @@ class Settings(AppSettings):
     max_body_bytes: int = Field(1_048_576, ge=1024)  # JSON only: images upload straight to the image host
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_json: bool | None = None  # None: JSON everywhere except local
+    # Bearer token the Prometheus scraper sends to GET /metrics. Required in production.
+    metrics_token: SecretStr | None = Field(default=None, min_length=16)
 
     @field_validator("aadhaar_encryption_key")
     @classmethod
@@ -65,6 +67,11 @@ class Settings(AppSettings):
             raise ValueError("AADHAAR_ENCRYPTION_KEY must be a 32-byte url-safe base64 Fernet key") from None
         return value
 
+    @field_validator("metrics_token", mode="before")
+    @classmethod
+    def _blank_metrics_token_is_unset(cls, value: object) -> object:
+        return None if value == "" else value  # `METRICS_TOKEN=` in .env means "not configured"
+
     @model_validator(mode="after")
     def _safe_http_edge_in_production(self) -> Self:
         if not self.is_production:
@@ -75,6 +82,8 @@ class Settings(AppSettings):
             raise ValueError("FORWARDED_ALLOW_IPS must name the load balancer/proxy addresses in production")
         if any("localhost" in o or "127.0.0.1" in o or o == "*" for o in self.cors_origins):
             raise ValueError("CORS_ORIGINS must be the real admin origin(s) in production")
+        if self.metrics_token is None:
+            raise ValueError("METRICS_TOKEN must be set in production (it guards GET /metrics)")
         return self
 
     @property

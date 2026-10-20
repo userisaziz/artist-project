@@ -37,5 +37,5 @@ async def decide_review(
     body: DecisionIn,
     admin: User = Depends(audited_admin),
     reviews: ReviewService = Depends(get_review_service),
-) -> AdminReviewOut:
+) -> dict:
     return await reviews.decide(admin, review_id, body.decision, body.note)

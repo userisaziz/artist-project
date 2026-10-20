@@ -31,6 +31,7 @@ PUBLIC = {
     "/artists/{artist_id}",
     "/artists/{artist_id}/availability",
     "/artists/{artist_id}/reviews",
+    "/metrics",  # for the scraper: guarded by METRICS_TOKEN instead of a user session
 }
 
 
@@ -64,7 +65,7 @@ def test_every_route_is_documented(route: APIRoute):
     assert route.summary, "summary= is required"
     assert route.status_code is not None, "status_code= must be explicit"
     assert route.tags, "the router must set tags"
-    if route.status_code != 204:
+    if route.status_code != 204 and route.include_in_schema:  # /metrics answers Prometheus text, not JSON
         assert route.response_model is not None, "response_model= is required"
 
 

@@ -9,8 +9,9 @@ these rows, so a missed run only costs disk space.
 import asyncio
 import logging
 from datetime import timedelta
+from typing import cast
 
-from sqlalchemy import delete, or_
+from sqlalchemy import CursorResult, delete, or_
 
 from app.auth.models import OtpCode, RefreshToken
 from app.core.config import get_settings
@@ -42,7 +43,8 @@ async def prune(clock: Clock = SYSTEM_CLOCK) -> dict[str, int]:
             delete(RateLimitBucket).where(RateLimitBucket.window_started_at < now - RATE_LIMIT_RETENTION)
         )
         await session.commit()
-    return {"otp_codes": otps.rowcount, "refresh_tokens": tokens.rowcount, "rate_limit_buckets": buckets.rowcount}
+    counts = (cast(CursorResult, result).rowcount for result in (otps, tokens, buckets))
+    return dict(zip(("otp_codes", "refresh_tokens", "rate_limit_buckets"), counts, strict=True))
 
 
 async def main() -> None:

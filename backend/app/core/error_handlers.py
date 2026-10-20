@@ -5,6 +5,8 @@ Unexpected exceptions are handled by `RequestContextMiddleware` (it knows the re
 outside everything else), so they are logged and answered with a generic 500: no internals leak.
 """
 
+from typing import Any
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -48,6 +50,11 @@ async def http_error_handler(request: Request, exc: StarletteHTTPException) -> J
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(AppError, app_error_handler)
-    app.add_exception_handler(RequestValidationError, validation_error_handler)
-    app.add_exception_handler(StarletteHTTPException, http_error_handler)
+    # Starlette types handlers as taking any Exception; each of ours only ever receives its own class.
+    handlers: list[tuple[type[Exception], Any]] = [
+        (AppError, app_error_handler),
+        (RequestValidationError, validation_error_handler),
+        (StarletteHTTPException, http_error_handler),
+    ]
+    for exc_class, handler in handlers:
+        app.add_exception_handler(exc_class, handler)

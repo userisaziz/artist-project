@@ -34,7 +34,7 @@ async def list_artist_bookings(
 )
 async def accept_booking(
     booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
-) -> BookingOut:
+) -> dict:
     return await bookings.accept(user, booking_id)
 
 
@@ -46,7 +46,7 @@ async def decline_booking(
     body: ReasonIn,
     user: User = Depends(current_artist),
     bookings: BookingService = Depends(get_booking_service),
-) -> BookingOut:
+) -> dict:
     return await bookings.decline(user, booking_id, body.reason)
 
 
@@ -55,7 +55,7 @@ async def decline_booking(
 )
 async def complete_booking(
     booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
-) -> BookingOut:
+) -> dict:
     return await bookings.complete(user, booking_id)
 
 
@@ -67,5 +67,5 @@ async def complete_booking(
 )
 async def artist_dashboard(
     user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
-) -> ArtistDashboard:
+) -> dict:
     return await bookings.dashboard(user)

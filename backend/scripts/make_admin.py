@@ -19,7 +19,7 @@ async def make_admin(phone: str) -> str:
     async with SessionLocal() as session:
         user = await UserRepository(session).by_phone(phone)
         created = user is None
-        if created:
+        if user is None:
             user = User(phone=phone, role_grants=[])
             session.add(user)
         user.grant(UserRole.admin)

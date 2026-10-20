@@ -21,6 +21,7 @@ from app.core.database import engine
 from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
+from app.health import metrics_router
 from app.health import router as health
 from app.review.config import get_review_settings
 from app.router import api_router
@@ -64,12 +65,13 @@ def create_app() -> FastAPI:
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.environment == "local" else settings.cors_origins,
         # With credentials, Starlette answers a "*" origin list with the caller's concrete Origin, never "*".
-        allow_methods=CORS_METHODS,
+        allow_origins=["*"] if settings.environment == "local" else settings.cors_origins,
         allow_credentials=True,  # the admin's httpOnly refresh cookie
+        allow_methods=CORS_METHODS,
         allow_headers=CORS_HEADERS,
         expose_headers=["X-Request-ID", "Retry-After"],
+        max_age=600,  # browsers may cache the preflight answer for 10 minutes
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(RequestContextMiddleware)
@@ -77,6 +79,7 @@ def create_app() -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(metrics_router.router)
     app.include_router(api_router)
     return app
 

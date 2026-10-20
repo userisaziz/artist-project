@@ -26,7 +26,7 @@ router = APIRouter(prefix="/bookings", tags=["bookings"], responses=errors(401, 
 )
 async def request_booking(
     body: BookingIn, user: User = Depends(current_customer), bookings: BookingService = Depends(get_booking_service)
-) -> BookingOut:
+) -> dict:
     return await bookings.create(user, body)
 
 
@@ -47,7 +47,7 @@ async def get_my_booking(
     booking_id: uuid.UUID,
     user: User = Depends(current_customer),
     bookings: BookingService = Depends(get_booking_service),
-) -> BookingOut:
+) -> dict:
     return await bookings.customer_get(user, booking_id)
 
 
@@ -57,7 +57,7 @@ async def cancel_my_booking(
     body: ReasonIn,
     user: User = Depends(current_customer),
     bookings: BookingService = Depends(get_booking_service),
-) -> BookingOut:
+) -> dict:
     return await bookings.customer_cancel(user, booking_id, body.reason)
 
 
@@ -73,5 +73,5 @@ async def review_my_booking(
     body: ReviewIn,
     user: User = Depends(current_customer),
     reviews: ReviewService = Depends(get_review_service),
-) -> OwnReviewOut:
+) -> dict:
     return await reviews.create(user, booking_id, body)

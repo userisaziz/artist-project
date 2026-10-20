@@ -112,7 +112,9 @@ class ReviewRepository:
         return found is not None
 
     async def needs_moderation_count(self) -> int:
-        return await self.session.scalar(select(func.count()).select_from(Review).where(needs_moderation()))
+        return (
+            await self.session.execute(select(func.count()).select_from(Review).where(needs_moderation()))
+        ).scalar_one()
 
     def add(self, review: Review) -> None:
         self.session.add(review)

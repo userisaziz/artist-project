@@ -68,6 +68,7 @@ PRODUCTION_EDGE = {
     "allowed_hosts": ["api.artcircle.in"],
     "forwarded_allow_ips": "10.0.0.0/8",
     "cors_origins": ["https://admin.artcircle.in"],
+    "metrics_token": "scrape-token-0123456789",
 }
 
 
@@ -80,6 +81,11 @@ def test_production_refuses_wildcard_hosts_missing_proxy_trust_and_localhost_cor
         ("allowed_hosts", ["*"], "ALLOWED_HOSTS"),
         ("forwarded_allow_ips", "", "FORWARDED_ALLOW_IPS"),
         ("cors_origins", ["http://localhost:5173"], "CORS_ORIGINS"),
+        ("metrics_token", None, "METRICS_TOKEN"),
     ):
         with pytest.raises(ValidationError, match=message):
             Settings(**{**PRODUCTION_EDGE, field: unsafe})
+
+
+def test_a_blank_metrics_token_means_unset():
+    assert Settings(jwt_secret=STRONG_SECRET, metrics_token="").metrics_token is None

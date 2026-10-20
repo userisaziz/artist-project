@@ -13,6 +13,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core import metrics
 from app.core.logging import request_id_var
 
 access_logger = logging.getLogger("art_circle.access")
@@ -71,6 +72,9 @@ class RequestContextMiddleware:
                 }
                 await JSONResponse(body, status_code=500)(scope, receive, send_with_id)
         finally:
+            elapsed = time.perf_counter() - started
+            route = scope.get("route")
+            metrics.observe(scope["method"], getattr(route, "path_format", None), status, elapsed)
             client = scope.get("client")
             access_logger.info(
                 "%s %s %s",
@@ -81,7 +85,7 @@ class RequestContextMiddleware:
                     "method": scope["method"],
                     "path": scope["path"],
                     "status": status,
-                    "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+                    "duration_ms": round(elapsed * 1000, 1),
                     "client_ip": client[0] if client else None,
                 },
             )
