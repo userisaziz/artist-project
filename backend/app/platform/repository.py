@@ -40,7 +40,7 @@ class PlatformRepository:
             .where(UserRoleGrant.role == UserRole.admin)
             .order_by(UserRoleGrant.granted_at, User.id)
         )
-        return [tuple(r) for r in rows.all()]
+        return list(rows.tuples().all())
 
     async def by_phone(self, phone: str) -> User | None:
         return await self.session.scalar(select(User).where(User.phone == phone))
@@ -53,7 +53,9 @@ class PlatformRepository:
         )
 
     async def admin_count(self) -> int:
-        return await self.session.scalar(select(func.count()).where(UserRoleGrant.role == UserRole.admin))
+        return (
+            await self.session.execute(select(func.count()).where(UserRoleGrant.role == UserRole.admin))
+        ).scalar_one()
 
     async def delete(self, grant: UserRoleGrant) -> None:
         await self.session.delete(grant)

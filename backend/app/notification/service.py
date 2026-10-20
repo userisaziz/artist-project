@@ -65,9 +65,11 @@ class NotificationService:
         return [out(n) for n in page], next_cursor
 
     async def unread_count(self, user_id: uuid.UUID) -> int:
-        return await self.session.scalar(
-            select(func.count()).where(Notification.user_id == user_id, Notification.read_at.is_(None))
-        )
+        return (
+            await self.session.execute(
+                select(func.count()).where(Notification.user_id == user_id, Notification.read_at.is_(None))
+            )
+        ).scalar_one()
 
     async def mark_read(self, user_id: uuid.UUID, ids: list[uuid.UUID] | None, at: datetime) -> None:
         where = [Notification.user_id == user_id, Notification.read_at.is_(None)]

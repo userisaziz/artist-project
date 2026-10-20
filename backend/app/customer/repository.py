@@ -103,14 +103,16 @@ class CustomerRepository:
 
     async def active_since(self, since: datetime) -> int:
         """Customers who requested at least one booking since `since`."""
-        return await self.session.scalar(
-            select(func.count(func.distinct(Booking.customer_id))).where(
-                and_(Booking.created_at >= since, Booking.customer_id.in_(select(User.id).where(IS_CUSTOMER)))
+        return (
+            await self.session.execute(
+                select(func.count(func.distinct(Booking.customer_id))).where(
+                    and_(Booking.created_at >= since, Booking.customer_id.in_(select(User.id).where(IS_CUSTOMER)))
+                )
             )
-        )
+        ).scalar_one()
 
     async def review_count(self, customer_id: uuid.UUID) -> int:
-        return await self.session.scalar(select(func.count()).where(Review.customer_id == customer_id))
+        return (await self.session.execute(select(func.count()).where(Review.customer_id == customer_id))).scalar_one()
 
     async def recent_bookings(self, customer_id: uuid.UUID, limit: int) -> list[RecentBookingRow]:
         rows = await self.session.execute(

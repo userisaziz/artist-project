@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.booking.models import Booking
 from app.booking.rules import IST
 from app.notification import service as notification_service
+from app.notification.constants import Kind
 
 
 def when(b: Booking) -> str:
@@ -27,7 +28,7 @@ async def requested(session: AsyncSession, b: Booking, artist_user: uuid.UUID) -
 async def answered(session: AsyncSession, b: Booking, accepted: bool) -> None:
     title = "Booking confirmed" if accepted else "Booking declined"
     body = f"{b.service_name} on {when(b)}" + ("" if accepted else ". Pick another artist or time.")
-    kind = "booking_accepted" if accepted else "booking_declined"
+    kind: Kind = "booking_accepted" if accepted else "booking_declined"
     await notification_service.notify(session, b.customer_id, kind, title, body, f"/customer/booking/{b.id}")
 
 

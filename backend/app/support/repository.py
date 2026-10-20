@@ -69,7 +69,7 @@ class SupportRepository:
             .where(TicketMessage.ticket_id == ticket_id)
             .order_by(TicketMessage.created_at, TicketMessage.id)
         )
-        return [tuple(r) for r in rows.all()]
+        return list(rows.tuples().all())
 
     async def counts(self, admin_id: uuid.UUID) -> dict[str, int]:
         row = (
@@ -97,7 +97,7 @@ class SupportRepository:
         return float(value) if value is not None else None
 
     async def resolved_since(self, since: datetime) -> int:
-        return await self.session.scalar(select(func.count()).where(Ticket.resolved_at >= since))
+        return (await self.session.execute(select(func.count()).where(Ticket.resolved_at >= since))).scalar_one()
 
     async def customer_booking(self, booking_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         found = await self.session.scalar(

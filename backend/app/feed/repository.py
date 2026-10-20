@@ -126,13 +126,15 @@ class FeedRepository:
 
     async def _bump(self, post_id: uuid.UUID, by: int) -> int:
         """One atomic UPDATE … RETURNING, so concurrent likes never lose a count."""
-        return await self.session.scalar(
-            update(Post)
-            .where(Post.id == post_id)
-            .values(like_count=Post.like_count + by)
-            .returning(Post.like_count)
-            .execution_options(synchronize_session=False)
-        )
+        return (
+            await self.session.execute(
+                update(Post)
+                .where(Post.id == post_id)
+                .values(like_count=Post.like_count + by)
+                .returning(Post.like_count)
+                .execution_options(synchronize_session=False)
+            )
+        ).scalar_one()
 
     async def follow(self, user_id: uuid.UUID, artist_id: uuid.UUID) -> None:
         await self.session.execute(
@@ -150,7 +152,7 @@ class FeedRepository:
         return [PostRow(*r) for r in (await self.session.execute(query.limit(limit))).all()]
 
     async def featured_count(self) -> int:
-        return await self.session.scalar(select(func.count()).where(Post.featured_at.is_not(None)))
+        return (await self.session.execute(select(func.count()).where(Post.featured_at.is_not(None)))).scalar_one()
 
     async def locked(self, post_id: uuid.UUID) -> Post | None:
         return await self.session.scalar(select(Post).where(Post.id == post_id).with_for_update())

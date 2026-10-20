@@ -116,7 +116,7 @@ class DirectoryRepository:
             .having(func.sum(case((let_down, 1), else_=0)) > rate * func.count())
             .subquery()
         )
-        return await self.session.scalar(select(func.count()).select_from(per_artist))
+        return (await self.session.execute(select(func.count()).select_from(per_artist))).scalar_one()
 
     async def profile(self, artist_id: uuid.UUID) -> ArtistProfile | None:
         return await self.session.scalar(select(ArtistProfile).where(ArtistProfile.id == artist_id).with_for_update())

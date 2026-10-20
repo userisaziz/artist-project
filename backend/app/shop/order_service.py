@@ -6,7 +6,7 @@ import secrets
 import uuid
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,7 @@ from app.booking.repository import BookingRepository
 from app.booking.service import approved_artist_id
 from app.core.exceptions import ConflictError, NotFoundError
 from app.notification import service as notification_service
+from app.notification.constants import Kind
 from app.shared.clock import Clock
 from app.shared.pagination import split_page
 from app.shop.constants import OPEN_ORDER, AdminOrderView, ArtistOrderView, OrderStatus
@@ -43,13 +44,14 @@ def delivery_fee(settings: ShopSettings | None, subtotal: int) -> int:
 
 
 def view_filter(view: AdminOrderView | ArtistOrderView) -> list[ColumnElement[bool]]:
-    return {
+    filters: dict[str, list[ColumnElement[bool]]] = {
         "all": [],
         "to_pack": [Order.status.in_(OPEN_ORDER)],
         "shipped": [Order.status == OrderStatus.shipped],
         "delivered": [Order.status == OrderStatus.delivered],
         "cancelled": [Order.status == OrderStatus.cancelled],
-    }[view]
+    }
+    return filters[view]
 
 
 class OrderService:
@@ -172,7 +174,7 @@ class OrderService:
         await notification_service.notify(
             self.session,
             order.customer_id,
-            f"order_{status}",
+            cast(Kind, f"order_{status}"),
             f"Order {status}",
             body,
             f"/customer/shop/orders/{order.id}",

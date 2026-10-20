@@ -147,6 +147,8 @@ class FeedService:
         except IntegrityError as exc:  # uq on cover_key / storage_key: the image is already another post's
             raise ConflictError("That photo is already used in another post") from exc
         row = await self.posts.row(None, post.id)
+        if row is None:
+            raise NotFoundError("Post not found")
         return (await self._out([row], full=True))[0]
 
     async def mine(self, user: User, limit: int, cursor: str | None):

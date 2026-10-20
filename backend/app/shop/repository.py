@@ -89,7 +89,7 @@ class ShopRepository:
             .order_by(Product.id)
             .with_for_update(of=Product)
         )
-        return [tuple(r) for r in rows.all()]
+        return list(rows.tuples().all())
 
     async def product(self, product_id: uuid.UUID) -> Product | None:
         return await self.session.scalar(select(Product).where(Product.id == product_id).with_for_update())
@@ -112,7 +112,7 @@ class ShopRepository:
         return {"all": row[0], "live": row[1], "low_stock": row[2], "removed": row[3]}
 
     async def artist_product_count(self, artist_id: uuid.UUID) -> int:
-        return await self.session.scalar(select(func.count()).where(Product.artist_id == artist_id))
+        return (await self.session.execute(select(func.count()).where(Product.artist_id == artist_id))).scalar_one()
 
     # --- orders -----------------------------------------------------------------------------------
 

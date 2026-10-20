@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import InstrumentedAttribute, aliased
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.artist_directory.repository import first_category
@@ -39,7 +39,13 @@ class ReportRepository:
         ).one()
         return row[0], row[1]
 
-    async def top(self, column: ColumnElement, where: Sequence[ColumnElement[bool]], *, by_category: bool):
+    async def top(
+        self,
+        column: ColumnElement[Any] | InstrumentedAttribute[Any],
+        where: Sequence[ColumnElement[bool]],
+        *,
+        by_category: bool,
+    ):
         """(name, bookings) of the busiest city or category in the period, or None with no bookings."""
         query = (
             select(column, func.count()).select_from(Booking).join(ArtistProfile, ArtistProfile.id == Booking.artist_id)
@@ -83,6 +89,7 @@ class ReportRepository:
         )
 
     async def bookings_grouped(self, key: str, where: Sequence[ColumnElement[bool]]) -> list[Any]:
+        column: ColumnElement[Any] | InstrumentedAttribute[Any]
         if key == "city":
             column = ArtistProfile.city
         elif key == "category":
