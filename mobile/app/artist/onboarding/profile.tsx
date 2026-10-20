@@ -9,10 +9,10 @@ import { AppTextField } from '../../../src/components/common/AppTextField';
 import { Chip } from '../../../src/components/common/Chip';
 import { CityField } from '../../../src/components/artist-onboarding/CityField';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistProfile, useArtistWrite, useCategories, useCities } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistProfile, useSaveProfile, useUploadPhoto } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useCategories, useCities } from '../../../src/hooks/catalog/catalog';
 import { useArtistFlow } from '../../../src/context/artist-onboarding/flow-context';
-import { pickImages, uploadImage } from '../../../src/api/artist-onboarding/upload';
-import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
+import { pickImages } from '../../../src/api/artist-onboarding/upload';
 import { errorMessage } from '../../../src/core/api/error-message';
 
 const MAX_CATEGORIES = 6; // backend ProfileIn.category_ids max_length
@@ -34,7 +34,8 @@ export default function ProfileStep() {
   const router = useRouter();
   const { data: saved } = useArtistProfile();
   const { editing } = useArtistFlow();
-  const write = useArtistWrite();
+  const saveProfile = useSaveProfile();
+  const uploadPhoto = useUploadPhoto();
   const categories = useCategories();
   const cities = useCities();
 
@@ -43,8 +44,6 @@ export default function ProfileStep() {
   const [name, setName] = useState(saved?.business_name ?? '');
   const [picked, setPicked] = useState<number[]>(saved?.categories.map((c) => c.id) ?? []);
   const [city, setCity] = useState(saved?.city ?? null);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const choosePhoto = async () => {
@@ -52,32 +51,27 @@ export default function ProfileStep() {
     try {
       const [image] = await pickImages(1);
       if (!image) return;
-      setUploading(true);
       setPhotoUri(image.uri);
-      setPhotoKey((await uploadImage(image, 'artist_photo')).key);
+      setPhotoKey((await uploadPhoto.mutateAsync({ image, purpose: 'artist_photo' })).key);
     } catch (e) {
       setPhotoUri(saved?.photo_url ?? null);
       setError(errorMessage(e));
-    } finally {
-      setUploading(false);
     }
   };
 
   const toggle = (id: number) =>
     setPicked((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : ids.length < MAX_CATEGORIES ? [...ids, id] : ids));
 
+  const uploading = uploadPhoto.isPending;
   const ready = !!photoKey && !!name.trim() && picked.length > 0 && !!city && !uploading;
   const save = async () => {
     if (!ready || !city) return;
-    setSaving(true);
     setError(null);
     try {
-      await write(() => artistApi.saveProfile({ business_name: name.trim(), city, category_ids: picked, photo_key: photoKey }));
+      await saveProfile.mutateAsync({ business_name: name.trim(), city, category_ids: picked, photo_key: photoKey });
       router.push('/artist/onboarding/services');
     } catch (e) {
       setError(errorMessage(e));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -87,7 +81,7 @@ export default function ProfileStep() {
       onBack={editing ? undefined : () => router.dismissTo('/artist/onboarding/intro')}
       step={1}
       steps={4}
-      footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saving} disabled={!ready} />}
+      footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saveProfile.isPending} disabled={!ready} />}
     >
       <FormHeading eyebrow="STEP 1 · PROFILE" title="Tell clients" accent="who you are" />
       <Pressable

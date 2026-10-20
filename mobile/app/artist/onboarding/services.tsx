@@ -6,9 +6,9 @@ import { AppText } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
 import { AddServiceSheet } from '../../../src/components/artist-onboarding/AddServiceSheet';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useArtistProfile, useArtistWrite, useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useAddService, useArtistProfile, useDeleteService } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useCategories } from '../../../src/hooks/catalog/catalog';
 import { formatDuration, formatPrice } from '../../../src/utils/common/format';
-import * as artistApi from '../../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 import type { CatalogCategory } from '../../../src/types/catalog/catalog';
 import { Icon } from '../../../src/components/common/Icon';
@@ -18,7 +18,8 @@ export default function ServicesStep() {
   const theme = useTheme();
   const router = useRouter();
   const { data: profile } = useArtistProfile();
-  const write = useArtistWrite();
+  const addService = useAddService();
+  const deleteService = useDeleteService();
   const [sheet, setSheet] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: catalog = [] } = useCategories();
@@ -36,7 +37,7 @@ export default function ServicesStep() {
 
   const remove = async (id: string) => {
     setError(null);
-    try { await write(() => artistApi.deleteService(id)); } catch (e) { setError(errorMessage(e)); }
+    try { await deleteService.mutateAsync(id); } catch (e) { setError(errorMessage(e)); }
   };
 
   return (
@@ -75,7 +76,7 @@ export default function ServicesStep() {
         categories={mine}
         addedIds={services.flatMap((s) => (s.template_id === null ? [] : [s.template_id]))}
         onClose={() => setSheet(false)}
-        onSubmit={async (service) => { await write(() => artistApi.addService(service)); }}
+        onSubmit={async (service) => { await addService.mutateAsync(service); }}
       />
     </FormScreen>
   );

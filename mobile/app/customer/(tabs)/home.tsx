@@ -6,7 +6,7 @@ import { AppText, Accent } from '../../../src/components/common/AppText';
 import { ErrorView, LoadingView, EmptyView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
-import { useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useCategories } from '../../../src/hooks/catalog/catalog';
 import { useArtistList } from '../../../src/hooks/directory/directory';
 import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
 import { formatLongDay, greeting, istDateKey } from '../../../src/utils/common/time';

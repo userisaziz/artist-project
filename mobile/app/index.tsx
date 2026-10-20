@@ -6,6 +6,6 @@ import { destination, landingHref } from '../src/utils/auth/routing';
 // in shared `destination()`/`landingHref()` means this hub and the root guards can never disagree.
 export default function Index() {
   const { status, user } = useAuth();
-  if (status === 'restoring') return null; // Gate keeps the splash up until restore settles
+  if (status === 'restoring' || status === 'unavailable') return null; // Gate owns these: splash, then the retry screen
   return <Redirect href={landingHref(destination(status, user), user)} />;
 }

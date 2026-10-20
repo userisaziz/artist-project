@@ -52,3 +52,35 @@ it('aborts a hung request after the timeout as network_error', async () => {
   jest.advanceTimersByTime(REQUEST_TIMEOUT_MS);
   await assertion;
 });
+
+describe('API base URL', () => {
+  const env = process.env.EXPO_PUBLIC_API_URL;
+  const dev = (global as { __DEV__?: boolean }).__DEV__;
+  afterEach(() => {
+    process.env.EXPO_PUBLIC_API_URL = env;
+    (global as { __DEV__?: boolean }).__DEV__ = dev;
+  });
+  const load = (): unknown => {
+    let mod: unknown;
+    jest.isolateModules(() => { mod = jest.requireActual('../../core/api/real-transport'); });
+    return mod;
+  };
+
+  it('falls back to localhost in development', () => {
+    delete process.env.EXPO_PUBLIC_API_URL;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    expect(load()).toHaveProperty('BASE_URL', 'http://localhost:8000');
+  });
+
+  it('refuses to start a release build without EXPO_PUBLIC_API_URL', () => {
+    delete process.env.EXPO_PUBLIC_API_URL;
+    (global as { __DEV__?: boolean }).__DEV__ = false;
+    expect(load).toThrow(/EXPO_PUBLIC_API_URL/);
+  });
+
+  it('uses the configured URL without a trailing slash', () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.example.com/';
+    (global as { __DEV__?: boolean }).__DEV__ = false;
+    expect(load()).toHaveProperty('BASE_URL', 'https://api.example.com');
+  });
+});

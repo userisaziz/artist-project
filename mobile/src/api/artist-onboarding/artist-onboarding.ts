@@ -1,7 +1,6 @@
 import { request } from '../../core/api/client';
 import { ApiError } from '../../core/api/types';
 import type { ArtistProfile, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
-import type { CustomServiceInput, CustomServicePatch } from '../../types/artist-services/artist-services';
 
 // Mirrors backend api/v1/artists.py + uploads.py. Every write returns the whole profile.
 
@@ -40,15 +39,4 @@ export function submitProfile() {
 }
 export function uploadTicket(purpose: UploadPurpose) {
   return request<UploadTicket>('/uploads/signature', { purpose }, { auth: true });
-}
-
-// Custom services (catalog Part 2): approved artists only. Each waits for admin review; any edit sends it back.
-export function addCustomService(body: CustomServiceInput) {
-  return request<ArtistProfile>('/artists/me/custom-services', body, { auth: true });
-}
-export function updateCustomService(id: string, body: CustomServicePatch) {
-  return request<ArtistProfile>(`/artists/me/custom-services/${encodeURIComponent(id)}`, body, { auth: true, method: 'PATCH' });
-}
-export function deleteCustomService(id: string) {
-  return request<ArtistProfile>(`/artists/me/custom-services/${encodeURIComponent(id)}`, undefined, { auth: true, method: 'DELETE' });
 }

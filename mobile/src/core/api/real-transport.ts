@@ -1,7 +1,17 @@
 import type { Transport, TransportRequest, TransportResponse } from './transport';
 import { ApiError } from './types';
 
-const BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+const DEV_API_URL = 'http://localhost:8000';
+
+/** Release builds must be pointed at a real API: falling back to localhost would ship an app that can never connect. */
+function resolveBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_URL; // read literally so Expo can inline it at build time
+  if (configured) return configured.replace(/\/$/, '');
+  if (__DEV__) return DEV_API_URL;
+  throw new Error('EXPO_PUBLIC_API_URL is not set: release builds need the API base URL (see mobile/.env.example).');
+}
+
+export const BASE_URL = resolveBaseUrl();
 export const REQUEST_TIMEOUT_MS = 15_000; // a hung request becomes a network_error instead of an endless spinner
 
 export class RealTransport implements Transport {

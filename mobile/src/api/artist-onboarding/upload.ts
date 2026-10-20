@@ -1,8 +1,6 @@
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { transport } from '../../core/api/client';
-import { MockTransport } from '../../mocks/transport';
 import { ApiError } from '../../core/api/types';
 import type { PhotoInput, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
 import * as artistApi from './artist-onboarding';
@@ -26,33 +24,56 @@ export async function pickImages(limit: number): Promise<PickedImage[]> {
 export async function uploadImage(image: PickedImage, purpose: UploadPurpose): Promise<PhotoInput> {
   const small = await shrink(image);
   const ticket = await artistApi.uploadTicket(purpose);
-  if (transport instanceof MockTransport) transport.files.set(ticket.key, small.uri);
-  else if (!ticket.upload_url.startsWith(FAKE_STORAGE)) await postToStorage(ticket, small.uri);
+  // Dev-only: STORAGE_PROVIDER=fake has nothing to post to. A release build always posts, so a misconfigured
+  // backend fails loudly instead of "uploading" photos that never exist.
+  const skipUpload = __DEV__ && ticket.upload_url.startsWith(FAKE_STORAGE);
+  if (!skipUpload) await postToStorage(ticket, small.uri);
   return { key: ticket.key, width: Math.round(small.width), height: Math.round(small.height) };
 }
 
+const fileReadError = (cause: unknown): ApiError =>
+  new ApiError('file_read_error', 'Couldn’t read that photo. Please choose it again.', 0, { cause });
+
+/** Only a failed connection or a timeout is a network error; anything else is a bug and propagates as-is. */
+const isNetworkFailure = (e: unknown): boolean => e instanceof TypeError || (e instanceof Error && e.name === 'AbortError');
+
 async function shrink({ uri, width, height }: PickedImage): Promise<PickedImage> {
-  const ctx = ImageManipulator.manipulate(uri);
-  if (Math.max(width, height) > MAX_EDGE) ctx.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
-  const saved = await (await ctx.renderAsync()).saveAsync({ compress: QUALITY, format: SaveFormat.JPEG });
-  return { uri: saved.uri, width: saved.width, height: saved.height };
+  try {
+    const ctx = ImageManipulator.manipulate(uri);
+    if (Math.max(width, height) > MAX_EDGE) ctx.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
+    const saved = await (await ctx.renderAsync()).saveAsync({ compress: QUALITY, format: SaveFormat.JPEG });
+    return { uri: saved.uri, width: saved.width, height: saved.height };
+  } catch (e) {
+    throw fileReadError(e);
+  }
+}
+
+/** The multipart file part. Web reads the local blob first; native hands React Native the file URI. */
+async function filePart(uri: string): Promise<Blob> {
+  if (Platform.OS !== 'web') return { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob; // React Native's file part
+  try {
+    return await (await fetch(uri)).blob();
+  } catch (e) {
+    throw fileReadError(e); // a local blob URL, not the network
+  }
 }
 
 /** Multipart POST of the signed fields plus the file. Failures become ApiErrors so screens can show them. */
 export async function postToStorage(ticket: UploadTicket, uri: string): Promise<void> {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
+  form.append('file', await filePart(uri), 'photo.jpg');
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+  let res: Response;
   try {
-    const form = new FormData();
-    for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
-    if (Platform.OS === 'web') form.append('file', await (await fetch(uri, { signal: controller.signal })).blob(), 'photo.jpg');
-    else form.append('file', { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob); // React Native's file part
-    const res = await fetch(ticket.upload_url, { method: 'POST', body: form, signal: controller.signal });
-    if (!res.ok) throw new ApiError('upload_failed', 'Couldn’t upload that photo. Please try again.', res.status);
+    res = await fetch(ticket.upload_url, { method: 'POST', body: form, signal: controller.signal });
   } catch (e) {
-    if (e instanceof ApiError) throw e;
-    throw new ApiError('network_error', 'Network unreachable. Check your connection.', 0);
+    if (isNetworkFailure(e)) throw new ApiError('network_error', 'Network unreachable. Check your connection.', 0, { cause: e });
+    throw e;
   } finally {
     clearTimeout(timer);
   }
+  if (!res.ok) throw new ApiError('upload_failed', 'Couldn’t upload that photo. Please try again.', res.status);
 }

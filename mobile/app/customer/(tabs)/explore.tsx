@@ -6,7 +6,7 @@ import { AppText } from '../../../src/components/common/AppText';
 import { Chip } from '../../../src/components/common/Chip';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useCategories } from '../../../src/hooks/artist-onboarding/artist-onboarding';
+import { useCategories } from '../../../src/hooks/catalog/catalog';
 import { useArtistList } from '../../../src/hooks/directory/directory';
 import { useDebounced } from '../../../src/hooks/common/use-debounced';
 import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';

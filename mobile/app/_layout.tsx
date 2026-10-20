@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '../src/context/auth/auth-provider';
 import { destination } from '../src/utils/auth/routing';
 import { AppText } from '../src/components/common/AppText';
 import { AppButton } from '../src/components/common/AppButton';
+import { SessionUnavailable } from '../src/components/auth/SessionUnavailable';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../src/core/api/query-client';
 
@@ -29,13 +30,15 @@ export default function RootLayout() {
 }
 
 function Gate() {
-  const { status, user } = useAuth();
+  const { status, user, retryRestore } = useAuth();
   const theme = useTheme();
   // Gate only mounts once fonts are settled, so this hides the native splash when both fonts and restore are done.
   useEffect(() => { if (status !== 'restoring') SplashScreen.hideAsync(); }, [status]);
   if (status === 'restoring') {
     return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
   }
+  // The saved session could not be checked (offline / server down): retry rather than dropping to login.
+  if (status === 'unavailable') return <SessionUnavailable onRetry={retryRestore} />;
   const where = destination(status, user);
   // `/` is the always-mounted redirect hub (app/index.tsx) so Expo Router has a concrete boot
   // target; it forwards into exactly one guarded area below. Flipping a guard drops the old

@@ -8,11 +8,12 @@ import { Card } from '../../src/components/common/Card';
 import { StatusPill } from '../../src/components/common/StatusPill';
 import { EmptyView } from '../../src/components/common/StateViews';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useArtistProfile, useArtistWrite, useCategories } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { useAddCustomService, useDeleteCustomService, useUpdateCustomService } from '../../src/hooks/artist-services/artist-services';
+import { useCategories } from '../../src/hooks/catalog/catalog';
 import { CUSTOM_STATUS_PILL, groupMyServices } from '../../src/utils/artist-services/my-services';
 import { CustomServiceSheet } from '../../src/components/artist-services/CustomServiceSheet';
 import { formatDuration, formatPrice } from '../../src/utils/common/format';
-import { addCustomService, deleteCustomService, updateCustomService } from '../../src/api/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../src/core/api/error-message';
 import type { ServiceItem } from '../../src/types/artist-onboarding/artist-onboarding';
 
@@ -26,24 +27,22 @@ export default function MyServices() {
   const insets = useSafeAreaInsets();
   const { data: profile } = useArtistProfile();
   const categories = useCategories();
-  const write = useArtistWrite();
+  const addService = useAddCustomService();
+  const updateService = useUpdateCustomService();
+  const deleteService = useDeleteCustomService();
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tree = categories.data ?? [];
   const groups = groupMyServices(tree, profile?.services ?? []);
 
   const remove = async (id: string) => {
-    setDeleting(true);
     setError(null);
     try {
-      await write(() => deleteCustomService(id));
+      await deleteService.mutateAsync(id);
       setConfirmingId(null);
     } catch (e) {
       setError(errorMessage(e));
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -62,7 +61,7 @@ export default function MyServices() {
                 key={s.id}
                 service={s}
                 confirming={confirmingId === s.id}
-                deleting={deleting}
+                deleting={deleteService.isPending}
                 onEdit={() => setSheet({ mode: 'edit', service: s })}
                 onAskDelete={() => setConfirmingId(s.id)}
                 onCancelDelete={() => setConfirmingId(null)}
@@ -80,7 +79,9 @@ export default function MyServices() {
           service={sheet.mode === 'edit' ? sheet.service : undefined}
           onClose={() => setSheet(null)}
           onSubmit={async (input) => {
-            await write(() => (sheet.mode === 'edit' ? updateCustomService(sheet.service.id, input) : addCustomService(input)));
+            // The sheet shows its own pending/error state from this promise.
+            if (sheet.mode === 'edit') await updateService.mutateAsync({ id: sheet.service.id, input });
+            else await addService.mutateAsync(input);
           }}
         />
       ) : null}

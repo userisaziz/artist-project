@@ -6,7 +6,7 @@ import { AppButton } from '../../src/components/common/AppButton';
 import { FormScreen, FormHeading } from '../../src/components/common/FormScreen';
 import { PhoneInput } from '../../src/components/common/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth } from '../../src/context/auth/auth-provider';
+import { useRequestOtp } from '../../src/hooks/auth/auth';
 import { errorMessage } from '../../src/core/api/error-message';
 
 const PHONE_RE = /^\+[1-9]\d{6,14}$/; // same rule the backend enforces
@@ -14,22 +14,14 @@ const PHONE_RE = /^\+[1-9]\d{6,14}$/; // same rule the backend enforces
 export default function LoginScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { requestOtp } = useAuth();
+  const otp = useRequestOtp();
   const [phone, setPhone] = useState('+91');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const error = otp.error
+    ? errorMessage(otp.error, { rate_limited: 'Please wait before requesting another code' })
+    : null;
 
-  const onSubmit = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      await requestOtp(phone);
-      router.push({ pathname: '/otp', params: { phone } });
-    } catch (e) {
-      setError(errorMessage(e, { rate_limited: 'Please wait before requesting another code' }));
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = () => {
+    otp.mutate(phone, { onSuccess: () => router.push({ pathname: '/otp', params: { phone } }) });
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/welcome'));
@@ -45,13 +37,13 @@ export default function LoginScreen() {
             By continuing you agree to our <AppText variant="caption" style={{ fontSize: 11, color: theme.colors.brand }}>Terms</AppText> &{' '}
             <AppText variant="caption" style={{ fontSize: 11, color: theme.colors.brand }}>Privacy</AppText>.
           </AppText>
-          <AppButton label="Send code" onPress={onSubmit} loading={loading} disabled={!PHONE_RE.test(phone)} />
+          <AppButton label="Send code" onPress={onSubmit} loading={otp.isPending} disabled={!PHONE_RE.test(phone)} />
         </>
       )}
     >
       <FormHeading eyebrow="LOG IN / SIGN UP" title="Your" accent="number." subtitle="We’ll text you a code. No passwords." />
       <View style={{ marginTop: 18 }}>
-        <PhoneInput autoFocus value={phone} error={!!error} onChange={(v) => { setError(null); setPhone(v); }} />
+        <PhoneInput autoFocus value={phone} error={!!error} onChange={(v) => { otp.reset(); setPhone(v); }} />
       </View>
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm }}>{error}</AppText> : null}
     </FormScreen>

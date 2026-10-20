@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AppText } from '../../src/components/common/AppText';
@@ -7,7 +7,7 @@ import { FormScreen, FormHeading } from '../../src/components/common/FormScreen'
 import { OtpInput } from '../../src/components/common/OtpInput';
 import { formatPhone } from '../../src/components/common/PhoneInput';
 import { useTheme } from '../../src/core/theme/theme-provider';
-import { useAuth, useMockOtpListener } from '../../src/context/auth/auth-provider';
+import { useAuth } from '../../src/context/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 
@@ -24,10 +24,6 @@ export default function OtpScreen() {
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const [mockCode, setMockCode] = useState<string | null>(null);
-
-  const onMockOtp = useCallback((p: string, c: string) => { if (p === phone) setMockCode(c); }, [phone]);
-  useMockOtpListener(onMockOtp);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -87,11 +83,6 @@ export default function OtpScreen() {
           </>
         )}
       />
-      {mockCode ? (
-        <View style={{ alignSelf: 'flex-start', marginTop: theme.spacing.md, backgroundColor: theme.colors.brandSoft, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.md - theme.spacing.xs, paddingVertical: theme.spacing.xs }}>
-          <AppText variant="caption" style={{ color: theme.colors.brandInk }}>Mock mode: your code is {mockCode}</AppText>
-        </View>
-      ) : null}
       <View style={{ marginTop: 18 }}>
         <OtpInput onComplete={submit} onChange={(c) => { setCode(c); if (c) setError(null); }} error={shaking} busy={busy} />
       </View>
