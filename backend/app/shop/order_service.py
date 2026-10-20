@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.booking.repository import BookingRepository
 from app.booking.service import approved_artist_id
 from app.core.exceptions import ConflictError, NotFoundError
+from app.notification import service as notification_service
 from app.shared.clock import Clock
 from app.shared.pagination import split_page
 from app.shop.constants import OPEN_ORDER, AdminOrderView, ArtistOrderView, OrderStatus
@@ -131,6 +132,14 @@ class OrderService:
                 p.stock -= quantities[p.id]
             self.shop.add(order)
             await self.session.flush()
+            await notification_service.notify_artist(
+                self.session,
+                artist_id,
+                "order_placed",
+                "New order",
+                f"Order {order.code}: {len(lines)} item(s)",
+                "/artist/shop",
+            )
             order_ids.append(order.id)
         return [await self._out(i) for i in order_ids]
 
@@ -151,6 +160,24 @@ class OrderService:
         order.status = status
         order.events.append(OrderEvent(status=status, at=at))
 
+    async def _announce(self, order: Order, by: str | None = None) -> None:
+        """Tell the customer how their order moved on; a customer's own cancellation goes to the seller."""
+        status = order.status.value
+        body = f"Order {order.code} is {status}"
+        if by == "customer":
+            await notification_service.notify_artist(
+                self.session, order.artist_id, "order_cancelled", "Order cancelled", body, "/artist/shop"
+            )
+            return
+        await notification_service.notify(
+            self.session,
+            order.customer_id,
+            f"order_{status}",
+            f"Order {status}",
+            body,
+            f"/customer/shop/orders/{order.id}",
+        )
+
     async def _give_back_stock(self, order: Order) -> None:
         products = await self.shop.products_by_id([i.product_id for i in order.items if i.product_id])
         for item in order.items:
@@ -164,6 +191,7 @@ class OrderService:
         order.cancelled_by = by
         order.cancel_reason = reason or None
         await self._give_back_stock(order)
+        await self._announce(order, by)
 
     async def _advance(self, order: Order, to: OrderStatus, tracking: str | None = None) -> None:
         if NEXT.get(order.status) != to:
@@ -173,6 +201,7 @@ class OrderService:
                 raise ConflictError("Mark the order paid before shipping it")
             order.tracking = tracking or None
         self._event(order, to, self.clock.now())
+        await self._announce(order)
 
     # --- customer ---------------------------------------------------------------------------------
 

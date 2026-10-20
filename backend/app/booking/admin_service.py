@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
-from app.booking import rules
+from app.booking import notices, rules
 from app.booking.constants import OVERVIEW_PERIOD_DAYS, OverviewPeriod
 from app.booking.models import Booking
 from app.booking.service import OPEN, BookingService
@@ -50,6 +50,7 @@ class AdminBookingService(BookingService):
         booking.refund_due = (
             True if booking.deposit_paise else None
         )  # the platform called it off: the customer gets the deposit back
+        await notices.cancelled(self.session, booking, "admin")
         return await self.save(booking_id, view="admin")
 
     async def overview(self, period: OverviewPeriod, city: str | None) -> dict:

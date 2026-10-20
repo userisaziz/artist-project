@@ -8,6 +8,7 @@ from app.catalog import models as catalog_models  # noqa: F401
 from app.chat import models as chat_models  # noqa: F401
 from app.core import rate_limit  # noqa: F401  (core_rate_limit_bucket)
 from app.feed import models as feed_models  # noqa: F401
+from app.notification import models as notification_models  # noqa: F401
 from app.review import models as review_models  # noqa: F401
 from app.shared.models import Base
 from app.shop import models as shop_models  # noqa: F401

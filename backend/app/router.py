@@ -20,6 +20,7 @@ from app.directory import router as directory
 from app.feed import admin_router as feed_admin
 from app.feed import artist_router as artist_feed
 from app.feed import router as feed
+from app.notification import router as notifications
 from app.platform import admin_router as platform_admin
 from app.report import admin_router as report_admin
 from app.review import admin_router as admin_reviews
@@ -48,6 +49,7 @@ api_router.include_router(directory.router)  # after every /artists/me router: "
 api_router.include_router(bookings.router)
 api_router.include_router(chat.router)
 api_router.include_router(feed.router)
+api_router.include_router(notifications.router)
 api_router.include_router(artist_directory_admin.router)  # before artist_admin: /directory isn't an id
 api_router.include_router(artist_admin.router)
 api_router.include_router(admin_bookings.router)

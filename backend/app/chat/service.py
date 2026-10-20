@@ -14,6 +14,7 @@ from app.chat.constants import ChatSide, MessageModeration
 from app.chat.models import Conversation, Message
 from app.chat.repository import ChatRepository, ConversationRow, customer_name_matches
 from app.core.exceptions import ConflictError, NotFoundError
+from app.notification import service as notification_service
 from app.review import filters as review_filters
 from app.shared.clock import Clock
 from app.shared.enums import BookingStatus
@@ -172,6 +173,8 @@ class ChatService:
             moderation=MessageModeration.held if flag else None,
         )
         self.chats.add(message)
+        if not flag:
+            await self._notify(participant, locked, text)
         locked.last_message_at = at
         self._mark_read(participant, locked, at)
         await self.session.commit()
@@ -182,6 +185,23 @@ class ChatService:
         self._mark_read(participant, locked, self.clock.now())
         await self.session.commit()
         return await self._out(participant, conversation.id)
+
+    async def _notify(self, participant: Participant, conversation: Conversation, text: str) -> None:
+        """Only when the other side had caught up: one notification per burst of unread messages."""
+        to_artist = participant.side == ChatSide.customer
+        their_read = conversation.artist_read_at if to_artist else conversation.customer_read_at
+        last = conversation.last_message_at
+        if last is not None and (their_read is None or their_read < last):
+            return
+        title, body = "New message", text[:120]
+        if to_artist:
+            link = f"/artist/chat/{conversation.id}"
+            await notification_service.notify_artist(
+                self.session, conversation.artist_id, "chat_message", title, body, link
+            )
+        else:
+            link = f"/customer/chat/{conversation.id}"
+            await notification_service.notify(self.session, conversation.customer_id, "chat_message", title, body, link)
 
     def _next_time(self, last: datetime | None) -> datetime:
         """Now, or just after the previous message if the clock hasn't moved past it."""

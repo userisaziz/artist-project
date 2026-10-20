@@ -11,6 +11,7 @@ from sqlalchemy import ColumnElement
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.notification import service as notification_service
 from app.shared.clock import Clock
 from app.shared.enums import UserRole
 from app.shared.pagination import split_page
@@ -235,6 +236,14 @@ class SupportService:
         ticket.first_response_at = ticket.first_response_at or now
         ticket.resolved_at = None
         ticket.assignee_id = ticket.assignee_id or admin.id
+        await notification_service.notify(
+            self.session,
+            ticket.requester_id,
+            "support_reply",
+            "Support replied",
+            text[:120],
+            f"/customer/support/{ticket.id}",
+        )
         await self.session.flush()
         return await self._detail(ticket_id)
 

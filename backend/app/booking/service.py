@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.booking import rules
+from app.booking import notices, rules
 from app.booking.config import BookingSettings
 from app.booking.models import Booking
 from app.booking.repository import BookingRepository, BookingRow
@@ -229,6 +229,7 @@ class BookingService:
             await self.session.flush()
         except IntegrityError as exc:  # ex_booking_no_overlap: only reachable if a write skipped the artist lock
             raise ConflictError("That time was just taken. Pick another slot.") from exc
+        await notices.requested(self.session, booking, artist.user_id)
         return await self.save(booking.id, view="customer")
 
     async def _check_open_requests(self, customer: User, now: datetime) -> None:
@@ -262,6 +263,7 @@ class BookingService:
         booking.cancelled_by = "customer"
         booking.cancel_reason = clean_reason(reason)
         booking.refund_due = rules.customer_refund_due(booking.start_at, now) if booking.deposit_paise else None
+        await notices.cancelled(self.session, booking, "customer")
         return await self.save(booking_id, mine, view="customer")
 
     # --- artist ---------------------------------------------------------------------------------
@@ -306,6 +308,7 @@ class BookingService:
         self.require(booking, BookingStatus.requested)
         booking.status = BookingStatus.confirmed
         booking.responded_at = self.clock.now()
+        await notices.answered(self.session, booking, accepted=True)
         return await self.save(booking_id, theirs, view="artist")
 
     async def decline(self, user: User, booking_id: uuid.UUID, reason: str | None) -> dict[str, Any]:
@@ -315,6 +318,7 @@ class BookingService:
         booking.responded_at = self.clock.now()
         booking.decline_reason = clean_reason(reason)
         booking.refund_due = True if booking.deposit_paise else None
+        await notices.answered(self.session, booking, accepted=False)
         return await self.save(booking_id, theirs, view="artist")
 
     async def complete(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
