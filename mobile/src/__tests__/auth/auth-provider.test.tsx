@@ -221,6 +221,21 @@ describe('sign-in and sign-out', () => {
     expect(store.refreshToken).toBeNull();
   });
 
+  it('runs sign-out cleanups first, while their requests are still signed, and not after unsubscribing', async () => {
+    await signedIn();
+    routes({ '/auth/logout': () => reply(204), '/bookings': () => reply(200, { items: [], next_cursor: null }) });
+    const stopped = jest.fn();
+    auth.onSignOut(() => { void getBookings(); });
+    const unsubscribe = auth.onSignOut(stopped);
+    unsubscribe();
+
+    await act(() => auth.signOut());
+
+    expect(callsTo('/bookings')[0].headers?.Authorization).toBe(`Bearer ${tokenPairFixture(1).access_token}`);
+    expect(stopped).not.toHaveBeenCalled();
+    expect(screen.getByText('status:unauthenticated')).toBeTruthy();
+  });
+
   it('verifyOtp signs in and persists the refresh token', async () => {
     routes({ '/auth/otp/verify': () => reply(200, tokenPairFixture(1)) });
     await renderProvider();

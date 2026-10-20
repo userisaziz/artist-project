@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
-import { Stack } from 'expo-router';
-import type { ErrorBoundaryProps } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import type { ErrorBoundaryProps, Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, PlusJakartaSans_600SemiBold_Italic, PlusJakartaSans_500Medium_Italic, PlusJakartaSans_700Bold, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { ThemeProvider, useTheme } from '../src/core/theme/theme-provider';
@@ -10,6 +10,7 @@ import { destination } from '../src/utils/auth/routing';
 import { AppText } from '../src/components/common/AppText';
 import { AppButton } from '../src/components/common/AppButton';
 import { SessionUnavailable } from '../src/components/auth/SessionUnavailable';
+import { usePushNotifications } from '../src/hooks/notifications/use-push';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../src/core/api/query-client';
 
@@ -32,6 +33,9 @@ export default function RootLayout() {
 function Gate() {
   const { status, user, retryRestore } = useAuth();
   const theme = useTheme();
+  const router = useRouter();
+  const openLink = useCallback((link: string) => router.push(link as Href), [router]);
+  usePushNotifications(openLink);
   // Gate only mounts once fonts are settled, so this hides the native splash when both fonts and restore are done.
   useEffect(() => { if (status !== 'restoring') SplashScreen.hideAsync(); }, [status]);
   if (status === 'restoring') {

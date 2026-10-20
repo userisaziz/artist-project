@@ -34,6 +34,10 @@ Backend integration walkthrough: start `uvicorn app.main:app --reload` in `backe
 
 Testing against the backend on a physical phone: `localhost` is the phone itself, so set `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8000` and bind the server to all interfaces with `uvicorn app.main:app --reload --host 0.0.0.0`.
 
+### Push notifications
+
+Signed-in users are asked for notification permission and the device is registered with `POST /notifications/devices` (removed on sign-out); tapping a push opens its in-app link. Expo push tokens need an EAS project id: run `npx eas init` once so `app.json` gets `extra.eas.projectId`. Without it the app skips push registration and the in-app inbox still works. `expo-notifications` is a native module, so rebuild the dev client. Android in Expo Go cannot receive pushes. On the backend set `PUSH_PROVIDER=expo` to send real pushes (`console` only logs them).
+
 ## Test and lint
 ```bash
 npm test

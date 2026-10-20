@@ -30,6 +30,7 @@
       "expo-font",
       "expo-asset",
       "expo-image",
+      "expo-notifications",
       ["expo-image-picker", { "photosPermission": "Atelier uses your photos for your profile picture and portfolio.", "cameraPermission": false, "microphonePermission": false }],
       "./plugins/with-android-autofill-highlight"
     ],

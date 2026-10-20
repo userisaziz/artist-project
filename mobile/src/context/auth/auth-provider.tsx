@@ -18,6 +18,11 @@ export interface AuthContextValue {
   requestOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * Runs `cleanup` at the start of every sign-out, while the session is still valid, so it can start a signed request
+   * (e.g. unregister this device's push token). Not awaited: sign-out never waits on the network. Returns the unsubscribe.
+   */
+  onSignOut: (cleanup: () => void) => () => void;
   /** Re-runs the cold-start restore after `unavailable`. */
   retryRestore: () => Promise<void>;
   /** Sign-up and Choose role: each saves server-side, then swaps in the returned user so the gate re-routes. */
@@ -67,7 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear(); // no cached profile survives into the next account
   }, []);
 
+  const signOutCleanups = useRef(new Set<() => void>());
+  const onSignOut = useCallback((cleanup: () => void) => {
+    signOutCleanups.current.add(cleanup);
+    return () => { signOutCleanups.current.delete(cleanup); };
+  }, []);
+
   const signOut = useCallback(async () => {
+    // A request reads the access token when it starts, so cleanups started here are still signed.
+    for (const cleanup of signOutCleanups.current) cleanup();
     resetLocalSession();
     let stored: string | null;
     try {
@@ -147,10 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await applyPair(pair, epoch); // a sign-out meanwhile wins: applyPair drops the pair
     },
     signOut,
+    onSignOut,
     retryRestore: restore,
     completeSignup: async (details) => { setUser(await accountApi.updateMe(details)); },
     chooseRole: async (role) => { setUser(await accountApi.chooseRole(role)); },
-  }), [status, user, applyPair, signOut, restore]);
+  }), [status, user, applyPair, signOut, onSignOut, restore]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
