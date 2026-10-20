@@ -10,6 +10,9 @@ node_modules/
 # git worktrees
 .worktrees/
 
+# dev.sh service logs
+logs/
+
 # test coverage
 .coverage
 htmlcov/
