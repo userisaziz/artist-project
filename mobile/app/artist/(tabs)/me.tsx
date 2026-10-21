@@ -15,6 +15,7 @@ import { useArtistProfile } from '../../../src/hooks/artist-onboarding/artist-on
 import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/hooks/reviews/reviews';
 import { useMyFollowers } from '../../../src/hooks/feed/feed';
+import { useEnquirySummary } from '../../../src/hooks/quotes/quotes';
 import { formatAverage } from '../../../src/utils/reviews/format';
 import type { ReviewSummary } from '../../../src/types/reviews/reviews';
 import { Icon } from '../../../src/components/common/Icon';
@@ -39,6 +40,7 @@ export default function ArtistMe() {
   const { data: profile } = useArtistProfile();
   const reviews = useMyReviews();
   const followers = useMyFollowers();
+  const enquiries = useEnquirySummary();
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = profile?.business_name ?? '';
@@ -80,6 +82,7 @@ export default function ArtistMe() {
         <Card style={{ marginTop: 14, paddingVertical: 0 }}>
           <MenuRow label="Reviews" detail={reviewsDetail(reviews.data?.pages[0]?.summary)} onPress={() => router.push('/artist/reviews')} />
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
+          <MenuRow label="Enquiries" detail={enquiries.data?.open ? `${enquiries.data.open} open` : undefined} onPress={() => router.push('/artist/enquiries')} />
           <MenuRow label="My shop" onPress={() => router.push('/artist/shop')} />
           <MenuRow label="Posts & articles" detail="+ New post" onPress={() => router.push('/artist/posts')} />
           <MenuRow label="Followers" detail={followers.data ? String(followers.data.pages[0]?.total ?? 0) : undefined} onPress={() => router.push('/artist/followers')} />

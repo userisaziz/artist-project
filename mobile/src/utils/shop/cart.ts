@@ -1,4 +1,7 @@
 import type { OrderStatus, PaymentMethod, Product, Seller } from '../../types/shop/shop';
+import { rupeesToPaise } from '../common/format';
+
+export { paiseToRupeesText, rupeesToPaise } from '../common/format';
 
 export interface CartLine {
   product: Product;
@@ -60,18 +63,6 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'pending' 
   delivered: { label: 'Delivered', tone: 'confirmed' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
 };
-
-/** '480' or '1,200.50' (rupees, as typed) → paise; null when it isn't a positive amount. */
-export function rupeesToPaise(text: string): number | null {
-  const value = Number(text.replace(/[,\s₹]/g, ''));
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return Math.round(value * 100);
-}
-
-/** Paise → rupees as an artist would type them, for prefilled fields: 115000 → '1150', 115050 → '1150.50'. */
-export function paiseToRupeesText(paise: number): string {
-  return paise % 100 === 0 ? String(paise / 100) : (paise / 100).toFixed(2);
-}
 
 /** The first thing stopping a product's name, price, MRP and stock from being saved, or null when they are fine. */
 export function productFieldsProblem(f: { name: string; price: string; mrp: string; stock: string }): string | null {

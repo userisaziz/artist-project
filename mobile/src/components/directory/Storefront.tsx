@@ -28,6 +28,8 @@ interface StorefrontProps {
   /** Opens the chat with this artist (customers only); `messaging` while it opens. */
   onMessage?: () => void;
   messaging?: boolean;
+  /** Asks this artist for a custom quote (customers only). */
+  onRequestQuote?: () => void;
   /** Opens a package's own page (Service detail). */
   onOpenService?: (service: PublicService) => void;
   /** Saving the artist (customers); the artist's own preview leaves it out. */
@@ -36,6 +38,7 @@ interface StorefrontProps {
 
 const COVER_HEIGHT = 230;
 const AVATAR = 84;
+const QUOTE_LINK_HEIGHT = 40;
 
 /** Services grouped by subcategory (or category), in menu order. */
 function groupServices(services: PublicService[]): [string, PublicService[]][] {
@@ -48,7 +51,7 @@ function groupServices(services: PublicService[]): [string, PublicService[]][] {
 }
 
 /** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onOpenService, save }: StorefrontProps) {
+export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onRequestQuote, onOpenService, save }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
@@ -68,7 +71,7 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: (bookable ? 120 : 40) + insets.bottom }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: (bookable ? 120 : 40) + (bookable && onRequestQuote ? QUOTE_LINK_HEIGHT : 0) + insets.bottom }}>
         <View style={{ height: COVER_HEIGHT, backgroundColor: theme.colors.imageFallback }}>
           {artist.cover_url ? <Image source={{ uri: artist.cover_url }} style={{ flex: 1 }} contentFit="cover" /> : null}
           <View style={{ position: 'absolute', top: insets.top + theme.spacing.sm, left: theme.spacing.md, right: theme.spacing.md }}>
@@ -165,6 +168,11 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
               <AppButton label="Check availability" disabled={!selected} onPress={() => { if (selected) onCheckAvailability(selected); }} />
             </View>
           </View>
+          {onRequestQuote ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Request a quote from ${artist.business_name}`} onPress={onRequestQuote} hitSlop={6} style={{ height: QUOTE_LINK_HEIGHT - 10, alignItems: 'center', justifyContent: 'center' }}>
+              <AppText variant="button" style={{ fontSize: 14, color: theme.colors.brand }}>Need something custom? Request a quote</AppText>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
     </View>
