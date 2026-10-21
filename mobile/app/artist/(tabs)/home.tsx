@@ -44,13 +44,18 @@ export default function ArtistHome() {
         <NotificationBell onPress={() => router.push('/artist/notifications')} />
       </View>
 
-      <View style={{ borderRadius: theme.radii.card, backgroundColor: theme.colors.brand, padding: 18, ...theme.shadows.md }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Earnings this month, see every month"
+        onPress={() => router.push('/artist/earnings')}
+        style={{ borderRadius: theme.radii.card, backgroundColor: theme.colors.brand, padding: 18, ...theme.shadows.md }}
+      >
         <AppText variant="caption" style={{ color: theme.colors.textOnBrand, opacity: 0.8 }}>Earnings this month</AppText>
         <AppText variant="display" style={{ fontSize: 32, lineHeight: 38, color: theme.colors.textOnBrand }}>{d ? formatPrice(d.earnings_this_month_paise) : '—'}</AppText>
         <AppText variant="caption" style={{ color: theme.colors.textOnBrand, opacity: 0.85 }}>
           {d ? `${d.completed_this_month} completed · ${d.upcoming} upcoming` : ' '}
         </AppText>
-      </View>
+      </Pressable>
       {dashboard.isError ? <ErrorView error={dashboard.error} onRetry={() => { void dashboard.refetch(); }} /> : null}
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 12 }}>

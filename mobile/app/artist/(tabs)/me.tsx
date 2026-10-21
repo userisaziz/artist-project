@@ -83,6 +83,7 @@ export default function ArtistMe() {
           <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
           <EditProfileRow />
           <MenuRow label="Working hours" onPress={() => router.push('/artist/working-hours')} />
+          <MenuRow label="Earnings" onPress={() => router.push('/artist/earnings')} />
           <MenuRow label="Help & support" onPress={() => router.push('/artist/support')} />
         </Card>
 

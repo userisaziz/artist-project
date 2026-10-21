@@ -59,6 +59,7 @@ export default function ArtistLayout() {
           <Stack.Screen name="support/index" />
           <Stack.Screen name="support/[id]" />
           <Stack.Screen name="working-hours" />
+          <Stack.Screen name="earnings" />
         </Stack.Protected>
       </Stack>
     </ArtistFlowContext.Provider>

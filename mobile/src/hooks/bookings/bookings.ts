@@ -16,6 +16,7 @@ export const bookingKeys = {
   artist: (userId: string | undefined, scope: ArtistBookingScope) => ['bookings', 'artist', userId, scope] as const,
   range: (userId: string | undefined, from: string, to: string) => ['bookings', 'artist', userId, 'range', from, to] as const,
   dashboard: (userId: string | undefined) => ['bookings', 'artist', userId, 'dashboard'] as const,
+  earnings: (userId: string | undefined, months: number) => ['bookings', 'artist', userId, 'earnings', months] as const,
 };
 
 export function useCustomerBookings(scope: CustomerBookingScope) {
@@ -68,6 +69,12 @@ export function useArtistBookingsInRange(from: string, to: string) {
     },
     enabled: !!user,
   });
+}
+
+/** Completing a booking invalidates every artist list, so this refreshes with it. */
+export function useArtistEarnings(months: number) {
+  const { user } = useAuth();
+  return useQuery({ queryKey: bookingKeys.earnings(user?.id, months), queryFn: () => bookingsApi.getArtistEarnings(months), enabled: !!user });
 }
 
 export function useArtistDashboard() {

@@ -62,3 +62,10 @@ export interface ArtistDashboard {
   earnings_this_month_paise: number;
   today: Booking[];
 }
+
+/** GET /artists/me/earnings: one IST month. */
+export interface MonthEarnings {
+  month: string; // 'YYYY-MM'
+  bookings: number;
+  earnings_paise: number;
+}

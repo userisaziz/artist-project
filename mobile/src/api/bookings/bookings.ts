@@ -1,7 +1,7 @@
 import { request } from '../../core/api/client';
 import { withQuery } from '../../core/api/query-string';
 import type { Page } from '../../core/api/types';
-import type { ArtistBookingScope, ArtistDashboard, Booking, BookingInput, CustomerBookingScope } from '../../types/bookings/bookings';
+import type { ArtistBookingScope, ArtistDashboard, Booking, BookingInput, CustomerBookingScope, MonthEarnings } from '../../types/bookings/bookings';
 
 // Customer bookings (spec §1.4, customer role).
 export function createBooking(body: BookingInput) {
@@ -39,6 +39,10 @@ export function declineBooking(id: string, reason?: string | null) {
 }
 export function completeBooking(id: string) {
   return request<Booking>(`/artists/me/bookings/${encodeURIComponent(id)}/complete`, undefined, { auth: true });
+}
+/** Completed bookings and earnings per IST month, newest first ('YYYY-MM'). */
+export function getArtistEarnings(months: number) {
+  return request<{ months: MonthEarnings[] }>(withQuery('/artists/me/earnings', { months }), undefined, { auth: true, method: 'GET' });
 }
 export function getArtistDashboard() {
   return request<ArtistDashboard>('/artists/me/dashboard', undefined, { auth: true, method: 'GET' });
