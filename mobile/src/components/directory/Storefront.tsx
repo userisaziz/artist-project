@@ -16,6 +16,7 @@ import { StorefrontReviews } from '../reviews/StorefrontReviews';
 import { formatAverage, ratingLong, reviewCountLabel } from '../../utils/reviews/format';
 import type { PublicService } from '../../types/directory/directory';
 import { Icon } from '../common/Icon';
+import { hoursSummary } from '../../utils/common/weekly-hours';
 
 interface StorefrontProps {
   artistId: string;
@@ -93,6 +94,18 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
             <Stat value={String(artist.completed_bookings)} label="Bookings completed" />
             <Stat value={artist.member_since ? formatMonthShort(artist.member_since) : '—'} label="On Atelier since" />
           </View>
+
+          {artist.hours?.length ? ( // an API without working hours yet sends none: skip the section rather than crash
+          <View style={{ marginTop: 16, gap: 2 }}>
+            <AppText variant="label" style={{ color: theme.colors.textPrimary }}>Hours</AppText>
+            {hoursSummary(artist.hours).map((line) => (
+              <AppText key={line} variant="caption" style={{ color: theme.colors.textSecondary }}>{line}</AppText>
+            ))}
+            {artist.travel_radius_km ? (
+              <AppText variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 4 }}>{`Travels up to ${artist.travel_radius_km} km`}</AppText>
+            ) : null}
+          </View>
+          ) : null}
 
           <AppText variant="title" style={section}>Packages</AppText>
           {groupServices(artist.services).map(([title, services]) => (

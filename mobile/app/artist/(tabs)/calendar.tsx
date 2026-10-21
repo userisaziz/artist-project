@@ -9,6 +9,7 @@ import { useArtistBookingsInRange } from '../../../src/hooks/bookings/bookings';
 import { formatDay, formatLongDay, formatMonth, istDateKey, monthGrid, monthRange } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
+import { DayOffToggle } from '../../../src/components/artist-schedule/DayOffToggle';
 import type { Booking } from '../../../src/types/bookings/bookings';
 import { Icon } from '../../../src/components/common/Icon';
 
@@ -92,6 +93,7 @@ export default function ArtistCalendar() {
       </View>
 
       <AppText variant="title" style={{ fontSize: 20, lineHeight: 26, color: theme.colors.heading, marginTop: 8 }}>{formatLongDay(selected)}</AppText>
+      <DayOffToggle day={selected} today={today} />
       {range.isPending ? <LoadingView /> : null}
       {range.isError ? <ErrorView error={range.error} onRetry={() => { void range.refetch(); }} /> : null}
       {range.isSuccess && !agenda.length ? <EmptyView message="Nothing booked this day." /> : null}

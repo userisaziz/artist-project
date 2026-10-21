@@ -1,3 +1,4 @@
+import type { WeeklyHour } from '../../utils/common/weekly-hours';
 import type { NamedRef } from '../../core/api/types';
 
 /** GET /artists list item: approved artists only. */
@@ -30,6 +31,10 @@ export interface ArtistPublic extends ArtistCard {
   photos: { id: string; url: string; thumb_url: string }[];
   services: PublicService[];
   member_since: string | null;
+  /** 7 days, weekday 0 = Monday; the slots offered follow these. */
+  hours: WeeklyHour[];
+  /** Display only: how far the artist travels, in km. */
+  travel_radius_km: number | null;
   completed_bookings: number;
 }
 
