@@ -36,7 +36,7 @@ async def test_booking_events_reach_the_other_side(client, engine):
 
     assert requested[0]["kind"] == "booking_requested"
     assert "Bridal Classic" in requested[0]["body"]
-    assert requested[0]["link"] == "/artist/bookings"
+    assert requested[0]["link"] == f"/artist/booking/{b['id']}"
     assert accepted[0]["kind"] == "booking_accepted"
     assert accepted[0]["link"] == f"/customer/booking/{b['id']}"
 

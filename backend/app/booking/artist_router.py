@@ -29,6 +29,13 @@ async def list_artist_bookings(
     return {"items": items, "next_cursor": next_cursor}
 
 
+@router.get("/bookings/{booking_id}", response_model=BookingOut, status_code=200, summary="One of my bookings")
+async def get_artist_booking(
+    booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
+) -> dict:
+    return await bookings.artist_get(user, booking_id)
+
+
 @router.post(
     "/bookings/{booking_id}/accept", response_model=BookingOut, summary="Accept a booking request", status_code=200
 )

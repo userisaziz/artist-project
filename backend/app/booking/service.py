@@ -299,6 +299,10 @@ class BookingService:
             where.append(Booking.status.not_in(OPEN))
         return await self.page(where, Booking.start_at, scope == "past", limit, cursor, view="artist")
 
+    async def artist_get(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
+        await self.expire_overdue(Booking.id == booking_id)
+        return await self.one(booking_id, Booking.artist_id == await self.artist_id(user), view="artist")
+
     async def _artist_locked(self, user: User, booking_id: uuid.UUID) -> tuple[Booking, ColumnElement[bool]]:
         theirs = Booking.artist_id == await self.artist_id(user)
         return await self.locked(booking_id, theirs), theirs

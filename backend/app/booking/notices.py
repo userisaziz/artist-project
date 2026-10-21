@@ -21,7 +21,7 @@ async def requested(session: AsyncSession, b: Booking, artist_user: uuid.UUID) -
         "booking_requested",
         "New booking request",
         f"{b.service_name} on {when(b)}",
-        "/artist/bookings",
+        f"/artist/booking/{b.id}",
     )
 
 
@@ -40,5 +40,5 @@ async def cancelled(session: AsyncSession, b: Booking, by: str) -> None:
         )
     if by != "artist":
         await notification_service.notify_artist(
-            session, b.artist_id, "booking_cancelled", "Booking cancelled", body, "/artist/bookings"
+            session, b.artist_id, "booking_cancelled", "Booking cancelled", body, f"/artist/booking/{b.id}"
         )

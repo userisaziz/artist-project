@@ -186,6 +186,23 @@ async def test_bookings_need_a_customer_account(client, engine):
 # --- artist side ----------------------------------------------------------------------------------
 
 
+async def test_artist_opens_one_of_their_bookings_but_not_another_artists(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist, note="Gate code 4411")).json()
+
+    detail = await client.get(f"/api/v1/artists/me/bookings/{b['id']}", headers=artist["headers"])
+    assert detail.status_code == 200
+    assert (detail.json()["code"], detail.json()["status"], detail.json()["note"]) == (
+        b["code"],
+        "requested",
+        "Gate code 4411",
+    )
+    assert detail.json()["customer"]["id"] == b["customer"]["id"]
+
+    other = await approved_artist(client, engine, "+919845091009", admin, name="Henna by Noor")
+    assert (await client.get(f"/api/v1/artists/me/bookings/{b['id']}", headers=other["headers"])).status_code == 404
+
+
 async def test_artist_accepts_then_completes_after_the_start(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
