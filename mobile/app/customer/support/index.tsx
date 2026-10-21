@@ -16,5 +16,5 @@ export default function HelpAndSupport() {
     .sort((a, b) => Date.parse(b.start_at) - Date.parse(a.start_at))
     .slice(0, REPORTABLE)
     .map((b) => ({ id: b.id, label: `${b.service_name} · ${formatDay(istDateKey(b.start_at))}` }));
-  return <HelpSupport bookings={bookings} onOpenTicket={(id) => router.push({ pathname: '/customer/support/[id]', params: { id } })} />;
+  return <HelpSupport side="customer" bookings={bookings} onOpenTicket={(id) => router.push({ pathname: '/customer/support/[id]', params: { id } })} />;
 }

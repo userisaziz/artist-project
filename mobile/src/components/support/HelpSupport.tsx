@@ -9,13 +9,15 @@ import { ReportProblemForm } from './ReportProblemForm';
 import { TicketList } from './TicketList';
 import { useTheme } from '../../core/theme/theme-provider';
 import { useMyTickets } from '../../hooks/support/support';
-import { FAQ } from '../../utils/support/issues';
+import { FAQ, type SupportSide } from '../../utils/support/issues';
 import type { ReportableBooking } from '../../types/support/support';
 
 const SENT = 'Sent. We usually reply within 2 hours.';
 
-/** Design "Help & support": common questions, report a problem, and the customer's tickets. */
-export function HelpSupport({ bookings, onOpenTicket }: { bookings: ReportableBooking[]; onOpenTicket: (id: string) => void }) {
+interface HelpSupportProps { side: SupportSide; bookings: ReportableBooking[]; onOpenTicket: (id: string) => void }
+
+/** Design "Help & support": common questions, report a problem, and the person's tickets. */
+export function HelpSupport({ side, bookings, onOpenTicket }: HelpSupportProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const tickets = useMyTickets();
@@ -33,10 +35,10 @@ export function HelpSupport({ bookings, onOpenTicket }: { bookings: ReportableBo
       <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading, marginTop: 8 }}>Help & <Accent>support</Accent></AppText>
 
       <AppText variant="caption" style={section}>COMMON QUESTIONS</AppText>
-      {FAQ.map((f) => <FaqItem key={f.question} question={f.question} answer={f.answer} />)}
+      {FAQ[side].map((f) => <FaqItem key={f.question} question={f.question} answer={f.answer} />)}
 
       <AppText variant="caption" style={section}>REPORT A PROBLEM</AppText>
-      <ReportProblemForm bookings={bookings} onSent={() => setSent(true)} />
+      <ReportProblemForm side={side} bookings={bookings} onSent={() => setSent(true)} />
       {sent ? <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.confirmedInk, marginTop: 8 }}>{SENT}</AppText> : null}
 
       <AppText variant="caption" style={section}>YOUR TICKETS</AppText>

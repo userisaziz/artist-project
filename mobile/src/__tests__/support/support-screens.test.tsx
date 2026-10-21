@@ -49,7 +49,7 @@ it('reports a no-show about a booking and lists the new ticket', async () => {
       return { status: 201, json: created };
     },
   });
-  await wrap(<HelpSupport bookings={[{ id: 'b-1', label: 'Bridal Classic · Fri, 9 Oct' }]} onOpenTicket={jest.fn()} />);
+  await wrap(<HelpSupport side="customer" bookings={[{ id: 'b-1', label: 'Bridal Classic · Fri, 9 Oct' }]} onOpenTicket={jest.fn()} />);
 
   expect(await screen.findByText('#T-1000 · Can’t log in')).toBeTruthy();
   await fireEvent.press(screen.getByText('Bridal Classic · Fri, 9 Oct'));
@@ -61,9 +61,31 @@ it('reports a no-show about a booking and lists the new ticket', async () => {
   expect(await screen.findByText('#T-7720 · Artist didn’t show up')).toBeTruthy();
 });
 
+it('artists report a customer no-show and see artist answers, not customer ones', async () => {
+  const sent: unknown[] = [];
+  serve({
+    'GET /support/tickets': { items: [], next_cursor: null },
+    'POST /support/tickets': (req: TransportRequest) => {
+      sent.push(req.body);
+      return { status: 201, json: ticketFixture({ id: 'new', code: 'T-7721', subject: 'Customer didn’t show up' }) };
+    },
+  });
+  await wrap(<HelpSupport side="artist" bookings={[{ id: 'b-1', label: 'Priya Sharma · Sat, 10 Oct' }]} onOpenTicket={jest.fn()} />);
+
+  expect(await screen.findByText('How do I get paid?')).toBeTruthy();
+  expect(screen.queryByText('What if the artist doesn’t show up?')).toBeNull();
+  await fireEvent.press(screen.getByText('Priya Sharma · Sat, 10 Oct'));
+  expect(screen.queryByText('Artist didn’t show up')).toBeNull();
+  await fireEvent.press(screen.getByText('Customer didn’t show up'));
+  await fireEvent.press(screen.getByText('Send to support'));
+
+  expect(await screen.findByText('Sent. We usually reply within 2 hours.')).toBeTruthy();
+  expect(sent).toEqual([{ topic: 'booking', issue: 'customer_no_show', booking_id: 'b-1', details: null }]);
+});
+
 it('answers the common questions without mentioning refunds', async () => {
   serve({ 'GET /support/tickets': { items: [], next_cursor: null } });
-  await wrap(<HelpSupport bookings={[]} onOpenTicket={jest.fn()} />);
+  await wrap(<HelpSupport side="customer" bookings={[]} onOpenTicket={jest.fn()} />);
 
   await fireEvent.press(await screen.findByText('How do I pay?'));
 
@@ -76,7 +98,7 @@ it('a failed report says why and keeps the choices', async () => {
     'GET /support/tickets': { items: [], next_cursor: null },
     'POST /support/tickets': { status: 429, json: { code: 'rate_limited', message: 'Too many requests' } },
   });
-  await wrap(<HelpSupport bookings={[]} onOpenTicket={jest.fn()} />);
+  await wrap(<HelpSupport side="customer" bookings={[]} onOpenTicket={jest.fn()} />);
 
   await fireEvent.press(await screen.findByText('My account'));
   await fireEvent.press(screen.getByText('Can’t log in'));

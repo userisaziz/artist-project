@@ -6,14 +6,16 @@ import { Chip } from '../common/Chip';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useReportProblem } from '../../hooks/support/support';
-import { ISSUES } from '../../utils/support/issues';
+import { ISSUES, type SupportSide } from '../../utils/support/issues';
 import type { ReportableBooking, SupportTicket } from '../../types/support/support';
 
 const DETAILS_MAX = 500;
 const ACCOUNT = 'account';
 
 /** Design "Report a problem": what it's about (a recent booking or the account), what happened, details. */
-export function ReportProblemForm({ bookings, onSent }: { bookings: ReportableBooking[]; onSent: (ticket: SupportTicket) => void }) {
+interface ReportProblemFormProps { side: SupportSide; bookings: ReportableBooking[]; onSent: (ticket: SupportTicket) => void }
+
+export function ReportProblemForm({ side, bookings, onSent }: ReportProblemFormProps) {
   const theme = useTheme();
   const report = useReportProblem();
   const [about, setAbout] = useState<string | null>(null); // a booking id, or 'account'
@@ -52,7 +54,7 @@ export function ReportProblemForm({ bookings, onSent }: { bookings: ReportableBo
         <>
           <AppText variant="label" style={{ color: theme.colors.textPrimary }}>What happened?</AppText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {ISSUES[topic].map((i) => <Chip key={i.value} label={i.label} selected={issue === i.value} onPress={() => setIssue(i.value)} />)}
+            {ISSUES[side][topic].map((i) => <Chip key={i.value} label={i.label} selected={issue === i.value} onPress={() => setIssue(i.value)} />)}
           </View>
         </>
       ) : null}
