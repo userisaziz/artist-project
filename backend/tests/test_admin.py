@@ -2,7 +2,7 @@
 
 from sqlalchemy import text as sql_text
 
-from tests.support.artist import complete_profile, submitted_artist, submitted_artist_id
+from tests.support.artist import approved_artist, complete_profile, submitted_artist, submitted_artist_id
 from tests.support.auth import ADMIN_PHONE, admin_headers, sign_in
 from tests.support.catalog import create_category, seed_categories
 
@@ -178,6 +178,21 @@ async def test_category_in_use_cannot_go_back_to_draft(client, engine):
 
 
 # --- artist review ------------------------------------------------------------
+
+
+async def test_queue_marks_profiles_reviewed_before_so_edits_get_a_second_look(client, engine):
+    await seed_categories(engine)
+    admin = await admin_headers(client, engine)
+    await submitted_artist(client, engine, "+919845020011")
+    edited = await approved_artist(client, engine, "+919845020012", admin, name="Henna by Noor")
+    await client.post("/api/v1/artists/me/reopen", headers=edited["headers"])
+    assert (await client.post("/api/v1/artists/me/submit", headers=edited["headers"])).status_code == 200
+
+    items = (await client.get("/api/v1/admin/artists", headers=admin)).json()["items"]
+    by_name = {i["business_name"]: i for i in items}
+    assert by_name["Henna by Noor"]["reviewed_at"] is not None  # approved before: this is a re-review
+    first_timers = [i for i in items if i["business_name"] != "Henna by Noor"]
+    assert first_timers and all(i["reviewed_at"] is None for i in first_timers)
 
 
 async def test_queue_lists_pending_oldest_first_with_paging(client, engine):

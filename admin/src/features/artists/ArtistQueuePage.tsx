@@ -74,6 +74,7 @@ function QueueRow({ artist: a }: { artist: ArtistSummary }) {
       <div className="flex min-w-0 items-center gap-2.5">
         <InitialsAvatar name={a.business_name} photoUrl={a.photo_url} />
         <span className="truncate font-bold">{a.business_name}</span>
+        {a.status === 'pending' && a.reviewed_at ? <Badge variant="warning" className="shrink-0">Re-review</Badge> : null}
       </div>
       <span className="truncate">{a.categories.join(', ') || '—'}</span>
       <span className="truncate">{a.city}</span>

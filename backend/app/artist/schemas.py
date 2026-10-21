@@ -171,6 +171,7 @@ class AdminArtistSummary(APIModel):
     service_count: int
     photo_count: int
     submitted_at: datetime | None
+    reviewed_at: datetime | None  # set on a pending profile: approved or rejected before, so this is a re-review
 
 
 class AdminArtistPage(APIModel):

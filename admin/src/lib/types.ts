@@ -108,6 +108,8 @@ export interface ArtistSummary {
   service_count: number
   photo_count: number
   submitted_at: string | null
+  /** Set on a pending profile that was approved or rejected before: a re-review after the artist's edits. */
+  reviewed_at: string | null
 }
 
 export interface ArtistDetail {

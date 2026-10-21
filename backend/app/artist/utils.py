@@ -76,6 +76,7 @@ def summary_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
         service_count=len(profile.services),
         photo_count=len(profile.photos),
         submitted_at=profile.submitted_at,
+        reviewed_at=profile.reviewed_at,
     )
 
 
