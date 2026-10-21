@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Select, and_, func, select
+from sqlalchemy import ColumnElement, Select, and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile
@@ -132,6 +132,26 @@ class ShopRepository:
             .where(Order.id == order_id, *scope)
             .with_for_update()
             .execution_options(populate_existing=True)
+        )
+
+    async def locked_open_orders(self, *scope: ColumnElement[bool]) -> Sequence[Order]:
+        """Orders still to pack (placed or confirmed), row-locked."""
+        return (
+            await self.session.scalars(
+                select(Order)
+                .where(Order.status.in_(OPEN_ORDER), *scope)
+                .order_by(Order.created_at)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).all()
+
+    async def deactivate_products(self, artist_id: uuid.UUID) -> None:
+        await self.session.execute(
+            update(Product)
+            .where(Product.artist_id == artist_id)
+            .values(is_active=False)
+            .execution_options(synchronize_session=False)
         )
 
     async def products_by_id(self, ids: list[uuid.UUID]) -> dict[uuid.UUID, Product]:

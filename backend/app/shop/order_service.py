@@ -28,6 +28,7 @@ from app.user.models import User
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_TRIES = 5
+ACCOUNT_DELETED = "Account deleted"
 NEXT = {
     OrderStatus.placed: OrderStatus.confirmed,
     OrderStatus.confirmed: OrderStatus.shipped,
@@ -218,6 +219,17 @@ class OrderService:
         await self._cancel(await self._locked(order_id, mine), "customer", reason)
         await self.session.flush()
         return await self._out(order_id, mine)
+
+    async def cancel_open_for_deleted_account(self, customer_id: uuid.UUID, artist_id: uuid.UUID | None) -> None:
+        """A deleted account's unshipped orders, as the buyer and (if they have a shop) as the seller, are
+        cancelled like a manual cancel: stock goes back and the other side is told."""
+        sides: list[tuple[str, ColumnElement[bool]]] = [("customer", Order.customer_id == customer_id)]
+        if artist_id is not None:
+            sides.append(("artist", Order.artist_id == artist_id))
+        for by, theirs in sides:
+            for order in await self.shop.locked_open_orders(theirs):
+                await self._cancel(order, by, ACCOUNT_DELETED)
+        await self.session.flush()
 
     # --- artist -----------------------------------------------------------------------------------
 

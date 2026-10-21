@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from app.core.auth import get_current_user
 from app.shared.responses import errors
@@ -33,3 +33,18 @@ async def choose_role(
     service: UserService = Depends(get_user_service),
 ) -> User:
     return await service.choose_role(user, body)
+
+
+@router.delete(
+    "/me",
+    status_code=204,
+    response_class=Response,
+    summary="Delete my account",
+    description=(
+        "Cancels upcoming bookings and unshipped orders (the other side is notified), suspends and blanks the "
+        "artist profile with its photos, KYC, posts and products, ends every session and anonymises the account. "
+        "Past bookings, orders, reviews and chats are kept. The phone number can sign up again as a new account."
+    ),
+)
+async def delete_me(user: User = Depends(get_current_user), service: UserService = Depends(get_user_service)) -> None:
+    await service.delete_account(user)

@@ -34,6 +34,11 @@ from app.shared.pagination import split_page
 from app.upload.service import ImageStorage
 from app.user.models import User
 
+
+def image_keys(post: Post) -> list[str]:
+    return [ph.storage_key for ph in post.photos] + ([post.cover_key] if post.cover_key else [])
+
+
 DEFAULT_TOPIC = {PostKind.photos: PostTopic.look, PostKind.article: PostTopic.guide}
 
 
@@ -161,11 +166,21 @@ class FeedService:
         post = await self.posts.own_post(post_id, await approved_artist_id(self.session, user))
         if post is None:
             raise NotFoundError("Post not found")
-        keys = [ph.storage_key for ph in post.photos] + ([post.cover_key] if post.cover_key else [])
+        keys = image_keys(post)
         await self.posts.delete(post)
         await self.session.flush()
         for key in keys:  # after the row is gone; a failed delete only leaves an orphaned image
             await self.storage.delete(key)
+
+    async def delete_all_for_artist(self, artist_id: uuid.UUID) -> list[str]:
+        """Delete every post of a deleted artist. Returns their image keys, for the caller to remove from
+        storage once the deletion is committed."""
+        keys: list[str] = []
+        for post in await self.posts.artist_posts(artist_id):
+            keys.extend(image_keys(post))
+            await self.posts.delete(post)
+        await self.session.flush()
+        return keys
 
     # --- customer -------------------------------------------------------------------------------
 

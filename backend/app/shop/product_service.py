@@ -45,6 +45,10 @@ class ProductService:
             raise NotFoundError("Product not found")
         return product_out(row, self.storage)
 
+    async def deactivate_all(self, artist_id: uuid.UUID) -> None:
+        """Switch off every product of a deleted artist (rows stay for past orders)."""
+        await self.shop.deactivate_products(artist_id)
+
     # --- artist -----------------------------------------------------------------------------------
 
     async def get_settings(self, user: User) -> dict[str, Any]:

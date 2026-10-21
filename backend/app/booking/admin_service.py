@@ -10,7 +10,7 @@ from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import notices, rules
 from app.booking.constants import OVERVIEW_PERIOD_DAYS, OverviewPeriod
 from app.booking.models import Booking
-from app.booking.service import OPEN, BookingService
+from app.booking.service import OPEN, BookingService, mark_cancelled
 from app.review.models import Review
 from app.review.repository import needs_moderation
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
@@ -43,13 +43,8 @@ class AdminBookingService(BookingService):
     async def cancel(self, booking_id: uuid.UUID, reason: str) -> dict:
         booking = await self.locked(booking_id)
         self.require(booking, *OPEN)
-        booking.status = BookingStatus.cancelled
-        booking.cancelled_at = self.clock.now()
-        booking.cancelled_by = "admin"
-        booking.cancel_reason = reason.strip()
-        booking.refund_due = (
-            True if booking.deposit_paise else None
-        )  # the platform called it off: the customer gets the deposit back
+        # the platform called it off: the customer gets the deposit back
+        mark_cancelled(booking, self.clock.now(), "admin", reason.strip(), refund_due=True)
         await notices.cancelled(self.session, booking, "admin")
         return await self.save(booking_id, view="admin")
 

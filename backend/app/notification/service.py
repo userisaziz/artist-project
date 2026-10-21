@@ -90,3 +90,8 @@ class NotificationService:
 
     async def remove_device(self, user_id: uuid.UUID, token: str) -> None:
         await self.session.execute(delete(PushDevice).where(PushDevice.token == token, PushDevice.user_id == user_id))
+
+    async def forget(self, user_id: uuid.UUID) -> None:
+        """Account deletion: the person's devices and whole inbox go."""
+        await self.session.execute(delete(PushDevice).where(PushDevice.user_id == user_id))
+        await self.session.execute(delete(Notification).where(Notification.user_id == user_id))

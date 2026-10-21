@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import OtpCode, RefreshToken
@@ -49,6 +49,12 @@ class AuthRepository:
             .where(RefreshToken.family_id == family_id, RefreshToken.revoked_at.is_(None))
             .values(revoked_at=now)
             .execution_options(synchronize_session=False)
+        )
+
+    async def delete_refresh_tokens(self, user_id: uuid.UUID) -> None:
+        """Every session of the account, revoked or not (account deletion)."""
+        await self.session.execute(
+            delete(RefreshToken).where(RefreshToken.user_id == user_id).execution_options(synchronize_session=False)
         )
 
     async def delete(self, row: OtpCode) -> None:

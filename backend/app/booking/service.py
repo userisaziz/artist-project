@@ -32,6 +32,8 @@ from app.user.models import User
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
 OPEN = (BookingStatus.requested, BookingStatus.confirmed)
 View = Literal["customer", "artist", "admin"]  # who a booking is shown to
+Canceller = Literal["customer", "artist", "admin"]  # Booking.cancelled_by
+ACCOUNT_DELETED = "Account deleted"
 CustomerScope = Literal["upcoming", "past"]
 ArtistScope = Literal["requests", "upcoming", "past"]
 
@@ -109,6 +111,32 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetim
 
 def clean_reason(reason: str | None) -> str | None:
     return (reason or "").strip() or None
+
+
+def mark_cancelled(booking: Booking, now: datetime, by: Canceller, reason: str | None, refund_due: bool) -> None:
+    booking.status = BookingStatus.cancelled
+    booking.cancelled_at = now
+    booking.cancelled_by = by
+    booking.cancel_reason = reason
+    booking.refund_due = refund_due if booking.deposit_paise else None
+
+
+async def cancel_upcoming_for_deleted_account(
+    session: AsyncSession, now: datetime, customer_id: uuid.UUID, artist_id: uuid.UUID | None
+) -> None:
+    """A deleted account calls off everything still ahead: as the customer and, if they have one, as the artist.
+    The other side is told. Overdue requests expire first, as on every read."""
+    repo = BookingRepository(session)
+    sides: list[tuple[Canceller, ColumnElement[bool]]] = [("customer", Booking.customer_id == customer_id)]
+    if artist_id is not None:
+        sides.append(("artist", Booking.artist_id == artist_id))
+    for by, theirs in sides:
+        await repo.expire_overdue(now, theirs)
+        for booking in await repo.locked_upcoming(now, theirs):
+            # Same refund rule as the side cancelling it by hand; an artist pulling out always owes it back.
+            refund = rules.customer_refund_due(booking.start_at, now) if by == "customer" else True
+            mark_cancelled(booking, now, by, ACCOUNT_DELETED, refund)
+            await notices.cancelled(session, booking, by)
 
 
 def ist_month_start(now: datetime) -> datetime:
@@ -258,11 +286,7 @@ class BookingService:
         now = self.clock.now()
         if now >= booking.start_at:
             raise ConflictError("This booking has already started")
-        booking.status = BookingStatus.cancelled
-        booking.cancelled_at = now
-        booking.cancelled_by = "customer"
-        booking.cancel_reason = clean_reason(reason)
-        booking.refund_due = rules.customer_refund_due(booking.start_at, now) if booking.deposit_paise else None
+        mark_cancelled(booking, now, "customer", clean_reason(reason), rules.customer_refund_due(booking.start_at, now))
         await notices.cancelled(self.session, booking, "customer")
         return await self.save(booking_id, mine, view="customer")
 

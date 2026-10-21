@@ -7,6 +7,7 @@ artists can propose custom services, which wait for admin review one by one.
 
 import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +43,16 @@ from app.user.models import User
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
 EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
+DELETED_NAME = "Deleted artist"
+
+
+@dataclass(frozen=True)
+class ErasedArtist:
+    """What `erase` left behind: the profile id (kept for history) and the image keys to remove from storage."""
+
+    artist_id: uuid.UUID
+    public_keys: list[str]
+    private_keys: list[str]
 
 
 class ArtistService:
@@ -58,6 +69,24 @@ class ArtistService:
         if profile is None:
             raise NotFoundError("No artist profile yet")
         return profile
+
+    async def erase(self, user: User) -> ErasedArtist | None:
+        """Account deletion: the profile stays (bookings, orders and reviews point at it) but is suspended, so it
+        leaves the directory and can't be booked; its name, bio, photos and KYC go. Services stay for history.
+        Storage is not touched here: the caller removes the returned keys once the deletion is committed."""
+        profile = await self.artists.by_user(user.id)
+        if profile is None:
+            return None
+        public = ([profile.photo_key] if profile.photo_key else []) + [p.storage_key for p in profile.photos]
+        private = [profile.kyc.front_key, profile.kyc.back_key] if profile.kyc else []
+        profile.status = ArtistStatus.suspended
+        profile.business_name = DELETED_NAME
+        profile.bio = None
+        profile.photo_key = None
+        profile.photos.clear()
+        profile.kyc = None
+        await self.session.flush()
+        return ErasedArtist(artist_id=profile.id, public_keys=public, private_keys=private)
 
     async def _editable(self, user: User) -> ArtistProfile:
         profile = await self.get(user)

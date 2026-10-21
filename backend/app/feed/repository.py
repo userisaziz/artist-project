@@ -77,6 +77,9 @@ class FeedRepository:
     async def own_post(self, post_id: uuid.UUID, artist_id: uuid.UUID) -> Post | None:
         return await self.session.scalar(select(Post).where(Post.id == post_id, Post.artist_id == artist_id))
 
+    async def artist_posts(self, artist_id: uuid.UUID) -> Sequence[Post]:
+        return (await self.session.scalars(select(Post).where(Post.artist_id == artist_id))).all()
+
     async def services(self, service_ids: list[uuid.UUID]) -> dict[uuid.UUID, ArtistServiceItem]:
         if not service_ids:
             return {}

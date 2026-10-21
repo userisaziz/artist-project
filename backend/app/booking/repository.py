@@ -192,6 +192,22 @@ class BookingRepository:
             )
         ).scalar_one_or_none()
 
+    async def locked_upcoming(self, now: datetime, *scope: ColumnElement[bool]) -> Sequence[Booking]:
+        """Requested or confirmed bookings that haven't started yet, row-locked (oldest start first)."""
+        return (
+            await self.session.scalars(
+                select(Booking)
+                .where(
+                    Booking.status.in_((BookingStatus.requested, BookingStatus.confirmed)),
+                    Booking.start_at > now,
+                    *scope,
+                )
+                .order_by(Booking.start_at)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).all()
+
     async def lock_approved_artist(self, artist_id: uuid.UUID) -> Row | None:
         """(id, user_id) of an approved artist, row-locked: requests for one artist queue behind each other."""
         return (
