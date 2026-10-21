@@ -37,5 +37,10 @@ def reviews_per_user() -> Limit:
     return constants.REVIEWS_PER_USER
 
 
+def reschedule_requests_per_user() -> Limit:
+    return constants.RESCHEDULE_REQUESTS_PER_USER
+
+
 limit_booking_requests = limit_by_user("booking_request", booking_requests_per_user)
 limit_reviews = limit_by_user("review", reviews_per_user)
+limit_reschedule_requests = limit_by_user("reschedule_request", reschedule_requests_per_user)

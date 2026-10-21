@@ -93,6 +93,11 @@ def accept_deadline(now: datetime, start: datetime) -> datetime:
     return min(now + timedelta(hours=get_booking_settings().booking_accept_hours), start)
 
 
+def reschedule_deadline(now: datetime, current_start: datetime, new_start: datetime) -> datetime:
+    """The artist's window to answer a move, but never past either time: by then the question is moot."""
+    return min(accept_deadline(now, new_start), current_start)
+
+
 CALENDAR_RANGE = timedelta(days=3 * 366)
 
 

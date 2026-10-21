@@ -3,8 +3,13 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.booking.dependencies import get_booking_service, limit_booking_requests, limit_reviews
-from app.booking.schemas import BookingIn, BookingOut, BookingPage, ReasonIn
+from app.booking.dependencies import (
+    get_booking_service,
+    limit_booking_requests,
+    limit_reschedule_requests,
+    limit_reviews,
+)
+from app.booking.schemas import BookingIn, BookingOut, BookingPage, ReasonIn, RescheduleIn
 from app.booking.service import BookingService
 from app.core.auth import current_customer
 from app.review.dependencies import get_review_service
@@ -59,6 +64,39 @@ async def cancel_my_booking(
     bookings: BookingService = Depends(get_booking_service),
 ) -> dict:
     return await bookings.customer_cancel(user, booking_id, body.reason)
+
+
+@router.post(
+    "/{booking_id}/reschedule",
+    response_model=BookingOut,
+    status_code=200,
+    summary="Ask the artist to move my booking",
+    description="Confirmed bookings that haven't started only. The booking keeps its time until the artist accepts; "
+    "the new time is held meanwhile. One pending ask per booking; it lapses if unanswered.",
+    dependencies=[Depends(limit_reschedule_requests)],
+)
+async def request_reschedule(
+    booking_id: uuid.UUID,
+    body: RescheduleIn,
+    user: User = Depends(current_customer),
+    bookings: BookingService = Depends(get_booking_service),
+) -> dict:
+    return await bookings.request_reschedule(user, booking_id, body.start_at)
+
+
+@router.delete(
+    "/{booking_id}/reschedule",
+    response_model=BookingOut,
+    status_code=200,
+    summary="Withdraw my ask to move a booking",
+    description="Idempotent: succeeds when nothing is pending.",
+)
+async def withdraw_reschedule(
+    booking_id: uuid.UUID,
+    user: User = Depends(current_customer),
+    bookings: BookingService = Depends(get_booking_service),
+) -> dict:
+    return await bookings.withdraw_reschedule(user, booking_id)
 
 
 @router.post(

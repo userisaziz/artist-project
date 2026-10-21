@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import Field, field_validator
+from pydantic import AwareDatetime, Field, field_validator
 
 from app.shared.enums import BookingStatus, ReviewStatus
 from app.shared.schemas import APIModel
@@ -34,6 +34,21 @@ class ReasonIn(APIModel):
     """Optional reason: customer cancel, artist decline."""
 
     reason: str | None = Field(default=None, max_length=500)
+
+
+class RescheduleIn(APIModel):
+    """A new start for a confirmed booking; it must be one of the artist's offered slots."""
+
+    start_at: AwareDatetime
+
+
+class RescheduleOut(APIModel):
+    """A pending ask to move the booking; the booking keeps its own times until the artist accepts."""
+
+    start_at: datetime
+    end_at: datetime
+    expires_at: datetime
+    requested_at: datetime
 
 
 class BookingArtist(APIModel):
@@ -67,6 +82,7 @@ class BookingOut(APIModel):
     end_at: datetime
     address: str
     note: str | None
+    service_id: uuid.UUID | None  # the artist service it was booked for; None once that service is deleted
     service_name: str
     duration_minutes: int
     artist: BookingArtist
@@ -90,6 +106,8 @@ class BookingOut(APIModel):
     created_at: datetime
     review: BookingReview | None
     can_review: bool  # completed, within the review window, not reviewed yet
+    reschedule: RescheduleOut | None  # the customer's pending ask to move it
+    reschedule_declined_reason: str | None  # the artist's reason for declining the last ask
 
 
 class AdminBookingOut(BookingOut):

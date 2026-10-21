@@ -1,6 +1,7 @@
-"""Bookings for customers and artists: request a slot, accept, decline, complete, cancel.
+"""Bookings for customers and artists: request a slot, accept, decline, complete, cancel, and move (reschedule).
 
-Unanswered requests expire lazily: each read or write first marks overdue requests `expired`.
+Unanswered requests expire lazily: each read or write first marks overdue requests `expired` and drops
+unanswered asks to move a booking.
 Writes commit before returning, because `get_db` commits only after the response is sent and a
 customer must never see "requested" for a booking that wasn't saved.
 """
@@ -19,7 +20,7 @@ from app.artist import schedule_service as artist_schedule
 from app.booking import notices, rules
 from app.booking.config import BookingSettings
 from app.booking.models import Booking
-from app.booking.repository import BookingRepository, BookingRow
+from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, BookingRow
 from app.booking.schemas import BookingIn
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_window_open
@@ -35,6 +36,8 @@ OPEN = (BookingStatus.requested, BookingStatus.confirmed)
 View = Literal["customer", "artist", "admin"]  # who a booking is shown to
 Canceller = Literal["customer", "artist", "admin"]  # Booking.cancelled_by
 ACCOUNT_DELETED = "Account deleted"
+TAKEN = "That time was just taken. Pick another."
+NOT_ASKED = "No change was asked for"
 CustomerScope = Literal["upcoming", "past"]
 ArtistScope = Literal["requests", "upcoming", "past"]
 
@@ -75,6 +78,7 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetim
         "end_at": b.end_at,
         "address": b.address,
         "note": b.note,
+        "service_id": b.service_id,
         "service_name": b.service_name,
         "duration_minutes": b.duration_minutes,
         "artist": {
@@ -107,7 +111,26 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetim
         "can_review": b.status == BookingStatus.completed
         and row.review_id is None
         and review_window_open(b.completed_at, now),
+        "reschedule": {
+            "start_at": b.reschedule_start_at,
+            "end_at": b.reschedule_end_at,
+            "expires_at": b.reschedule_expires_at,
+            "requested_at": b.reschedule_requested_at,
+        }
+        if reschedule_pending(b, now)
+        else None,
+        "reschedule_declined_reason": b.reschedule_declined_reason,
     }
+
+
+def reschedule_pending(booking: Booking, now: datetime) -> bool:
+    expires = booking.reschedule_expires_at
+    return booking.status == BookingStatus.confirmed and expires is not None and expires > now
+
+
+def clear_reschedule(booking: Booking) -> None:
+    for column, value in CLEARED_RESCHEDULE.items():
+        setattr(booking, column, value)
 
 
 def clean_reason(reason: str | None) -> str | None:
@@ -120,6 +143,7 @@ def mark_cancelled(booking: Booking, now: datetime, by: Canceller, reason: str |
     booking.cancelled_by = by
     booking.cancel_reason = reason
     booking.refund_due = refund_due if booking.deposit_paise else None
+    clear_reschedule(booking)  # a cancelled booking has nothing left to move
 
 
 async def cancel_upcoming_for_deleted_account(
@@ -300,6 +324,59 @@ class BookingService:
         await notices.cancelled(self.session, booking, "customer")
         return await self.save(booking_id, mine, view="customer")
 
+    async def request_reschedule(self, customer: User, booking_id: uuid.UUID, start: datetime) -> dict[str, Any]:
+        """Ask the artist to move a confirmed booking that hasn't started. It keeps its time until they accept;
+        the asked-for range is held for them meanwhile."""
+        mine = Booking.customer_id == customer.id
+        booking = await self.locked_for_move(booking_id, mine)
+        now = self.clock.now()
+        if booking.status != BookingStatus.confirmed or now >= booking.start_at:
+            raise ConflictError("This booking can't be moved")
+        if reschedule_pending(booking, now):
+            raise ConflictError("You've already asked to move this booking")
+        if start == booking.start_at:
+            raise ValidationError("Pick a different time from the current one")
+        await self._check_bookable(booking, start, now)
+        end = start + timedelta(minutes=booking.duration_minutes)
+        if await self.bookings.busy_ranges(booking.artist_id, start, end, now, excluding=booking.id):
+            raise ConflictError(TAKEN)
+        booking.reschedule_start_at = start
+        booking.reschedule_end_at = end
+        booking.reschedule_requested_at = now
+        booking.reschedule_expires_at = rules.reschedule_deadline(now, booking.start_at, start)
+        booking.reschedule_declined_reason = None
+        await notices.reschedule_requested(self.session, booking, start)
+        return await self.save(booking_id, mine, view="customer")
+
+    async def _check_bookable(self, booking: Booking, start: datetime, now: datetime) -> None:
+        """The same slot rules as a new booking (the artist's hours and days off, lead time, horizon), with one
+        message: the app only offers slots from the availability grid."""
+        try:
+            hours = await artist_schedule.open_hours(self.session, booking.artist_id, rules.start_day(start))
+            rules.check_bookable_start(start, now, hours, booking.duration_minutes)
+        except ValidationError as exc:
+            raise ValidationError("Pick one of the offered times") from exc
+
+    async def withdraw_reschedule(self, customer: User, booking_id: uuid.UUID) -> dict[str, Any]:
+        """Take back a pending ask; nothing to do when there is none."""
+        mine = Booking.customer_id == customer.id
+        booking = await self.locked(booking_id, mine)
+        clear_reschedule(booking)
+        return await self.save(booking_id, mine, view="customer")
+
+    async def locked_for_move(self, booking_id: uuid.UUID, *scope: ColumnElement[bool]) -> Booking:
+        """Like `locked`, but first row-locks the booking's artist, as `create` does: moves and new requests for
+        one artist queue behind each other, so the held-range check is reliable. Artist before booking, always."""
+        await self.expire_overdue(Booking.id == booking_id)
+        artist_id = await self.bookings.artist_of_booking(booking_id, *scope)
+        if artist_id is None:
+            raise NotFoundError("Booking not found")
+        await self.bookings.lock_artist(artist_id)
+        booking = await self.bookings.locked(booking_id, *scope)
+        if booking is None:
+            raise NotFoundError("Booking not found")
+        return booking
+
     # --- artist ---------------------------------------------------------------------------------
 
     async def artist_id(self, user: User) -> uuid.UUID:
@@ -357,6 +434,35 @@ class BookingService:
         booking.decline_reason = clean_reason(reason)
         booking.refund_due = True if booking.deposit_paise else None
         await notices.answered(self.session, booking, accepted=False)
+        return await self.save(booking_id, theirs, view="artist")
+
+    async def accept_reschedule(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:
+        """Move the booking to the asked-for time, if it is still free."""
+        theirs = Booking.artist_id == await self.artist_id(user)
+        booking = await self.locked_for_move(booking_id, theirs)
+        now = self.clock.now()
+        start, end = booking.reschedule_start_at, booking.reschedule_end_at
+        if not reschedule_pending(booking, now) or start is None or end is None:
+            raise ConflictError(NOT_ASKED)
+        if await self.bookings.busy_ranges(booking.artist_id, start, end, now, excluding=booking.id):
+            raise ConflictError(TAKEN)
+        booking.start_at, booking.end_at = start, end
+        clear_reschedule(booking)
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:  # ex_booking_no_overlap: only reachable if a write skipped the artist lock
+            raise ConflictError(TAKEN) from exc
+        await notices.reschedule_answered(self.session, booking, accepted=True)
+        return await self.save(booking_id, theirs, view="artist")
+
+    async def decline_reschedule(self, user: User, booking_id: uuid.UUID, reason: str | None) -> dict[str, Any]:
+        """Keep the booking's time; the customer sees the reason."""
+        booking, theirs = await self._artist_locked(user, booking_id)
+        if not reschedule_pending(booking, self.clock.now()):
+            raise ConflictError(NOT_ASKED)
+        clear_reschedule(booking)
+        booking.reschedule_declined_reason = clean_reason(reason)
+        await notices.reschedule_answered(self.session, booking, accepted=False)
         return await self.save(booking_id, theirs, view="artist")
 
     async def complete(self, user: User, booking_id: uuid.UUID) -> dict[str, Any]:

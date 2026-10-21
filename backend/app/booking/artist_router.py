@@ -66,6 +66,35 @@ async def complete_booking(
     return await bookings.complete(user, booking_id)
 
 
+@router.post(
+    "/bookings/{booking_id}/reschedule/accept",
+    response_model=BookingOut,
+    status_code=200,
+    summary="Accept the customer's new time",
+    description="Moves the booking to the asked-for time, if it is still free.",
+)
+async def accept_reschedule(
+    booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
+) -> dict:
+    return await bookings.accept_reschedule(user, booking_id)
+
+
+@router.post(
+    "/bookings/{booking_id}/reschedule/decline",
+    response_model=BookingOut,
+    status_code=200,
+    summary="Decline the customer's new time",
+    description="The booking keeps its current time; the customer sees the optional reason.",
+)
+async def decline_reschedule(
+    booking_id: uuid.UUID,
+    body: ReasonIn,
+    user: User = Depends(current_artist),
+    bookings: BookingService = Depends(get_booking_service),
+) -> dict:
+    return await bookings.decline_reschedule(user, booking_id, body.reason)
+
+
 @router.get(
     "/earnings",
     response_model=ArtistEarnings,

@@ -13,6 +13,12 @@ from app.shared.models import Base, TimestampMixin
 
 booking_status_enum = Enum(BookingStatus, name="booking_status", values_callable=lambda e: [m.value for m in e])
 
+RESCHEDULE_ALL_OR_NONE = (
+    "(reschedule_start_at IS NULL AND reschedule_end_at IS NULL AND reschedule_requested_at IS NULL "
+    "AND reschedule_expires_at IS NULL) OR (reschedule_start_at IS NOT NULL AND reschedule_end_at IS NOT NULL "
+    "AND reschedule_requested_at IS NOT NULL AND reschedule_expires_at IS NOT NULL)"
+)
+
 
 class Booking(Base, TimestampMixin):
     """Service name, duration and every money figure are copied in at request time:
@@ -62,6 +68,13 @@ class Booking(Base, TimestampMixin):
     decline_reason: Mapped[str | None] = mapped_column(String(500))
     cancel_reason: Mapped[str | None] = mapped_column(String(500))
     refund_due: Mapped[bool | None] = mapped_column(Boolean)
+    # A customer's pending ask to move the booking: the range it would move to, and the artist's answer deadline.
+    # The booking keeps start_at/end_at until the artist accepts; the asked-for range is held meanwhile.
+    reschedule_start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reschedule_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reschedule_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reschedule_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reschedule_declined_reason: Mapped[str | None] = mapped_column(String(500))  # the artist's last decline
 
     __table_args__ = (
         sa.Index("ix_booking_artist_start", "artist_id", "start_at"),
@@ -71,6 +84,7 @@ class Booking(Base, TimestampMixin):
             name="money_non_negative",
         ),
         sa.CheckConstraint("end_at > start_at", name="end_after_start"),
+        sa.CheckConstraint(RESCHEDULE_ALL_OR_NONE, name="reschedule_all_or_none"),
         # The database itself refuses two slot-holding bookings that overlap for one artist, whatever
         # code path writes them (the service also checks first, under the artist row lock).
         ExcludeConstraint(

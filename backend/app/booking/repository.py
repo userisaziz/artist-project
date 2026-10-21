@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Date, Row, Select, and_, case, cast, func, or_, select, update
+from sqlalchemy import ColumnElement, Date, Row, Select, and_, case, cast, func, or_, select, true, union_all, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -59,6 +59,19 @@ def holds_slot(now: datetime) -> ColumnElement[bool]:
     )
 
 
+def reschedule_pending(now: datetime) -> ColumnElement[bool]:
+    """Bookings whose asked-for new time still waits for the artist (and so is held for them)."""
+    return and_(Booking.status == BookingStatus.confirmed, Booking.reschedule_expires_at > now)
+
+
+CLEARED_RESCHEDULE = {
+    "reschedule_start_at": None,
+    "reschedule_end_at": None,
+    "reschedule_requested_at": None,
+    "reschedule_expires_at": None,
+}
+
+
 class BookingRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -89,15 +102,32 @@ class BookingRepository:
         return [BookingRow(*r) for r in (await self.session.execute(query)).all()]
 
     async def busy_ranges(
-        self, artist_id: uuid.UUID, start: datetime, end: datetime, now: datetime
+        self,
+        artist_id: uuid.UUID,
+        start: datetime,
+        end: datetime,
+        now: datetime,
+        excluding: uuid.UUID | None = None,
     ) -> list[tuple[datetime, datetime]]:
-        """The artist's slot-holding bookings that overlap [start, end)."""
-        rows = await self.session.execute(
-            select(Booking.start_at, Booking.end_at).where(
-                Booking.artist_id == artist_id, Booking.start_at < end, Booking.end_at > start, holds_slot(now)
-            )
+        """The artist's held ranges that overlap [start, end): slot-holding bookings, plus the asked-for range of
+        each pending reschedule. `excluding` leaves one booking (both its ranges) out, for moving it."""
+        others = Booking.id != excluding if excluding is not None else true()
+        current = select(Booking.start_at, Booking.end_at).where(
+            Booking.artist_id == artist_id, Booking.start_at < end, Booking.end_at > start, holds_slot(now), others
         )
+        asked = select(Booking.reschedule_start_at, Booking.reschedule_end_at).where(
+            Booking.artist_id == artist_id,
+            Booking.reschedule_start_at < end,
+            Booking.reschedule_end_at > start,
+            reschedule_pending(now),
+            others,
+        )
+        held = union_all(current, asked).subquery()
+        rows = await self.session.execute(select(held.c.start_at, held.c.end_at))
         return [(s, e) for s, e in rows.all()]
+
+    async def artist_of_booking(self, booking_id: uuid.UUID, *scope: ColumnElement[bool]) -> uuid.UUID | None:
+        return await self.session.scalar(select(Booking.artist_id).where(Booking.id == booking_id, *scope))
 
     async def artist_of(self, user_id: uuid.UUID) -> Row | None:
         """(id, status) of the user's artist profile."""
@@ -185,11 +215,18 @@ class BookingRepository:
     # --- writes and locks -----------------------------------------------------------------------
 
     async def expire_overdue(self, now: datetime, *scope: ColumnElement[bool]) -> None:
-        """Requests past their answer window become expired, with their deposit due back."""
+        """Requests past their answer window become expired, with their deposit due back; unanswered asks to
+        move a booking past theirs are dropped (the booking keeps its time)."""
         await self.session.execute(
             update(Booking)
             .where(Booking.status == BookingStatus.requested, Booking.expires_at <= now, *scope)
             .values(status=BookingStatus.expired, refund_due=case((Booking.deposit_paise > 0, True), else_=None))
+            .execution_options(synchronize_session=False)
+        )
+        await self.session.execute(
+            update(Booking)
+            .where(Booking.reschedule_expires_at <= now, *scope)
+            .values(**CLEARED_RESCHEDULE)
             .execution_options(synchronize_session=False)
         )
 
@@ -229,6 +266,10 @@ class BookingRepository:
                 .with_for_update()
             )
         ).one_or_none()
+
+    async def lock_artist(self, artist_id: uuid.UUID) -> None:
+        """Row-lock an artist whatever their status: moves of their bookings queue with new requests for them."""
+        await self.session.execute(select(ArtistProfile.id).where(ArtistProfile.id == artist_id).with_for_update())
 
     async def lock_customer(self, customer_id: uuid.UUID) -> None:
         """Row-lock the customer: one customer's concurrent requests queue, so the open-request cap holds."""
