@@ -8,9 +8,7 @@ import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/context/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // same rule as the mock / backend contract
-const BAD_EMAIL = 'Enter a valid email, or leave it empty.';
+import { BAD_EMAIL, isValidOptionalEmail } from '../../src/utils/auth/email';
 
 // Atelier hi-fi "Your details" (v4): step 3 of 3, first/last name side by side, optional email, Continue pinned.
 export default function SignupScreen() {
@@ -25,7 +23,7 @@ export default function SignupScreen() {
 
   const submit = async () => {
     const trimmedEmail = email.trim();
-    if (trimmedEmail && !EMAIL_RE.test(trimmedEmail)) { setEmailError(BAD_EMAIL); return; }
+    if (!isValidOptionalEmail(trimmedEmail)) { setEmailError(BAD_EMAIL); return; }
     setSaving(true);
     setError(null);
     try {
