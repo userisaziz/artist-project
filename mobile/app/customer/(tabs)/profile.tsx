@@ -8,6 +8,7 @@ import { formatPhone } from '../../../src/components/common/PhoneInput';
 import { MenuRow } from '../../../src/components/common/MenuRow';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
+import { DeleteAccountButton } from '../../../src/components/auth/DeleteAccountButton';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { Icon } from '../../../src/components/common/Icon';
 
@@ -67,6 +68,7 @@ export default function CustomerProfile() {
       <Pressable accessibilityRole="button" onPress={() => { void signOut(); }} style={{ marginTop: 24, alignSelf: 'center', padding: 12 }}>
         <AppText variant="button" style={{ color: theme.colors.brand }}>Log out</AppText>
       </Pressable>
+      <DeleteAccountButton />
     </ScrollView>
   );
 }
