@@ -1,4 +1,5 @@
-"""Accounts: the users table and the roles each account holds (user_roles, migration #4)."""
+"""Accounts: the users table, the roles each account holds (user_roles, migration #4) and the account's saved
+addresses."""
 
 import uuid
 from datetime import datetime
@@ -65,3 +66,20 @@ class UserRoleGrant(Base):
     )
     role: Mapped[UserRole] = mapped_column(user_role_enum, primary_key=True)
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class UserAddress(Base):
+    """A labelled address the user saved to reuse in bookings and orders; most recently used first."""
+
+    __tablename__ = "user_address"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(40), nullable=False)
+    address: Mapped[str] = mapped_column(String(300), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

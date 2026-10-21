@@ -34,6 +34,7 @@ EXPECTED_TABLES = {
     "booking",
     "review",
     "saved_item",
+    "user_address",
 }
 
 

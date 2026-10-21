@@ -16,6 +16,7 @@ from app.shared.clock import Clock
 from app.shared.enums import UserRole
 from app.shop import order_service, product_service
 from app.upload.service import ImageStorage
+from app.user import address_service
 from app.user.models import User
 from app.user.repository import UserRepository
 from app.user.schemas import AccountDetails, RoleChoice
@@ -61,7 +62,7 @@ class UserService:
 
     async def delete_account(self, user: User) -> None:
         """Anonymise now, in one transaction: cancel what is still ahead (telling the other side), take the
-        artist profile out of sight with its photos, KYC and posts, end every session, and blank the account in
+        artist profile out of sight with its photos, KYC and posts, end every session, drop saved addresses, and blank the account in
         place so past bookings, orders, reviews and chats keep their references. Images are removed from
         storage only after the commit, so a failed deletion never leaves rows pointing at deleted files."""
         erased = await artist_service.ArtistService(self.session, self.storage, self.clock).erase(user)
@@ -79,6 +80,7 @@ class UserService:
         await auth_repository.AuthRepository(self.session).delete_refresh_tokens(user.id)
         await notification_service.NotificationService(self.session).forget(user.id)
         await saved_service.forget(self.session, user.id)
+        await address_service.forget(self.session, user.id)
         self._anonymise(user)
         await self.session.commit()
         audit("user.account_deleted", user_id=str(user.id), artist_id=str(artist_id) if artist_id else None)
