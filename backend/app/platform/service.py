@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.constants import DEFAULT_CLOSE_HOUR, DEFAULT_OPEN_HOUR
 from app.booking.config import BookingSettings
 from app.catalog.config import CatalogSettings
 from app.core.exceptions import ConflictError, NotFoundError
@@ -33,7 +34,7 @@ def policies(booking: BookingSettings) -> list[dict[str, Any]]:
         (
             "slot_hours",
             "Bookable start times",
-            f"{booking.slot_first_hour}:00 to {booking.slot_last_hour}:00 IST, hourly",
+            f"Hourly, within each artist's working hours (default {DEFAULT_OPEN_HOUR}:00 to {DEFAULT_CLOSE_HOUR}:00 IST)",
         ),
         (
             "max_open_requests_per_customer",

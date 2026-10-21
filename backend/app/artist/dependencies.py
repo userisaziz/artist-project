@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.admin_service import AdminArtistService
 from app.artist.custom_service_review import CustomServiceReview
+from app.artist.schedule_service import ScheduleService
 from app.artist.service import ArtistService
 from app.core.database import get_db
 from app.shared.clock import Clock, get_clock
@@ -25,3 +26,9 @@ def get_admin_artist_service(
 
 def get_custom_service_review(session: AsyncSession = Depends(get_db, scope="function")) -> CustomServiceReview:
     return CustomServiceReview(session)
+
+
+def get_schedule_service(
+    session: AsyncSession = Depends(get_db, scope="function"), clock: Clock = Depends(get_clock)
+) -> ScheduleService:
+    return ScheduleService(session, clock)

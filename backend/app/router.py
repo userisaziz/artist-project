@@ -5,6 +5,7 @@ from fastapi import APIRouter
 
 from app.artist import admin_router as artist_admin
 from app.artist import router as artist
+from app.artist import schedule_router as artist_schedule
 from app.artist_directory import admin_router as artist_directory_admin
 from app.auth import router as auth
 from app.booking import admin_router as admin_bookings
@@ -40,6 +41,7 @@ api_router.include_router(user.router)
 api_router.include_router(catalog.router)
 api_router.include_router(upload.router)
 api_router.include_router(artist.router)
+api_router.include_router(artist_schedule.router)
 api_router.include_router(artist_bookings.router)
 api_router.include_router(artist_reviews.router)
 api_router.include_router(artist_chat.router)

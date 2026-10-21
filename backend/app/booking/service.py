@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
+from app.artist import schedule_service as artist_schedule
 from app.booking import notices, rules
 from app.booking.config import BookingSettings
 from app.booking.models import Booking
@@ -216,7 +217,10 @@ class BookingService:
         if service is None:
             raise NotFoundError("Service not found")
 
-        rules.check_bookable_start(data.start_at, now)
+        day = rules.start_day(data.start_at)
+        rules.check_bookable_day(day, now)
+        hours = await artist_schedule.open_hours(self.session, artist.id, day)
+        rules.check_bookable_start(data.start_at, now, hours, service.duration_minutes)
         # Settle this artist's unanswered requests first: an expired one must not hold its slot (nor trip the
         # database's no-overlap constraint, which only knows the stored status).
         await self.bookings.expire_overdue(now, Booking.artist_id == artist.id)

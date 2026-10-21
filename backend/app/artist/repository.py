@@ -1,13 +1,15 @@
 """Queries over artist profiles, their services and the KYC audit trail."""
 
 import uuid
+from datetime import date
 from typing import NamedTuple
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, delete, exists, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app.artist.models import AadhaarReveal, ArtistProfile, ArtistServiceItem
+from app.artist.models import AadhaarReveal, ArtistDayOff, ArtistProfile, ArtistServiceItem, ArtistWorkingHour
 from app.catalog.models import Category
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset, split_page
@@ -77,3 +79,44 @@ class ArtistRepository:
     async def custom_service(self, service_id: uuid.UUID) -> CustomServiceRow | None:
         row = (await self.session.execute(_custom_services().where(ArtistServiceItem.id == service_id))).one_or_none()
         return CustomServiceRow(*row) if row else None
+
+
+class ScheduleRepository:
+    """An artist's weekly hours and days off."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def hours(self, artist_id: uuid.UUID) -> list[ArtistWorkingHour]:
+        query = select(ArtistWorkingHour).where(ArtistWorkingHour.artist_id == artist_id)
+        return list((await self.session.scalars(query)).all())
+
+    async def hour(self, artist_id: uuid.UUID, weekday: int) -> ArtistWorkingHour | None:
+        return await self.session.get(ArtistWorkingHour, (artist_id, weekday))
+
+    async def replace_hours(self, artist_id: uuid.UUID, rows: list[ArtistWorkingHour]) -> None:
+        await self.session.execute(delete(ArtistWorkingHour).where(ArtistWorkingHour.artist_id == artist_id))
+        self.session.add_all(rows)
+        await self.session.flush()
+
+    async def days_off(self, artist_id: uuid.UUID, since: date) -> list[date]:
+        query = (
+            select(ArtistDayOff.day_date)
+            .where(ArtistDayOff.artist_id == artist_id, ArtistDayOff.day_date >= since)
+            .order_by(ArtistDayOff.day_date)
+        )
+        return list((await self.session.scalars(query)).all())
+
+    async def is_day_off(self, artist_id: uuid.UUID, day: date) -> bool:
+        query = select(exists().where(ArtistDayOff.artist_id == artist_id, ArtistDayOff.day_date == day))
+        return bool(await self.session.scalar(query))
+
+    async def add_day_off(self, artist_id: uuid.UUID, day: date) -> None:
+        """Idempotent: adding a day that is already off changes nothing."""
+        query = insert(ArtistDayOff).values(artist_id=artist_id, day_date=day).on_conflict_do_nothing()
+        await self.session.execute(query)
+
+    async def remove_day_off(self, artist_id: uuid.UUID, day: date) -> None:
+        await self.session.execute(
+            delete(ArtistDayOff).where(ArtistDayOff.artist_id == artist_id, ArtistDayOff.day_date == day)
+        )

@@ -1,15 +1,18 @@
 """An artist's onboarding profile: its categories, services, portfolio and KYC, plus the Aadhaar reveal audit (migration #3)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 import sqlalchemy as sa
 from sqlalchemy import (
+    Boolean,
     Column,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
     Integer,
+    SmallInteger,
     String,
     Table,
     Text,
@@ -57,6 +60,7 @@ class ArtistProfile(Base, TimestampMixin):
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"))
+    travel_radius_km: Mapped[int | None] = mapped_column(SmallInteger)  # display only, never filters
 
     # selectin: async sessions can't lazy-load, and every read of a profile needs all three.
     categories: Mapped[list[Category]] = relationship(
@@ -79,6 +83,7 @@ class ArtistProfile(Base, TimestampMixin):
             postgresql_using="gin",
             postgresql_ops={"business_name": "gin_trgm_ops"},
         ),
+        sa.CheckConstraint("travel_radius_km BETWEEN 1 AND 100", name="travel_radius_km_range"),
     )
 
 
@@ -180,3 +185,33 @@ class AadhaarReveal(Base):
     )
     admin_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"), nullable=False)
     revealed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ArtistWorkingHour(Base):
+    """One weekday of an artist's week. A weekday without a row uses the default hours (see constants.py)."""
+
+    __tablename__ = "artist_working_hour"
+
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True
+    )
+    weekday: Mapped[int] = mapped_column(SmallInteger, primary_key=True)  # 0 = Monday
+    is_open: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    open_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False)  # closed days keep their hours too
+    close_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+
+    __table_args__ = (
+        sa.CheckConstraint("weekday BETWEEN 0 AND 6", name="weekday_range"),
+        sa.CheckConstraint("0 <= open_hour AND open_hour < close_hour AND close_hour <= 24", name="hours_range"),
+    )
+
+
+class ArtistDayOff(Base):
+    """A date the artist takes no new bookings. Bookings already made for it stay as they are."""
+
+    __tablename__ = "artist_day_off"
+
+    artist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True
+    )
+    day_date: Mapped[date] = mapped_column(Date, primary_key=True)

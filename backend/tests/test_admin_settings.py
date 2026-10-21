@@ -22,6 +22,7 @@ async def test_policies_show_the_booking_rules_without_fees(client, engine):
 
     keys = {p["key"]: p for p in policies}
     assert keys["booking_accept_hours"]["value"] == "3 hours to accept a request"
+    assert keys["slot_hours"]["value"] == "Hourly, within each artist's working hours (default 8:00 to 20:00 IST)"
     assert keys["payments"]["value"] == "Customers pay the artist directly; no in-app payments"
     assert all(p["editable"] is False for p in policies)
     assert "commission" not in keys

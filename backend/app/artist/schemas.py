@@ -2,11 +2,12 @@
 from storage keys at response time (see presenters.py); keys go in, URLs come out."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import Field, StringConstraints, model_validator
 
+from app.artist.constants import MAX_TRAVEL_RADIUS_KM, MIN_TRAVEL_RADIUS_KM, WEEKDAYS
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
 from app.subcategory_request.schemas import SuggestedSubcategoryIn, SuggestedSubcategoryOut
@@ -200,3 +201,38 @@ class AdminCustomServiceOut(APIModel):
 class AdminCustomServicePage(APIModel):
     items: list[AdminCustomServiceOut]
     next_cursor: str | None
+
+
+class WorkingHour(APIModel):
+    """One weekday, IST whole hours. Closed days still carry hours, so reopening one restores them."""
+
+    weekday: int = Field(ge=0, le=WEEKDAYS - 1)  # 0 = Monday
+    is_open: bool
+    open_hour: int = Field(ge=0, le=23)
+    close_hour: int = Field(ge=1, le=24)
+
+    @model_validator(mode="after")
+    def _closes_after_opening(self) -> "WorkingHour":
+        if self.close_hour <= self.open_hour:
+            raise ValueError("close_hour must be after open_hour")
+        return self
+
+
+TravelRadius = Annotated[int, Field(ge=MIN_TRAVEL_RADIUS_KM, le=MAX_TRAVEL_RADIUS_KM)]
+
+
+class ScheduleIn(APIModel):
+    hours: list[WorkingHour] = Field(min_length=WEEKDAYS, max_length=WEEKDAYS)
+    travel_radius_km: TravelRadius | None = None  # display only; null (or left out) clears it
+
+    @model_validator(mode="after")
+    def _every_weekday_once(self) -> "ScheduleIn":
+        if {h.weekday for h in self.hours} != set(range(WEEKDAYS)):
+            raise ValueError("hours needs each weekday 0-6 exactly once")
+        return self
+
+
+class ScheduleOut(APIModel):
+    hours: list[WorkingHour]  # 7 items, by weekday
+    days_off: list[date]  # today (IST) onward, ascending
+    travel_radius_km: int | None

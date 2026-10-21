@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist import schedule_service as artist_schedule
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import rules
 from app.booking.repository import BookingRepository
@@ -95,6 +96,8 @@ class DirectoryService:
             ],
             "member_since": profile.reviewed_at,
             "completed_bookings": completed,
+            "travel_radius_km": profile.travel_radius_km,
+            "hours": await artist_schedule.week(self.session, profile.id),
         }
 
     async def availability(self, profile: ArtistProfile, day: date, service_id: uuid.UUID) -> dict:
@@ -103,8 +106,11 @@ class DirectoryService:
             raise NotFoundError("Service not found")
         now = self.clock.now()
         rules.check_bookable_day(day, now)
+        hours = await artist_schedule.open_hours(self.session, profile.id, day)
+        starts = rules.slot_starts(day, hours, service.duration_minutes)
+        if not starts:  # a closed weekday or a day off
+            return {"date": day, "slots": []}
         length = timedelta(minutes=service.duration_minutes)
-        starts = rules.slot_starts(day)
         busy = await BookingRepository(self.session).busy_ranges(profile.id, starts[0], starts[-1] + length, now)
         return {
             "date": day,

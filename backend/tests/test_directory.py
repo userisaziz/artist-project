@@ -123,8 +123,10 @@ async def test_availability_blocks_overlapping_slots(client, engine):
     ).json()
     assert body["date"] == day.isoformat()
     hours = {datetime.fromisoformat(s["start_at"]).astimezone(IST).hour: s["available"] for s in body["slots"]}
-    # A 3 h service: 09–12 and 10–13 run into the 11–14 booking; 14:00 onwards is free.
-    assert hours == {9: False, 10: False, 11: False, 12: False, 13: False, 14: True, 15: True, 16: True, 17: True}
+    # A 3 h service in the default 08–20 day: 08–11 ends as the 11–14 booking starts; 09:00 to 13:00 run into it;
+    # 14:00 onwards is free, and 17:00 is the last start that ends by closing.
+    assert list(hours) == list(range(8, 18))
+    assert [hour for hour, free in hours.items() if free] == [8, 14, 15, 16, 17]
 
 
 async def test_availability_respects_lead_time_and_range(client, engine, travel):

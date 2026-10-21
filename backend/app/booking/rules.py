@@ -44,26 +44,41 @@ def check_bookable_day(day: date, now: datetime) -> None:
         raise ValidationError("Pick a date within the next two months")
 
 
-def slot_starts(day: date) -> list[datetime]:
-    """Hourly start times for one IST day."""
-    s = get_booking_settings()
-    return [datetime.combine(day, time(hour), tzinfo=IST) for hour in range(s.slot_first_hour, s.slot_last_hour + 1)]
+# (open_hour, close_hour) of one IST day, whole hours (close may be 24); None when the artist isn't working.
+OpenHours = tuple[int, int] | None
+
+
+def slot_starts(day: date, hours: OpenHours, duration_minutes: int) -> list[datetime]:
+    """Hourly starts for one IST day: from opening, as long as the service is over by closing."""
+    if hours is None:
+        return []
+    open_hour, close_hour = hours
+    closing = datetime.combine(day, time(), tzinfo=IST) + timedelta(hours=close_hour)
+    length = timedelta(minutes=duration_minutes)
+    starts = (datetime.combine(day, time(hour), tzinfo=IST) for hour in range(open_hour, close_hour))
+    return [s for s in starts if s + length <= closing]
 
 
 def is_after_lead_time(start: datetime, now: datetime) -> bool:
     return start >= now + timedelta(hours=get_booking_settings().booking_lead_hours)
 
 
-def check_bookable_start(start: datetime, now: datetime) -> None:
-    """A start the slot grid would offer: on the hour, within slot hours, in range, and far enough ahead."""
+def start_day(start: datetime) -> date:
+    """The IST date of a requested start; rejects naive or unrepresentable times."""
     if start.tzinfo is None:
         raise ValidationError("start_at needs a timezone")
     try:
-        local = start.astimezone(IST)
+        return start.astimezone(IST).date()
     except OverflowError as exc:  # e.g. year 9999 plus the IST offset
         raise ValidationError("Pick one of the offered times") from exc
-    check_bookable_day(local.date(), now)
-    if local not in slot_starts(local.date()):
+
+
+def check_bookable_start(start: datetime, now: datetime, hours: OpenHours, duration_minutes: int) -> None:
+    """A start the slot grid would offer: on the hour, within the artist's hours that day, in range, and far
+    enough ahead. `hours` are the artist's for the start's IST date."""
+    day = start_day(start)
+    check_bookable_day(day, now)
+    if start.astimezone(IST) not in slot_starts(day, hours, duration_minutes):
         raise ValidationError("Pick one of the offered times")
     if not is_after_lead_time(start, now):
         raise ValidationError("That time is too soon. Pick a later slot.")

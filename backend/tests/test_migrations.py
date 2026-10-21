@@ -28,6 +28,8 @@ EXPECTED_TABLES = {
     "artist_portfolio_photo",
     "artist_kyc",
     "artist_aadhaar_reveal",
+    "artist_working_hour",
+    "artist_day_off",
     "catalog_service_template",
     "booking",
     "review",

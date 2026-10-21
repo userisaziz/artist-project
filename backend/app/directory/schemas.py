@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime
 
-from app.artist.schemas import NamedRef
+from app.artist.schemas import NamedRef, WorkingHour
 from app.shared.schemas import APIModel
 
 
@@ -46,6 +46,8 @@ class ArtistPublic(ArtistCard):
     services: list[PublicService]
     member_since: datetime | None
     completed_bookings: int
+    travel_radius_km: int | None  # display only: how far the artist travels, never a search filter
+    hours: list[WorkingHour]  # 7 items, Monday (0) first
 
 
 class Slot(APIModel):

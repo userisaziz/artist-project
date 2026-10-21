@@ -143,8 +143,8 @@ async def test_one_customer_racing_two_artists_cannot_pass_the_open_request_cap(
 
 async def test_start_must_be_a_bookable_hourly_slot(client, engine):
     _, artist, customer = await setup(client, engine)
-    assert (await book(client, customer, artist, slot(5, 8))).status_code == 422  # before 9 AM
-    assert (await book(client, customer, artist, slot(5, 18))).status_code == 422  # after the last start
+    assert (await book(client, customer, artist, slot(5, 7))).status_code == 422  # before the default 8 AM opening
+    assert (await book(client, customer, artist, slot(5, 18))).status_code == 422  # 3 h would run past 20:00
     off_hour = datetime.fromisoformat(slot(5, 11)) + timedelta(minutes=30)
     assert (await book(client, customer, artist, off_hour.isoformat())).status_code == 422
     assert (await book(client, customer, artist, slot(-1, 11))).status_code == 422
