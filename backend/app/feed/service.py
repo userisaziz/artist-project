@@ -27,6 +27,7 @@ from app.feed.models import Post, PostPhoto
 from app.feed.repository import NOT_FEATURED, OPEN_REPORTS, VISIBLE, FeedRepository, PostRow, followed_by, matching
 from app.feed.schemas import PhotoIn, PostIn
 from app.feed.utils import excerpt, read_minutes
+from app.notification import service as notification_service
 from app.review import filters as review_filters
 from app.review import service as review_service
 from app.shared.clock import Clock
@@ -234,9 +235,14 @@ class FeedService:
         return {"following": following}
 
     async def report(self, reader: User, post_id: uuid.UUID, reason: str) -> None:
-        """One report per person per post; reporting again changes nothing."""
-        await self.visible_post(reader, post_id)
-        await self.posts.report(post_id, reader.id, reason)
+        """One report per person per post; reporting again changes nothing. The post's first open report tells
+        the admins; the post row is locked so two first reports at once don't both (or neither) notify."""
+        row = await self.visible_post(reader, post_id)
+        await self.posts.locked(post_id)
+        if await self.posts.report(post_id, reader.id, reason) and await self.posts.open_report_count(post_id) == 1:
+            await notification_service.notify_admins(
+                self.session, "post_reported", "Post reported", f"{row.business_name}: {reason}", "/feed?view=reported"
+            )
 
     # --- admin ------------------------------------------------------------------------------------
 

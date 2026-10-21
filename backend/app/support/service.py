@@ -153,7 +153,16 @@ class SupportService:
         ticket_id = await self._open(
             requester, data.topic, data.issue, data.booking_id, "app", data.details or None, requester.id
         )
-        return await self._detail(ticket_id)
+        ticket = await self._detail(ticket_id)
+        urgent = ticket["priority"] == TicketPriority.urgent
+        await notification_service.notify_admins(
+            self.session,
+            "ticket_opened",
+            "Urgent support ticket" if urgent else "New support ticket",
+            f"{ticket['code']}: {ticket['subject']}",
+            f"/support?ticket={ticket_id}",
+        )
+        return ticket
 
     async def admin_report(self, admin: User, data: AdminReportIn) -> dict[str, Any]:
         requester = await self.tickets.user_by_phone(data.phone)

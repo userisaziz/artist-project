@@ -12,6 +12,11 @@ Kind = Literal[
     "order_cancelled",
     "chat_message",
     "support_reply",
+    # admin console
+    "artist_submitted",
+    "ticket_opened",
+    "post_reported",
+    "subcategory_suggested",
 ]
 TITLE_MAX = 120
 BODY_MAX = 300

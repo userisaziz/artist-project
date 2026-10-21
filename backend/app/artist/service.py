@@ -34,6 +34,7 @@ from app.catalog.models import Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.notification import service as notification_service
 from app.shared.clock import Clock
 from app.shared.enums import ArtistServiceStatus, ArtistStatus, CategoryStatus
 from app.subcategory_request import service as subcategory_request_service
@@ -391,4 +392,12 @@ class ArtistService:
         profile.submitted_at = self.clock.now()
         profile.rejection_reason = None
         await self.session.flush()
+        title = "Artist edited their profile" if profile.reviewed_at else "New artist to review"
+        await notification_service.notify_admins(
+            self.session,
+            "artist_submitted",
+            title,
+            f"{profile.business_name}, {profile.city}",
+            f"/artists/{profile.id}",
+        )
         return profile

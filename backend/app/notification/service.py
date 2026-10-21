@@ -1,18 +1,21 @@
 """Notifications: `notify` records an inbox row for a person and queues a push to each of their devices,
-sent once the surrounding transaction commits. The inbox itself: list, unread count, mark read, devices."""
+sent once the surrounding transaction commits; `notify_admins` fills every active admin's inbox (no push).
+The inbox itself: list, unread count, mark read, devices."""
 
 import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import String, delete, func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile
 from app.notification.constants import BODY_MAX, PENDING_PUSH, TITLE_MAX, Kind
 from app.notification.models import Notification, PushDevice
+from app.shared.enums import UserRole
 from app.shared.pagination import keyset, split_page
+from app.user.models import User, UserRoleGrant
 
 
 async def notify(
@@ -34,6 +37,23 @@ async def notify_artist(
     user_id = await session.scalar(select(ArtistProfile.user_id).where(ArtistProfile.id == artist_id))
     if user_id is not None:
         await notify(session, user_id, kind, title, body, link)
+
+
+async def notify_admins(session: AsyncSession, kind: Kind, title: str, body: str, link: str | None = None) -> None:
+    """One inbox row per active admin, in a single INSERT ... SELECT. No push: admins work in the web console."""
+    admins = (
+        select(
+            User.id,
+            literal(kind, String),
+            literal(title[:TITLE_MAX], String),
+            literal(body[:BODY_MAX], String),
+            literal(link, String),
+        )
+        .join(UserRoleGrant, UserRoleGrant.user_id == User.id)
+        .where(UserRoleGrant.role == UserRole.admin, User.is_active.is_(True))
+    )
+    columns = [Notification.user_id, Notification.kind, Notification.title, Notification.body, Notification.link]
+    await session.execute(insert(Notification).from_select(columns, admins))
 
 
 def out(n: Notification) -> dict[str, Any]:

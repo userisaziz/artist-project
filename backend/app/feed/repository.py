@@ -171,10 +171,22 @@ class FeedRepository:
     async def locked(self, post_id: uuid.UUID) -> Post | None:
         return await self.session.scalar(select(Post).where(Post.id == post_id).with_for_update())
 
-    async def report(self, post_id: uuid.UUID, user_id: uuid.UUID, reason: str) -> None:
-        await self.session.execute(
-            insert(PostReport).values(post_id=post_id, user_id=user_id, reason=reason).on_conflict_do_nothing()
+    async def report(self, post_id: uuid.UUID, user_id: uuid.UUID, reason: str) -> bool:
+        """Whether this is a new report (a person's repeat report changes nothing)."""
+        inserted = await self.session.scalar(
+            insert(PostReport)
+            .values(post_id=post_id, user_id=user_id, reason=reason)
+            .on_conflict_do_nothing()
+            .returning(PostReport.post_id)
         )
+        return inserted is not None
+
+    async def open_report_count(self, post_id: uuid.UUID) -> int:
+        return (
+            await self.session.execute(
+                select(func.count()).where(PostReport.post_id == post_id, PostReport.resolved_at.is_(None))
+            )
+        ).scalar_one()
 
     async def resolve_reports(self, post_id: uuid.UUID, at: datetime) -> None:
         await self.session.execute(

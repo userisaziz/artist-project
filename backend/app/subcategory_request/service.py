@@ -11,6 +11,7 @@ from app.catalog import service as catalog_service
 from app.catalog.models import Category
 from app.catalog.schemas import CategoryIn
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.notification import service as notification_service
 from app.shared.clock import Clock
 from app.shared.enums import CategoryStatus
 from app.subcategory_request.constants import APPROVED_WINDOW_DAYS, SubcategoryRequestStatus
@@ -65,6 +66,13 @@ class SubcategoryRequestService:
         )
         self.requests.add(request)
         await self.session.flush()
+        await notification_service.notify_admins(
+            self.session,
+            "subcategory_suggested",
+            "New subcategory suggestion",
+            f"{request.name} under {parent.name}",
+            "/subcategory-requests?status=pending",
+        )
         return request
 
     async def withdraw_if_unused(self, request_id: uuid.UUID) -> None:
