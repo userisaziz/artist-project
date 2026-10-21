@@ -142,6 +142,18 @@ class BookingRepository:
             )
         ).scalar_one()
 
+    async def monthly_earnings(self, since: datetime, *where: ColumnElement[bool]) -> dict[date, tuple[int, int]]:
+        """Completed bookings and what the artist kept, per IST month of completion (first of the month), since `since`."""
+        month_of = cast(func.date_trunc("month", func.timezone("Asia/Kolkata", Booking.completed_at)), Date)
+        rows = await self.session.execute(
+            select(
+                month_of, func.count(), func.coalesce(func.sum(Booking.subtotal_paise - Booking.commission_paise), 0)
+            )
+            .where(Booking.status == BookingStatus.completed, Booking.completed_at >= since, *where)
+            .group_by(month_of)
+        )
+        return {month: (count, earned) for month, count, earned in rows.all()}
+
     async def gross(self, *where: ColumnElement[bool]) -> int:
         """Total value of matching bookings, leaving out ones that were declined or left to expire."""
         return (

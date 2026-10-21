@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 
 from app.booking.dependencies import get_booking_service
-from app.booking.schemas import ArtistDashboard, BookingOut, BookingPage, ReasonIn
+from app.booking.schemas import ArtistDashboard, ArtistEarnings, BookingOut, BookingPage, ReasonIn
 from app.booking.service import BookingService
 from app.core.auth import current_artist
 from app.shared.responses import errors
@@ -64,6 +64,21 @@ async def complete_booking(
     booking_id: uuid.UUID, user: User = Depends(current_artist), bookings: BookingService = Depends(get_booking_service)
 ) -> dict:
     return await bookings.complete(user, booking_id)
+
+
+@router.get(
+    "/earnings",
+    response_model=ArtistEarnings,
+    status_code=200,
+    summary="Completed bookings and earnings per month",
+    description="Newest month first, IST. Customers pay artists directly in phase 1, so this is a record, not payouts.",
+)
+async def artist_earnings(
+    months: int = Query(6, ge=1, le=12),
+    user: User = Depends(current_artist),
+    bookings: BookingService = Depends(get_booking_service),
+) -> dict:
+    return await bookings.earnings(user, months)
 
 
 @router.get(

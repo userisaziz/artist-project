@@ -203,6 +203,27 @@ async def test_artist_opens_one_of_their_bookings_but_not_another_artists(client
     assert (await client.get(f"/api/v1/artists/me/bookings/{b['id']}", headers=other["headers"])).status_code == 404
 
 
+async def test_artist_earnings_by_month_count_completed_bookings_only(client, engine, travel):
+    _, artist, customer = await setup(client, engine)
+    h = artist["headers"]
+    done = (await book(client, customer, artist)).json()
+    await client.post(f"/api/v1/artists/me/bookings/{done['id']}/accept", headers=h)
+    await book(client, customer, artist, start=slot(days=3, hour=12))  # requested only: not earned
+    travel(at(done["start_at"], 4))
+    await client.post(f"/api/v1/artists/me/bookings/{done['id']}/complete", headers=h)
+
+    response = await client.get("/api/v1/artists/me/earnings", headers=h, params={"months": 3})
+    assert response.status_code == 200, response.text
+    months = response.json()["months"]
+    assert len(months) == 3
+    assert (months[0]["bookings"], months[0]["earnings_paise"]) == (1, 495000)
+    assert [m["bookings"] for m in months[1:]] == [0, 0]
+    assert months[0]["month"] > months[1]["month"] > months[2]["month"]  # newest first, "YYYY-MM"
+
+    assert (await client.get("/api/v1/artists/me/earnings", headers=h, params={"months": 13})).status_code == 422
+    assert (await client.get("/api/v1/artists/me/earnings", headers=customer)).status_code == 403
+
+
 async def test_artist_accepts_then_completes_after_the_start(client, engine, travel):
     _, artist, customer = await setup(client, engine)
     b = (await book(client, customer, artist)).json()
@@ -490,3 +511,15 @@ async def test_admin_overview_filters_by_city_and_period(client, engine, travel)
     assert (week["period_days"], week["bookings"], week["bookings_previous"]) == (7, 0, 2)
     assert (await client.get("/api/v1/admin/overview?period=quarter", headers=admin)).json()["period_days"] == 90
     assert (await client.get("/api/v1/admin/overview?period=year", headers=admin)).status_code == 422
+
+
+def test_months_roll_back_across_the_year():
+    from datetime import date
+
+    from app.booking.service import shift_month
+
+    assert [shift_month(date(2026, 2, 1), -i) for i in range(3)] == [
+        date(2026, 2, 1),
+        date(2026, 1, 1),
+        date(2025, 12, 1),
+    ]

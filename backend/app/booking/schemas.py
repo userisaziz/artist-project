@@ -114,6 +114,16 @@ class ArtistDashboard(APIModel):
     today: list[BookingOut]
 
 
+class MonthEarnings(APIModel):
+    month: str  # "YYYY-MM", IST
+    bookings: int
+    earnings_paise: int
+
+
+class ArtistEarnings(APIModel):
+    months: list[MonthEarnings]  # newest first, months with nothing included
+
+
 class WeekCount(APIModel):
     week_start: date
     count: int

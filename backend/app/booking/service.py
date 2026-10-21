@@ -140,6 +140,12 @@ async def cancel_upcoming_for_deleted_account(
             await notices.cancelled(session, booking, by)
 
 
+def shift_month(first: date, by: int) -> date:
+    """The first day of the month `by` months from `first` (a first of the month)."""
+    index = first.year * 12 + first.month - 1 + by
+    return date(index // 12, index % 12 + 1, 1)
+
+
 def ist_month_start(now: datetime) -> datetime:
     local = now.astimezone(rules.IST)
     return datetime.combine(date(local.year, local.month, 1), time(), tzinfo=rules.IST)
@@ -362,6 +368,25 @@ class BookingService:
         booking.status = BookingStatus.completed
         booking.completed_at = now
         return await self.save(booking_id, theirs, view="artist")
+
+    async def earnings(self, user: User, months: int) -> dict[str, Any]:
+        """Completed bookings and earnings for this IST month and the `months - 1` before it, newest first.
+        Paid to the artist directly (phase 1), so this is a record, not a payout."""
+        theirs = Booking.artist_id == await self.artist_id(user)
+        first = ist_month_start(self.clock.now()).date()
+        starts = [shift_month(first, -i) for i in range(months)]
+        since = datetime.combine(starts[-1], time(), tzinfo=rules.IST)
+        totals = await self.bookings.monthly_earnings(since, theirs)
+        return {
+            "months": [
+                {
+                    "month": m.strftime("%Y-%m"),
+                    "bookings": totals.get(m, (0, 0))[0],
+                    "earnings_paise": totals.get(m, (0, 0))[1],
+                }
+                for m in starts
+            ]
+        }
 
     async def dashboard(self, user: User) -> dict[str, Any]:
         theirs = Booking.artist_id == await self.artist_id(user)
