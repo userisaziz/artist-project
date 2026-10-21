@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { Segmented } from '../../../src/components/common/Segmented';
@@ -23,6 +24,8 @@ const EMPTY: Record<ArtistBookingScope, string> = {
 export default function ArtistBookings() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const openBooking = (id: string) => router.push({ pathname: '/artist/booking/[id]', params: { id } });
   const now = useNow();
   const [scope, setScope] = useState<ArtistBookingScope>('requests');
   const requests = useArtistBookings('requests'); // always loaded: it feeds the "Requests · n" count
@@ -44,13 +47,14 @@ export default function ArtistBookings() {
           onAccept={() => { void run(item.id, { kind: 'accept' }); }}
           onDecline={(reason) => { void run(item.id, { kind: 'decline', reason }); }}
           onMessage={() => { void chat.open(item.id); }}
+          onOpen={() => openBooking(item.id)}
         />
       );
     }
     const complete = scope === 'upcoming'
       ? { enabled: now >= Date.parse(item.start_at), busy: busyId === item.id, error: errors[item.id], onPress: () => { void run(item.id, { kind: 'complete' }); } }
       : undefined;
-    return <AgendaRow booking={item} showDate complete={complete} />;
+    return <AgendaRow booking={item} showDate complete={complete} onPress={() => openBooking(item.id)} />;
   };
 
   return (

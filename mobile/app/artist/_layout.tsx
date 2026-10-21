@@ -55,6 +55,7 @@ export default function ArtistLayout() {
           <Stack.Screen name="shop/settings" />
           <Stack.Screen name="shop/[id]" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="booking/[id]" />
         </Stack.Protected>
       </Stack>
     </ArtistFlowContext.Provider>

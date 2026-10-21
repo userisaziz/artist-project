@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
@@ -22,10 +22,12 @@ interface RequestCardProps {
   onDecline: (reason: string | null) => void;
   /** Opens the chat with this customer. */
   onMessage?: () => void;
+  /** Opens the booking's detail page. */
+  onOpen?: () => void;
 }
 
 /** Spec §3 request card: customer and countdown, Service / When / Where / You earn, the note, Decline, Message and Accept. */
-export function RequestCard({ booking, now, busy, error, onAccept, onDecline, onMessage }: RequestCardProps) {
+export function RequestCard({ booking, now, busy, error, onAccept, onDecline, onMessage, onOpen }: RequestCardProps) {
   const theme = useTheme();
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('');
@@ -38,14 +40,20 @@ export function RequestCard({ booking, now, busy, error, onAccept, onDecline, on
   );
   return (
     <View style={{ borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, overflow: 'hidden' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}>
+      <Pressable
+        accessibilityRole={onOpen ? 'button' : undefined}
+        accessibilityLabel={onOpen ? `Open request from ${name}` : undefined}
+        disabled={!onOpen}
+        onPress={onOpen}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}
+      >
         <Avatar uri={null} name={name} size={46} />
         <View style={{ flex: 1 }}>
           <AppText variant="subtitle" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{name}</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{booking.code}</AppText>
         </View>
         <Countdown deadline={booking.expires_at} now={now} />
-      </View>
+      </Pressable>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14 }}>
         {cell('Service', booking.service_name)}
         {cell('When', formatWhen(booking.start_at))}

@@ -34,6 +34,12 @@ export function useBooking(id: string) {
   return useQuery({ queryKey: bookingKeys.detail(user?.id, id), queryFn: () => bookingsApi.getBooking(id), enabled: !!user && !!id });
 }
 
+/** One of the artist's bookings; shares the detail key, so accept / decline / complete update it in place. */
+export function useArtistBooking(id: string) {
+  const { user } = useAuth();
+  return useQuery({ queryKey: bookingKeys.detail(user?.id, id), queryFn: () => bookingsApi.getArtistBooking(id), enabled: !!user && !!id });
+}
+
 export function useArtistBookings(scope: ArtistBookingScope) {
   const { user } = useAuth();
   return useInfiniteQuery({

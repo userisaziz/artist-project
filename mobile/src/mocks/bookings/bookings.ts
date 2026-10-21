@@ -1,0 +1,38 @@
+import type { Booking } from '../../types/bookings/bookings';
+
+// Mirrors backend BookingOut (app/booking/schemas.py) as the artist sees it: commission and earning filled in.
+export function bookingFixture(overrides: Partial<Booking> = {}): Booking {
+  return {
+    id: 'b-1',
+    code: 'AT-10427',
+    status: 'confirmed',
+    start_at: '2030-11-02T05:30:00Z',
+    end_at: '2030-11-02T08:30:00Z',
+    address: '12 Residency Rd, Bangalore',
+    note: 'Gate code 4411',
+    service_name: 'Bridal Classic',
+    duration_minutes: 180,
+    artist: { id: 'a1', business_name: 'Ayesha Mehendi Art', photo_url: null, city: 'Bangalore' },
+    customer: { id: 'c1', first_name: 'Priya', last_name: 'Sharma' },
+    subtotal_paise: 550000,
+    platform_fee_paise: 0,
+    total_paise: 550000,
+    deposit_paise: 0,
+    balance_paise: 550000,
+    commission_paise: 55000,
+    artist_earning_paise: 495000,
+    deposit_paid_at: null,
+    expires_at: '2030-10-30T08:00:00Z',
+    responded_at: '2030-10-30T06:00:00Z',
+    cancelled_at: null,
+    completed_at: null,
+    decline_reason: null,
+    cancel_reason: null,
+    cancelled_by: null,
+    refund_due: null,
+    created_at: '2030-10-30T05:00:00Z',
+    review: null,
+    can_review: false,
+    ...overrides,
+  };
+}

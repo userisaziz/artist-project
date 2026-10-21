@@ -72,13 +72,14 @@ export default function ArtistHome() {
           onAccept={() => { void run(b.id, { kind: 'accept' }); }}
           onDecline={(reason) => { void run(b.id, { kind: 'decline', reason }); }}
           onMessage={() => { void chat.open(b.id); }}
+          onOpen={() => router.push({ pathname: '/artist/booking/[id]', params: { id: b.id } })}
         />
       ))}
 
       <AppText variant="title" style={[heading, { marginTop: 12 }]}>Today</AppText>
       {dashboard.isPending ? <LoadingView /> : null}
       {d && !d.today.length ? <EmptyView message="Nothing booked today." /> : null}
-      {d?.today.map((b) => <AgendaRow key={b.id} booking={b} />)}
+      {d?.today.map((b) => <AgendaRow key={b.id} booking={b} onPress={() => router.push({ pathname: '/artist/booking/[id]', params: { id: b.id } })} />)}
     </ScrollView>
   );
 }

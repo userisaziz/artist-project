@@ -28,6 +28,9 @@ export interface ArtistBookingFilter {
 export function listArtistBookings(filter: ArtistBookingFilter = {}) {
   return request<Page<Booking>>(withQuery('/artists/me/bookings', { ...filter }), undefined, { auth: true, method: 'GET' });
 }
+export function getArtistBooking(id: string) {
+  return request<Booking>(`/artists/me/bookings/${encodeURIComponent(id)}`, undefined, { auth: true, method: 'GET' });
+}
 export function acceptBooking(id: string) {
   return request<Booking>(`/artists/me/bookings/${encodeURIComponent(id)}/accept`, undefined, { auth: true });
 }

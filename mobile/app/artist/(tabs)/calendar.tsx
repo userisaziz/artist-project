@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
@@ -23,6 +24,7 @@ function shiftMonth({ year, month }: { year: number; month: number }, by: number
 export default function ArtistCalendar() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const today = istDateKey(useNow());
   const [visible, setVisible] = useState(() => ({ year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) }));
   const [selected, setSelected] = useState(today);
@@ -93,7 +95,7 @@ export default function ArtistCalendar() {
       {range.isPending ? <LoadingView /> : null}
       {range.isError ? <ErrorView error={range.error} onRetry={() => { void range.refetch(); }} /> : null}
       {range.isSuccess && !agenda.length ? <EmptyView message="Nothing booked this day." /> : null}
-      {agenda.map((b) => <AgendaRow key={b.id} booking={b} />)}
+      {agenda.map((b) => <AgendaRow key={b.id} booking={b} onPress={() => router.push({ pathname: '/artist/booking/[id]', params: { id: b.id } })} />)}
     </ScrollView>
   );
 }

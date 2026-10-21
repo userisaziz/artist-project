@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { StatusPill } from '../common/StatusPill';
@@ -14,10 +14,12 @@ interface AgendaRowProps {
   showDate?: boolean;
   /** Upcoming cards: "Mark completed", enabled once the start time has passed. */
   complete?: { enabled: boolean; busy: boolean; onPress: () => void; error?: string };
+  /** Opens the booking. */
+  onPress?: () => void;
 }
 
 /** Time column, a coloured bar, the customer and service, and the status (Home "Today", Upcoming, Past, Calendar). */
-export function AgendaRow({ booking, showDate = false, complete }: AgendaRowProps) {
+export function AgendaRow({ booking, showDate = false, complete, onPress }: AgendaRowProps) {
   const theme = useTheme();
   const [clock, meridiem] = formatTime(booking.start_at).split(' ');
   const pill = STATUS_PILL[booking.status];
@@ -25,7 +27,13 @@ export function AgendaRow({ booking, showDate = false, complete }: AgendaRowProp
   const bar = booking.status === 'requested' ? theme.colors.pendingDot : booking.status === 'confirmed' ? theme.colors.accent : theme.colors.border;
   return (
     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, padding: 12, gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <Pressable
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={onPress ? `Open booking ${name}, ${booking.service_name}` : undefined}
+        disabled={!onPress}
+        onPress={onPress}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+      >
         <View style={{ width: 56, alignItems: 'center' }}>
           <AppText variant="subtitle" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{clock}</AppText>
           <AppText variant="caption" style={{ fontSize: 11, color: theme.colors.textMuted }}>{showDate ? `${meridiem} · ${formatDay(istDateKey(booking.start_at)).split(', ')[1]}` : meridiem}</AppText>
@@ -36,7 +44,7 @@ export function AgendaRow({ booking, showDate = false, complete }: AgendaRowProp
           <AppText variant="caption" style={{ color: theme.colors.textMuted }} numberOfLines={1}>{`${booking.service_name} · ${formatMaybePrice(booking.artist_earning_paise)}`}</AppText>
         </View>
         <StatusPill label={pill.label} tone={pill.tone} />
-      </View>
+      </Pressable>
       {complete ? (
         <>
           <AppButton
