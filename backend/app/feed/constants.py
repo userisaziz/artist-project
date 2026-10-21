@@ -11,6 +11,7 @@ TITLE_MIN = 3
 TEXT_MAX = 20000  # an article body; captions stop at CAPTION_MAX
 CAPTION_MAX = 2200
 EXCERPT_MAX = 200
+SEARCH_MAX = 60  # GET /feed?q=
 WORDS_PER_MINUTE = 200
 
 POSTS_PER_USER = Limit(hits=30, window_seconds=86400)

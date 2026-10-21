@@ -24,7 +24,7 @@ from app.feed.constants import (
     PostTopic,
 )
 from app.feed.models import Post, PostPhoto
-from app.feed.repository import NOT_FEATURED, OPEN_REPORTS, VISIBLE, FeedRepository, PostRow, followed_by
+from app.feed.repository import NOT_FEATURED, OPEN_REPORTS, VISIBLE, FeedRepository, PostRow, followed_by, matching
 from app.feed.schemas import PhotoIn, PostIn
 from app.feed.utils import excerpt, read_minutes
 from app.review import filters as review_filters
@@ -184,17 +184,20 @@ class FeedService:
 
     # --- customer -------------------------------------------------------------------------------
 
-    async def feed(self, reader: User, tab: FeedTab, limit: int, cursor: str | None):
+    async def feed(self, reader: User, tab: FeedTab, limit: int, cursor: str | None, q: str | None = None):
+        searching = bool(q and q.strip())
         where: list[ColumnElement[bool]] = [VISIBLE]
+        if searching and q:
+            where.append(matching(q))  # a search lists every match newest first, featured ones included
         if tab == "following":
             where.append(followed_by(reader.id))
         elif tab == "stories":
             where.append(Post.kind == PostKind.article)
-        else:  # For you: featured posts lead the first page, so the newest-first pages skip them
+        elif not searching:  # For you: featured posts lead the first page, so the newest-first pages skip them
             where.append(NOT_FEATURED)
         rows = await self.posts.page_rows(reader.id, where, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (r.post.created_at, r.post.id))
-        if tab == "for_you" and cursor is None:
+        if tab == "for_you" and cursor is None and not searching:
             page = [*await self.posts.featured_rows(reader.id, limit), *page]
         return await self._out(page, full=False), next_cursor
 

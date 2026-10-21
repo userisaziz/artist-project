@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Response
 
 from app.core.auth import current_customer
-from app.feed.constants import FeedTab
+from app.feed.constants import SEARCH_MAX, FeedTab
 from app.feed.dependencies import get_feed_service, limit_reactions
 from app.feed.schemas import FollowOut, LikeOut, PostOut, PostPage, ReportIn
 from app.feed.service import FeedService
@@ -17,12 +17,13 @@ router = APIRouter(prefix="/feed", tags=["feed"], responses=errors(401, 403, 404
 @router.get("", response_model=PostPage, status_code=200, summary="The feed, newest first")
 async def read_feed(
     tab: FeedTab = "for_you",
+    q: str | None = Query(None, max_length=SEARCH_MAX, description="Search titles, captions and artist names"),
     limit: int = Query(20, ge=1, le=50),
     cursor: str | None = None,
     user: User = Depends(current_customer),
     feed: FeedService = Depends(get_feed_service),
 ) -> dict:
-    items, next_cursor = await feed.feed(user, tab, limit, cursor)
+    items, next_cursor = await feed.feed(user, tab, limit, cursor, q)
     return {"items": items, "next_cursor": next_cursor}
 
 

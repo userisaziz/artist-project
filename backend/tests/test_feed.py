@@ -128,6 +128,27 @@ async def test_feed_tabs_newest_first_with_paging(client, engine):
     assert [i["id"] for i in first["items"] + rest["items"]] == [p2["id"], a1["id"], p1["id"]]
 
 
+async def test_feed_search_matches_titles_text_and_artist_names(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    rival = await approved_artist(client, engine, "+919845091002", admin, name="Meher by Riya")
+    bridal = (await photo_post(client, artist, "Arabic bridal mehendi for Sana")).json()
+    stain = (await article(client, rival, title="Darkest STAIN in 48 hours")).json()
+    other = (await photo_post(client, rival, "Party glam look")).json()
+
+    async def search(q: str, **params) -> list[str]:
+        response = await client.get(FEED, headers=customer, params={"q": q, **params})
+        assert response.status_code == 200, response.text
+        return [i["id"] for i in response.json()["items"]]
+
+    assert await search("bridal") == [bridal["id"]]
+    assert await search("stain") == [stain["id"]]  # title, any case
+    assert await search("meher") == [other["id"], stain["id"]]  # the artist's name
+    assert await search("glam", tab="stories") == []  # tabs still apply
+    assert await search("100%_") == []  # wildcards are literal
+    assert await search("  ") == [other["id"], stain["id"], bridal["id"]]  # blank means no search
+    assert (await client.get(FEED, headers=customer, params={"q": "x" * 61})).status_code == 422
+
+
 async def test_posts_of_artists_no_longer_approved_disappear(client, engine):
     _, artist, customer = await setup(client, engine)
     p = (await photo_post(client, artist)).json()

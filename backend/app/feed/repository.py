@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Select, and_, delete, exists, func, literal, select, update
+from sqlalchemy import ColumnElement, Select, and_, delete, exists, func, literal, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from app.feed.constants import Moderation
 from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto, PostReport
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset
+from app.shared.search import like_pattern
 
 ARTIST_VISIBLE = ArtistProfile.status == ArtistStatus.approved
 VISIBLE = and_(ARTIST_VISIBLE, Post.moderation == Moderation.live)  # what customers may see
@@ -57,6 +58,16 @@ def rows_query(reader_id: uuid.UUID | None) -> Select:
 
 def followed_by(user_id: uuid.UUID) -> ColumnElement[bool]:
     return Post.artist_id.in_(select(ArtistFollow.artist_id).where(ArtistFollow.user_id == user_id))
+
+
+def matching(q: str) -> ColumnElement[bool]:
+    """Search: the title, the caption or article text, or the artist's name (rows_query joins the artist)."""
+    pattern = like_pattern(q)
+    return or_(
+        Post.title.ilike(pattern, escape="\\"),
+        Post.text.ilike(pattern, escape="\\"),
+        ArtistProfile.business_name.ilike(pattern, escape="\\"),
+    )
 
 
 class FeedRepository:
