@@ -22,6 +22,8 @@ export interface Booking {
   address: string;
   note: string | null;
   service_name: string;
+  /** The artist's service it was booked for; null once that service no longer exists. */
+  service_id: string | null;
   duration_minutes: number;
   artist: { id: string; business_name: string; photo_url: string | null; city: string };
   customer: { id: string; first_name: string | null; last_name: string | null };
@@ -48,6 +50,10 @@ export interface Booking {
   review: BookingReview | null;
   /** Completed, not reviewed yet and within 30 days of completion. */
   can_review: boolean;
+  /** A customer's pending request to move a confirmed booking; it keeps its time until the artist accepts. */
+  reschedule: { start_at: string; end_at: string; expires_at: string; requested_at: string } | null;
+  /** Why the artist declined the last request to move it. */
+  reschedule_declined_reason: string | null;
 }
 
 export type CustomerBookingScope = 'upcoming' | 'past';

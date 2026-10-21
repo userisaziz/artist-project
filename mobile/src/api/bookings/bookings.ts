@@ -47,3 +47,18 @@ export function getArtistEarnings(months: number) {
 export function getArtistDashboard() {
   return request<ArtistDashboard>('/artists/me/dashboard', undefined, { auth: true, method: 'GET' });
 }
+
+/** Customer: ask to move a confirmed booking to another open start; the artist accepts or declines. */
+export function requestReschedule(id: string, startAt: string) {
+  return request<Booking>(`/bookings/${encodeURIComponent(id)}/reschedule`, { start_at: startAt }, { auth: true });
+}
+export function withdrawReschedule(id: string) {
+  return request<Booking>(`/bookings/${encodeURIComponent(id)}/reschedule`, undefined, { auth: true, method: 'DELETE' });
+}
+/** Artist: answer a request to move a booking. */
+export function acceptReschedule(id: string) {
+  return request<Booking>(`/artists/me/bookings/${encodeURIComponent(id)}/reschedule/accept`, undefined, { auth: true });
+}
+export function declineReschedule(id: string, reason: string | null) {
+  return request<Booking>(`/artists/me/bookings/${encodeURIComponent(id)}/reschedule/decline`, { reason }, { auth: true });
+}

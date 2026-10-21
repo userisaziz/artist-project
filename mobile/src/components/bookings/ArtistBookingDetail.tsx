@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
+import { AppTextField } from '../common/AppTextField';
 import { Avatar } from '../common/Avatar';
 import { BackHeader } from '../common/BackHeader';
 import { Card } from '../common/Card';
@@ -16,6 +18,9 @@ import { useNow } from '../../hooks/common/use-now';
 import { STATUS_PILL, customerName } from '../../utils/bookings/status';
 import { formatWhen } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
+import type { Booking } from '../../types/bookings/bookings';
+
+const MAX_REASON = 500; // backend ReasonIn
 
 interface ArtistBookingDetailProps {
   bookingId: string;
@@ -81,6 +86,7 @@ export function ArtistBookingDetail({ bookingId, onMessage, isOpeningChat }: Art
             </View>
           ) : null}
           {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}
+          {b.reschedule ? <MoveRequest booking={b} busy={busy} onAnswer={(action) => { void run(b.id, action); }} /> : null}
           <AppButton label="Message customer" variant="secondary" loading={isOpeningChat} onPress={onMessage} />
           {b.status === 'confirmed' ? (
             <AppButton
@@ -94,5 +100,40 @@ export function ArtistBookingDetail({ bookingId, onMessage, isOpeningChat }: Art
         </>
       )}
     </ScrollView>
+  );
+}
+
+interface MoveRequestProps {
+  booking: Booking;
+  busy: boolean;
+  onAnswer: (action: { kind: 'accept-move' } | { kind: 'decline-move'; reason: string | null }) => void;
+}
+
+/** The customer asked to move the booking: accept moves it, decline keeps the current time (with an optional reason). */
+function MoveRequest({ booking, busy, onAnswer }: MoveRequestProps) {
+  const theme = useTheme();
+  const [declining, setDeclining] = useState(false);
+  const [reason, setReason] = useState('');
+  const move = booking.reschedule;
+  if (!move) return null;
+  return (
+    <Card style={{ gap: 10 }}>
+      <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{`Asked to move to ${formatWhen(move.start_at)}`}</AppText>
+      <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{`Answer by ${formatWhen(move.expires_at)}, or it stays at the current time.`}</AppText>
+      {declining ? (
+        <>
+          <AppTextField label="Reason (optional)" placeholder="Tell the customer why" value={reason} onChangeText={setReason} maxLength={MAX_REASON} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1 }}><AppButton label="Back" variant="secondary" disabled={busy} onPress={() => setDeclining(false)} /></View>
+            <View style={{ flex: 1 }}><AppButton label="Keep current time" loading={busy} onPress={() => onAnswer({ kind: 'decline-move', reason: reason.trim() || null })} /></View>
+          </View>
+        </>
+      ) : (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flex: 1 }}><AppButton label="Decline" variant="secondary" disabled={busy} onPress={() => setDeclining(true)} /></View>
+          <View style={{ flex: 1 }}><AppButton label="Accept new time" loading={busy} onPress={() => onAnswer({ kind: 'accept-move' })} /></View>
+        </View>
+      )}
+    </Card>
   );
 }

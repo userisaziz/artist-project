@@ -11,6 +11,7 @@ export function bookingFixture(overrides: Partial<Booking> = {}): Booking {
     address: '12 Residency Rd, Bangalore',
     note: 'Gate code 4411',
     service_name: 'Bridal Classic',
+    service_id: 's1',
     duration_minutes: 180,
     artist: { id: 'a1', business_name: 'Ayesha Mehendi Art', photo_url: null, city: 'Bangalore' },
     customer: { id: 'c1', first_name: 'Priya', last_name: 'Sharma' },
@@ -33,6 +34,8 @@ export function bookingFixture(overrides: Partial<Booking> = {}): Booking {
     created_at: '2030-10-30T05:00:00Z',
     review: null,
     can_review: false,
+    reschedule: null,
+    reschedule_declined_reason: null,
     ...overrides,
   };
 }

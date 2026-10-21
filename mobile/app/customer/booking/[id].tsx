@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
@@ -18,7 +18,7 @@ import { refundDueOnCustomerCancel } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { formatPrice } from '../../../src/utils/common/format';
-import { cancelBooking } from '../../../src/api/bookings/bookings';
+import { cancelBooking, withdrawReschedule } from '../../../src/api/bookings/bookings';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { RateBookingCard } from '../../../src/components/reviews/RateBookingCard';
 import { useChatOpener } from '../../../src/hooks/chat/chat';
@@ -40,7 +40,9 @@ export default function BookingDetail() {
   const write = useBookingWrite();
   const chat = useChatOpener('customer');
   const now = useNow();
+  const router = useRouter();
   const [confirming, setConfirming] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +65,20 @@ export default function BookingDetail() {
       ? `Your ${deposit} deposit will be refunded.`
       : `It’s less than 72 hours to the start, so the ${deposit} deposit won’t be refunded.`;
   const reason = b.decline_reason ?? b.cancel_reason;
+  const movable = b.status === 'confirmed' && now < start && !b.reschedule && !!b.service_id;
   const ended = refundLine(b);
+
+  const withdraw = async () => {
+    setWithdrawing(true);
+    setError(null);
+    try {
+      await write(() => withdrawReschedule(b.id));
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   const cancel = async () => {
     setCancelling(true);
@@ -110,7 +125,18 @@ export default function BookingDetail() {
         <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? 'The artist has 3 hours to confirm. If they don’t, the deposit is refunded.' : 'The artist has 3 hours to confirm. If they don’t, the request expires.'}</AppText>
       ) : null}
 
+      {b.reschedule ? (
+        <Card style={{ gap: 8 }}>
+          <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{`You asked to move it to ${formatWhen(b.reschedule.start_at)}`}</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{`Waiting for ${b.artist.business_name}. It stays at ${formatWhen(b.start_at)} until they accept.`}</AppText>
+          <AppButton label="Withdraw request" variant="ghost" loading={withdrawing} onPress={() => { void withdraw(); }} />
+        </Card>
+      ) : null}
+      {!b.reschedule && b.reschedule_declined_reason ? (
+        <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`The artist couldn’t move it: ${b.reschedule_declined_reason}`}</AppText>
+      ) : null}
       <AppButton label="Message artist" variant="secondary" loading={chat.openingId === b.artist.id} onPress={() => { void chat.open(b.artist.id); }} />
+      {movable && !confirming ? <AppButton label="Change time" variant="secondary" onPress={() => router.push({ pathname: '/customer/reschedule/[id]', params: { id: b.id } })} /> : null}
       {cancellable && !confirming ? <AppButton label="Cancel booking" variant="secondary" onPress={() => setConfirming(true)} /> : null}
       {cancellable && confirming ? (
         <Card style={{ gap: 12 }}>

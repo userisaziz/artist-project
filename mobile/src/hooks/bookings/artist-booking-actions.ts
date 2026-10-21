@@ -3,9 +3,14 @@ import * as bookingsApi from '../../api/bookings/bookings';
 import { errorMessage } from '../../core/api/error-message';
 import { useBookingWrite } from './bookings';
 
-type Action = { kind: 'accept' } | { kind: 'decline'; reason: string | null } | { kind: 'complete' };
+type Action =
+  | { kind: 'accept' }
+  | { kind: 'decline'; reason: string | null }
+  | { kind: 'complete' }
+  | { kind: 'accept-move' }
+  | { kind: 'decline-move'; reason: string | null };
 
-/** Accept, decline or complete one booking; tracks which booking is busy and the last error, per booking. */
+/** Accept, decline or complete one booking, or answer a request to move it; tracks which booking is busy and the last error, per booking. */
 export function useArtistBookingActions() {
   const write = useBookingWrite();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -18,6 +23,8 @@ export function useArtistBookingActions() {
       await write(() => {
         if (action.kind === 'accept') return bookingsApi.acceptBooking(id);
         if (action.kind === 'decline') return bookingsApi.declineBooking(id, action.reason);
+        if (action.kind === 'accept-move') return bookingsApi.acceptReschedule(id);
+        if (action.kind === 'decline-move') return bookingsApi.declineReschedule(id, action.reason);
         return bookingsApi.completeBooking(id);
       });
       return true;
