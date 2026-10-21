@@ -14,9 +14,10 @@ import { useNow } from '../../../src/hooks/common/use-now';
 import { NotificationBell } from '../../../src/components/notifications/NotificationBell';
 import { Icon } from '../../../src/components/common/Icon';
 
+// The design's Home carousel photos (docs/design/atelier/README.md), re-encoded as webp.
 const HERO_SLIDES = [
-  { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: 'https://picsum.photos/seed/atelier-hero-bridal/900/600' },
-  { eyebrow: 'AT YOUR DOOR', title: 'Mehendi and makeup, ', accent: 'at home', image: 'https://picsum.photos/seed/atelier-hero-home/900/600' },
+  { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: require('../../../assets/hero/home-bridal.webp') },
+  { eyebrow: 'AT YOUR DOOR', title: 'Mehendi and makeup, ', accent: 'at home', image: require('../../../assets/hero/home-makeup.webp') },
 ];
 const NEW_COUNT = 3;
 
@@ -50,7 +51,7 @@ export default function CustomerHome() {
       <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }} contentContainerStyle={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }} snapToInterval={slideWidth + theme.spacing.md} decelerationRate="fast">
         {HERO_SLIDES.map((s) => (
           <View key={s.eyebrow} style={{ width: slideWidth, height: 170, borderRadius: theme.radii.card, overflow: 'hidden', backgroundColor: theme.colors.photoScrim }}>
-            <Image source={{ uri: s.image }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.55 }} contentFit="cover" />
+            <Image source={s.image} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.55 }} contentFit="cover" />
             <View style={{ flex: 1, justifyContent: 'flex-end', padding: 18 }}>
               <AppText variant="eyebrow" style={{ color: theme.colors.textOnBrand, opacity: 0.85 }}>{s.eyebrow}</AppText>
               <AppText variant="display" style={{ fontSize: 24, lineHeight: 28, color: theme.colors.textOnBrand, marginTop: 4 }}>
