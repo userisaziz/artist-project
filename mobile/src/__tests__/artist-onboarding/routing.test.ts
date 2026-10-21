@@ -37,6 +37,7 @@ it('artistHref maps each stage to its route; editing a rejection starts at Profi
   expect(artistHref(profile({ services: [service], photos }), false)).toBe('/artist/onboarding/identity');
   expect(artistHref(profile({ status: 'pending' }), false)).toBe('/artist/in-review');
   expect(artistHref(profile({ status: 'rejected' }), true)).toBe('/artist/onboarding/profile');
+  expect(artistHref(profile({ services: [service], photos }), true)).toBe('/artist/onboarding/profile'); // a reopened approved profile
   expect(artistHref(profile({ status: 'approved' }), false)).toBe('/artist/home');
 });
 

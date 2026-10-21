@@ -34,6 +34,10 @@ export function reorderPhotos(photoIds: string[]) {
 export function saveKyc(body: KycInput) {
   return request<ArtistProfile>('/artists/me/kyc', body, { auth: true, method: 'PUT' });
 }
+/** An approved profile back to draft for editing; it leaves the directory until re-approved. */
+export function reopenProfile() {
+  return request<ArtistProfile>('/artists/me/reopen', undefined, { auth: true });
+}
 export function submitProfile() {
   return request<ArtistProfile>('/artists/me/submit', undefined, { auth: true });
 }

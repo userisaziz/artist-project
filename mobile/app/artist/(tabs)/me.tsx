@@ -16,6 +16,7 @@ import { useMyReviews } from '../../../src/hooks/reviews/reviews';
 import { formatAverage } from '../../../src/utils/reviews/format';
 import type { ReviewSummary } from '../../../src/types/reviews/reviews';
 import { Icon } from '../../../src/components/common/Icon';
+import { EditProfileRow } from '../../../src/components/artist-onboarding/EditProfileRow';
 
 const COVER_HEIGHT = 170;
 
@@ -79,6 +80,7 @@ export default function ArtistMe() {
           <MenuRow label="My shop" onPress={() => router.push('/artist/shop')} />
           <MenuRow label="Posts & articles" detail="+ New post" onPress={() => router.push('/artist/posts')} />
           <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
+          <EditProfileRow />
         </Card>
 
         <Pressable

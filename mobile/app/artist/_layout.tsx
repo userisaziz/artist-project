@@ -18,7 +18,8 @@ export default function ArtistLayout() {
   const profile = useArtistProfile();
   const [editing, setEditing] = useState(false);
   const status = profile.data?.status;
-  if (status !== 'rejected' && editing) setEditing(false); // reset during render (no effect): editing only lasts while rejected
+  // Reset during render (no effect): editing lasts while rejected, or while a reopened profile is a draft.
+  if (editing && status !== 'rejected' && status !== 'draft' && status !== 'approved') setEditing(false);
   const flow = useMemo(() => ({ editing, startEditing: () => setEditing(true) }), [editing]);
 
   if (profile.isPending) return <View style={{ flex: 1, backgroundColor: theme.colors.canvas }} />;

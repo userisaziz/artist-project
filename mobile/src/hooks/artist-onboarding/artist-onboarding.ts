@@ -42,6 +42,11 @@ function useProfileMutation<TVars>(name: string, write: (vars: TVars) => Promise
   });
 }
 
+/** POST /artists/me/reopen — Me → Edit profile on an approved profile. */
+export function useReopenProfile(): UseMutationResult<ArtistProfile, Error, void> {
+  return useProfileMutation('reopen', () => artistApi.reopenProfile());
+}
+
 /** PUT /artists/me/profile — onboarding step 1. */
 export function useSaveProfile(): UseMutationResult<ArtistProfile, Error, ProfileInput> {
   return useProfileMutation('save-profile', artistApi.saveProfile);
