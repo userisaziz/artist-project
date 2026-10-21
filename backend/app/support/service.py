@@ -120,7 +120,7 @@ class SupportService:
             raise ValidationError(f"Pick one of the {topic} issues")
         if topic == "booking" and booking_id is None:
             raise ValidationError("Pick the booking this is about")
-        if booking_id and not await self.tickets.customer_booking(booking_id, requester.id):
+        if booking_id and not await self.tickets.own_booking(booking_id, requester.id):
             raise NotFoundError("Booking not found")
 
     async def _open(
@@ -242,7 +242,7 @@ class SupportService:
             "support_reply",
             "Support replied",
             text[:120],
-            f"/customer/support/{ticket.id}",
+            f"/{ticket.requester_side}/support/{ticket.id}",
         )
         await self.session.flush()
         return await self._detail(ticket_id)

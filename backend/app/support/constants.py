@@ -16,6 +16,7 @@ ISSUES: dict[str, dict[str, str]] = {
     "booking": {
         "artist_no_show": "Artist didn't show up",
         "not_as_booked": "Not what I booked",
+        "customer_no_show": "Customer didn't show up",  # reported by the artist
         "other": "Something else about a booking",
     },
     "account": {
@@ -24,7 +25,7 @@ ISSUES: dict[str, dict[str, str]] = {
         "other": "Something else about my account",
     },
 }
-URGENT_ISSUES = {"artist_no_show"}
+URGENT_ISSUES = {"artist_no_show", "customer_no_show"}
 
 DETAILS_MAX = 500
 MESSAGE_MAX = 1000

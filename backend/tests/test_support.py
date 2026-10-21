@@ -39,6 +39,29 @@ async def test_customer_reports_a_booking_problem_and_sees_it(client, engine):
     assert [i["id"] for i in mine] == [t["id"]]
 
 
+async def test_artist_reports_a_customer_no_show_and_the_reply_opens_their_side(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+
+    created = await report(client, artist["headers"], topic="booking", booking_id=b["id"], issue="customer_no_show")
+    assert created.status_code == 201, created.text
+    t = created.json()
+    assert (t["subject"], t["priority"], t["booking"]["code"]) == ("Customer didn't show up", "urgent", b["code"])
+    assert (await client.get(QUEUE, headers=admin, params={"view": "artists"})).json()["items"][0]["id"] == t["id"]
+
+    await client.post(f"{QUEUE}/{t['id']}/reply", headers=admin, json={"text": "We've called the customer."})
+    inbox = (await client.get("/api/v1/notifications", headers=artist["headers"])).json()["items"]
+    assert [n["link"] for n in inbox if n["kind"] == "support_reply"] == [f"/artist/support/{t['id']}"]
+
+
+async def test_nobody_reports_a_booking_that_is_not_theirs(client, engine):
+    _, artist, customer = await setup(client, engine)
+    b = (await book(client, customer, artist)).json()
+    stranger = await sign_in(client, "+919845077777", role="customer")
+    response = await report(client, stranger, topic="booking", booking_id=b["id"], issue="other")
+    assert response.status_code == 404
+
+
 async def test_reports_are_validated(client, engine):
     _, artist, customer = await setup(client, engine)
     stranger = await sign_in(client, "+919845080002", role="customer")

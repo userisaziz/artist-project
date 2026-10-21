@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Select, and_, func, select
+from sqlalchemy import ColumnElement, Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -99,9 +99,13 @@ class SupportRepository:
     async def resolved_since(self, since: datetime) -> int:
         return (await self.session.execute(select(func.count()).where(Ticket.resolved_at >= since))).scalar_one()
 
-    async def customer_booking(self, booking_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    async def own_booking(self, booking_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+        """The user booked it, or it is with the user's artist profile."""
+        artist_ids = select(ArtistProfile.id).where(ArtistProfile.user_id == user_id)
         found = await self.session.scalar(
-            select(Booking.id).where(Booking.id == booking_id, Booking.customer_id == user_id)
+            select(Booking.id).where(
+                Booking.id == booking_id, or_(Booking.customer_id == user_id, Booking.artist_id.in_(artist_ids))
+            )
         )
         return found is not None
 
