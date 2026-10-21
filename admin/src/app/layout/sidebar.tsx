@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useDirectorySummary, usePendingCount } from '@/features/artists/queries'
 import { useCustomServicePendingCount } from '@/features/custom-services/queries'
 import { useEnquirySummary } from '@/features/enquiries/queries'
+import { useUnreadNotificationCount } from '@/features/notifications/queries'
 import { useSubcategoryRequestSummary } from '@/features/subcategory-requests/queries'
 import { useOverview } from '@/features/overview/queries'
 import { useReviewPendingCount } from '@/features/reviews/queries'
@@ -19,6 +20,7 @@ export function Sidebar() {
   const { user, signOut } = useAuth()
   // The queue hooks report "99+" past one page; null or 0 hides the count.
   const counts: Record<NavCount, string | number | null | undefined> = {
+    unreadNotifications: useUnreadNotificationCount().data,
     pendingArtists: usePendingCount().data,
     heldEnquiries: useEnquirySummary().data?.counts.held,
     pendingSubcategories: useSubcategoryRequestSummary().data?.counts.pending,

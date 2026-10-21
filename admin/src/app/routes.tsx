@@ -7,6 +7,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { HOME_PATH, PATHS } from '@/lib/paths'
 
 // Console pages split into per-route chunks, loaded on navigation (AppShell's Suspense covers the fallback).
+const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
 const OverviewPage = lazy(() => import('@/features/overview/OverviewPage').then(m => ({ default: m.OverviewPage })))
 const ArtistQueuePage = lazy(() => import('@/features/artists/ArtistQueuePage').then(m => ({ default: m.ArtistQueuePage })))
 const ArtistDirectoryPage = lazy(() => import('@/features/artists/ArtistDirectoryPage').then(m => ({ default: m.ArtistDirectoryPage })))
@@ -52,6 +53,7 @@ export function AppRoutes() {
           <Route path={PATHS.categories} element={<CategoriesPage />} />
           <Route path={PATHS.enquiries} element={<EnquiriesPage />} />
           <Route path={PATHS.subcategoryRequests} element={<SubcategoryRequestsPage />} />
+          <Route path={PATHS.notifications} element={<NotificationsPage />} />
           <Route path={PATHS.customers} element={<CustomersPage />} />
           <Route path={PATHS.customerDetail} element={<CustomerDetailPage />} />
           <Route path={PATHS.support} element={<SupportPage />} />

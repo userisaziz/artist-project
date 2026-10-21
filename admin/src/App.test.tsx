@@ -267,7 +267,8 @@ it('shows catalog KPIs and archives a category from its row menu', async () => {
 it('shows an error state when the catalog fails to load', async () => {
   db.overrides['/admin/categories'] = () => json(500, { code: 'server_error', message: 'Database unavailable' })
   renderSignedIn('/categories')
-  expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t load categories.')
+  // A 500 is retried twice (about 1 s + 2 s, src/lib/query-client.ts) before the error shows.
+  expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent('Couldn’t load categories.')
 })
 
 it('approves a custom service from the queue', async () => {

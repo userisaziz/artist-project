@@ -1,5 +1,6 @@
 import type { AdminBooking, AdminCategory, AdminKyc, AdminOverview, AdminReview, ArtistDetail, CustomServiceItem, ServiceTemplate, User } from '@/lib/types'
 import { API_URL } from '@/lib/api'
+import type { AdminNotification } from '@/features/notifications/types'
 
 // A tiny in-memory backend behind fetch: just enough of the API contract for these flows.
 export const ADMIN: User = { id: 'u-admin', phone: '+919845000001', roles: ['admin'], active_role: null, first_name: 'Neha', last_name: 'Menon', email: null }
@@ -71,7 +72,7 @@ export type RefreshFailure = 'network' | number
 
 export interface Db {
   categories: AdminCategory[]; templates: ServiceTemplate[]; customServices: CustomServiceItem[]; artist: ArtistDetail
-  bookings: AdminBooking[]; reviews: AdminReview[]; overview: AdminOverview; me: User
+  bookings: AdminBooking[]; reviews: AdminReview[]; notifications: AdminNotification[]; overview: AdminOverview; me: User
   /** The httpOnly `ac_refresh` cookie the browser holds for /api/v1/auth (null: none). JS in the app never sees it. */
   refreshCookie: string | null
   /** When set, /auth/refresh fails this way instead of reading the cookie. */
@@ -218,6 +219,14 @@ function route(method: string, path: string, body: any): Response {
     db.reviews = db.reviews.map((r) => (r.id === found.id ? next : r))
     return json(200, next)
   }
+  // The admin's own inbox (backend app/notification): newest first, one page.
+  if (method === 'GET' && path === '/notifications') return json(200, { items: db.notifications, next_cursor: null })
+  if (method === 'GET' && path === '/notifications/unread-count') return json(200, { count: db.notifications.filter((n) => !n.read_at).length })
+  if (method === 'POST' && path === '/notifications/read') {
+    const ids = (body as { ids: string[] | null }).ids
+    db.notifications = db.notifications.map((n) => (ids === null || ids.includes(n.id) ? { ...n, read_at: n.read_at ?? '2026-10-21T12:00:00Z' } : n))
+    return json(204)
+  }
   return json(404, { code: 'not_found', message: `No fake route for ${method} ${path}` })
 }
 
@@ -227,7 +236,7 @@ const headersOf = (init: RequestInit): Record<string, string> =>
 /** Fresh fake data, and a fetch stub that routes every request to it. Call from beforeEach. */
 export function installFakeBackend(): void {
   db = {
-    categories: [], templates: [], customServices: [], artist: artist(), bookings: [], reviews: [], overview: OVERVIEW, me: ADMIN,
+    categories: [], templates: [], customServices: [], artist: artist(), bookings: [], reviews: [], notifications: [], overview: OVERVIEW, me: ADMIN,
     refreshCookie: null, refreshFailure: null, holdRefresh: null, logoutFails: false, accessRevoked: false, overrides: {},
   }
   calls = []

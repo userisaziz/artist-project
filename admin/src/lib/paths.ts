@@ -8,6 +8,7 @@ import { generatePath } from 'react-router'
 export const PATHS = {
   login: '/login',
   overview: '/overview',
+  notifications: '/notifications',
   artists: '/artists',
   artistDetail: '/artists/:id',
   artistDirectory: '/artist-directory',
