@@ -33,6 +33,7 @@ EXPECTED_TABLES = {
     "catalog_service_template",
     "booking",
     "review",
+    "saved_item",
 }
 
 

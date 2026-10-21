@@ -11,6 +11,7 @@ from app.core.audit import audit
 from app.core.exceptions import ConflictError
 from app.feed import service as feed_service
 from app.notification import service as notification_service
+from app.saved import service as saved_service
 from app.shared.clock import Clock
 from app.shared.enums import UserRole
 from app.shop import order_service, product_service
@@ -77,6 +78,7 @@ class UserService:
             )
         await auth_repository.AuthRepository(self.session).delete_refresh_tokens(user.id)
         await notification_service.NotificationService(self.session).forget(user.id)
+        await saved_service.forget(self.session, user.id)
         self._anonymise(user)
         await self.session.commit()
         audit("user.account_deleted", user_id=str(user.id), artist_id=str(artist_id) if artist_id else None)

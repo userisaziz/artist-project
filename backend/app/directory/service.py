@@ -45,6 +45,14 @@ class DirectoryService:
             "from_price_paise": min(prices) if prices else None,
         }
 
+    async def cards(self, artist_ids: list[uuid.UUID]) -> list[dict]:
+        """Directory cards of whichever of `artist_ids` are approved, in no particular order."""
+        if not artist_ids:
+            return []
+        profiles = await self.artists.approved_many(artist_ids)
+        ratings = await ratings_for(self.session, [p.id for p in profiles])
+        return [self._card_fields(p, ratings) for p in profiles]
+
     async def list(
         self, city: str | None, category_id: int | None, q: str | None, limit: int, cursor: str | None
     ) -> tuple[list[dict], str | None]:

@@ -26,6 +26,7 @@ from app.platform import admin_router as platform_admin
 from app.report import admin_router as report_admin
 from app.review import admin_router as admin_reviews
 from app.review import artist_router as artist_reviews
+from app.saved import router as saved
 from app.shop import admin_router as shop_admin
 from app.shop import artist_router as artist_shop
 from app.shop import router as shop
@@ -52,6 +53,7 @@ api_router.include_router(bookings.router)
 api_router.include_router(chat.router)
 api_router.include_router(feed.router)
 api_router.include_router(notifications.router)
+api_router.include_router(saved.router)
 api_router.include_router(artist_directory_admin.router)  # before artist_admin: /directory isn't an id
 api_router.include_router(artist_admin.router)
 api_router.include_router(admin_bookings.router)

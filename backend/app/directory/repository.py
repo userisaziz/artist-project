@@ -68,6 +68,14 @@ class DirectoryRepository:
             )
         ).scalar_one_or_none()
 
+    async def approved_many(self, artist_ids: list[uuid.UUID]) -> list[ArtistProfile]:
+        query = (
+            select(ArtistProfile)
+            .where(ArtistProfile.id.in_(artist_ids), ArtistProfile.status == ArtistStatus.approved)
+            .options(raiseload(ArtistProfile.kyc))
+        )
+        return list((await self.session.scalars(query)).all())
+
     async def categories(self, ids: Iterable[int]) -> dict[int, Category]:
         rows = (await self.session.execute(select(Category).where(Category.id.in_(set(ids))))).scalars()
         return {c.id: c for c in rows}

@@ -201,6 +201,15 @@ class FeedService:
             page = [*await self.posts.featured_rows(reader.id, limit), *page]
         return await self._out(page, full=False), next_cursor
 
+    async def cards(self, reader: User, post_ids: list[uuid.UUID]) -> list[dict[str, Any]]:
+        """Feed cards of whichever of `post_ids` are visible, newest first (the saved list reorders them)."""
+        if not post_ids:
+            return []
+        where = [VISIBLE, Post.id.in_(post_ids)]
+        return await self._out(
+            await self.posts.page_rows(reader.id, where, limit=len(post_ids), cursor=None), full=False
+        )
+
     async def visible_post(self, reader: User, post_id: uuid.UUID) -> PostRow:
         row = await self.posts.row(reader.id, post_id, VISIBLE)
         if row is None:

@@ -137,6 +137,13 @@ class ProductService:
             where.append(Product.name.ilike(like_pattern(q), escape="\\"))
         return await self._page(where, limit, cursor)
 
+    async def cards(self, product_ids: list[uuid.UUID]) -> list[dict[str, Any]]:
+        """Catalogue entries of whichever of `product_ids` are on sale, newest first."""
+        if not product_ids:
+            return []
+        rows = await self.shop.product_page([ON_SALE, Product.id.in_(product_ids)], limit=len(product_ids), cursor=None)
+        return [product_out(r, self.storage) for r in rows]
+
     async def detail(self, product_id: uuid.UUID) -> dict[str, Any]:
         return await self._out(product_id, ON_SALE)
 
