@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import * as directoryApi from '../../api/directory/directory';
+import { istDateKey } from '../../utils/common/time';
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +29,13 @@ export function useAvailability(artistId: string, date: string, serviceId: strin
   return useQuery({
     queryKey: directoryKeys.availability(artistId, date, serviceId),
     queryFn: () => directoryApi.getAvailability(artistId, date, serviceId),
-    enabled: !!artistId && !!serviceId,
+    enabled: !!artistId && !!serviceId && !!date,
     staleTime: 0, // slots go fast: always refetch when the date is shown again
   });
+}
+
+/** The picked start only while that day's slots still offer it (a refetch after a conflict can take it away). */
+export function useStillAvailable(artistId: string, serviceId: string, startAt: string | null): string | null {
+  const slots = useAvailability(artistId, startAt ? istDateKey(startAt) : '', serviceId);
+  return startAt && slots.data?.slots.some((s) => s.start_at === startAt && s.available) ? startAt : null;
 }
