@@ -68,6 +68,24 @@ it('the feed shows photo posts and articles, books a look, likes, and switches t
   expect(nav.openPost).toHaveBeenCalledWith('a-post');
 });
 
+it('searching the feed lists the matches, and says so when nothing matches', async () => {
+  const bridal = postFixture({ id: 'p-bridal', text: 'Arabic bridal mehendi for Sana' });
+  serve({
+    'GET /feed?tab=for_you': { items: [postFixture(), articleFixture()], next_cursor: null },
+    'GET /feed?tab=for_you&q=bridal': { items: [bridal], next_cursor: null },
+    'GET /feed?tab=for_you&q=zzz': { items: [], next_cursor: null },
+  });
+  await wrap(<FeedList nav={nav} />);
+  await screen.findByText(articleFixture().title ?? '');
+
+  await fireEvent.changeText(screen.getByLabelText('Search the feed'), 'bridal ');
+  expect(await screen.findByText(/Arabic bridal mehendi for Sana/)).toBeTruthy();
+  expect(screen.queryByText(articleFixture().title ?? '')).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText('Search the feed'), 'zzz');
+  expect(await screen.findByText('No posts match “zzz”.')).toBeTruthy();
+});
+
 it('the feed shows an error with a retry when it can’t load', async () => {
   serve({ 'GET /feed?tab=for_you': { status: 503, json: { code: 'service_unavailable', message: 'Service temporarily unavailable. Please try again.' } } });
   await wrap(<FeedList nav={nav} />);

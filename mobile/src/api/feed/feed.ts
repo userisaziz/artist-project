@@ -4,8 +4,9 @@ import type { Page } from '../../core/api/types';
 import type { FeedTab, Post, PostInput, ReportReason } from '../../types/feed/feed';
 
 // Customer feed (backend app/feed/router.py).
-export function getFeed(tab: FeedTab, cursor?: string | null) {
-  return request<Page<Post>>(withQuery('/feed', { tab, cursor }), undefined, { auth: true, method: 'GET' });
+/** `q` searches titles, captions and artist names; empty means the plain tab. */
+export function getFeed(tab: FeedTab, cursor?: string | null, q?: string) {
+  return request<Page<Post>>(withQuery('/feed', { tab, cursor, q }), undefined, { auth: true, method: 'GET' });
 }
 export function getPost(id: string) {
   return request<Post>(`/feed/posts/${encodeURIComponent(id)}`, undefined, { auth: true, method: 'GET' });

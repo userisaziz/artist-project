@@ -10,15 +10,17 @@ export const feedKeys = {
   all: ['feed'] as const,
   lists: (userId: string | undefined) => ['feed', userId, 'list'] as const,
   list: (userId: string | undefined, tab: FeedTab) => ['feed', userId, 'list', tab] as const,
+  /** Under the tab's key, so anything that refreshes a tab refreshes its searches too. */
+  search: (userId: string | undefined, tab: FeedTab, q: string) => ['feed', userId, 'list', tab, 'search', q] as const,
   post: (userId: string | undefined, id: string) => ['feed', userId, 'post', id] as const,
   mine: (userId: string | undefined) => ['feed', userId, 'mine'] as const,
 };
 
-export function useFeed(tab: FeedTab) {
+export function useFeed(tab: FeedTab, q = '') {
   const { user } = useAuth();
   return useInfiniteQuery({
-    queryKey: feedKeys.list(user?.id, tab),
-    queryFn: ({ pageParam }) => feedApi.getFeed(tab, pageParam),
+    queryKey: q ? feedKeys.search(user?.id, tab, q) : feedKeys.list(user?.id, tab),
+    queryFn: ({ pageParam }) => feedApi.getFeed(tab, pageParam, q),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
     enabled: !!user,
