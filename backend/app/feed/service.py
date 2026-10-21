@@ -163,6 +163,24 @@ class FeedService:
         page, next_cursor = split_page(rows, limit, lambda r: (r.post.created_at, r.post.id))
         return await self._out(page, full=True), next_cursor
 
+    async def followers(self, user: User, limit: int, cursor: str | None) -> dict[str, Any]:
+        """Who follows the signed-in artist, newest first. Names are shortened like on reviews; no ids or phones."""
+        artist_id = await approved_artist_id(self.session, user)
+        rows = await self.posts.followers(artist_id, limit, cursor)
+        page, next_cursor = split_page(rows, limit, lambda r: (r.followed_at, r.user_id))
+        return {
+            "items": [
+                {
+                    "name": review_service.reviewer_name(r.first_name, r.last_name),
+                    "photo_url": r.avatar_url,
+                    "followed_at": r.followed_at,
+                }
+                for r in page
+            ],
+            "next_cursor": next_cursor,
+            "total": await self.posts.follower_count(artist_id),
+        }
+
     async def delete(self, user: User, post_id: uuid.UUID) -> None:
         post = await self.posts.own_post(post_id, await approved_artist_id(self.session, user))
         if post is None:

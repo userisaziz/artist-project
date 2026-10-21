@@ -20,6 +20,7 @@ from app.customer import admin_router as customer_admin
 from app.directory import router as directory
 from app.feed import admin_router as feed_admin
 from app.feed import artist_router as artist_feed
+from app.feed import follower_router as feed_followers
 from app.feed import router as feed
 from app.notification import router as notifications
 from app.platform import admin_router as platform_admin
@@ -47,6 +48,7 @@ api_router.include_router(artist_bookings.router)
 api_router.include_router(artist_reviews.router)
 api_router.include_router(artist_chat.router)
 api_router.include_router(artist_feed.router)
+api_router.include_router(feed_followers.router)
 api_router.include_router(artist_shop.router)
 api_router.include_router(directory.router)  # after every /artists/me router: "me" isn't an artist id
 api_router.include_router(bookings.router)

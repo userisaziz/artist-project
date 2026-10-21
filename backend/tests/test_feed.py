@@ -189,6 +189,26 @@ async def test_following_is_idempotent_and_needs_an_approved_artist(client, engi
     assert (await client.put(f"{FEED}/artists/{unknown}/follow", headers=customer)).status_code == 404
 
 
+async def test_artists_see_who_follows_them_newest_first(client, engine):
+    _, artist, customer = await setup(client, engine)
+    second = await sign_in(client, "+919845077701", role="customer")
+    await client.patch("/api/v1/users/me", headers=second, json={"first_name": "Meera", "last_name": "Nair"})
+    await client.put(f"{FEED}/artists/{artist['id']}/follow", headers=customer)
+    await client.put(f"{FEED}/artists/{artist['id']}/follow", headers=second)
+
+    first = await client.get("/api/v1/artists/me/followers", headers=artist["headers"], params={"limit": 1})
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["total"] == 2
+    assert [f["name"] for f in body["items"]] == ["Meera N."]
+    rest = await client.get(
+        "/api/v1/artists/me/followers", headers=artist["headers"], params={"limit": 1, "cursor": body["next_cursor"]}
+    )
+    assert len(rest.json()["items"]) == 1 and rest.json()["next_cursor"] is None
+    assert set(rest.json()["items"][0]) == {"name", "photo_url", "followed_at"}  # no ids, no phone numbers
+    assert (await client.get("/api/v1/artists/me/followers", headers=customer)).status_code == 403
+
+
 async def test_artist_deletes_only_their_own_post(client, engine):
     admin, artist, customer = await setup(client, engine)
     rival = await approved_artist(client, engine, "+919845091002", admin, name="Meher by Riya")

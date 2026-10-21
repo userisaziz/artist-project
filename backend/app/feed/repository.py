@@ -16,6 +16,7 @@ from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto, PostReport
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset
 from app.shared.search import like_pattern
+from app.user.models import User
 
 ARTIST_VISIBLE = ArtistProfile.status == ArtistStatus.approved
 VISIBLE = and_(ARTIST_VISIBLE, Post.moderation == Moderation.live)  # what customers may see
@@ -68,6 +69,14 @@ def matching(q: str) -> ColumnElement[bool]:
         Post.text.ilike(pattern, escape="\\"),
         ArtistProfile.business_name.ilike(pattern, escape="\\"),
     )
+
+
+class FollowerRow(NamedTuple):
+    first_name: str | None
+    last_name: str | None
+    avatar_url: str | None
+    followed_at: datetime
+    user_id: uuid.UUID
 
 
 class FeedRepository:
@@ -216,3 +225,23 @@ class FeedRepository:
 
     async def delete(self, post: Post) -> None:
         await self.session.delete(post)
+
+    async def followers(self, artist_id: uuid.UUID, limit: int, cursor: str | None) -> list[FollowerRow]:
+        """The artist's followers, newest first; `limit + 1` rows for split_page."""
+        query = (
+            select(User.first_name, User.last_name, User.avatar_url, ArtistFollow.created_at, ArtistFollow.user_id)
+            .join(User, User.id == ArtistFollow.user_id)
+            .where(ArtistFollow.artist_id == artist_id, User.is_active.is_(True))
+        )
+        query = keyset(query, ArtistFollow.created_at, ArtistFollow.user_id, descending=True, cursor=cursor)
+        return [FollowerRow(*r) for r in (await self.session.execute(query.limit(limit + 1))).all()]
+
+    async def follower_count(self, artist_id: uuid.UUID) -> int:
+        return (
+            await self.session.execute(
+                select(func.count())
+                .select_from(ArtistFollow)
+                .join(User, User.id == ArtistFollow.user_id)
+                .where(ArtistFollow.artist_id == artist_id, User.is_active.is_(True))
+            )
+        ).scalar_one()

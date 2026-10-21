@@ -96,6 +96,18 @@ class FollowOut(APIModel):
     following: bool
 
 
+class FollowerOut(APIModel):
+    name: str  # "Priya S.", as on reviews
+    photo_url: str | None
+    followed_at: datetime
+
+
+class FollowerPage(APIModel):
+    items: list[FollowerOut]
+    next_cursor: str | None
+    total: int
+
+
 class ReportIn(APIModel):
     reason: ReportReason
 
