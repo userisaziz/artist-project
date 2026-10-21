@@ -8,6 +8,7 @@ customer must never see "requested" for a booking that wasn't saved.
 
 import secrets
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any, Literal
 
@@ -37,6 +38,8 @@ View = Literal["customer", "artist", "admin"]  # who a booking is shown to
 Canceller = Literal["customer", "artist", "admin"]  # Booking.cancelled_by
 ACCOUNT_DELETED = "Account deleted"
 TAKEN = "That time was just taken. Pick another."
+TAKEN_SLOT = "That time was just taken. Pick another slot."  # a new request
+CUSTOM_QUOTE = "Custom quote"  # service_name of a booking made from an accepted quote
 NOT_ASKED = "No change was asked for"
 CustomerScope = Literal["upcoming", "past"]
 ArtistScope = Literal["requests", "upcoming", "past"]
@@ -164,6 +167,119 @@ async def cancel_upcoming_for_deleted_account(
             await notices.cancelled(session, booking, by)
 
 
+@dataclass(frozen=True)
+class NewBooking:
+    """What a new booking is made of; money is worked out from `price_paise` by the usual pricing rules."""
+
+    customer_id: uuid.UUID
+    artist_id: uuid.UUID
+    service_id: uuid.UUID | None
+    service_name: str
+    duration_minutes: int
+    start_at: datetime
+    address: str
+    note: str | None
+    price_paise: int
+
+
+def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> Booking:
+    """An unsaved `requested` booking with its money copied in at request time."""
+    p = rules.price(data.price_paise)
+    provider = settings.payment_provider
+    direct = provider == "direct"
+    return Booking(
+        code=new_code(),
+        customer_id=data.customer_id,
+        artist_id=data.artist_id,
+        service_id=data.service_id,
+        service_name=data.service_name,
+        duration_minutes=data.duration_minutes,
+        start_at=data.start_at,
+        end_at=data.start_at + timedelta(minutes=data.duration_minutes),
+        address=data.address,
+        note=data.note,
+        status=BookingStatus.requested,
+        subtotal_paise=p.subtotal_paise,
+        # Phase 1 ("direct"): no in-app payments, so no platform fee and no deposit; the customer pays the
+        # artist the service price after the service.
+        platform_fee_paise=0 if direct else p.platform_fee_paise,
+        total_paise=p.subtotal_paise if direct else p.total_paise,
+        deposit_paise=0 if direct else p.deposit_paise,
+        commission_paise=p.commission_paise,
+        # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
+        # "mock" (never in production) counts the deposit as paid.
+        deposit_paid_at=now if provider == "mock" else None,
+        payment_provider=provider,
+        expires_at=rules.accept_deadline(now, data.start_at),
+    )
+
+
+async def check_free(
+    repo: BookingRepository, artist_id: uuid.UUID, start: datetime, end: datetime, now: datetime, taken: str
+) -> None:
+    """Call under the artist row lock, after expiring their overdue requests."""
+    if await repo.busy_ranges(artist_id, start, end, now):
+        raise ConflictError(taken)
+
+
+async def insert(session: AsyncSession, booking: Booking, taken: str) -> None:
+    BookingRepository(session).add(booking)
+    try:
+        await session.flush()
+    except IntegrityError as exc:  # ex_booking_no_overlap: only reachable if a write skipped the artist lock
+        raise ConflictError(taken) from exc
+
+
+async def lock_bookable_artist(session: AsyncSession, artist_id: uuid.UUID) -> uuid.UUID | None:
+    """Row-lock an approved artist (new bookings for one artist queue here); their account id, or None."""
+    artist = await BookingRepository(session).lock_approved_artist(artist_id)
+    return artist.user_id if artist else None
+
+
+async def create_from_quote(
+    session: AsyncSession,
+    settings: BookingSettings,
+    now: datetime,
+    *,
+    customer_id: uuid.UUID,
+    artist_id: uuid.UUID,
+    start_at: datetime,
+    duration_minutes: int,
+    price_paise: int,
+    address: str,
+    note: str | None,
+) -> Booking:
+    """A booking the artist already agreed to (an accepted quote): confirmed at once, with no service behind it,
+    for a start inside their hours that is free. Same slot rules, overlap guard, pricing and commission as a
+    request. The caller holds the artist lock (`lock_bookable_artist`, taken before anything else it locks) and
+    tells the artist."""
+    data = NewBooking(
+        customer_id=customer_id,
+        artist_id=artist_id,
+        service_id=None,
+        service_name=CUSTOM_QUOTE,
+        duration_minutes=duration_minutes,
+        start_at=start_at,
+        address=address,
+        note=note,
+        price_paise=price_paise,
+    )
+    repo = BookingRepository(session)
+    try:
+        hours = await artist_schedule.open_hours(session, data.artist_id, rules.start_day(data.start_at))
+        rules.check_bookable_start(data.start_at, now, hours, data.duration_minutes)
+    except ValidationError as exc:
+        raise ValidationError("Pick one of the offered times") from exc
+    end = data.start_at + timedelta(minutes=data.duration_minutes)
+    await repo.expire_overdue(now, Booking.artist_id == data.artist_id)
+    await check_free(repo, data.artist_id, data.start_at, end, now, TAKEN)
+    booking = new_booking(settings, now, data)
+    booking.status = BookingStatus.confirmed
+    booking.responded_at = now
+    await insert(session, booking, TAKEN)
+    return booking
+
+
 def shift_month(first: date, by: int) -> date:
     """The first day of the month `by` months from `first` (a first of the month)."""
     index = first.year * 12 + first.month - 1 + by
@@ -256,41 +372,23 @@ class BookingService:
         await self.bookings.expire_overdue(now, Booking.artist_id == artist.id)
         await self._check_open_requests(customer, now)
         end = data.start_at + timedelta(minutes=service.duration_minutes)
-        if await self.bookings.busy_ranges(artist.id, data.start_at, end, now):
-            raise ConflictError("That time was just taken. Pick another slot.")
-
-        p = rules.price(service.price_paise)
-        provider = self.settings.payment_provider
-        direct = provider == "direct"
-        booking = Booking(
-            code=new_code(),
-            customer_id=customer.id,
-            artist_id=artist.id,
-            service_id=service.id,
-            service_name=service.display_name,
-            duration_minutes=service.duration_minutes,
-            start_at=data.start_at,
-            end_at=end,
-            address=data.address,
-            note=data.note,
-            subtotal_paise=p.subtotal_paise,
-            # Phase 1 ("direct"): no in-app payments, so no platform fee and no deposit; the customer pays the
-            # artist the service price after the service.
-            platform_fee_paise=0 if direct else p.platform_fee_paise,
-            total_paise=p.subtotal_paise if direct else p.total_paise,
-            deposit_paise=0 if direct else p.deposit_paise,
-            commission_paise=p.commission_paise,
-            # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
-            # "mock" (never in production) counts the deposit as paid.
-            deposit_paid_at=now if provider == "mock" else None,
-            payment_provider=provider,
-            expires_at=rules.accept_deadline(now, data.start_at),
+        await check_free(self.bookings, artist.id, data.start_at, end, now, TAKEN_SLOT)
+        booking = new_booking(
+            self.settings,
+            now,
+            NewBooking(
+                customer_id=customer.id,
+                artist_id=artist.id,
+                service_id=service.id,
+                service_name=service.display_name,
+                duration_minutes=service.duration_minutes,
+                start_at=data.start_at,
+                address=data.address,
+                note=data.note,
+                price_paise=service.price_paise,
+            ),
         )
-        self.bookings.add(booking)
-        try:
-            await self.session.flush()
-        except IntegrityError as exc:  # ex_booking_no_overlap: only reachable if a write skipped the artist lock
-            raise ConflictError("That time was just taken. Pick another slot.") from exc
+        await insert(self.session, booking, TAKEN_SLOT)
         await notices.requested(self.session, booking, artist.user_id)
         return await self.save(booking.id, view="customer")
 

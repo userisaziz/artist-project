@@ -11,6 +11,7 @@ from app.core.audit import audit
 from app.core.exceptions import ConflictError
 from app.feed import service as feed_service
 from app.notification import service as notification_service
+from app.quote import service as quote_service
 from app.saved import service as saved_service
 from app.shared.clock import Clock
 from app.shared.enums import UserRole
@@ -68,6 +69,7 @@ class UserService:
         erased = await artist_service.ArtistService(self.session, self.storage, self.clock).erase(user)
         artist_id = erased.artist_id if erased else None
         await booking_service.cancel_upcoming_for_deleted_account(self.session, self.clock.now(), user.id, artist_id)
+        await quote_service.cancel_live_for_deleted_account(self.session, self.clock.now(), user.id, artist_id)
         await order_service.OrderService(self.session, self.storage, self.clock).cancel_open_for_deleted_account(
             user.id, artist_id
         )
