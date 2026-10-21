@@ -47,3 +47,16 @@ export interface PostInput {
   cover?: PhotoInput | null;
   service_id?: string | null;
 }
+
+/** GET /artists/me/followers item: a shortened name ("Meera N."), never an id or phone. */
+export interface Follower {
+  name: string;
+  photo_url: string | null;
+  followed_at: string;
+}
+
+export interface FollowerPage {
+  items: Follower[];
+  next_cursor: string | null;
+  total: number;
+}

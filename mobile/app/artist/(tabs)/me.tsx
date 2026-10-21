@@ -14,6 +14,7 @@ import { DeleteAccountButton } from '../../../src/components/auth/DeleteAccountB
 import { useArtistProfile } from '../../../src/hooks/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { useMyReviews } from '../../../src/hooks/reviews/reviews';
+import { useMyFollowers } from '../../../src/hooks/feed/feed';
 import { formatAverage } from '../../../src/utils/reviews/format';
 import type { ReviewSummary } from '../../../src/types/reviews/reviews';
 import { Icon } from '../../../src/components/common/Icon';
@@ -37,6 +38,7 @@ export default function ArtistMe() {
   const { chooseRole, signOut } = useAuth();
   const { data: profile } = useArtistProfile();
   const reviews = useMyReviews();
+  const followers = useMyFollowers();
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = profile?.business_name ?? '';
@@ -80,6 +82,7 @@ export default function ArtistMe() {
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
           <MenuRow label="My shop" onPress={() => router.push('/artist/shop')} />
           <MenuRow label="Posts & articles" detail="+ New post" onPress={() => router.push('/artist/posts')} />
+          <MenuRow label="Followers" detail={followers.data ? String(followers.data.pages[0]?.total ?? 0) : undefined} onPress={() => router.push('/artist/followers')} />
           <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
           <EditProfileRow />
           <MenuRow label="Working hours" onPress={() => router.push('/artist/working-hours')} />

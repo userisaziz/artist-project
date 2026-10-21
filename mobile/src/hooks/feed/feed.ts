@@ -14,6 +14,7 @@ export const feedKeys = {
   search: (userId: string | undefined, tab: FeedTab, q: string) => ['feed', userId, 'list', tab, 'search', q] as const,
   post: (userId: string | undefined, id: string) => ['feed', userId, 'post', id] as const,
   mine: (userId: string | undefined) => ['feed', userId, 'mine'] as const,
+  followers: (userId: string | undefined) => ['feed', userId, 'followers'] as const,
 };
 
 export function useFeed(tab: FeedTab, q = '') {
@@ -107,5 +108,17 @@ export function useDeletePost() {
 export function useReportPost() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: ReportReason }) => feedApi.reportPost(id, reason),
+  });
+}
+
+/** Me → Followers; the first page also carries the total for the Me row. */
+export function useMyFollowers() {
+  const { user } = useAuth();
+  return useInfiniteQuery({
+    queryKey: feedKeys.followers(user?.id),
+    queryFn: ({ pageParam }) => feedApi.listMyFollowers(pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
+    enabled: !!user,
   });
 }
