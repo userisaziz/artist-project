@@ -8,13 +8,28 @@ export type PushPlatform = 'ios' | 'android';
 export interface PushToken { token: string; platform: PushPlatform }
 
 const ANDROID_CHANNEL = 'default';
+const NO_OP = () => undefined;
 let lastOpenedId: string | null = null;
+
+/**
+ * Runs a synchronous expo-notifications call. A build without the native module (an Expo Go or dev client made
+ * before expo-notifications was added) throws here; pushes are an extra on top of the in-app inbox, so the app
+ * carries on without them and says why in development.
+ */
+function withNativePush<T>(call: () => T, fallback: T): T {
+  try {
+    return call();
+  } catch (error) {
+    if (__DEV__) console.warn('Push notifications are off in this build (rebuild the dev client):', error);
+    return fallback;
+  }
+}
 
 /** A banner while the app is open, too: the bell's badge alone is easy to miss. */
 export function configureForegroundPushes(): void {
-  Notifications.setNotificationHandler({
+  withNativePush(() => Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
-  });
+  }), undefined);
 }
 
 /**
@@ -52,13 +67,17 @@ export function onPushOpened(onOpen: (link: string) => void): () => void {
     const link = linkOf(response);
     if (link) onOpen(link);
   };
-  open(Notifications.getLastNotificationResponse());
-  const sub = Notifications.addNotificationResponseReceivedListener(open);
-  return () => sub.remove();
+  return withNativePush(() => {
+    open(Notifications.getLastNotificationResponse());
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, NO_OP);
 }
 
 /** Calls `onReceive` for every push that arrives while the app is in the foreground. */
 export function onPushReceived(onReceive: () => void): () => void {
-  const sub = Notifications.addNotificationReceivedListener(() => onReceive());
-  return () => sub.remove();
+  return withNativePush(() => {
+    const sub = Notifications.addNotificationReceivedListener(() => onReceive());
+    return () => sub.remove();
+  }, NO_OP);
 }

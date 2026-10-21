@@ -83,3 +83,16 @@ it('opens the link of a tapped push, and ignores links that are not in-app paths
 
   expect(navigate.mock.calls).toEqual([['/customer/booking/b-1']]);
 });
+
+it('keeps working in a build without the push native module', async () => {
+  const missing = () => { throw new Error("Cannot find native module 'ExpoNotificationsEmitter'"); };
+  (Notifications.getLastNotificationResponse as jest.Mock).mockImplementationOnce(missing);
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+  const { unmount } = await renderHook(() => usePushNotifications(jest.fn()), { wrapper });
+
+  await waitFor(() => expect(sent.map((r) => r.path)).toEqual(['/notifications/devices']));
+  expect(warn).toHaveBeenCalled();
+  unmount();
+  warn.mockRestore();
+});
