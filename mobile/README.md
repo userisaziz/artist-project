@@ -16,8 +16,9 @@ npm start          # then press i (iOS) or a (Android)
 
 ## Configuration (.env)
 ```text
-EXPO_PUBLIC_API_URL=http://localhost:8000 # iOS simulator
-# Android emulator: use http://10.0.2.2:8000 instead
+# Optional in development: unset, the app uses the Metro host on port 8000 (simulator, emulator, phone or web).
+# Required for release builds:
+EXPO_PUBLIC_API_URL=https://api.example.com
 ```
 
 The OTP screen reads codes from the backend's dev SMS provider (server console). Existing numbers sign straight in; new ones route through sign-up and Choose role.
@@ -32,7 +33,7 @@ With the backend's `STORAGE_PROVIDER=fake`, uploads are skipped and photos show 
 
 Backend integration walkthrough: start `uvicorn app.main:app --reload` in `backend/` and read OTPs from the server console (dev SMS provider). Restart Metro with `-c` (env is baked at bundle time).
 
-Testing against the backend on a physical phone: `localhost` is the phone itself, so set `EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:8000` and bind the server to all interfaces with `uvicorn app.main:app --reload --host 0.0.0.0`.
+Testing against the backend on a physical phone: in development the app calls the API on the machine that serves Metro (your current LAN IP), so no `.env` edit is needed when your network changes; just bind the server to all interfaces with `./dev.sh --lan` (or `uvicorn app.main:app --reload --host 0.0.0.0`). Set `EXPO_PUBLIC_API_URL` only to use a different API.
 
 ### Push notifications
 

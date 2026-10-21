@@ -72,6 +72,28 @@ describe('API base URL', () => {
     expect(load()).toHaveProperty('BASE_URL', 'http://localhost:8000');
   });
 
+  it('in development, a phone reaches the API on the machine that serves Metro', () => {
+    delete process.env.EXPO_PUBLIC_API_URL;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    jest.doMock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { hostUri: '192.168.29.205:8081' } } }));
+    try {
+      expect(load()).toHaveProperty('BASE_URL', 'http://192.168.29.205:8000');
+    } finally {
+      jest.dontMock('expo-constants');
+    }
+  });
+
+  it('an explicit EXPO_PUBLIC_API_URL still wins in development', () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.example.com/';
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    jest.doMock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { hostUri: '192.168.29.205:8081' } } }));
+    try {
+      expect(load()).toHaveProperty('BASE_URL', 'https://api.example.com');
+    } finally {
+      jest.dontMock('expo-constants');
+    }
+  });
+
   it('refuses to start a release build without EXPO_PUBLIC_API_URL', () => {
     delete process.env.EXPO_PUBLIC_API_URL;
     (global as { __DEV__?: boolean }).__DEV__ = false;

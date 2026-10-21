@@ -1,13 +1,22 @@
+import Constants from 'expo-constants';
 import type { Transport, TransportRequest, TransportResponse } from './transport';
 import { ApiError } from './types';
 
 const DEV_API_URL = 'http://localhost:8000';
+const DEV_API_PORT = 8000;
+
+/** In development the API runs next to Metro: a phone reaches it on the address it loaded the bundle from
+ *  (the Mac's current LAN IP), the browser on localhost. So a new Wi-Fi network never needs an .env edit. */
+function devApiUrl(): string {
+  const metroHost = Constants.expoConfig?.hostUri?.split(':')[0];
+  return metroHost ? `http://${metroHost}:${DEV_API_PORT}` : DEV_API_URL;
+}
 
 /** Release builds must be pointed at a real API: falling back to localhost would ship an app that can never connect. */
 function resolveBaseUrl(): string {
   const configured = process.env.EXPO_PUBLIC_API_URL; // read literally so Expo can inline it at build time
   if (configured) return configured.replace(/\/$/, '');
-  if (__DEV__) return DEV_API_URL;
+  if (__DEV__) return devApiUrl();
   throw new Error('EXPO_PUBLIC_API_URL is not set: release builds need the API base URL (see mobile/.env.example).');
 }
 
