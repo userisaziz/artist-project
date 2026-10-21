@@ -3,6 +3,7 @@ import { AppText } from '../common/AppText';
 import { BookLookButton } from './BookLookButton';
 import { LikeButton } from './LikeButton';
 import { ReportPostButton } from './ReportPostButton';
+import { SaveButton } from '../common/SaveButton';
 import { PhotoCarousel } from './PhotoCarousel';
 import { PostAuthor } from './PostAuthor';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -23,7 +24,10 @@ export function PhotoPostCard({ post, now, nav }: { post: Post; now: number; nav
         {service ? <BookLookButton service={service} onPress={() => nav.book(post.artist.id, service.id)} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <LikeButton post={post} />
-          <ReportPostButton postId={post.id} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {nav.savePost ? <SaveButton name={`${post.artist.business_name}’s post`} saved={nav.savePost.isSaved(post.id)} onPress={() => nav.savePost?.toggle(post.id)} /> : null}
+            <ReportPostButton postId={post.id} />
+          </View>
         </View>
         {post.text ? (
           <AppText variant="body" style={{ fontSize: 13.5, color: theme.colors.textPrimary }}>

@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Storefront } from '../../../src/components/directory/Storefront';
 import { useChatOpener } from '../../../src/hooks/chat/chat';
+import { useSaveToggle } from '../../../src/hooks/saved/saved';
 
 // Spec §2 Artist storefront; "Check availability" opens Date & time for the selected package, "See all reviews" the reviews, "Message" the chat.
 export default function ArtistStorefrontScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const chat = useChatOpener('customer');
+  const save = useSaveToggle('artist');
   return (
     <Storefront
       artistId={id ?? ''}
@@ -15,6 +17,7 @@ export default function ArtistStorefrontScreen() {
       onOpenService={(service) => router.push({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id: id ?? '', serviceId: service.id } })}
       onMessage={() => { void chat.open(id ?? ''); }}
       messaging={chat.openingId === id}
+      save={save}
     />
   );
 }

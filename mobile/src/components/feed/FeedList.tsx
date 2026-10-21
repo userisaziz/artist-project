@@ -61,7 +61,7 @@ export function FeedList({ nav }: { nav: FeedNavigation }) {
           keyExtractor={(p) => p.id}
           renderItem={({ item }) =>
             item.kind === 'article'
-              ? <ArticleCard post={item} now={now} onOpen={() => nav.openPost(item.id)} />
+              ? <ArticleCard post={item} now={now} onOpen={() => nav.openPost(item.id)} save={nav.savePost} />
               : <PhotoPostCard post={item} now={now} nav={nav} />
           }
           refreshing={feed.isRefetching && focused}

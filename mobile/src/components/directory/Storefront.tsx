@@ -1,3 +1,4 @@
+import { SaveButton, type SaveToggle } from '../common/SaveButton';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -29,6 +30,8 @@ interface StorefrontProps {
   messaging?: boolean;
   /** Opens a package's own page (Service detail). */
   onOpenService?: (service: PublicService) => void;
+  /** Saving the artist (customers); the artist's own preview leaves it out. */
+  save?: SaveToggle;
 }
 
 const COVER_HEIGHT = 230;
@@ -45,7 +48,7 @@ function groupServices(services: PublicService[]): [string, PublicService[]][] {
 }
 
 /** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onOpenService }: StorefrontProps) {
+export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onOpenService, save }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
@@ -82,7 +85,10 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
               <AppText variant="label" style={{ fontSize: 11.5, color: theme.colors.confirmedInk }}>Verified artist</AppText>
             </View>
           </View>
-          <AppText variant="display" style={{ fontSize: 28, lineHeight: 32, color: theme.colors.heading, marginTop: 8 }}>{artist.business_name}</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <AppText variant="display" style={{ flex: 1, fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>{artist.business_name}</AppText>
+            {save ? <SaveButton name={artist.business_name} saved={save.isSaved(artist.id)} onPress={() => save.toggle(artist.id)} /> : null}
+          </View>
           <AppText variant="body" style={{ color: theme.colors.textMuted }}>{categoryLine(artist)}</AppText>
 
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>

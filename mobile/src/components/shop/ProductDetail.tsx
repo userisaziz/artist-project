@@ -1,3 +1,4 @@
+import { SaveButton, type SaveToggle } from '../common/SaveButton';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
@@ -18,7 +19,9 @@ const LOW_STOCK = 5;
 
 /** Design product page: photos, seller, name, price with MRP and discount, stock, how to pay, details,
  *  and "Add to cart" / "Buy now". */
-export function ProductDetail({ productId, onOpenCart, onCheckout }: { productId: string; onOpenCart: () => void; onCheckout: () => void }) {
+interface ProductDetailProps { productId: string; onOpenCart: () => void; onCheckout: () => void; save?: SaveToggle }
+
+export function ProductDetail({ productId, onOpenCart, onCheckout, save }: ProductDetailProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -49,7 +52,10 @@ export function ProductDetail({ productId, onOpenCart, onCheckout }: { productId
             <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{p.seller.business_name}</AppText>
             <Icon name="verified" size={16} color={theme.colors.brand} label="Verified artist" />
           </View>
-          <AppText variant="display" style={{ fontSize: 26, lineHeight: 30, color: theme.colors.heading }}>{p.name}</AppText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <AppText variant="display" style={{ flex: 1, fontSize: 26, lineHeight: 30, color: theme.colors.heading }}>{p.name}</AppText>
+            {save ? <SaveButton name={p.name} saved={save.isSaved(p.id)} onPress={() => save.toggle(p.id)} /> : null}
+          </View>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${p.category_label} · ${p.sold} sold · ships from ${p.seller.city}`}</AppText>
           <Price price={p.price_paise} mrp={p.mrp_paise} discount={p.discount_percent} size="lg" />
           <AppText variant="caption" style={{ color: out ? theme.colors.error : p.stock <= LOW_STOCK ? theme.colors.pendingInk : theme.colors.confirmedInk }}>

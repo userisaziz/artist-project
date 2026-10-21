@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   BadgeCheck,
   Bell,
+  Bookmark,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +22,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 const ICONS = {
   'arrow-left-right': ArrowLeftRight,
   bell: Bell,
+  bookmark: Bookmark,
   check: Check,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,

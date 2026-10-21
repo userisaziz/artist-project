@@ -47,6 +47,7 @@ export default function CustomerProfile() {
         <MenuRow label="Edit profile" onPress={() => router.push('/customer/account')} />
         <MenuRow label="My bookings" onPress={() => router.navigate('/customer/bookings')} />
         <MenuRow label="My orders" onPress={() => router.push('/customer/shop/orders')} />
+        <MenuRow label="Saved" onPress={() => router.push('/customer/saved')} />
         <MenuRow label="Messages" onPress={() => router.push('/customer/messages')} />
         <MenuRow label="Help & support" onPress={() => router.push('/customer/support')} />
       </View>

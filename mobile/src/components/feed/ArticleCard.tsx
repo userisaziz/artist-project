@@ -1,3 +1,4 @@
+import { SaveButton, type SaveToggle } from '../common/SaveButton';
 import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
@@ -10,7 +11,9 @@ import type { Post } from '../../types/feed/feed';
 const COVER_HEIGHT = 180;
 
 /** Prototype article card: cover, "Guide · 6 min read", title, excerpt, and the author. Opens the article. */
-export function ArticleCard({ post, now, onOpen }: { post: Post; now: number; onOpen: () => void }) {
+interface ArticleCardProps { post: Post; now: number; onOpen: () => void; save?: SaveToggle }
+
+export function ArticleCard({ post, now, onOpen, save }: ArticleCardProps) {
   const theme = useTheme();
   return (
     <Pressable
@@ -26,7 +29,8 @@ export function ArticleCard({ post, now, onOpen }: { post: Post; now: number; on
         {post.excerpt ? <AppText variant="body" numberOfLines={3} style={{ fontSize: 13.5, color: theme.colors.textSecondary }}>{post.excerpt}</AppText> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
           <Avatar uri={post.artist.photo_url} name={post.artist.business_name} size={24} />
-          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${post.artist.business_name} · ${shortAgo(post.created_at, now)}`}</AppText>
+          <AppText variant="caption" style={{ flex: 1, color: theme.colors.textMuted }}>{`${post.artist.business_name} · ${shortAgo(post.created_at, now)}`}</AppText>
+          {save ? <SaveButton name={post.title ?? 'this guide'} saved={save.isSaved(post.id)} onPress={() => save.toggle(post.id)} /> : null}
         </View>
       </View>
     </Pressable>
