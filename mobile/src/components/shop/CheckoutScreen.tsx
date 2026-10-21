@@ -1,3 +1,4 @@
+import { AddressPicker, type AddressBook } from '../common/AddressPicker';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,13 +20,17 @@ const ADDRESS_MAX = 300;
 
 /** Design "Checkout", phase 1: the address, then for each artist how you'll pay them (from what they accept).
  *  Nothing is paid in the app; delivery charges are added per artist on the order. */
-export function CheckoutScreen({ onPlaced }: { onPlaced: (orders: Order[]) => void }) {
+interface CheckoutScreenProps { onPlaced: (orders: Order[]) => void; addressBook?: AddressBook }
+
+export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const cart = useCart();
   const place = usePlaceOrder();
   const groups = groupBySeller(cart.lines);
   const [address, setAddress] = useState('');
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
   const [chosen, setChosen] = useState<Record<string, PaymentMethod>>({});
   const methodFor = (sellerId: string, methods: PaymentMethod[]) => chosen[sellerId] ?? (methods.length === 1 ? methods[0] : undefined);
   const unpayable = groups.find((g) => g.methods.length === 0);
@@ -39,7 +44,7 @@ export function CheckoutScreen({ onPlaced }: { onPlaced: (orders: Order[]) => vo
         address: address.trim(),
         payment_methods: Object.fromEntries(groups.map((g) => [g.seller.id, methodFor(g.seller.id, g.methods) as PaymentMethod])),
       },
-      { onSuccess: (orders) => { cart.clear(); onPlaced(orders); } },
+      { onSuccess: (orders) => { addressBook?.afterUse(address, pickedId, remember); cart.clear(); onPlaced(orders); } },
     );
   };
 
@@ -56,7 +61,16 @@ export function CheckoutScreen({ onPlaced }: { onPlaced: (orders: Order[]) => vo
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingBottom: insets.bottom + 120, gap: 16 }}>
         <BackHeader title="Checkout" />
-        <AppTextField label="Deliver to" placeholder="Flat, building, street, area, city, PIN" value={address} onChangeText={setAddress} maxLength={ADDRESS_MAX} multiline />
+        {addressBook ? (
+          <AddressPicker
+            choices={addressBook.choices}
+            pickedId={pickedId}
+            onPick={(c) => { setPickedId(c.id); setAddress(c.address); }}
+            remember={remember}
+            onRememberChange={setRemember}
+          />
+        ) : null}
+        <AppTextField label="Deliver to" placeholder="Flat, building, street, area, city, PIN" value={address} onChangeText={(v) => { setAddress(v); setPickedId(null); }} maxLength={ADDRESS_MAX} multiline />
         {groups.map((g) => (
           <View key={g.seller.id} style={{ gap: 8, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
             <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{g.seller.business_name}</AppText>

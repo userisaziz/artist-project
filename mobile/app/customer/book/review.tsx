@@ -12,6 +12,8 @@ import { ErrorView, LoadingView } from '../../../src/components/common/StateView
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistPublic, directoryKeys } from '../../../src/hooks/directory/directory';
 import { useBookingWrite } from '../../../src/hooks/bookings/bookings';
+import { AddressPicker } from '../../../src/components/common/AddressPicker';
+import { useAddressBook } from '../../../src/hooks/addresses/addresses';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
 import { DEPOSIT_PERCENT, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
@@ -41,6 +43,9 @@ export default function ReviewAndPay() {
   const artist = useArtistPublic(artistId);
   const now = useNow();
   const [address, setAddress] = useState('');
+  const book = useAddressBook();
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
   const [note, setNote] = useState('');
   const [addressError, setAddressError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +76,7 @@ export default function ReviewAndPay() {
     setError(null);
     try {
       const booking = await write(() => createBooking({ artist_id: artistId, service_id: serviceId, start_at: startAt, address: address.trim(), note: note.trim() || null }));
+      book.afterUse(address, pickedId, remember);
       router.replace({ pathname: '/customer/book/done', params: { id: booking.id } });
     } catch (e) {
       setPaying(false);
@@ -93,11 +99,18 @@ export default function ReviewAndPay() {
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{artist.data.business_name}</AppText>
           <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: 8 }}>{formatWhen(startAt)}</AppText>
         </Card>
+        <AddressPicker
+          choices={book.choices}
+          pickedId={pickedId}
+          onPick={(c) => { setPickedId(c.id); setAddress(c.address); setAddressError(null); }}
+          remember={remember}
+          onRememberChange={setRemember}
+        />
         <AppTextField
           label="Address"
           placeholder="House, street and area"
           value={address}
-          onChangeText={(v) => { setAddress(v); setAddressError(null); }}
+          onChangeText={(v) => { setAddress(v); setPickedId(null); setAddressError(null); }}
           maxLength={MAX_ADDRESS}
           error={addressError}
         />
