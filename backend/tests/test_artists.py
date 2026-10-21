@@ -6,8 +6,8 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.upload.service import FakeStorage
-from tests.support.artist import complete_profile
-from tests.support.auth import sign_in
+from tests.support.artist import approved_artist, complete_profile
+from tests.support.auth import admin_headers, sign_in
 from tests.support.catalog import categories, seed_categories, templates
 from tests.support.upload import upload_key
 
@@ -276,6 +276,28 @@ async def test_submit_moves_to_pending_and_locks_edits(client):
     )
     assert locked.status_code == 409
     assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 409
+
+
+async def test_an_approved_artist_reopens_to_edit_and_goes_back_to_review(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, "+919845011112", admin)
+    headers = artist["headers"]
+    cats = await categories(client)
+    edit = {"business_name": "Ayesha Bridal Studio", "city": "Pune", "category_ids": [cats["mehendi"]]}
+    assert (await client.put("/api/v1/artists/me/profile", headers=headers, json=edit)).status_code == 409
+
+    reopened = await client.post("/api/v1/artists/me/reopen", headers=headers)
+    assert reopened.status_code == 200
+    assert reopened.json()["status"] == "draft"
+    listed = (await client.get("/api/v1/artists", params={"q": "Ayesha"})).json()["items"]
+    assert all(a["id"] != artist["id"] for a in listed)  # hidden from clients while editing
+
+    photo_key = reopened.json()["photo_key"]
+    saved = await client.put("/api/v1/artists/me/profile", headers=headers, json={**edit, "photo_key": photo_key})
+    assert (saved.status_code, saved.json()["business_name"]) == (200, "Ayesha Bridal Studio")
+    resubmitted = await client.post("/api/v1/artists/me/submit", headers=headers)
+    assert resubmitted.json()["status"] == "pending"
+    assert (await client.post("/api/v1/artists/me/reopen", headers=headers)).status_code == 409  # only from approved
 
 
 async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(client, engine):

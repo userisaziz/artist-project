@@ -135,6 +135,16 @@ async def delete_photo(
     return profile_out(await service.delete_photo(user, photo_id), service.storage)
 
 
+@router.post(
+    "/reopen",
+    response_model=ArtistProfileOut,
+    summary="Edit an approved profile (hides it until it is re-approved)",
+    status_code=200,
+)
+async def reopen(user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)) -> dict:
+    return profile_out(await service.reopen(user), service.storage)
+
+
 @router.post("/submit", response_model=ArtistProfileOut, summary="Submit the profile for review", status_code=200)
 async def submit(user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)) -> dict:
     return profile_out(await service.submit(user), service.storage)

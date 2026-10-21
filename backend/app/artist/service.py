@@ -334,6 +334,15 @@ class ArtistService:
             await self.storage.delete(key, private=True)
         return profile
 
+    async def reopen(self, user: User) -> ArtistProfile:
+        """An approved artist edits again: back to draft, so they leave the directory until an admin re-approves."""
+        profile = await self.get(user)
+        if profile.status != ArtistStatus.approved:
+            raise ConflictError(f"Profile is {profile.status.value}; only an approved profile can be reopened")
+        profile.status = ArtistStatus.draft
+        await self.session.flush()
+        return profile
+
     async def submit(self, user: User) -> ArtistProfile:
         profile = await self._editable(user)
         missing = []
