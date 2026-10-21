@@ -67,3 +67,20 @@ export function rupeesToPaise(text: string): number | null {
   if (!Number.isFinite(value) || value <= 0) return null;
   return Math.round(value * 100);
 }
+
+/** Paise → rupees as an artist would type them, for prefilled fields: 115000 → '1150', 115050 → '1150.50'. */
+export function paiseToRupeesText(paise: number): string {
+  return paise % 100 === 0 ? String(paise / 100) : (paise / 100).toFixed(2);
+}
+
+/** The first thing stopping a product's name, price, MRP and stock from being saved, or null when they are fine. */
+export function productFieldsProblem(f: { name: string; price: string; mrp: string; stock: string }): string | null {
+  const pricePaise = rupeesToPaise(f.price);
+  const mrpPaise = f.mrp.trim() ? rupeesToPaise(f.mrp) : null;
+  const stock = Number(f.stock);
+  if (f.name.trim().length < 2) return 'Add a name';
+  if (!pricePaise) return 'Add a price';
+  if (f.mrp.trim() && (!mrpPaise || mrpPaise < pricePaise)) return 'The MRP can’t be below the price';
+  if (!f.stock.trim() || !Number.isInteger(stock) || stock < 0) return 'Stock is a whole number';
+  return null;
+}

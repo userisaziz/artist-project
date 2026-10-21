@@ -46,7 +46,7 @@ it('asks first, then reopens the profile and starts editing at Profile', async (
   send.mockResolvedValue({ status: 200, json: reopened });
   await wrap(<EditProfileRow />);
 
-  fireEvent.press(screen.getByRole('button'));
+  await fireEvent.press(screen.getByRole('button'));
   expect(alert.mock.calls[0][0]).toBe('Edit your profile?');
   expect(send).not.toHaveBeenCalled();
   choose('Edit profile');
@@ -58,7 +58,7 @@ it('asks first, then reopens the profile and starts editing at Profile', async (
 
 it('does nothing when the artist backs out', async () => {
   await wrap(<EditProfileRow />);
-  fireEvent.press(screen.getByRole('button'));
+  await fireEvent.press(screen.getByRole('button'));
   choose('Not now');
   expect(send).not.toHaveBeenCalled();
   expect(startEditing).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ it('does nothing when the artist backs out', async () => {
 it('says why when the profile cannot be reopened', async () => {
   send.mockResolvedValue({ status: 409, json: { code: 'conflict', message: 'Profile is pending; only an approved profile can be reopened' } });
   await wrap(<EditProfileRow />);
-  fireEvent.press(screen.getByRole('button'));
+  await fireEvent.press(screen.getByRole('button'));
   choose('Edit profile');
 
   await waitFor(() => expect(alert).toHaveBeenLastCalledWith('Couldn’t open your profile', 'Profile is pending; only an approved profile can be reopened'));

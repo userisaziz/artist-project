@@ -97,6 +97,13 @@ export function useMyProducts() {
   });
 }
 
+/** One of the artist's own products, from the My shop list it was opened from. */
+export function useMyProduct(id: string) {
+  const products = useMyProducts();
+  const product = products.data?.pages.flatMap((p) => p.items).find((p) => p.id === id);
+  return { product, isPending: products.isPending, isError: products.isError, error: products.error, refetch: products.refetch };
+}
+
 export function useShopSummary() {
   const { user } = useAuth();
   return useQuery({ queryKey: [...shopKeys.mine(user?.id), 'summary'], queryFn: shopApi.getShopSummary, enabled: !!user });

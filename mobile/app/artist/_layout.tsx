@@ -53,6 +53,7 @@ export default function ArtistLayout() {
           <Stack.Screen name="shop/index" />
           <Stack.Screen name="shop/new-product" />
           <Stack.Screen name="shop/settings" />
+          <Stack.Screen name="shop/[id]" />
           <Stack.Screen name="notifications" />
         </Stack.Protected>
       </Stack>

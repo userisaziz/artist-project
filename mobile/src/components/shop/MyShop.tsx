@@ -19,7 +19,9 @@ const LOW_STOCK = 5;
 
 /** Design "My shop" (phase 1): to pack, this month's orders and sales (paid to you directly), products with
  *  an on/off switch, and orders to work through. */
-export function MyShop({ onAddProduct, onOpenSettings }: { onAddProduct: () => void; onOpenSettings: () => void }) {
+interface MyShopProps { onAddProduct: () => void; onEditProduct: (id: string) => void; onOpenSettings: () => void }
+
+export function MyShop({ onAddProduct, onEditProduct, onOpenSettings }: MyShopProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'products' | 'orders'>('products');
@@ -70,13 +72,13 @@ export function MyShop({ onAddProduct, onOpenSettings }: { onAddProduct: () => v
           renderItem={({ item: p }) => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.separator }}>
               {p.photos[0] ? <Photo uri={p.photos[0].url} style={{ width: THUMB, height: THUMB, borderRadius: theme.radii.sm }} /> : null}
-              <View style={{ flex: 1 }}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${p.name}`} onPress={() => onEditProduct(p.id)} style={{ flex: 1 }}>
                 <AppText variant="label" numberOfLines={1} style={{ color: theme.colors.textPrimary }}>{p.name}</AppText>
                 <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${p.sold} sold · ${formatPrice(p.price_paise)}`}</AppText>
                 <AppText variant="caption" style={{ color: p.status === 'removed' ? theme.colors.error : p.stock <= LOW_STOCK ? theme.colors.pendingInk : theme.colors.confirmedInk }}>
                   {p.status === 'removed' ? `Taken down: ${p.removed_reason ?? 'by our team'}` : p.stock === 0 ? 'Out of stock' : `${p.stock} in stock`}
                 </AppText>
-              </View>
+              </Pressable>
               <Switch
                 accessibilityLabel={`${p.name} on sale`}
                 value={p.is_active}
