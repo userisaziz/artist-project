@@ -8,6 +8,8 @@ import { AppButton } from '../../../src/components/common/AppButton';
 import { AppTextField } from '../../../src/components/common/AppTextField';
 import { Chip } from '../../../src/components/common/Chip';
 import { CityField } from '../../../src/components/artist-onboarding/CityField';
+import { ProfileDetailsFields } from '../../../src/components/artist-onboarding/ProfileDetailsFields';
+import { parseExperience } from '../../../src/utils/artist-onboarding/profile-details';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistProfile, useSaveProfile, useUploadPhoto } from '../../../src/hooks/artist-onboarding/artist-onboarding';
 import { useCategories, useCities } from '../../../src/hooks/catalog/catalog';
@@ -44,6 +46,8 @@ export default function ProfileStep() {
   const [name, setName] = useState(saved?.business_name ?? '');
   const [picked, setPicked] = useState<number[]>(saved?.categories.map((c) => c.id) ?? []);
   const [city, setCity] = useState(saved?.city ?? null);
+  const [experience, setExperience] = useState(saved?.experience_years == null ? '' : String(saved.experience_years));
+  const [languages, setLanguages] = useState<string[]>(saved?.languages ?? []);
   const [error, setError] = useState<string | null>(null);
 
   const choosePhoto = async () => {
@@ -66,9 +70,14 @@ export default function ProfileStep() {
   const ready = !!photoKey && !!name.trim() && picked.length > 0 && !!city && !uploading;
   const save = async () => {
     if (!ready || !city) return;
+    const years = parseExperience(experience);
+    if (!years.ok) { setError(years.error); return; }
     setError(null);
     try {
-      await saveProfile.mutateAsync({ business_name: name.trim(), city, category_ids: picked, photo_key: photoKey });
+      await saveProfile.mutateAsync({
+        business_name: name.trim(), city, category_ids: picked, photo_key: photoKey,
+        experience_years: years.value, languages,
+      });
       router.push('/artist/onboarding/location');
     } catch (e) {
       setError(errorMessage(e));
@@ -123,6 +132,8 @@ export default function ProfileStep() {
       ) : (
         <CityField value={city} cities={cities.data ?? []} onChange={setCity} />
       )}
+
+      <ProfileDetailsFields experience={experience} onExperienceChange={setExperience} languages={languages} onLanguagesChange={setLanguages} />
 
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
     </FormScreen>

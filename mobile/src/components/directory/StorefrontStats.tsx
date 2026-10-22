@@ -32,12 +32,15 @@ function stats(artist: ArtistPublic): Stat[] {
       rating: rated,
     },
     { key: 'bookings', value: String(artist.completed_bookings), label: 'Bookings' },
-    { key: 'since', value: artist.member_since ? formatMonthShort(artist.member_since) : '—', label: 'On Atelier since' },
+    artist.experience_years !== null
+      ? { key: 'experience', value: `${artist.experience_years} ${artist.experience_years === 1 ? 'yr' : 'yrs'}`, label: 'Experience' }
+      : { key: 'since', value: artist.member_since ? formatMonthShort(artist.member_since) : '—', label: 'On Atelier since' },
   ];
   return artist.reply_minutes === null ? list : [...list, { key: 'reply', value: formatReplyTime(artist.reply_minutes), label: 'Replies in' }];
 }
 
-/** The white card overlapping the hero: rating, completed bookings, time on Atelier and, once known, reply time. */
+/** The white card overlapping the hero: rating, completed bookings, years of experience (time on Atelier when the
+ *  artist hasn't said) and, once known, reply time. */
 export function StorefrontStats({ artist }: StorefrontStatsProps) {
   const theme = useTheme();
   const items = stats(artist);

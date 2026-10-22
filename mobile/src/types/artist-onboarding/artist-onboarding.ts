@@ -53,6 +53,9 @@ export interface ArtistProfile {
   latitude: number | null;
   longitude: number | null;
   bio: string | null;
+  experience_years: number | null;
+  /** Languages the artist speaks, in the order they picked them (backend Language values). */
+  languages: string[];
   photo_key: string | null;
   photo_url: string | null;
   categories: Category[];
@@ -71,6 +74,9 @@ export interface ProfileInput {
   category_ids: number[];
   photo_key: string | null;
   bio?: string | null;
+  /** Left out or null: not given. Saving the profile replaces both. */
+  experience_years?: number | null;
+  languages?: string[];
 }
 
 /** PUT /artists/me/location. The area (from GET /areas) sets the area name and the city; leaving out address_line clears it. */

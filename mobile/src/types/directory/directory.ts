@@ -61,6 +61,9 @@ export interface ArtistPublic extends ArtistCard {
   hours: WeeklyHour[];
   /** Display only: how far the artist travels, in km. */
   travel_radius_km: number | null;
+  experience_years: number | null;
+  /** Languages the artist speaks, in their order. */
+  languages: string[];
   completed_bookings: number;
   /** First IST day (YYYY-MM-DD) with an open slot within two weeks; null when fully booked or no packages. */
   next_free_date: string | null;

@@ -2,7 +2,7 @@ import { artistHref, artistStage, resumeStep } from '../../utils/artist-onboardi
 import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
 
 const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
-  id: 'a', status: 'draft', business_name: 'B', city: 'Pune', area_id: 3, locality: 'Baner', pincode: '411045', address_line: null, latitude: null, longitude: null, bio: null, photo_key: 'k', photo_url: 'u',
+  id: 'a', status: 'draft', business_name: 'B', city: 'Pune', area_id: 3, locality: 'Baner', pincode: '411045', address_line: null, latitude: null, longitude: null, bio: null, experience_years: null, languages: [], photo_key: 'k', photo_url: 'u',
   categories: [{ id: 1, slug: 'mehendi', name: 'Mehendi' }], services: [], photos: [],
   rejection_reason: null, submitted_at: null, reviewed_at: null, kyc: null, ...over,
 });

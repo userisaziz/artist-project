@@ -41,6 +41,8 @@ export function artistProfileFixture(overrides: Partial<ArtistProfile> = {}): Ar
     latitude: null,
     longitude: null,
     bio: null,
+    experience_years: null,
+    languages: [],
     photo_key: 'artists/9a8b/photo.jpg',
     photo_url: 'https://cdn.example.com/artists/9a8b/photo.jpg',
     categories: [{ id: 1, slug: 'makeup', name: 'Makeup' }],

@@ -32,7 +32,7 @@ const artist = (overrides: Partial<ArtistPublic> = {}): ArtistPublic => ({
   id: 'a1', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', locality: null, photo_url: null, cover_url: null,
   photo_urls: [], distance_km: null, free_on: null, categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 550000,
   rating: 4.9, review_count: 128, bio: 'Bridal mehendi for twelve years.', photos: [], member_since: '2026-01-10T00:00:00Z',
-  completed_bookings: 640, hours: [], travel_radius_km: 15, next_free_date: '2026-10-23', reply_minutes: 10,
+  completed_bookings: 640, hours: [], travel_radius_km: 15, experience_years: 8, languages: ['Hindi', 'English', 'Kannada'], next_free_date: '2026-10-23', reply_minutes: 10,
   services: [service('s1', 'Bridal Classic', 3, 550000), service('s2', 'Bridal Signature', 9, 900000)],
   ...overrides,
 });
@@ -80,6 +80,9 @@ it('shows the artist, their numbers, availability, the most booked package and t
   expect(screen.getByText('Replies in')).toBeTruthy();
   expect(screen.getByText('Next free: Fri, 23 Oct')).toBeTruthy();
   expect(screen.getByText('Travels 15 km')).toBeTruthy();
+  expect(screen.getByText('8 yrs')).toBeTruthy();
+  expect(screen.getByText('Experience')).toBeTruthy();
+  expect(screen.getByText('Hindi · English · Kannada')).toBeTruthy();
   expect(screen.getAllByText('Most booked')).toHaveLength(1);
   expect(screen.getByLabelText('Bridal Signature, most booked, ₹9,000')).toBeTruthy();
   expect(screen.getAllByText('2 packages')).toHaveLength(2); // the Services heading and the pinned footer
