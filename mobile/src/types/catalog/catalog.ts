@@ -41,3 +41,12 @@ export interface ServiceExtrasInput {
   included_items?: string[];
   addons?: ServiceAddonInput[];
 }
+
+/** GET /areas: a neighbourhood of an operating city ("BTM Layout", Bangalore) with its rough centre. */
+export interface Area {
+  id: number;
+  city: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}

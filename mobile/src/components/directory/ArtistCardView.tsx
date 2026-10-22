@@ -16,8 +16,11 @@ interface ArtistCardViewProps {
 
 const TILE_WIDTH = 200;
 
-export function categoryLine(artist: Pick<ArtistCard, 'categories' | 'city'>): string {
-  return [artist.categories.map((c) => c.name).join(', '), artist.city].filter(Boolean).join(' · ');
+/** "Mehendi, Makeup · BTM Layout, Bangalore"; just the city for artists who haven't set their area yet. */
+export function categoryLine(artist: Pick<ArtistCard, 'categories' | 'city' | 'locality'>): string {
+  const area = artist.locality?.trim();
+  const place = area ? `${area}, ${artist.city}` : artist.city;
+  return [artist.categories.map((c) => c.name).join(', '), place].filter(Boolean).join(' · ');
 }
 
 export function ArtistCardView({ artist, onPress, variant = 'row' }: ArtistCardViewProps) {
