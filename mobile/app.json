@@ -31,6 +31,7 @@
       "expo-asset",
       "expo-image",
       "expo-notifications",
+      ["expo-location", { "locationWhenInUsePermission": "Atelier uses your location to place your studio for nearby clients and to show artists near you." }],
       ["expo-image-picker", { "photosPermission": "Atelier uses your photos for your profile picture and portfolio.", "cameraPermission": false, "microphonePermission": false }],
       "./plugins/with-android-autofill-highlight"
     ],

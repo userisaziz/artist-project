@@ -7,14 +7,31 @@ export interface ArtistCard {
   id: string;
   business_name: string;
   city: string;
+  /** The area the artist works from ("Koramangala"); null for artists approved before the Location step. */
+  locality: string | null;
   photo_url: string | null;
   cover_url: string | null;
+  /** First few portfolio photos (Explore's mosaic). */
+  photo_urls: string[];
   categories: NamedRef[];
   from_price_paise: number | null; // cheapest approved service; null if none yet
   /** Average of public reviews to one decimal; null ("New") when there are none. */
   rating: number | null;
   review_count: number;
+  /** Km from the search point, one decimal; null without "Near me" or when the artist has no pin. */
+  distance_km: number | null;
+  /** The searched free date (YYYY-MM-DD) when the artist has an open slot then. */
+  free_on: string | null;
 }
+
+/** GET /artists: one page plus every match across pages (null when not counted, e.g. a free-date search). */
+export interface ArtistCardPage {
+  items: ArtistCard[];
+  next_cursor: string | null;
+  total: number | null;
+}
+
+export type DirectorySort = 'recent' | 'recommended' | 'rating' | 'price' | 'nearest';
 
 export interface PublicService {
   id: string;

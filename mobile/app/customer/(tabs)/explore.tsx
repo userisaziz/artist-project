@@ -1,23 +1,36 @@
-import { useState } from 'react';
-import { FlatList, ScrollView, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
-import { Chip } from '../../../src/components/common/Chip';
+import { AppButton } from '../../../src/components/common/AppButton';
+import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
-import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useCategories } from '../../../src/hooks/catalog/catalog';
-import { useArtistList } from '../../../src/hooks/directory/directory';
-import { useDebounced } from '../../../src/hooks/common/use-debounced';
-import { ArtistCardView } from '../../../src/components/directory/ArtistCardView';
 import { Icon } from '../../../src/components/common/Icon';
+import { CitySheet } from '../../../src/components/directory/CitySheet';
+import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
+import { ExploreFilterBar } from '../../../src/components/directory/ExploreFilterBar';
+import type { FilterChipSpec } from '../../../src/components/directory/ExploreFilterBar';
+import { ExploreResultRow } from '../../../src/components/directory/ExploreResultRow';
+import { ExploreResultsHeader } from '../../../src/components/directory/ExploreResultsHeader';
+import { useCity } from '../../../src/context/directory/city-context';
+import { useTheme } from '../../../src/core/theme/theme-provider';
+import { useCategories, useCities } from '../../../src/hooks/catalog/catalog';
+import { useDebounced } from '../../../src/hooks/common/use-debounced';
+import { useNow } from '../../../src/hooks/common/use-now';
+import { useArtistSearch } from '../../../src/hooks/directory/directory';
+import { TOP_RATED, useExploreFilters } from '../../../src/hooks/directory/use-explore-filters';
+import { useSaveToggle } from '../../../src/hooks/saved/saved';
+import { formatPrice } from '../../../src/utils/common/format';
+import { formatDay, istDateKey } from '../../../src/utils/common/time';
+import { availabilityLabel } from '../../../src/utils/directory/format';
+import { SORT_LABELS, dateChoices, priceChoices, sortChoices } from '../../../src/utils/directory/explore-choices';
 
 const SEARCH_DEBOUNCE_MS = 300;
+type Sheet = 'city' | 'date' | 'price' | 'sort' | null;
 
-/** Home's category circles open Explore with `?categoryId=`; a new param re-selects the chip. */
-function useCategoryParam(): [number | null, (id: number | null) => void] {
-  const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
-  const fromParam = categoryId && /^\d+$/.test(categoryId) ? Number(categoryId) : null;
+/** A chip selection seeded from a search param; a new param re-selects the chip. */
+function useParamSelection<T>(fromParam: T): [T, (value: T) => void] {
   const [seenParam, setSeenParam] = useState(fromParam);
   const [selected, setSelected] = useState(fromParam);
   if (fromParam !== seenParam) { // reset during render (no effect) when navigation brings a new category
@@ -27,25 +40,67 @@ function useCategoryParam(): [number | null, (id: number | null) => void] {
   return [selected, setSelected];
 }
 
-// Spec §2 Explore: debounced search, category chips, "N artists" and an infinite list.
+/** Home's category circles open Explore with `?categoryId=`; any screen can open it with `?city=`. */
+function useExploreParams(): { categoryId: number | null; city: string | null } {
+  const { categoryId, city } = useLocalSearchParams<{ categoryId?: string; city?: string }>();
+  return { categoryId: categoryId && /^\d+$/.test(categoryId) ? Number(categoryId) : null, city: city || null };
+}
+
+// AtelierScreen "explore": search, filter chips (Near me, Date, Price, 4.8+, Home visit), "N artists in City" with a
+// sort, then a featured first artist and compact rows. The city is shared with Home.
 export default function Explore() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), SEARCH_DEBOUNCE_MS);
-  const [categoryId, setCategoryId] = useCategoryParam();
+  const params = useExploreParams();
+  const [categoryId, setCategoryId] = useParamSelection(params.categoryId);
+  const { city, setCity } = useCity();
+  useEffect(() => { if (params.city) setCity(params.city); }, [params.city, setCity]); // a `?city=` link wins
   const categories = useCategories();
-  const list = useArtistList(categoryId, q);
+  const cities = useCities();
+  const explore = useExploreFilters({ city, categoryId, q });
+  const { filters, set } = explore;
+  const list = useArtistSearch(explore.search);
+  const saveArtist = useSaveToggle('artist');
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const todayKey = istDateKey(useNow());
+
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
-  const count = `${items.length}${list.hasNextPage ? '+' : ''} ${items.length === 1 && !list.hasNextPage ? 'artist' : 'artists'}`;
+  const total = list.data?.pages[0]?.total ?? null;
+  const shown = total ?? items.length;
+  const count = `${shown}${total === null && list.hasNextPage ? '+' : ''} ${shown === 1 && !list.hasNextPage ? 'artist' : 'artists'}`;
+  const where = filters.near ? 'near you' : city ? `in ${city}` : 'in all cities';
+  const category = categories.data?.find((c) => c.id === categoryId);
+  const filtered = explore.active || !!category;
+  const openArtist = (id: string) => router.push({ pathname: '/customer/artist/[id]', params: { id } });
+  const close = () => setSheet(null);
+
+  const chips: FilterChipSpec[] = [
+    ...(category ? [{ key: 'category', label: `${category.name} ×`, accessibilityLabel: `Remove ${category.name} filter`, active: true, onPress: () => setCategoryId(null) }] : []),
+    { key: 'near', label: explore.locating ? 'Locating…' : 'Near me', accessibilityLabel: 'Near me', icon: 'map-pin', active: !!filters.near, onPress: () => { void explore.toggleNear(); } },
+    { key: 'date', label: filters.availableOn ? formatDay(filters.availableOn) : 'Date', accessibilityLabel: 'Date', opensMenu: true, active: !!filters.availableOn, onPress: () => setSheet('date') },
+    { key: 'price', label: filters.maxPricePaise ? `Under ${formatPrice(filters.maxPricePaise)}` : 'Price', accessibilityLabel: 'Price', opensMenu: true, active: filters.maxPricePaise !== null, onPress: () => setSheet('price') },
+    { key: 'rating', label: `★ ${TOP_RATED}+`, accessibilityLabel: `Rated ${TOP_RATED} and up`, active: filters.minRating !== null, onPress: () => set({ minRating: filters.minRating === null ? TOP_RATED : null }) },
+    { key: 'home', label: 'Home visit', active: filters.homeVisit, onPress: () => set({ homeVisit: !filters.homeVisit }) },
+  ];
+
+  const empty = list.isPending ? <LoadingView />
+    : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
+      : (
+        <View style={{ gap: theme.spacing.md }}>
+          <EmptyView message={filtered ? 'No artists match these filters.' : `No artists ${where} yet.`} />
+          {filtered ? <AppButton label="Clear filters" variant="secondary" onPress={() => { explore.clear(); setCategoryId(null); }} /> : null}
+        </View>
+      );
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
-      <View style={{ paddingHorizontal: theme.spacing.md }}>
-        <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Explore</AppText>
-        <View style={{ marginTop: 12, height: 48, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16 }}>
-          <Icon name="search" size={18} color={theme.colors.brand} />
+      <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
+        <AppText variant="display" style={{ fontSize: 36, lineHeight: 38, color: theme.colors.heading }}>Explore</AppText>
+        <View style={{ marginTop: 14, height: 46, borderRadius: 12, backgroundColor: theme.colors.brandSoft, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
+          <Icon name="search" size={17} color={theme.colors.brand} />
           <TextInput
             accessibilityLabel="Search artists"
             placeholder="Search artists or services"
@@ -55,33 +110,47 @@ export default function Explore() {
             autoCorrect={false}
             returnKeyType="search"
             cursorColor={theme.colors.brand}
-            style={{ flex: 1, height: 46, color: theme.colors.textPrimary, fontFamily: theme.typography.body.fontFamily, fontSize: 15 }}
+            style={{ flex: 1, height: 44, color: theme.colors.textPrimary, fontFamily: theme.typography.body.fontFamily, fontSize: 14 }}
           />
         </View>
       </View>
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: theme.spacing.md, paddingVertical: 12 }}>
-          <Chip label="All" selected={categoryId === null} onPress={() => setCategoryId(null)} />
-          {(categories.data ?? []).map((c) => (
-            <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
-          ))}
-        </ScrollView>
-      </View>
+      <ExploreFilterBar chips={chips} />
+      {explore.locationError ? (
+        <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, paddingHorizontal: theme.spacing.md, marginTop: 8 }}>{explore.locationError}</AppText>
+      ) : null}
       <FlatList
         data={items}
         keyExtractor={(a) => a.id}
         contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: 12 }}
-        renderItem={({ item }) => <ArtistCardView artist={item} onPress={() => router.push({ pathname: '/customer/artist/[id]', params: { id: item.id } })} />}
+        renderItem={({ item, index }) => (index === 0 ? (
+          <ExploreFeaturedCard
+            artist={item}
+            availability={availabilityLabel(item.free_on, todayKey)}
+            saved={saveArtist.isSaved(item.id)}
+            onToggleSave={() => saveArtist.toggle(item.id)}
+            onPress={() => openArtist(item.id)}
+          />
+        ) : (
+          <ExploreResultRow artist={item} availability={availabilityLabel(item.free_on, todayKey)} onPress={() => openArtist(item.id)} />
+        ))}
         onEndReachedThreshold={0.5}
         onEndReached={() => { if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage(); }}
-        ListHeaderComponent={list.isSuccess ? <AppText variant="label" style={{ color: theme.colors.textMuted }}>{count}</AppText> : null}
-        ListEmptyComponent={
-          list.isPending ? <LoadingView />
-            : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
-              : <EmptyView message="No artists match yet. Try another category." />
+        ListHeaderComponent={
+          <ExploreResultsHeader
+            count={list.isSuccess ? count : ''}
+            where={where}
+            sortLabel={SORT_LABELS[filters.sort]}
+            onWhere={() => setSheet('city')}
+            onSort={() => setSheet('sort')}
+          />
         }
+        ListEmptyComponent={empty}
         ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" /> : null}
       />
+      <CitySheet visible={sheet === 'city'} cities={cities.data ?? []} selected={city} onPick={(next) => { setCity(next); close(); }} onClose={close} />
+      <ChoiceSheet visible={sheet === 'date'} title="Free on" choices={dateChoices(todayKey)} selected={filters.availableOn} onPick={(availableOn) => { set({ availableOn }); close(); }} onClose={close} />
+      <ChoiceSheet visible={sheet === 'price'} title="Starting price" choices={priceChoices()} selected={filters.maxPricePaise} onPick={(maxPricePaise) => { set({ maxPricePaise }); close(); }} onClose={close} />
+      <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices(!!filters.near)} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
     </View>
   );
 }

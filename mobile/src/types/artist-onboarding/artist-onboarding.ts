@@ -40,6 +40,14 @@ export interface ArtistProfile {
   status: ArtistStatus;
   business_name: string;
   city: string;
+  /** The area clients see, e.g. "Koramangala". Null until the Location step is saved. */
+  locality: string | null;
+  pincode: string | null;
+  /** Studio / house no. Only the artist (and admins) ever see it. */
+  address_line: string | null;
+  /** The studio pin from "Use my current location"; never public (clients only see a distance). */
+  latitude: number | null;
+  longitude: number | null;
   bio: string | null;
   photo_key: string | null;
   photo_url: string | null;
@@ -59,6 +67,16 @@ export interface ProfileInput {
   category_ids: number[];
   photo_key: string | null;
   bio?: string | null;
+}
+
+/** PUT /artists/me/location. Leaving out address_line clears it. */
+export interface LocationInput {
+  locality: string;
+  pincode: string;
+  address_line?: string | null;
+  /** Both or neither. Leaving them out clears the pin. */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 /** POST /artists/me/services: a template from the catalog, with the artist's own price and duration. */

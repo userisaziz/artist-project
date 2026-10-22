@@ -21,7 +21,8 @@ jest.setTimeout(20_000);
 
 const artist = (over: Partial<ArtistCard>): ArtistCard => ({
   id: 'a1', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', photo_url: null, cover_url: null,
-  categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 150000, rating: 4.6, review_count: 12, ...over,
+  categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 150000, rating: 4.6, review_count: 12,
+  locality: null, photo_urls: [], distance_km: null, free_on: null, ...over,
 });
 const ARTISTS = [
   artist({}),

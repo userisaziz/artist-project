@@ -16,7 +16,7 @@ const MAX_PHOTOS = 30; // backend artist_service.MAX_PHOTOS
 
 interface Uploading { localId: string; uri: string }
 
-// Atelier hi-fi "onbPortfolio" (step 3 of 4): the first photo is the cover; long-press a tile for Make cover / Remove. Continue opens Identity.
+// Atelier hi-fi "onbPortfolio" (step 4 of 5): the first photo is the cover; long-press a tile for Make cover / Remove. Continue opens Identity.
 export default function PortfolioStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -64,8 +64,8 @@ export default function PortfolioStep() {
   return (
     <FormScreen
       onBack={() => router.dismissTo('/artist/onboarding/services')}
-      step={3}
-      steps={4}
+      step={4}
+      steps={5}
       footer={(
         <AppButton
           label={enough ? 'Continue' : `Continue · ${count} of ${MIN_PHOTOS} photos`}
@@ -74,7 +74,7 @@ export default function PortfolioStep() {
         />
       )}
     >
-      <FormHeading eyebrow="STEP 3 · PORTFOLIO" title="Show your" accent="best work" subtitle={`Add at least ${MIN_PHOTOS} photos. Your first photo becomes your cover.`} />
+      <FormHeading eyebrow="STEP 4 · PORTFOLIO" title="Show your" accent="best work" subtitle={`Add at least ${MIN_PHOTOS} photos. Your first photo becomes your cover.`} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
         {photos.map((p, i) => (
           <Pressable

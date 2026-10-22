@@ -24,7 +24,7 @@ const EMPTY: Record<SideName, Side> = {
   back: { uri: null, key: null, uploading: false },
 };
 
-// Step 4 of 4 (spec §2.2; not drawn in the design): Aadhaar number and both sides of the card, then Submit for review.
+// Step 5 of 5 (spec §2.2; not drawn in the design): Aadhaar number and both sides of the card, then Submit for review.
 // The server never sends the number or the photos back, so details on file show only the last 4 digits.
 export default function IdentityStep() {
   const theme = useTheme();
@@ -91,11 +91,11 @@ export default function IdentityStep() {
   return (
     <FormScreen
       onBack={() => router.dismissTo('/artist/onboarding/portfolio')}
-      step={4}
-      steps={4}
+      step={5}
+      steps={5}
       footer={<AppButton label="Submit for review" onPress={() => { void submit(); }} loading={submitting} disabled={!ready} />}
     >
-      <FormHeading eyebrow="STEP 4 · IDENTITY" title="Confirm it’s" accent="you" subtitle="We use your Aadhaar only to verify your identity." />
+      <FormHeading eyebrow="STEP 5 · IDENTITY" title="Confirm it’s" accent="you" subtitle="We use your Aadhaar only to verify your identity." />
       {onFile ? (
         <View style={{ marginTop: 20, padding: 14, gap: 8, borderRadius: theme.radii.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}>
           <AppText variant="label" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{`Aadhaar on file •••• ${onFile.aadhaar_last4}`}</AppText>

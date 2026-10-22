@@ -1,6 +1,6 @@
 import { request } from '../../core/api/client';
 import { ApiError } from '../../core/api/types';
-import type { ArtistProfile, KycInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistProfile, KycInput, LocationInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose, UploadTicket } from '../../types/artist-onboarding/artist-onboarding';
 
 // Mirrors backend api/v1/artists.py + uploads.py. Every write returns the whole profile.
 
@@ -15,6 +15,9 @@ export async function getMyProfile(): Promise<ArtistProfile | null> {
 }
 export function saveProfile(body: ProfileInput) {
   return request<ArtistProfile>('/artists/me/profile', body, { auth: true, method: 'PUT' });
+}
+export function saveLocation(body: LocationInput) {
+  return request<ArtistProfile>('/artists/me/location', body, { auth: true, method: 'PUT' });
 }
 export function addService(body: ServiceInput) {
   return request<ArtistProfile>('/artists/me/services', body, { auth: true });

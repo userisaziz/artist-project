@@ -4,7 +4,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import * as artistApi from '../../api/artist-onboarding/artist-onboarding';
 import { uploadImage } from '../../api/artist-onboarding/upload';
 import type { PickedImage } from '../../api/artist-onboarding/upload';
-import type { ArtistProfile, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistProfile, LocationInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
 import { useAuth } from '../../context/auth/auth-provider';
 import { ARTIST_PROFILE_KEY } from '../../core/api/query-keys';
 
@@ -50,6 +50,11 @@ export function useReopenProfile(): UseMutationResult<ArtistProfile, Error, void
 /** PUT /artists/me/profile — onboarding step 1. */
 export function useSaveProfile(): UseMutationResult<ArtistProfile, Error, ProfileInput> {
   return useProfileMutation('save-profile', artistApi.saveProfile);
+}
+
+/** PUT /artists/me/location — onboarding step 2. */
+export function useSaveLocation(): UseMutationResult<ArtistProfile, Error, LocationInput> {
+  return useProfileMutation('save-location', artistApi.saveLocation);
 }
 
 /** POST /artists/me/services — a service from the admin's list with the artist's price and duration. */

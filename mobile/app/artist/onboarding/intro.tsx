@@ -13,7 +13,7 @@ const WELCOME_PHOTO = require('../../../assets/hero/welcome.webp');
 const CLIENT_PHOTO = require('../../../assets/hero/role-customer.webp');
 const BENEFITS = ['Show your work to clients near you', 'Set your own services and prices']; // payouts line dropped until payouts exist
 
-// Atelier hi-fi "onbIntro": photo collage, headline, benefits and "4 short steps".
+// Atelier hi-fi "onbIntro": photo collage, headline, benefits and "5 short steps".
 export default function IntroScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function IntroScreen() {
         ))}
       </View>
       <View style={{ flex: 1 }} />
-      <AppText variant="caption" style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 10 }}>4 short steps</AppText>
+      <AppText variant="caption" style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 10 }}>5 short steps</AppText>
       <AppButton label="Let’s get started" onPress={() => router.push('/artist/onboarding/profile')} />
     </View>
   );

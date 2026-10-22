@@ -112,6 +112,7 @@ Use these libraries; do not introduce ad-hoc alternatives or competing UI/data k
 - UI: own design-system components in `src/components/<layer>/<feature>` driven by the three-layer tokens — shadcn/ui is web-only; the wrapper principle applies instead (third-party primitives like `expo-image`, `expo-linear-gradient`, `react-native-svg` are wrapped behind design-system components, never used raw in features)
 - Storage: `expo-secure-store` for tokens
 - Push: `expo-notifications`, used only through `src/core/push/push.ts`
+- Location: `expo-location` (foreground only, when the user taps "Use my current location" / "Near me"), used only through `src/core/location/location.ts`
 - Icons: `lucide-react-native` (on `react-native-svg`), used only through `src/components/common/Icon.tsx`; no emoji or text glyphs as icons
 
 **Cross-cutting**: zod is the single validation layer (forms, API schemas, env); TanStack Query is the single server-cache layer on both apps.

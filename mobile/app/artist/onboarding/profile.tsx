@@ -28,7 +28,7 @@ function CatalogRetry({ message, isError, onRetry }: { message: string; isError:
   );
 }
 
-// Atelier hi-fi "onbProfile" (step 1 of 4): photo, business name, categories and city. Continue saves the draft.
+// Atelier hi-fi "onbProfile" (step 1 of 5): photo, business name, categories and city. Continue saves the draft.
 export default function ProfileStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -69,7 +69,7 @@ export default function ProfileStep() {
     setError(null);
     try {
       await saveProfile.mutateAsync({ business_name: name.trim(), city, category_ids: picked, photo_key: photoKey });
-      router.push('/artist/onboarding/services');
+      router.push('/artist/onboarding/location');
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -80,7 +80,7 @@ export default function ProfileStep() {
       // Editing a rejection starts here, so there is no Intro behind it.
       onBack={editing ? undefined : () => router.dismissTo('/artist/onboarding/intro')}
       step={1}
-      steps={4}
+      steps={5}
       footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saveProfile.isPending} disabled={!ready} />}
     >
       <FormHeading eyebrow="STEP 1 · PROFILE" title="Tell clients" accent="who you are" />

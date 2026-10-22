@@ -104,7 +104,7 @@ it('the storefront shows the artist’s hours and how far they travel', async ()
     id: 'a1', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', photo_url: null, cover_url: null,
     categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 350000, rating: 4.9, review_count: 86, bio: null, photos: [], services: [],
     member_since: '2026-01-10T00:00:00Z', completed_bookings: 12, hours: week({ 6: { is_open: false } }), travel_radius_km: 15,
-    next_free_date: null, reply_minutes: null,
+    next_free_date: null, reply_minutes: null, locality: null, photo_urls: [], distance_km: null, free_on: null,
   } as ArtistPublic;
   serve({ 'GET /artists/a1': artist });
   await wrap(<Storefront artistId="a1" onCheckAvailability={jest.fn()} onSeeAllReviews={jest.fn()} onMessage={jest.fn()} onOpenService={jest.fn()} />);

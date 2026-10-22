@@ -13,7 +13,7 @@ import { errorMessage } from '../../../src/core/api/error-message';
 import type { CatalogCategory } from '../../../src/types/catalog/catalog';
 import { Icon } from '../../../src/components/common/Icon';
 
-// Step 2 of 4 (not drawn in the design; follows the Profile step): the artist's service menu.
+// Step 3 of 5 (not drawn in the design; follows the Location step): the artist's service menu.
 export default function ServicesStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -42,12 +42,12 @@ export default function ServicesStep() {
 
   return (
     <FormScreen
-      onBack={() => router.dismissTo('/artist/onboarding/profile')}
-      step={2}
-      steps={4}
+      onBack={() => router.dismissTo('/artist/onboarding/location')}
+      step={3}
+      steps={5}
       footer={<AppButton label="Continue" onPress={() => { if (services.length) router.push('/artist/onboarding/portfolio'); }} disabled={!services.length} />}
     >
-      <FormHeading eyebrow="STEP 2 · SERVICES" title="Set your" accent="prices" subtitle="Add what clients can book. You need at least one service." />
+      <FormHeading eyebrow="STEP 3 · SERVICES" title="Set your" accent="prices" subtitle="Add what clients can book. You need at least one service." />
       <View style={{ gap: 10, marginTop: 20 }}>
         {services.map((s) => (
           <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: theme.radii.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}>
