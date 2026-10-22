@@ -38,6 +38,7 @@ class PublicService(APIModel):
     duration_minutes: int
     category: NamedRef | None
     subcategory: NamedRef | None  # None for older rows that point straight at a top-level category
+    booking_count: int  # completed bookings of this service
 
 
 class ArtistPublic(ArtistCard):
@@ -48,6 +49,8 @@ class ArtistPublic(ArtistCard):
     completed_bookings: int
     travel_radius_km: int | None  # display only: how far the artist travels, never a search filter
     hours: list[WorkingHour]  # 7 items, Monday (0) first
+    next_free_date: date | None  # first IST day with an open slot for the shortest service, within the lookahead
+    reply_minutes: int | None  # median time to answer a customer message; None until there are enough replies
 
 
 class Slot(APIModel):

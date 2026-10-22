@@ -1,14 +1,18 @@
 """The public artist directory: approved artists only, their approved services, and free slots."""
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist import schedule_service as artist_schedule
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.booking import availability as booking_availability
+from app.booking import rules as booking_rules
+from app.booking.config import get_booking_settings
+from app.chat import service as chat_service
 from app.core.exceptions import NotFoundError
+from app.directory.constants import NEXT_FREE_LOOKAHEAD_DAYS
 from app.directory.repository import DirectoryRepository
 from app.review.service import ratings_for
 from app.shared.clock import Clock
@@ -78,6 +82,7 @@ class DirectoryService:
             return ({"id": parent.id, "name": parent.name}, {"id": cat.id, "name": cat.name})
 
         completed = await self.artists.completed_bookings(profile.id)
+        per_service = await self.artists.completed_by_service(profile.id)
         return {
             **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
             "bio": profile.bio,
@@ -98,6 +103,7 @@ class DirectoryService:
                     "duration_minutes": s.duration_minutes,
                     "category": refs(s.category_id)[0],
                     "subcategory": refs(s.category_id)[1],
+                    "booking_count": per_service.get(s.id, 0),
                 }
                 for s in services
             ],
@@ -105,7 +111,24 @@ class DirectoryService:
             "completed_bookings": completed,
             "travel_radius_km": profile.travel_radius_km,
             "hours": await artist_schedule.week(self.session, profile.id),
+            "next_free_date": await self._next_free_date(profile.id, services),
+            "reply_minutes": await chat_service.reply_minutes(self.session, profile.id),
         }
+
+    async def _next_free_date(self, artist_id: uuid.UUID, services: list[ArtistServiceItem]) -> date | None:
+        """The first IST day, from today, with an open slot for the artist's shortest bookable service."""
+        if not services:
+            return None
+        shortest = min(s.duration_minutes for s in services)
+        now = self.clock.now()
+        today = booking_rules.ist_today(now)
+        days = min(NEXT_FREE_LOOKAHEAD_DAYS, get_booking_settings().booking_horizon_days + 1)
+        for offset in range(days):
+            day = today + timedelta(days=offset)
+            grid = await booking_availability.day_slots(self.session, artist_id, day, shortest, now)
+            if any(slot["available"] for slot in grid["slots"]):
+                return day
+        return None
 
     async def availability(self, profile: ArtistProfile, day: date, service_id: uuid.UUID) -> dict:
         service = next((s for s in _bookable(profile.services) if s.id == service_id), None)

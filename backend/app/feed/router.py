@@ -18,12 +18,13 @@ router = APIRouter(prefix="/feed", tags=["feed"], responses=errors(401, 403, 404
 async def read_feed(
     tab: FeedTab = "for_you",
     q: str | None = Query(None, max_length=SEARCH_MAX, description="Search titles, captions and artist names"),
+    artist_id: uuid.UUID | None = Query(None, description="Only this artist's posts, for their storefront"),
     limit: int = Query(20, ge=1, le=50),
     cursor: str | None = None,
     user: User = Depends(current_customer),
     feed: FeedService = Depends(get_feed_service),
 ) -> dict:
-    items, next_cursor = await feed.feed(user, tab, limit, cursor, q)
+    items, next_cursor = await feed.feed(user, tab, limit, cursor, q, artist_id)
     return {"items": items, "next_cursor": next_cursor}
 
 
@@ -58,6 +59,18 @@ async def unlike_post(
     post_id: uuid.UUID, user: User = Depends(current_customer), feed: FeedService = Depends(get_feed_service)
 ) -> dict:
     return await feed.set_like(user, post_id, liked=False)
+
+
+@router.get(
+    "/artists/{artist_id}/follow",
+    response_model=FollowOut,
+    status_code=200,
+    summary="Whether I follow an artist",
+)
+async def read_follow(
+    artist_id: uuid.UUID, user: User = Depends(current_customer), feed: FeedService = Depends(get_feed_service)
+) -> dict:
+    return await feed.follow_state(user, artist_id)
 
 
 @router.put(

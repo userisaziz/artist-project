@@ -88,3 +88,16 @@ class DirectoryRepository:
                 .where(Booking.artist_id == artist_id, Booking.status == BookingStatus.completed)
             )
         ).scalar_one()
+
+    async def completed_by_service(self, artist_id: uuid.UUID) -> dict[uuid.UUID, int]:
+        """service id → completed bookings; services nobody has finished a booking for are absent."""
+        rows = await self.session.execute(
+            select(Booking.service_id, func.count())
+            .where(
+                Booking.artist_id == artist_id,
+                Booking.status == BookingStatus.completed,
+                Booking.service_id.is_not(None),
+            )
+            .group_by(Booking.service_id)
+        )
+        return {service_id: count for service_id, count in rows.all()}

@@ -10,7 +10,7 @@ from sqlalchemy import ColumnElement
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.chat.constants import ChatSide, MessageModeration
+from app.chat.constants import REPLY_TIME_MIN_REPLIES, ChatSide, MessageModeration
 from app.chat.models import Conversation, Message
 from app.chat.repository import ChatRepository, ConversationRow, customer_name_matches
 from app.core.exceptions import ConflictError, NotFoundError
@@ -42,6 +42,14 @@ class Participant:
         if self.side == ChatSide.customer:
             return Conversation.customer_id == self.id
         return Conversation.artist_id == self.id
+
+
+async def reply_minutes(session: AsyncSession, artist_id: uuid.UUID) -> int | None:
+    """The artist's median reply time in whole minutes; None until they've replied often enough to tell."""
+    median, replies = await ChatRepository(session).reply_minutes(artist_id)
+    if median is None or replies < REPLY_TIME_MIN_REPLIES:
+        return None
+    return round(median)
 
 
 def customer_name(first: str | None, last: str | None) -> str:

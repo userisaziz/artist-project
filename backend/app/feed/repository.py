@@ -130,6 +130,10 @@ class FeedRepository:
         found = await self.session.scalar(select(ArtistProfile.id).where(ArtistProfile.id == artist_id, ARTIST_VISIBLE))
         return found is not None
 
+    async def is_following(self, user_id: uuid.UUID, artist_id: uuid.UUID) -> bool:
+        query = select(exists().where(ArtistFollow.user_id == user_id, ArtistFollow.artist_id == artist_id))
+        return await self.session.scalar(query) or False
+
     async def like(self, post_id: uuid.UUID, user_id: uuid.UUID) -> int:
         """Adds the like if it's new; returns the post's like count."""
         added = await self.session.scalar(

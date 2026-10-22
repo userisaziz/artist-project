@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from tests.support.artist import approved_artist, complete_profile
 from tests.support.auth import CUSTOMER_PHONE, admin_headers, sign_in
+from tests.support.booking import book
 from tests.support.catalog import categories, seed_categories
 from tests.support.directory import IST, ist_day, slot
 
@@ -162,3 +163,61 @@ async def test_public_reads_are_limited_per_ip(client, override):
 
     override(public_reads_per_ip, lambda: Limit(hits=2, window_seconds=60))
     assert [(await client.get("/api/v1/artists")).status_code for _ in range(3)] == [200, 200, 429]
+
+
+async def test_storefront_counts_completed_bookings_per_service(client, engine):
+    admin = await admin_headers(client, engine)
+    ayesha = await approved_artist(client, engine, "+919845081001", admin)
+    customer = await sign_in(client, CUSTOMER_PHONE, role="customer")
+    for days in (5, 6):
+        booked = await book(client, customer, ayesha, slot(days, 11))
+        assert booked.status_code == 201, booked.text
+    async with engine.begin() as conn:  # one done, one still upcoming
+        await conn.execute(text("UPDATE booking SET status='completed' WHERE id=:i"), {"i": booked.json()["id"]})
+
+    detail = (await client.get(f"/api/v1/artists/{ayesha['id']}")).json()
+
+    assert detail["services"][0]["booking_count"] == 1
+    assert detail["completed_bookings"] == 1
+
+
+async def test_storefront_shows_the_next_day_with_a_free_slot(client, engine, travel):
+    admin = await admin_headers(client, engine)
+    ayesha = await approved_artist(client, engine, "+919845081001", admin)
+    today = ist_day(0)
+    url = f"/api/v1/artists/{ayesha['id']}"
+
+    travel(lambda: datetime(today.year, today.month, today.day, 10, 30, tzinfo=IST))
+    morning = (await client.get(url)).json()
+    travel(lambda: datetime(today.year, today.month, today.day, 19, 0, tzinfo=IST))
+    evening = (await client.get(url)).json()
+
+    assert morning["next_free_date"] == today.isoformat()  # 13:00 onwards is still open
+    assert evening["next_free_date"] == (today + timedelta(days=1)).isoformat()  # nothing left today
+
+
+async def test_storefront_reply_time_is_the_median_once_there_are_enough_replies(client, engine, travel):
+    admin = await admin_headers(client, engine)
+    ayesha = await approved_artist(client, engine, "+919845081001", admin)
+    customer = await sign_in(client, CUSTOMER_PHONE, role="customer")
+    chat = (await client.post("/api/v1/conversations", headers=customer, json={"artist_id": ayesha["id"]})).json()
+    start = datetime(2026, 10, 9, 9, 0, tzinfo=IST)
+    url = f"/api/v1/artists/{ayesha['id']}"
+
+    async def exchange(hour: int, gap_minutes: int) -> None:
+        asked = start + timedelta(hours=hour)
+        travel(asked)
+        await client.post(f"/api/v1/conversations/{chat['id']}/messages", headers=customer, json={"text": "Free?"})
+        travel(asked + timedelta(minutes=gap_minutes))
+        await client.post(
+            f"/api/v1/artists/me/conversations/{chat['id']}/messages", headers=ayesha["headers"], json={"text": "Yes"}
+        )
+
+    for hour, gap in enumerate((50, 10, 40, 20)):
+        await exchange(hour, gap)
+    too_few = (await client.get(url)).json()["reply_minutes"]
+    await exchange(4, 30)
+    enough = (await client.get(url)).json()["reply_minutes"]
+
+    assert too_few is None  # four replies are not a pattern yet
+    assert enough == 30  # median of 10, 20, 30, 40, 50

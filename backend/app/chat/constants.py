@@ -26,5 +26,7 @@ class MessageModeration(str, enum.Enum):
     hidden = "hidden"
 
 
+# A storefront shows "replies in" only once the artist has answered this many customer messages.
+REPLY_TIME_MIN_REPLIES = 5
 ENQUIRIES_PER_PAGE = 20
 ENQUIRY_SUMMARY_DAYS = 7

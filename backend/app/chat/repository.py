@@ -180,3 +180,28 @@ class ChatRepository:
 
     def add(self, row: Conversation | Message) -> None:
         self.session.add(row)
+
+    async def reply_minutes(self, artist_id: uuid.UUID) -> tuple[float | None, int]:
+        """(median minutes, sample size) from a customer message the artist could see to the artist's next one."""
+        delivered = or_(Message.moderation.is_(None), Message.moderation == MessageModeration.allowed)
+        window = {"partition_by": Message.conversation_id, "order_by": (Message.created_at, Message.id)}
+        timeline = (
+            select(
+                Message.sender,
+                Message.created_at,
+                func.lag(Message.sender).over(**window).label("previous_sender"),
+                func.lag(Message.created_at).over(**window).label("previous_at"),
+            )
+            .join(Conversation, Conversation.id == Message.conversation_id)
+            .where(Conversation.artist_id == artist_id, delivered)
+            .subquery()
+        )
+        gap = func.extract("epoch", timeline.c.created_at - timeline.c.previous_at) / 60
+        median, count = (
+            await self.session.execute(
+                select(func.percentile_cont(0.5).within_group(gap), func.count()).where(
+                    timeline.c.sender == ChatSide.artist, timeline.c.previous_sender == ChatSide.customer
+                )
+            )
+        ).one()
+        return median, count

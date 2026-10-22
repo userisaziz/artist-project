@@ -203,20 +203,31 @@ class FeedService:
 
     # --- customer -------------------------------------------------------------------------------
 
-    async def feed(self, reader: User, tab: FeedTab, limit: int, cursor: str | None, q: str | None = None):
+    async def feed(
+        self,
+        reader: User,
+        tab: FeedTab,
+        limit: int,
+        cursor: str | None,
+        q: str | None = None,
+        artist_id: uuid.UUID | None = None,
+    ):
         searching = bool(q and q.strip())
+        narrowed = searching or artist_id is not None  # a search or a storefront: plain newest first
         where: list[ColumnElement[bool]] = [VISIBLE]
         if searching and q:
             where.append(matching(q))  # a search lists every match newest first, featured ones included
+        if artist_id is not None:
+            where.append(Post.artist_id == artist_id)  # a storefront: one artist's posts, featured ones in place
         if tab == "following":
             where.append(followed_by(reader.id))
         elif tab == "stories":
             where.append(Post.kind == PostKind.article)
-        elif not searching:  # For you: featured posts lead the first page, so the newest-first pages skip them
+        elif not narrowed:  # For you: featured posts lead the first page, so the newest-first pages skip them
             where.append(NOT_FEATURED)
         rows = await self.posts.page_rows(reader.id, where, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (r.post.created_at, r.post.id))
-        if tab == "for_you" and cursor is None and not searching:
+        if tab == "for_you" and cursor is None and not narrowed:
             page = [*await self.posts.featured_rows(reader.id, limit), *page]
         return await self._out(page, full=False), next_cursor
 
@@ -242,6 +253,11 @@ class FeedService:
         await self.visible_post(reader, post_id)
         count = await (self.posts.like(post_id, reader.id) if liked else self.posts.unlike(post_id, reader.id))
         return {"liked": liked, "like_count": count}
+
+    async def follow_state(self, reader: User, artist_id: uuid.UUID) -> dict[str, Any]:
+        if not await self.posts.is_visible_artist(artist_id):
+            raise NotFoundError("Artist not found")
+        return {"following": await self.posts.is_following(reader.id, artist_id)}
 
     async def set_follow(self, reader: User, artist_id: uuid.UUID, following: bool) -> dict[str, Any]:
         if not await self.posts.is_visible_artist(artist_id):

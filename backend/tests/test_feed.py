@@ -290,3 +290,28 @@ async def test_a_linked_service_that_is_no_longer_approved_is_not_shown(client, 
         )
 
     assert (await client.get(f"{FEED}/posts/{p['id']}", headers=customer)).json()["service"] is None
+
+
+async def test_customer_reads_whether_they_follow_an_artist(client, engine):
+    _, artist, customer = await setup(client, engine)
+    follow = f"{FEED}/artists/{artist['id']}/follow"
+
+    before = (await client.get(follow, headers=customer)).json()
+    await client.put(follow, headers=customer)
+    after = (await client.get(follow, headers=customer)).json()
+
+    assert (before, after) == ({"following": False}, {"following": True})
+    unknown = "00000000-0000-0000-0000-000000000000"
+    assert (await client.get(f"{FEED}/artists/{unknown}/follow", headers=customer)).status_code == 404
+
+
+async def test_feed_lists_one_artists_posts_for_their_storefront(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    rival = await approved_artist(client, engine, "+919845091002", admin, name="Meher by Riya")
+    own = (await photo_post(client, artist, "mine")).json()
+    guide = (await article(client, artist)).json()
+    await photo_post(client, rival, "theirs")
+
+    items = (await client.get(FEED, headers=customer, params={"artist_id": artist["id"]})).json()["items"]
+
+    assert [i["id"] for i in items] == [guide["id"], own["id"]]
