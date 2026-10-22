@@ -15,6 +15,9 @@ export const feedKeys = {
   post: (userId: string | undefined, id: string) => ['feed', userId, 'post', id] as const,
   mine: (userId: string | undefined) => ['feed', userId, 'mine'] as const,
   followers: (userId: string | undefined) => ['feed', userId, 'followers'] as const,
+  /** Outside `lists`: a plain page, not an infinite list, so the list patchers never touch it. */
+  artistPosts: (userId: string | undefined, artistId: string) => ['feed', userId, 'artist', artistId, 'posts'] as const,
+  follow: (userId: string | undefined, artistId: string) => ['feed', userId, 'artist', artistId, 'follow'] as const,
 };
 
 export function useFeed(tab: FeedTab, q = '') {
@@ -54,6 +57,28 @@ export function useToggleLike() {
   });
 }
 
+/** An artist's newest posts for their storefront. Customers only: `enabled` is false on the artist's own preview. */
+export function useArtistPosts(artistId: string, limit: number, enabled: boolean) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: feedKeys.artistPosts(user?.id, artistId),
+    queryFn: () => feedApi.getArtistPosts(artistId, limit),
+    select: (page) => page.items,
+    enabled: enabled && !!user && !!artistId,
+  });
+}
+
+/** Whether the signed-in customer follows `artistId`; useToggleFollow keeps it current. */
+export function useFollowState(artistId: string, enabled: boolean) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: feedKeys.follow(user?.id, artistId),
+    queryFn: () => feedApi.getFollow(artistId),
+    select: (state) => state.following,
+    enabled: enabled && !!user && !!artistId,
+  });
+}
+
 export function useToggleFollow() {
   const { user } = useAuth();
   const client = useQueryClient();
@@ -62,6 +87,7 @@ export function useToggleFollow() {
     mutationFn: ({ artistId, following }: { artistId: string; following: boolean }) => feedApi.setFollow(artistId, following),
     onSuccess: (result, { artistId }) => {
       patch((p) => p.artist.id === artistId, { following: result.following });
+      client.setQueryData(feedKeys.follow(user?.id, artistId), result);
       void client.invalidateQueries({ queryKey: feedKeys.list(user?.id, 'following') }); // in the background
     },
   });

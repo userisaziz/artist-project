@@ -107,7 +107,7 @@ it('the storefront shows the artist’s hours and how far they travel', async ()
     next_free_date: null, reply_minutes: null, locality: null, photo_urls: [], distance_km: null, free_on: null,
   } as ArtistPublic;
   serve({ 'GET /artists/a1': artist });
-  await wrap(<Storefront artistId="a1" onCheckAvailability={jest.fn()} onSeeAllReviews={jest.fn()} onMessage={jest.fn()} onOpenService={jest.fn()} />);
+  await wrap(<Storefront artistId="a1" />);
 
   expect(await screen.findByText('Mon–Sat 8:00–20:00')).toBeTruthy();
   expect(screen.getByText('Sun Closed')).toBeTruthy();

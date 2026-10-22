@@ -17,6 +17,13 @@ export function setLike(id: string, liked: boolean) {
 export function reportPost(id: string, reason: ReportReason) {
   return request<void>(`/feed/posts/${encodeURIComponent(id)}/report`, { reason }, { auth: true });
 }
+/** One artist's posts, newest first, for their storefront. */
+export function getArtistPosts(artistId: string, limit: number) {
+  return request<Page<Post>>(withQuery('/feed', { artist_id: artistId, limit }), undefined, { auth: true, method: 'GET' });
+}
+export function getFollow(artistId: string) {
+  return request<{ following: boolean }>(`/feed/artists/${encodeURIComponent(artistId)}/follow`, undefined, { auth: true, method: 'GET' });
+}
 export function setFollow(artistId: string, following: boolean) {
   return request<{ following: boolean }>(`/feed/artists/${encodeURIComponent(artistId)}/follow`, undefined, { auth: true, method: following ? 'PUT' : 'DELETE' });
 }

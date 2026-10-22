@@ -1,61 +1,73 @@
-import { SaveButton, type SaveToggle } from '../common/SaveButton';
-import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Image } from 'expo-image';
+import { useRef, useState, type ReactNode } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../common/AppText';
-import { AppButton } from '../common/AppButton';
-import { Avatar } from '../common/Avatar';
+import type { SaveToggle } from '../common/SaveButton';
 import { BackHeader } from '../common/BackHeader';
 import { ErrorView, LoadingView } from '../common/StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
-import { formatDuration, formatPrice } from '../../utils/common/format';
-import { formatMonthShort } from '../../utils/common/time';
-import { categoryLine } from './ArtistCardView';
 import { useArtistPublic } from '../../hooks/directory/directory';
 import { StorefrontReviews } from '../reviews/StorefrontReviews';
-import { formatAverage, ratingLong, reviewCountLabel } from '../../utils/reviews/format';
-import type { PublicService } from '../../types/directory/directory';
-import { Icon } from '../common/Icon';
-import { hoursSummary } from '../../utils/common/weekly-hours';
+import { mostBookedId, packageCountLabel } from '../../utils/directory/storefront';
+import type { ArtistPublic, PublicService } from '../../types/directory/directory';
+import { PackagePickerSheet } from './PackagePickerSheet';
+import { StorefrontAbout } from './StorefrontAbout';
+import { StorefrontActions, type FollowControl } from './StorefrontActions';
+import { StorefrontChips } from './StorefrontChips';
+import { StorefrontFooter } from './StorefrontFooter';
+import { StorefrontHero } from './StorefrontHero';
+import { StorefrontSection } from './StorefrontSection';
+import { StorefrontServiceRow } from './StorefrontServiceRow';
+import { StorefrontStats } from './StorefrontStats';
+import { StorefrontTabs, type StorefrontTab } from './StorefrontTabs';
+import { StorefrontWork } from './StorefrontWork';
+
+/** What a customer can do from the page. The artist's own preview passes none: no booking, no following, no posts
+ *  (the feed is customer-only). Follow and posts come from the feed feature, composed in by the route. */
+export interface StorefrontCustomer {
+  /** Goes on to Date & time for the chosen package. */
+  onBook: (service: PublicService) => void;
+  onOpenService: (service: PublicService) => void;
+  onSeeAllReviews: () => void;
+  /** Opens the chat with this artist; `messaging` while it opens. */
+  onMessage: () => void;
+  messaging: boolean;
+  /** Asks this artist for a custom quote. */
+  onRequestQuote: () => void;
+  save: SaveToggle;
+  /** Absent until the follow state is known. */
+  follow?: FollowControl;
+  /** "From the studio": the artist's newest posts, or their error; absent while loading or when there are none. */
+  posts?: ReactNode;
+}
 
 interface StorefrontProps {
   artistId: string;
-  /** Customers pick a package and go on to Date & time; an artist previewing their own page can't. */
-  onCheckAvailability?: (service: PublicService) => void;
-  /** Opens every review; the artist's own preview has no such screen. */
-  onSeeAllReviews?: () => void;
-  /** Opens the chat with this artist (customers only); `messaging` while it opens. */
-  onMessage?: () => void;
-  messaging?: boolean;
-  /** Asks this artist for a custom quote (customers only). */
-  onRequestQuote?: () => void;
-  /** Opens a package's own page (Service detail). */
-  onOpenService?: (service: PublicService) => void;
-  /** Saving the artist (customers); the artist's own preview leaves it out. */
-  save?: SaveToggle;
+  customer?: StorefrontCustomer;
 }
 
-const COVER_HEIGHT = 230;
-const AVATAR = 84;
-const QUOTE_LINK_HEIGHT = 40;
+const FOOTER_SPACE = 120;
+const END_SPACE = 40;
 
-/** Services grouped by subcategory (or category), in menu order. */
-function groupServices(services: PublicService[]): [string, PublicService[]][] {
-  const groups = new Map<string, PublicService[]>();
-  for (const s of services) {
-    const title = s.subcategory?.name ?? s.category?.name ?? 'Packages';
-    groups.set(title, [...(groups.get(title) ?? []), s]);
-  }
-  return [...groups.entries()];
+function tabsFor(artist: ArtistPublic, hasPosts: boolean): StorefrontTab[] {
+  const tabs: (StorefrontTab | null)[] = [
+    artist.photos.length ? { key: 'work', label: 'Work' } : null,
+    { key: 'services', label: 'Services' },
+    hasPosts ? { key: 'posts', label: 'Posts' } : null,
+    { key: 'reviews', label: 'Reviews' },
+    artist.bio || artist.hours?.length || artist.travel_radius_km ? { key: 'about', label: 'About' } : null,
+  ];
+  return tabs.filter((t): t is StorefrontTab => t !== null);
 }
 
-/** Spec §2 Artist storefront: hero, stats, packages, work and about, with a sticky "Check availability" footer. */
-export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onMessage, messaging = false, onRequestQuote, onOpenService, save }: StorefrontProps) {
+/** Spec §2 Artist storefront: hero, stats, actions, availability, then Work, Services, Posts, Reviews and About,
+ *  with a pinned "Check availability". Booking asks which package first when there are several. */
+export function Storefront({ artistId, customer }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const scroll = useRef<ScrollView>(null);
+  const offsets = useRef<Partial<Record<string, number>>>({});
 
   if (isPending || isError) {
     return (
@@ -65,163 +77,77 @@ export function Storefront({ artistId, onCheckAvailability, onSeeAllReviews, onM
       </View>
     );
   }
-  const selected = artist.services.find((s) => s.id === selectedId) ?? null;
-  const bookable = !!onCheckAvailability;
-  const section = { fontSize: 22, lineHeight: 28, color: theme.colors.heading, marginTop: 26, marginBottom: 10 } as const;
+
+  const services = artist.services;
+  const topId = mostBookedId(services);
+  const measure = (key: string, y: number) => { offsets.current[key] = y; };
+  const jumpTo = (key: string) => scroll.current?.scrollTo({ y: Math.max(0, (offsets.current[key] ?? 0) - theme.spacing.md), animated: true });
+  const book = () => {
+    if (!customer || !services.length) return;
+    if (services.length === 1) customer.onBook(services[0]);
+    else setPicking(true);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: (bookable ? 120 : 40) + (bookable && onRequestQuote ? QUOTE_LINK_HEIGHT : 0) + insets.bottom }}>
-        <View style={{ height: COVER_HEIGHT, backgroundColor: theme.colors.imageFallback }}>
-          {artist.cover_url ? <Image source={{ uri: artist.cover_url }} style={{ flex: 1 }} contentFit="cover" /> : null}
-          <View style={{ position: 'absolute', top: insets.top + theme.spacing.sm, left: theme.spacing.md, right: theme.spacing.md }}>
-            <BackHeader />
-          </View>
-        </View>
-        <View style={{ paddingHorizontal: theme.spacing.md, marginTop: -AVATAR / 2 }}>
-          <View style={{ width: AVATAR + 6, height: AVATAR + 6, borderRadius: (AVATAR + 6) / 2, padding: 3, backgroundColor: theme.colors.surface, ...theme.shadows.sm }}>
-            <Avatar uri={artist.photo_url} name={artist.business_name} size={AVATAR} />
-          </View>
-          <View style={{ marginTop: 10, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radii.pill, backgroundColor: theme.colors.confirmedSoft }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Icon name="verified" size={14} color={theme.colors.confirmedInk} />
-              <AppText variant="label" style={{ fontSize: 11.5, color: theme.colors.confirmedInk }}>Verified artist</AppText>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-            <AppText variant="display" style={{ flex: 1, fontSize: 28, lineHeight: 32, color: theme.colors.heading }}>{artist.business_name}</AppText>
-            {save ? <SaveButton name={artist.business_name} saved={save.isSaved(artist.id)} onPress={() => save.toggle(artist.id)} /> : null}
-          </View>
-          <AppText variant="body" style={{ color: theme.colors.textMuted }}>{categoryLine(artist)}</AppText>
+      <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: (customer ? FOOTER_SPACE : END_SPACE) + insets.bottom }}>
+        <StorefrontHero artist={artist} save={customer?.save} />
+        <StorefrontStats artist={artist} />
+        {customer ? (
+          <StorefrontActions
+            businessName={artist.business_name}
+            onBook={book}
+            onMessage={customer.onMessage}
+            messaging={customer.messaging}
+            onEnquire={customer.onRequestQuote}
+            follow={customer.follow}
+          />
+        ) : null}
+        <StorefrontChips artist={artist} />
+        <StorefrontTabs tabs={tabsFor(artist, !!customer?.posts)} onSelect={jumpTo} />
 
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-            <Stat
-              value={artist.rating === null || !artist.review_count ? 'New' : formatAverage(artist.rating)}
-              label={reviewCountLabel(artist.review_count)}
-              accessibilityLabel={ratingLong(artist.rating, artist.review_count)}
-            />
-            <Stat value={String(artist.completed_bookings)} label="Bookings completed" />
-            <Stat value={artist.member_since ? formatMonthShort(artist.member_since) : '—'} label="On Atelier since" />
-          </View>
+        {artist.photos.length ? (
+          <StorefrontSection title="Work" sectionKey="work" onMeasure={measure}>
+            <StorefrontWork photos={artist.photos} />
+          </StorefrontSection>
+        ) : null}
 
-          {artist.hours?.length ? ( // an API without working hours yet sends none: skip the section rather than crash
-          <View style={{ marginTop: 16, gap: 2 }}>
-            <AppText variant="label" style={{ color: theme.colors.textPrimary }}>Hours</AppText>
-            {hoursSummary(artist.hours).map((line) => (
-              <AppText key={line} variant="caption" style={{ color: theme.colors.textSecondary }}>{line}</AppText>
+        <StorefrontSection title="Services" aside={packageCountLabel(services.length)} sectionKey="services" onMeasure={measure}>
+          <View style={{ gap: 10 }}>
+            {services.map((s) => (
+              <StorefrontServiceRow key={s.id} service={s} mostBooked={s.id === topId} onOpen={customer ? () => customer.onOpenService(s) : undefined} />
             ))}
-            {artist.travel_radius_km ? (
-              <AppText variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 4 }}>{`Travels up to ${artist.travel_radius_km} km`}</AppText>
-            ) : null}
           </View>
-          ) : null}
+        </StorefrontSection>
 
-          <AppText variant="title" style={section}>Packages</AppText>
-          {groupServices(artist.services).map(([title, services]) => (
-            <View key={title} style={{ marginBottom: 12, gap: 8 }}>
-              <AppText variant="eyebrow" style={{ color: theme.colors.brand, letterSpacing: 1.5 }}>{title.toUpperCase()}</AppText>
-              {services.map((s) => (
-                <PackageCard key={s.id} service={s} selected={s.id === selectedId} bookable={bookable} onSelect={() => setSelectedId(s.id === selectedId ? null : s.id)} onOpen={onOpenService ? () => onOpenService(s) : undefined} />
-              ))}
-            </View>
-          ))}
+        {customer?.posts ? (
+          <StorefrontSection title="From the studio" sectionKey="posts" onMeasure={measure}>
+            {customer.posts}
+          </StorefrontSection>
+        ) : null}
 
-          {artist.photos.length ? (
-            <>
-              <AppText variant="title" style={section}>Work</AppText>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {artist.photos.map((p, i) => (
-                  <Image key={p.id} source={{ uri: p.thumb_url }} accessibilityLabel={`Work photo ${i + 1}`} style={{ width: '48.5%', aspectRatio: 3 / 4, borderRadius: 14, backgroundColor: theme.colors.imageFallback }} contentFit="cover" />
-                ))}
-              </View>
-            </>
-          ) : null}
-
-          <StorefrontReviews artistId={artist.id} businessName={artist.business_name} onSeeAll={onSeeAllReviews} />
-
-          {artist.bio ? (
-            <>
-              <AppText variant="title" style={section}>About</AppText>
-              <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{artist.bio}</AppText>
-            </>
-          ) : null}
+        <View onLayout={(event) => measure('reviews', event.nativeEvent.layout.y)} style={{ paddingHorizontal: theme.spacing.md }}>
+          <StorefrontReviews artistId={artist.id} businessName={artist.business_name} onSeeAll={customer?.onSeeAllReviews} />
         </View>
+
+        {artist.bio || artist.hours?.length || artist.travel_radius_km ? (
+          <StorefrontSection title="About" sectionKey="about" onMeasure={measure}>
+            <StorefrontAbout artist={artist} />
+          </StorefrontSection>
+        ) : null}
       </ScrollView>
 
-      {bookable ? (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator, gap: 10 }}>
-          {selected ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1, fontSize: 14.5, color: theme.colors.textPrimary }}>{selected.name}</AppText>
-              <AppText variant="subtitle" style={{ fontSize: 14.5, color: theme.colors.brand }}>{formatPrice(selected.price_paise)}</AppText>
-            </View>
-          ) : (
-            <AppText variant="caption" style={{ color: theme.colors.textMuted, textAlign: 'center' }}>Select a package to see open times</AppText>
-          )}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {onMessage ? (
-              <View style={{ flex: 1 }}>
-                <AppButton label="Message" accessibilityLabel={`Message ${artist.business_name}`} variant="secondary" loading={messaging} onPress={onMessage} />
-              </View>
-            ) : null}
-            <View style={{ flex: 1.4 }}>
-              <AppButton label="Check availability" disabled={!selected} onPress={() => { if (selected) onCheckAvailability(selected); }} />
-            </View>
-          </View>
-          {onRequestQuote ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={`Request a quote from ${artist.business_name}`} onPress={onRequestQuote} hitSlop={6} style={{ height: QUOTE_LINK_HEIGHT - 10, alignItems: 'center', justifyContent: 'center' }}>
-              <AppText variant="button" style={{ fontSize: 14, color: theme.colors.brand }}>Need something custom? Request a quote</AppText>
-            </Pressable>
-          ) : null}
-        </View>
+      {customer ? (
+        <>
+          <StorefrontFooter packageCount={services.length} fromPaise={artist.from_price_paise} onCheckAvailability={book} />
+          <PackagePickerSheet
+            visible={picking}
+            services={services}
+            onPick={(s) => { setPicking(false); customer.onBook(s); }}
+            onClose={() => setPicking(false)}
+          />
+        </>
       ) : null}
-    </View>
-  );
-}
-
-function Stat({ value, label, accessibilityLabel }: { value: string; label: string; accessibilityLabel?: string }) {
-  const theme = useTheme();
-  return (
-    <View accessible={!!accessibilityLabel} accessibilityLabel={accessibilityLabel} style={{ flex: 1, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
-      <AppText variant="subtitle" style={{ fontSize: 18, color: theme.colors.textPrimary }}>{value}</AppText>
-      <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{label}</AppText>
-    </View>
-  );
-}
-
-interface PackageCardProps {
-  onOpen?: () => void;
-  service: PublicService;
-  selected: boolean;
-  bookable: boolean;
-  onSelect: () => void;
-}
-
-function PackageCard({ service, selected, bookable, onSelect, onOpen }: PackageCardProps) {
-  const theme = useTheme();
-  return (
-    <View style={{ borderRadius: 16, borderWidth: selected ? 1.5 : 1, borderColor: selected ? theme.colors.brand : theme.colors.separator, backgroundColor: selected ? theme.colors.washTop : theme.colors.surface, padding: 14, gap: 4 }}>
-      <AppText variant="subtitle" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{service.name}</AppText>
-      {service.description ? <AppText variant="caption" numberOfLines={2} style={{ color: theme.colors.textSecondary }}>{service.description}</AppText> : null}
-      {onOpen ? (
-        <Pressable accessibilityRole="link" accessibilityLabel={`Details of ${service.name}`} onPress={onOpen} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
-          <AppText variant="caption" style={{ color: theme.colors.brand }}>Details</AppText>
-        </Pressable>
-      ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-        <AppText variant="label" style={{ flex: 1, color: theme.colors.textMuted }}>{`${formatDuration(service.duration_minutes)} · `}<AppText variant="label" style={{ color: theme.colors.brand }}>{formatPrice(service.price_paise)}</AppText></AppText>
-        {bookable ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Select ${service.name}`}
-            accessibilityState={{ selected }}
-            onPress={onSelect}
-            style={{ height: 34, paddingHorizontal: 16, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: selected ? theme.colors.brand : theme.colors.brandSoft }}
-          >
-            <AppText variant="label" style={{ fontSize: 13, color: selected ? theme.colors.textOnBrand : theme.colors.brand }}>{selected ? 'Selected' : 'Select'}</AppText>
-          </Pressable>
-        ) : null}
-      </View>
     </View>
   );
 }
