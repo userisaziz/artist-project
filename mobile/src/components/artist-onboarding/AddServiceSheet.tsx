@@ -6,6 +6,7 @@ import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
 import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
+import { ServicePhotoField, type ServicePhotoDraft } from './ServicePhotoField';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { EMPTY_EXTRAS, extrasInput } from '../../utils/common/service-extras';
@@ -36,6 +37,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
   const [minutes, setMinutes] = useState('');
   const [note, setNote] = useState('');
   const [extras, setExtras] = useState(EMPTY_EXTRAS);
+  const [photo, setPhoto] = useState<ServicePhotoDraft>({ url: null });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -46,7 +48,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategoryId(only?.id ?? null);
     setSubId(only?.subcategories.length === 1 ? only.subcategories[0].id : null);
-    setTemplateId(null); setPrice(''); setMinutes(''); setNote(''); setExtras(EMPTY_EXTRAS); setError(null);
+    setTemplateId(null); setPrice(''); setMinutes(''); setNote(''); setExtras(EMPTY_EXTRAS); setPhoto({ url: null }); setError(null);
   }, [visible, categories]);
 
   const category = categories.find((c) => c.id === categoryId) ?? null;
@@ -76,6 +78,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
         template_id: templateId, price_paise: rupees * 100, duration_minutes: mins,
         ...(note.trim() ? { description: note.trim() } : {}),
         ...extra.value,
+        ...(photo.key ? { photo_key: photo.key } : {}),
       });
       onClose();
     } catch (e) {
@@ -147,6 +150,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
                       </View>
                     </View>
                     <AppTextField label="Note (optional)" value={note} onChangeText={setNote} maxLength={1000} placeholder="e.g. Includes a trial session" />
+                    <ServicePhotoField value={photo} onChange={setPhoto} />
                     <ServiceExtrasEditor value={extras} onChange={setExtras} />
                   </>
                 ) : null}

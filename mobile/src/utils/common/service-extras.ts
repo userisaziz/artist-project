@@ -21,7 +21,7 @@ export interface ExtrasDraft {
 
 export const EMPTY_EXTRAS: ExtrasDraft = { included: [], addons: [] };
 
-export type ExtrasResult = { ok: true; value: Required<ServiceExtrasInput> } | { ok: false; error: string };
+export type ExtrasResult = { ok: true; value: Required<Omit<ServiceExtrasInput, 'photo_key'>> } | { ok: false; error: string };
 
 /** The editor's draft as the API wants it, or the first thing to fix. */
 export function extrasInput(draft: ExtrasDraft): ExtrasResult {

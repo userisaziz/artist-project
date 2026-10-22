@@ -36,10 +36,12 @@ export interface ServiceAddon {
 /** What an artist sends for an add-on; the server gives it an id. */
 export type ServiceAddonInput = Omit<ServiceAddon, 'id'>;
 
-/** A service's optional extras. On an edit, a list that is sent replaces the old one; an omitted one stays. */
+/** A service's optional extras. On an edit, a list that is sent replaces the old one; an omitted one stays.
+ *  `photo_key` likewise: a "service" upload's key replaces the photo, null removes it, omitted keeps it. */
 export interface ServiceExtrasInput {
   included_items?: string[];
   addons?: ServiceAddonInput[];
+  photo_key?: string | null;
 }
 
 /** GET /areas: a neighbourhood of an operating city ("BTM Layout", Bangalore) with its rough centre. */

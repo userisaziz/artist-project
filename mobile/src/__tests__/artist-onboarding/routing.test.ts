@@ -8,7 +8,7 @@ const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
 });
 const service = {
   id: 's', category_id: 101, subcategory_id: 101, template_id: 1001, name: 'S', price_paise: 100, duration_minutes: 60,
-  description: null, status: 'approved' as const, rejection_reason: null, included_items: [], addons: [],
+  description: null, status: 'approved' as const, rejection_reason: null, included_items: [], addons: [], photo_url: null,
 };
 const photos = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, key: `k${i}`, width: 1, height: 1, thumb_url: 'u', card_url: 'u', full_url: 'u' }));
 

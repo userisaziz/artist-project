@@ -18,6 +18,8 @@ export interface ServiceItem {
   /** "What's included" lines, in order. */
   included_items: string[];
   addons: ServiceAddon[];
+  /** The package's own photo (card size); null when it has none. */
+  photo_url: string | null;
   status: ServiceStatus; // onboarding picks from the admin's list, so those are approved at once
   rejection_reason: string | null;
   /** The artist's own subcategory suggestion this service was filed under (it sits under the parent meanwhile). */
@@ -102,7 +104,7 @@ export interface KycInput {
   back_key: string;
 }
 
-export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post' | 'shop';
+export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post' | 'shop' | 'service';
 
 /** POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API. */
 export interface UploadTicket {

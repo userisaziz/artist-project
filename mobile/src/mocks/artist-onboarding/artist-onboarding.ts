@@ -15,6 +15,7 @@ export const templateServiceFixture: ServiceItem = {
   rejection_reason: null,
   included_items: [],
   addons: [],
+  photo_url: null,
 };
 
 export const customServiceFixture: ServiceItem = {

@@ -6,6 +6,7 @@ import { AppTextField } from '../common/AppTextField';
 import { BottomSheet } from '../common/BottomSheet';
 import { Chip } from '../common/Chip';
 import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
+import { ServicePhotoField, type ServicePhotoDraft } from '../artist-onboarding/ServicePhotoField';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { EMPTY_EXTRAS, draftFromService, extrasInput } from '../../utils/common/service-extras';
@@ -50,6 +51,7 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
   const [description, setDescription] = useState(service?.description ?? '');
   const [suggestion, setSuggestion] = useState('');
   const [extras, setExtras] = useState(service ? draftFromService(service) : EMPTY_EXTRAS);
+  const [photo, setPhoto] = useState<ServicePhotoDraft>({ url: service?.photo_url ?? null });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const category = withSubs.find((c) => c.id === categoryId) ?? null;
@@ -72,7 +74,8 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
     const extra = extrasInput(extras);
     if (!extra.ok) return extra.error;
     const place = subId === SUGGEST ? { suggested_subcategory: { parent_id: categoryId, name: suggestion.trim() } } : { subcategory_id: subId };
-    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null, ...extra.value };
+    const photoChange = photo.key === undefined ? {} : { photo_key: photo.key };
+    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null, ...extra.value, ...photoChange };
   };
 
   const save = async () => {
@@ -126,6 +129,7 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
         </View>
       </View>
       <AppTextField label="Description (optional)" value={description} onChangeText={setDescription} maxLength={MAX_DESCRIPTION} placeholder="About this service" />
+      <ServicePhotoField value={photo} onChange={setPhoto} />
       <ServiceExtrasEditor value={extras} onChange={setExtras} />
       {error ?<AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
     </BottomSheet>

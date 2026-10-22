@@ -23,7 +23,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 const NO_REVIEWS = { items: [], next_cursor: null, summary: { average: null, count: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } } };
 
 const service = (id: string, name: string, booking_count: number, price_paise: number): PublicService => ({
-  id, name, description: null, price_paise, duration_minutes: 180, booking_count, included_items: [], addons: [],
+  id, name, description: null, price_paise, duration_minutes: 180, booking_count, included_items: [], addons: [], photo_url: null,
   category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
 });
 
@@ -134,6 +134,15 @@ it('offers a retry when the artist cannot be loaded', async () => {
   await wrap(<ArtistStorefrontScreen />);
 
   expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+});
+
+it('shows a package’s own photo when it has one', async () => {
+  const pictured = { ...service('s1', 'Bridal Classic', 0, 550000), photo_url: 'https://fake.storage/card/pkg.jpg' };
+  serve(customerRoutes({ 'GET /artists/a1': artist({ services: [pictured, service('s2', 'Bridal Signature', 0, 900000)] }) }));
+  await wrap(<ArtistStorefrontScreen />);
+
+  expect(await screen.findByLabelText('Bridal Classic photo')).toBeTruthy();
+  expect(screen.queryByLabelText('Bridal Signature photo')).toBeNull(); // no photo: the placeholder tile
 });
 
 it('the artist’s own preview has no booking and reads nothing from the customer feed', async () => {

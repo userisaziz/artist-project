@@ -43,6 +43,8 @@ export interface PublicService {
   subcategory: NamedRef | null;
   /** Completed bookings of this package; the storefront badges the highest as "Most booked". */
   booking_count: number;
+  /** The package's own photo (card size); null when it has none. */
+  photo_url: string | null;
   /** "What's included" lines, in order. */
   included_items: string[];
   /** Priced extras the customer can pick when booking. */

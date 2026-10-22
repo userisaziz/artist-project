@@ -2,7 +2,7 @@ import { formatReplyTime, mostBookedId, packageCountLabel, splitName } from '../
 import type { PublicService } from '../../types/directory/directory';
 
 const service = (id: string, booking_count: number): PublicService => ({
-  id, name: id, description: null, price_paise: 100000, duration_minutes: 60, category: null, subcategory: null, booking_count, included_items: [], addons: [],
+  id, name: id, description: null, price_paise: 100000, duration_minutes: 60, category: null, subcategory: null, booking_count, included_items: [], addons: [], photo_url: null,
 });
 
 it('shows reply time in minutes under an hour, then in hours', () => {
