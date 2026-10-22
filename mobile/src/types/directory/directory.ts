@@ -23,6 +23,8 @@ export interface PublicService {
   duration_minutes: number;
   category: NamedRef | null;
   subcategory: NamedRef | null;
+  /** Completed bookings of this package; the storefront badges the highest as "Most booked". */
+  booking_count: number;
 }
 
 /** GET /artists/{id}: the storefront. Never carries KYC, phone, rejection reason or unapproved services. */
@@ -36,6 +38,10 @@ export interface ArtistPublic extends ArtistCard {
   /** Display only: how far the artist travels, in km. */
   travel_radius_km: number | null;
   completed_bookings: number;
+  /** First IST day (YYYY-MM-DD) with an open slot within two weeks; null when fully booked or no packages. */
+  next_free_date: string | null;
+  /** Median minutes to answer a customer; null until the artist has replied a few times. */
+  reply_minutes: number | null;
 }
 
 export interface Slot {

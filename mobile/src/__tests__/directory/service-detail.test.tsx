@@ -17,6 +17,7 @@ const artist: ArtistPublic = {
   services: [{
     id: 's1', name: 'Bridal Mehendi', description: 'Hands and feet, a custom design and a consultation call.',
     price_paise: 350000, duration_minutes: 210, category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
+    booking_count: 0,
   }],
 } as ArtistPublic;
 
