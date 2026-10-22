@@ -10,7 +10,10 @@ export type NotificationKind =
   | 'order_delivered'
   | 'order_cancelled'
   | 'chat_message'
-  | 'support_reply';
+  | 'support_reply'
+  | 'requirement_due'
+  | 'requirement_on_hold'
+  | 'requirement_reminder';
 
 export interface AppNotification {
   id: string;

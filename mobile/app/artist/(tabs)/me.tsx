@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
+import { RequirementsBanner } from '../../../src/components/artist-onboarding/RequirementsBanner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
@@ -78,8 +80,13 @@ export default function ArtistMe() {
         <View style={{ marginTop: 16 }}>
           <AppButton label="View public profile" variant="secondary" onPress={() => router.push('/artist/public-profile')} />
         </View>
+        <View style={{ marginTop: 14 }}>
+          <RequirementsBanner onOpen={(action) => router.push(action as Href)} />
+        </View>
 
         <Card style={{ marginTop: 14, paddingVertical: 0 }}>
+          <MenuRow label="Location" detail={profile?.locality ?? 'Add your area'} onPress={() => router.push('/artist/location')} />
+          <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
           <MenuRow label="Reviews" detail={reviewsDetail(reviews.data?.pages[0]?.summary)} onPress={() => router.push('/artist/reviews')} />
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
           <MenuRow label="Enquiries" detail={enquiries.data?.open ? `${enquiries.data.open} open` : undefined} onPress={() => router.push('/artist/enquiries')} />

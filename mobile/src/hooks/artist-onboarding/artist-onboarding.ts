@@ -4,12 +4,13 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import * as artistApi from '../../api/artist-onboarding/artist-onboarding';
 import { uploadImage } from '../../api/artist-onboarding/upload';
 import type { PickedImage } from '../../api/artist-onboarding/upload';
-import type { ArtistProfile, LocationInput, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistProfile, LocationInput, MyRequirements, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
 import { useAuth } from '../../context/auth/auth-provider';
 import { ARTIST_PROFILE_KEY } from '../../core/api/query-keys';
 
 // Keyed by user id, so a different account never sees a cached profile.
 const artistKey = (userId: string | undefined) => [...ARTIST_PROFILE_KEY, userId] as const;
+const requirementsKey = (userId: string | undefined) => ['artist-requirements', userId] as const;
 
 export function useArtistProfile() {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ function useProfileMutation<TVars>(name: string, write: (vars: TVars) => Promise
     onSuccess: async (profile) => {
       await client.cancelQueries({ queryKey: artistKey(user?.id) }); // an in-flight GET must not land on top of this write
       client.setQueryData(artistKey(user?.id), profile);
+      await client.invalidateQueries({ queryKey: requirementsKey(user?.id) }); // any write may complete a to-do
     },
   });
 }
@@ -52,9 +54,15 @@ export function useSaveProfile(): UseMutationResult<ArtistProfile, Error, Profil
   return useProfileMutation('save-profile', artistApi.saveProfile);
 }
 
-/** PUT /artists/me/location — onboarding step 2. */
+/** PUT /artists/me/location — onboarding step 2, or an approved artist completing the location requirement. */
 export function useSaveLocation(): UseMutationResult<ArtistProfile, Error, LocationInput> {
   return useProfileMutation('save-location', artistApi.saveLocation);
+}
+
+/** GET /artists/me/requirements — mandatory profile items still missing (approved artists' warning strip). */
+export function useMyRequirements() {
+  const { user } = useAuth();
+  return useQuery<MyRequirements>({ queryKey: requirementsKey(user?.id), queryFn: artistApi.getMyRequirements, enabled: !!user });
 }
 
 /** POST /artists/me/services — a service from the admin's list with the artist's price and duration. */

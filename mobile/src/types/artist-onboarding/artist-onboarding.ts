@@ -108,3 +108,20 @@ export interface UploadTicket {
   fields: Record<string, string>;
   key: string;
 }
+
+/** A mandatory profile requirement the artist hasn't met (GET /artists/me/requirements). */
+export interface PendingRequirement {
+  key: string;
+  title: string;
+  body: string;
+  /** Artist-app route that completes it, e.g. /artist/location. */
+  action: string;
+  /** After this the artist is on hold: hidden from clients and taking no new requests. */
+  due_at: string;
+  overdue: boolean;
+}
+
+export interface MyRequirements {
+  on_hold: boolean;
+  items: PendingRequirement[];
+}

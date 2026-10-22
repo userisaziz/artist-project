@@ -7,9 +7,11 @@ import type { TransportRequest } from '../../core/api/transport';
 import { artistProfileFixture } from '../../mocks/artist-onboarding/artist-onboarding';
 import { userFixture } from '../../mocks/auth/auth';
 import LocationStep from '../../../app/artist/onboarding/location';
+import UpdateLocation from '../../../app/artist/location';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, dismissTo: jest.fn() }) }));
+const mockBack = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, dismissTo: jest.fn(), back: mockBack }) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 const mockCurrentPlace = jest.fn();
 jest.mock('../../core/location/location', () => ({
@@ -32,6 +34,7 @@ beforeEach(() => {
   send.mockReset();
   mockPush.mockReset();
   mockCurrentPlace.mockReset();
+  mockBack.mockReset();
 });
 afterEach(() => client.clear());
 afterAll(() => send.mockRestore());
@@ -101,4 +104,18 @@ it('explains a refused permission and keeps manual entry open', async () => {
 
   expect(await screen.findByText(/Allow location access in Settings/)).toBeTruthy();
   expect(screen.getByLabelText('Area')).toBeTruthy();
+});
+
+it('an approved artist saves a location from Me and goes back, with no onboarding steps', async () => {
+  client.setQueryData(profileKey, { ...draft, status: 'approved' });
+  send.mockImplementation(async (req: TransportRequest) => ({ status: 200, json: { ...draft, status: 'approved', ...(req.body as object) } }));
+  await wrap(<UpdateLocation />);
+
+  expect(screen.getByText('YOUR LOCATION')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Area'), 'Baner');
+  await fireEvent.changeText(screen.getByLabelText('Pincode'), '411045');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save location' }));
+
+  await waitFor(() => expect(mockBack).toHaveBeenCalled());
+  expect(mockPush).not.toHaveBeenCalled();
 });

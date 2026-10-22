@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
+import { RequirementsBanner } from '../../../src/components/artist-onboarding/RequirementsBanner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from '../../../src/components/common/AppText';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
@@ -43,6 +45,7 @@ export default function ArtistHome() {
         </View>
         <NotificationBell onPress={() => router.push('/artist/notifications')} />
       </View>
+      <RequirementsBanner onOpen={(action) => router.push(action as Href)} />
 
       <Pressable
         accessibilityRole="button"
