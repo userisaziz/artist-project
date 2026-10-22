@@ -10,6 +10,7 @@ from app.core import rate_limit  # noqa: F401  (core_rate_limit_bucket)
 from app.feed import models as feed_models  # noqa: F401
 from app.notification import models as notification_models  # noqa: F401
 from app.quote import models as quote_models  # noqa: F401
+from app.requirement import models as requirement_models  # noqa: F401
 from app.review import models as review_models  # noqa: F401
 from app.saved import models as saved_models  # noqa: F401
 from app.shared.models import Base

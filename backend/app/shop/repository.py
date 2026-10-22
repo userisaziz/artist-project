@@ -9,13 +9,13 @@ from sqlalchemy import ColumnElement, Select, and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile
-from app.shared.enums import ArtistStatus
+from app.requirement.utils import publicly_visible
 from app.shared.pagination import keyset
 from app.shop.constants import LOW_STOCK, OPEN_ORDER, OrderStatus, ProductStatus
 from app.shop.models import Order, OrderItem, Product, ProductPhoto, ShopSettings
 from app.user.models import User
 
-SELLER_APPROVED = ArtistProfile.status == ArtistStatus.approved
+SELLER_APPROVED = publicly_visible()  # approved and not on hold for a profile requirement
 ON_SALE = and_(Product.status == ProductStatus.live, Product.is_active.is_(True), SELLER_APPROVED)
 LOW = and_(Product.status == ProductStatus.live, Product.stock <= LOW_STOCK)
 SOLD = (

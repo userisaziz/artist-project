@@ -56,7 +56,7 @@ async def test_status_filter_search_and_counts(client, engine):
     assert [r["business_name"] for r in suspended] == ["Ayesha Mehendi Art"]
     assert [r["business_name"] for r in mumbai] == ["Meher by Riya"]
     assert [r["business_name"] for r in found] == ["Meher by Riya"]
-    assert summary["counts"] == {"all": 3, "approved": 1, "pending": 1, "suspended": 1}
+    assert summary["counts"] == {"all": 3, "approved": 1, "pending": 1, "suspended": 1, "on_hold": 0}
     assert summary["active_artists"] == 1
 
 

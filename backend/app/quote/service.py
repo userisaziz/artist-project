@@ -24,6 +24,8 @@ from app.quote.constants import CLOSED, DUPLICATE, LIVE, NOT_ACCEPTABLE, ArtistV
 from app.quote.models import QuoteEnquiry
 from app.quote.repository import EnquiryRow, QuoteRepository
 from app.quote.schemas import AcceptIn, EnquiryIn, QuoteIn
+from app.requirement import constants as requirement_constants
+from app.requirement import service as requirement_service
 from app.shared.clock import Clock
 from app.shared.pagination import split_page
 from app.upload.service import ImageStorage
@@ -150,6 +152,8 @@ class QuoteService:
             raise NotFoundError("Artist not found")
         if artist.user_id == customer.id:
             raise ValidationError("You can't send an enquiry to yourself")
+        if await requirement_service.is_on_hold(self.session, artist.id):
+            raise ConflictError(requirement_constants.NOT_TAKING_REQUESTS)
         mine = QuoteEnquiry.customer_id == customer.id
         await self.enquiries.lock_customer(customer.id)
         await self.enquiries.expire_lapsed(self.today(), mine)

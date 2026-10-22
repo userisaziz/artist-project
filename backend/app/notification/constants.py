@@ -19,6 +19,9 @@ Kind = Literal[
     "order_cancelled",
     "chat_message",
     "support_reply",
+    "requirement_due",
+    "requirement_on_hold",
+    "requirement_reminder",
     # admin console
     "artist_submitted",
     "ticket_opened",

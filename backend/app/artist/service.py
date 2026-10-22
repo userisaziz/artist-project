@@ -139,7 +139,10 @@ class ArtistService:
         return profile
 
     async def save_location(self, user: User, body: LocationIn) -> ArtistProfile:
-        profile = await self._editable(user)
+        """Editable while onboarding and, without a new review, once approved (a profile requirement may ask for it)."""
+        profile = await self.get(user)
+        if profile.status not in EDITABLE | {ArtistStatus.approved}:
+            raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         profile.locality = body.locality
         profile.pincode = body.pincode
         profile.address_line = body.address_line or None

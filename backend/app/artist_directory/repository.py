@@ -13,6 +13,7 @@ from app.artist.models import ArtistProfile, artist_categories
 from app.artist_directory.models import ArtistSuspension
 from app.booking.models import Booking
 from app.catalog.models import Category
+from app.requirement.utils import on_hold
 from app.review.models import PUBLIC_REVIEW, Review
 from app.shared.enums import ArtistStatus, BookingStatus
 from app.shared.pagination import keyset
@@ -77,10 +78,18 @@ class DirectoryRepository:
                     func.count().filter(status == ArtistStatus.pending),
                     func.count().filter(status == ArtistStatus.suspended),
                     func.count().filter(status == ArtistStatus.approved, ArtistProfile.reviewed_at >= since),
+                    func.count().filter(on_hold()),
                 ).where(LISTED)
             )
         ).one()
-        return {"all": row[0], "approved": row[1], "pending": row[2], "suspended": row[3], "new": row[4]}
+        return {
+            "all": row[0],
+            "approved": row[1],
+            "pending": row[2],
+            "suspended": row[3],
+            "new": row[4],
+            "on_hold": row[5],
+        }
 
     async def rating(self) -> tuple[float | None, int]:
         """Average and count of public reviews of approved artists."""

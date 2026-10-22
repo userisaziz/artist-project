@@ -24,6 +24,7 @@ class DirectoryRow(APIModel):
     booking_value_30d: int  # paise, completed in the last 30 days
     open_complaints: int | None  # None until complaints are tracked
     created_at: datetime
+    missing_requirements: list[str]  # keys of mandatory profile requirements not met yet (e.g. "location")
 
 
 class DirectoryPage(APIModel):
@@ -36,6 +37,7 @@ class DirectoryCounts(APIModel):
     approved: int
     pending: int
     suspended: int
+    on_hold: int  # approved, but hidden for an overdue profile requirement
 
 
 class DirectorySummary(APIModel):

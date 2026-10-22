@@ -18,8 +18,9 @@ from app.directory.constants import (
     DirectorySort,
 )
 from app.directory.utils import SearchFilters
+from app.requirement.utils import publicly_visible
 from app.review.models import PUBLIC_REVIEW, Review
-from app.shared.enums import ArtistServiceStatus, ArtistStatus, BookingStatus
+from app.shared.enums import ArtistServiceStatus, BookingStatus
 from app.shared.pagination import keyset
 from app.shared.search import like_pattern
 
@@ -66,7 +67,7 @@ class DirectoryRepository:
             select(ArtistProfile, LISTED_AT, distance)
             .outerjoin(ratings, ratings.c.artist_id == ArtistProfile.id)
             .outerjoin(prices, prices.c.artist_id == ArtistProfile.id)
-            .where(ArtistProfile.status == ArtistStatus.approved)
+            .where(publicly_visible())
             .options(raiseload(ArtistProfile.kyc))
         )
         if filters.city:
@@ -130,7 +131,7 @@ class DirectoryRepository:
         return (
             await self.session.execute(
                 select(ArtistProfile)
-                .where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
+                .where(ArtistProfile.id == artist_id, publicly_visible())
                 .options(raiseload(ArtistProfile.kyc))
             )
         ).scalar_one_or_none()
@@ -138,7 +139,7 @@ class DirectoryRepository:
     async def approved_many(self, artist_ids: list[uuid.UUID]) -> list[ArtistProfile]:
         query = (
             select(ArtistProfile)
-            .where(ArtistProfile.id.in_(artist_ids), ArtistProfile.status == ArtistStatus.approved)
+            .where(ArtistProfile.id.in_(artist_ids), publicly_visible())
             .options(raiseload(ArtistProfile.kyc))
         )
         return list((await self.session.scalars(query)).all())

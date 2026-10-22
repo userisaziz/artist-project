@@ -27,6 +27,8 @@ from app.platform import admin_router as platform_admin
 from app.quote import artist_router as artist_quotes
 from app.quote import router as quotes
 from app.report import admin_router as report_admin
+from app.requirement import admin_router as requirement_admin
+from app.requirement import router as requirement
 from app.review import admin_router as admin_reviews
 from app.review import artist_router as artist_reviews
 from app.saved import router as saved
@@ -53,6 +55,7 @@ api_router.include_router(artist_feed.router)
 api_router.include_router(feed_followers.router)
 api_router.include_router(artist_shop.router)
 api_router.include_router(artist_quotes.router)
+api_router.include_router(requirement.router)
 api_router.include_router(directory.router)  # after every /artists/me router: "me" isn't an artist id
 api_router.include_router(bookings.router)
 api_router.include_router(quotes.router)
@@ -75,3 +78,4 @@ api_router.include_router(chat_admin.router)
 api_router.include_router(subcategory_request_admin.router)
 api_router.include_router(shop.router)
 api_router.include_router(shop_admin.router)
+api_router.include_router(requirement_admin.router)

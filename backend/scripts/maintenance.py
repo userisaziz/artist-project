@@ -4,6 +4,9 @@ Run it from a scheduler (cron, a Kubernetes CronJob, ...) every few minutes. It 
 never matter again: used or expired sign-in codes, dead refresh tokens past their lifetime, and
 rate-limit windows that have closed. Nothing here is needed for correctness; the API already ignores
 these rows, so a missed run only costs disk space.
+
+It also sends profile-requirement notices (a warning, then "your profile is hidden"), each once per artist; a
+missed run only delays them, because being on hold is worked out from the data, not from the notices.
 """
 
 import asyncio
@@ -18,6 +21,7 @@ from app.core.config import get_settings
 from app.core.database import SessionLocal, engine
 from app.core.logging import configure_logging
 from app.core.rate_limit import RateLimitBucket
+from app.requirement.service import RequirementService
 from app.shared.clock import SYSTEM_CLOCK, Clock
 
 logger = logging.getLogger("art_circle.maintenance")
@@ -47,12 +51,20 @@ async def prune(clock: Clock = SYSTEM_CLOCK) -> dict[str, int]:
     return dict(zip(("otp_codes", "refresh_tokens", "rate_limit_buckets"), counts, strict=True))
 
 
+async def send_requirement_notices(clock: Clock = SYSTEM_CLOCK) -> dict[str, int]:
+    async with SessionLocal() as session:
+        sent = await RequirementService(session, clock).send_notices()
+        await session.commit()
+    return dict(sent)
+
+
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level, settings.use_json_logs)
     try:
         deleted = await prune()
-        logger.info("maintenance done", extra={"deleted": deleted})
+        notices = await send_requirement_notices()
+        logger.info("maintenance done", extra={"deleted": deleted, "requirement_notices": notices})
     finally:
         await engine.dispose()
 

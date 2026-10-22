@@ -12,6 +12,8 @@ from app.artist_directory.constants import AT_RISK_RATE, WINDOW_DAYS, DirectoryS
 from app.artist_directory.models import ArtistSuspension
 from app.artist_directory.repository import DirectoryRecord, DirectoryRepository, matches
 from app.core.exceptions import ConflictError, NotFoundError
+from app.requirement import service as requirement_service
+from app.requirement.utils import on_hold
 from app.review import service as review_service
 from app.shared.clock import Clock
 from app.shared.enums import ArtistStatus
@@ -32,7 +34,7 @@ class ArtistDirectoryService:
     def _since(self):
         return self.clock.now() - timedelta(days=WINDOW_DAYS)
 
-    def _row(self, r: DirectoryRecord, ratings: dict) -> dict[str, Any]:
+    def _row(self, r: DirectoryRecord, ratings: dict, missing: dict[uuid.UUID, list[str]]) -> dict[str, Any]:
         p = r.profile
         average, count = ratings.get(p.id, (None, 0))
         return {
@@ -48,11 +50,14 @@ class ArtistDirectoryService:
             "booking_value_30d": r.booking_value,
             "open_complaints": None,
             "created_at": p.created_at,
+            "missing_requirements": missing.get(p.id, []),
         }
 
     async def list(self, status: DirectoryStatus, q: str | None, city: str | None, limit: int, cursor: str | None):
         where = []
-        if status != "all":
+        if status == "on_hold":
+            where.append(on_hold())
+        elif status != "all":
             where.append(ArtistProfile.status == ArtistStatus(status))
         if city:
             where.append(ArtistProfile.city == city)
@@ -61,7 +66,8 @@ class ArtistDirectoryService:
         rows = await self.artists.page(self._since(), where, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda r: (r.profile.created_at, r.profile.id))
         ratings = await review_service.ratings_for(self.session, [r.profile.id for r in page])
-        return [self._row(r, ratings) for r in page], next_cursor
+        missing = await requirement_service.missing_mandatory(self.session, [r.profile for r in page])
+        return [self._row(r, ratings, missing) for r in page], next_cursor
 
     async def summary(self) -> dict[str, Any]:
         since = self._since()

@@ -13,12 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.feed.constants import Moderation
 from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto, PostReport
-from app.shared.enums import ArtistServiceStatus, ArtistStatus
+from app.requirement.utils import publicly_visible
+from app.shared.enums import ArtistServiceStatus
 from app.shared.pagination import keyset
 from app.shared.search import like_pattern
 from app.user.models import User
 
-ARTIST_VISIBLE = ArtistProfile.status == ArtistStatus.approved
+ARTIST_VISIBLE = publicly_visible()  # approved and not on hold for a profile requirement
 VISIBLE = and_(ARTIST_VISIBLE, Post.moderation == Moderation.live)  # what customers may see
 NOT_FEATURED = Post.featured_at.is_(None)
 OPEN_REPORTS = (

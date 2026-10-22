@@ -25,6 +25,8 @@ from app.booking.models import Booking, BookingAddon
 from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, BookingRow
 from app.booking.schemas import BookingAddonIn, BookingIn
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.requirement import constants as requirement_constants
+from app.requirement import service as requirement_service
 from app.review.filters import review_window_open
 from app.review.models import PUBLIC_REVIEW
 from app.shared.clock import Clock
@@ -398,6 +400,8 @@ class BookingService:
             raise NotFoundError("Artist not found")
         if artist.user_id == customer.id:
             raise ValidationError("You can't book your own services")
+        if await requirement_service.is_on_hold(self.session, artist.id):
+            raise ConflictError(requirement_constants.NOT_TAKING_REQUESTS)
         service = await self.bookings.approved_service(data.service_id, artist.id)
         if service is None:
             raise NotFoundError("Service not found")
