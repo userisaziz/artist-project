@@ -11,7 +11,7 @@ from scripts import maintenance
 from tests.support.artist import approved_artist
 from tests.support.auth import CUSTOMER_PHONE, admin_headers, sign_in
 from tests.support.booking import book
-from tests.support.catalog import seed_categories
+from tests.support.catalog import area_id, seed_categories
 
 SETTINGS = "/api/v1/admin/settings/requirements"
 ARTIST_PHONE = "+919845075001"
@@ -30,7 +30,11 @@ async def sql(engine, statement: str, **params) -> None:
 async def without_location(client, engine, admin: dict) -> dict:
     """An approved artist from before the Location step: no area or pincode on file."""
     artist = await approved_artist(client, engine, ARTIST_PHONE, admin)
-    await sql(engine, "update artist_profile set locality = null, pincode = null where id = :id", id=artist["id"])
+    await sql(
+        engine,
+        "update artist_profile set area_id = null, locality = null, pincode = null where id = :id",
+        id=artist["id"],
+    )
     return artist
 
 
@@ -110,7 +114,9 @@ async def test_a_missing_requirement_warns_then_holds_until_completed(client, en
     assert (await client.get("/api/v1/artists/me/bookings", headers=artist["headers"])).status_code == 200
 
     fixed = await client.put(
-        "/api/v1/artists/me/location", headers=artist["headers"], json={"locality": "Koramangala", "pincode": "560095"}
+        "/api/v1/artists/me/location",
+        headers=artist["headers"],
+        json={"area_id": await area_id(client, "Bangalore", "Koramangala"), "pincode": "560095"},
     )
     assert fixed.status_code == 200, fixed.text
     assert fixed.json()["status"] == "approved"  # fixing it needs no new review

@@ -14,7 +14,8 @@ CATEGORIES = [
 
 async def seed_categories(engine) -> None:
     """Admins build the catalog in the admin app; tests insert the design's six categories directly,
-    plus Mehendi › Bridal and Makeup › Party with a few services so onboarding has something to pick."""
+    plus Mehendi › Bridal and Makeup › Party with a few services so onboarding has something to pick,
+    and a few city areas for the Location step."""
     async with engine.begin() as conn:
         ids = {}
         for i, (slug, name) in enumerate(CATEGORIES):
@@ -43,6 +44,7 @@ async def seed_categories(engine) -> None:
                     text("INSERT INTO catalog_service_template (subcategory_id, name, sort_order) VALUES (:s, :n, :i)"),
                     {"s": sub, "n": service, "i": i},
                 )
+    await seed_areas(engine)  # the artist Location step picks from these
 
 
 async def categories(client) -> dict[str, int]:
@@ -74,6 +76,15 @@ async def seed_areas(engine) -> None:
     async with engine.begin() as conn:
         for city, name, lat, lng in AREAS:
             await conn.execute(
-                text("INSERT INTO catalog_area (city, name, latitude, longitude) VALUES (:c, :n, :la, :lo)"),
+                text(
+                    "INSERT INTO catalog_area (city, name, latitude, longitude) VALUES (:c, :n, :la, :lo) "
+                    "ON CONFLICT (city, name) DO NOTHING"
+                ),
                 {"c": city, "n": name, "la": lat, "lo": lng},
             )
+
+
+async def area_id(client, city: str, name: str) -> int:
+    """The id of a seeded area, looked up the way the app does (GET /areas?city=)."""
+    areas = (await client.get("/api/v1/areas", params={"city": city})).json()
+    return next(a["id"] for a in areas if a["name"] == name)

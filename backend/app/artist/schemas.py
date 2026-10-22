@@ -37,7 +37,7 @@ class ProfileIn(APIModel):
 
 
 class LocationIn(APIModel):
-    locality: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+    area_id: int = Field(gt=0)  # from GET /areas; sets the area name and the city
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")  # Indian PIN: six digits, never a leading 0
     address_line: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] | None = None
     latitude: float | None = Field(default=None, ge=-90, le=90)
@@ -170,6 +170,7 @@ class ArtistProfileOut(APIModel):
     status: ArtistStatus
     business_name: str
     city: str
+    area_id: int | None
     locality: str | None
     pincode: str | None
     address_line: str | None

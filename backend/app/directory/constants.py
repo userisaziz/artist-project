@@ -18,8 +18,6 @@ CARD_PHOTOS = 3
 RECOMMENDED_PRIOR_RATING = 4.0
 RECOMMENDED_PRIOR_REVIEWS = 5
 
-EARTH_RADIUS_KM = 6371.0
-
 # A free-date search checks each candidate's real slots (two queries each), so one page scans at most this many.
 AVAILABLE_ON_SCAN_LIMIT = 100
 

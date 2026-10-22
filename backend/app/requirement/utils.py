@@ -13,14 +13,14 @@ from app.shared.enums import ArtistStatus
 
 def missing(requirement: Requirement) -> ColumnElement[bool]:
     """True when the artist hasn't met `requirement`."""
-    if requirement.key == LOCATION.key:
-        return or_(ArtistProfile.locality.is_(None), ArtistProfile.pincode.is_(None))
+    if requirement.key == LOCATION.key:  # an area picked from the catalog (older free-text areas don't count)
+        return or_(ArtistProfile.area_id.is_(None), ArtistProfile.pincode.is_(None))
     raise ValueError(f"No check for requirement {requirement.key!r}")  # every registered requirement needs one
 
 
 def is_missing(requirement: Requirement, profile: ArtistProfile) -> bool:
     if requirement.key == LOCATION.key:
-        return not (profile.locality and profile.pincode)
+        return profile.area_id is None or not profile.pincode
     raise ValueError(f"No check for requirement {requirement.key!r}")
 
 

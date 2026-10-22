@@ -32,7 +32,7 @@ from app.artist.schemas import (
     ServicePatch,
 )
 from app.catalog.config import get_catalog_settings
-from app.catalog.models import Category, ServiceTemplate
+from app.catalog.models import Area, Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
 from app.core.crypto import encrypt_aadhaar
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
@@ -143,7 +143,12 @@ class ArtistService:
         profile = await self.get(user)
         if profile.status not in EDITABLE | {ArtistStatus.approved}:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
-        profile.locality = body.locality
+        area = await self.session.get(Area, body.area_id)
+        if area is None or not area.is_active:
+            raise ValidationError("Unknown area")
+        profile.area_id = area.id
+        profile.locality = area.name
+        profile.city = area.city  # the area decides the city, so the two can't disagree
         profile.pincode = body.pincode
         profile.address_line = body.address_line or None
         profile.latitude = body.latitude
@@ -413,7 +418,7 @@ class ArtistService:
             missing.append("photo")
         if not profile.categories:
             missing.append("categories")
-        if not (profile.locality and profile.pincode):
+        if profile.area_id is None or not profile.pincode:
             missing.append("location")
         if not profile.services:
             missing.append("services")

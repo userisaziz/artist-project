@@ -47,6 +47,8 @@ class ArtistProfile(Base, TimestampMixin):
     )
     business_name: Mapped[str] = mapped_column(String(120), nullable=False)
     city: Mapped[str] = mapped_column(String(60), nullable=False)
+    # The catalog area picked in the Location step; `locality` keeps its name (and any older free-text area).
+    area_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("catalog_area.id", ondelete="SET NULL"), index=True)
     locality: Mapped[str | None] = mapped_column(String(80))  # the area clients see, e.g. "Koramangala"
     pincode: Mapped[str | None] = mapped_column(String(6))
     address_line: Mapped[str | None] = mapped_column(String(120))  # studio / house no.; never public

@@ -58,6 +58,7 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
         status=profile.status,
         business_name=profile.business_name,
         city=profile.city,
+        area_id=profile.area_id,
         locality=profile.locality,
         pincode=profile.pincode,
         address_line=profile.address_line,

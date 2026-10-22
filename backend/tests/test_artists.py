@@ -8,7 +8,7 @@ from sqlalchemy import text
 from app.upload.service import FakeStorage
 from tests.support.artist import approved_artist, complete_profile
 from tests.support.auth import admin_headers, sign_in
-from tests.support.catalog import categories, seed_categories, templates
+from tests.support.catalog import area_id, categories, seed_categories, templates
 from tests.support.upload import upload_key
 
 ARTIST_PHONE = "+919845011111"
@@ -270,30 +270,44 @@ async def test_location_step_saves_area_pincode_and_optional_address(client):
         headers=headers,
         json={"business_name": "A", "city": "Pune", "category_ids": [cats["decor"]]},
     )
+    baner = await area_id(client, "Pune", "Baner")
     saved = await client.put(
         "/api/v1/artists/me/location",
         headers=headers,
-        json={"locality": " Koregaon Park ", "pincode": "411001", "address_line": "2nd floor, 14"},
+        json={"area_id": baner, "pincode": "411045", "address_line": " 2nd floor, 14 "},
     )
-    assert saved.status_code == 200
+    assert saved.status_code == 200, saved.text
     body = saved.json()
-    assert (body["locality"], body["pincode"], body["address_line"]) == ("Koregaon Park", "411001", "2nd floor, 14")
+    assert (body["area_id"], body["locality"], body["city"]) == (baner, "Baner", "Pune")  # the area names the place
+    assert (body["pincode"], body["address_line"]) == ("411045", "2nd floor, 14")
 
     cleared = await client.put(
-        "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": "411045"}
+        "/api/v1/artists/me/location", headers=headers, json={"area_id": baner, "pincode": "411045"}
     )
-    assert (cleared.json()["locality"], cleared.json()["address_line"]) == ("Baner", None)
+    assert cleared.json()["address_line"] is None
+
+    moved = await client.put(
+        "/api/v1/artists/me/location",
+        headers=headers,
+        json={"area_id": await area_id(client, "Bangalore", "Koramangala"), "pincode": "560095"},
+    )
+    assert (moved.json()["locality"], moved.json()["city"]) == ("Koramangala", "Bangalore")  # the city follows the area
+    unknown = await client.put(
+        "/api/v1/artists/me/location", headers=headers, json={"area_id": 99999, "pincode": "560095"}
+    )
+    assert (unknown.status_code, unknown.json()["message"]) == (422, "Unknown area")
 
 
 async def test_location_rejects_a_bad_pincode_and_needs_a_profile(client):
     headers = await sign_in(client, ARTIST_PHONE)
+    baner = await area_id(client, "Pune", "Baner")
     no_profile = await client.put(
-        "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": "411045"}
+        "/api/v1/artists/me/location", headers=headers, json={"area_id": baner, "pincode": "411045"}
     )
     assert no_profile.status_code == 404
     for pincode in ["01234", "011045", "41104A"]:
         bad = await client.put(
-            "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": pincode}
+            "/api/v1/artists/me/location", headers=headers, json={"area_id": baner, "pincode": pincode}
         )
         assert bad.status_code == 422
 
@@ -367,7 +381,7 @@ async def test_location_saves_the_gps_pin_only_as_a_pair(client):
         headers=headers,
         json={"business_name": "A", "city": "Bangalore", "category_ids": [cats["decor"]]},
     )
-    place = {"locality": "Koramangala", "pincode": "560095"}
+    place = {"area_id": await area_id(client, "Bangalore", "Koramangala"), "pincode": "560095"}
     pinned = await client.put(
         "/api/v1/artists/me/location", headers=headers, json={**place, "latitude": 12.9352, "longitude": 77.6245}
     )

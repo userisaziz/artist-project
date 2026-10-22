@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Iterable
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Float, Row, Select, cast, func, literal, null, or_, select
+from sqlalchemy import ColumnElement, Row, Select, func, null, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
@@ -12,7 +12,6 @@ from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categorie
 from app.booking.models import Booking
 from app.catalog.models import Category, ServiceTemplate
 from app.directory.constants import (
-    EARTH_RADIUS_KM,
     RECOMMENDED_PRIOR_RATING,
     RECOMMENDED_PRIOR_REVIEWS,
     DirectorySort,
@@ -21,6 +20,7 @@ from app.directory.utils import SearchFilters
 from app.requirement.utils import publicly_visible
 from app.review.models import PUBLIC_REVIEW, Review
 from app.shared.enums import ArtistServiceStatus, BookingStatus
+from app.shared.geo import distance_km
 from app.shared.pagination import keyset
 from app.shared.search import like_pattern
 
@@ -62,7 +62,9 @@ class DirectoryRepository:
             .group_by(ArtistServiceItem.artist_id)
             .subquery()
         )
-        distance = _distance_km(*filters.near) if filters.near else null()
+        distance = (
+            distance_km(ArtistProfile.latitude, ArtistProfile.longitude, *filters.near) if filters.near else null()
+        )
         query = (
             select(ArtistProfile, LISTED_AT, distance)
             .outerjoin(ratings, ratings.c.artist_id == ArtistProfile.id)
@@ -175,13 +177,3 @@ def _recommended_score(c: SearchColumns) -> ColumnElement:
     """Bayesian average: the artist's stars plus a prior of RECOMMENDED_PRIOR_REVIEWS reviews at the prior rating."""
     prior = RECOMMENDED_PRIOR_RATING * RECOMMENDED_PRIOR_REVIEWS
     return (func.coalesce(c.stars, 0) + prior) / (func.coalesce(c.reviews, 0) + RECOMMENDED_PRIOR_REVIEWS)
-
-
-def _distance_km(lat: float, lng: float) -> ColumnElement:
-    """Great-circle (haversine) kilometres from (lat, lng) to the artist's pin; NULL when the artist has none."""
-    lat1, lng1 = func.radians(literal(lat)), func.radians(literal(lng))
-    lat2, lng2 = func.radians(ArtistProfile.latitude), func.radians(ArtistProfile.longitude)
-    a = func.power(func.sin((lat2 - lat1) / 2), 2) + func.cos(lat1) * func.cos(lat2) * func.power(
-        func.sin((lng2 - lng1) / 2), 2
-    )
-    return cast(2 * EARTH_RADIUS_KM * func.asin(func.sqrt(a)), Float)

@@ -1,7 +1,7 @@
 """Artist onboarding support: build, submit, and approve the canonical test artist."""
 
 from tests.support.auth import sign_in
-from tests.support.catalog import categories, templates
+from tests.support.catalog import area_id, categories, templates
 from tests.support.upload import upload_key
 
 
@@ -33,9 +33,8 @@ async def complete_profile(client, headers, photos: int = 6, kyc: bool = True, s
             "photo_key": await upload_key(client, headers, "artist_photo"),
         },
     )
-    await client.put(
-        "/api/v1/artists/me/location", headers=headers, json={"locality": "Koramangala", "pincode": "560095"}
-    )
+    koramangala = await area_id(client, "Bangalore", "Koramangala")
+    await client.put("/api/v1/artists/me/location", headers=headers, json={"area_id": koramangala, "pincode": "560095"})
     await client.post(
         "/api/v1/artists/me/services",
         headers=headers,
