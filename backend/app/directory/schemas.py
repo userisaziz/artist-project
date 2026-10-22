@@ -44,6 +44,7 @@ class PublicService(APIModel):
     category: NamedRef | None
     subcategory: NamedRef | None  # None for older rows that point straight at a top-level category
     booking_count: int  # completed bookings of this service
+    photo_url: str | None  # the package's own photo, card size
     included_items: list[str]
     addons: list[AddonOut]  # priced extras a customer can pick when booking
 

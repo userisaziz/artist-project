@@ -115,6 +115,7 @@ class ArtistServiceItem(Base, TimestampMixin):
     price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    photo_key: Mapped[str | None] = mapped_column(String(255))  # the package's own photo (upload purpose "service")
     # "What's included" lines, in the artist's order.
     included_items: Mapped[list[str]] = mapped_column(
         ARRAY(String(60)), nullable=False, default=list, server_default=sa.text("'{}'")

@@ -80,13 +80,19 @@ class ArtistService:
         profile = await self.artists.by_user(user.id)
         if profile is None:
             return None
-        public = ([profile.photo_key] if profile.photo_key else []) + [p.storage_key for p in profile.photos]
+        public = (
+            ([profile.photo_key] if profile.photo_key else [])
+            + [p.storage_key for p in profile.photos]
+            + [s.photo_key for s in profile.services if s.photo_key]
+        )
         private = [profile.kyc.front_key, profile.kyc.back_key] if profile.kyc else []
         profile.status = ArtistStatus.suspended
         profile.business_name = DELETED_NAME
         profile.bio = None
         profile.photo_key = None
         profile.photos.clear()
+        for s in profile.services:
+            s.photo_key = None
         profile.kyc = None
         await self.session.flush()
         return ErasedArtist(artist_id=profile.id, public_keys=public, private_keys=private)
@@ -191,6 +197,17 @@ class ArtistService:
                 for i, a in enumerate(changes["addons"])
             ]
 
+    def _apply_photo(self, user: User, item: ArtistServiceItem, changes: dict) -> str | None:
+        """A sent `photo_key` replaces the package photo (null removes it); it must be the artist's own "service"
+        upload. Returns the replaced file's key, for the caller to delete once the change is flushed."""
+        if "photo_key" not in changes:
+            return None
+        new = changes["photo_key"]
+        if new and not self.storage.owns(new, user.id, "service"):
+            raise ValidationError("Invalid photo key")
+        old, item.photo_key = item.photo_key, new
+        return old if old and old != new else None
+
     async def add_service(self, user: User, body: ServiceIn) -> ArtistProfile:
         profile = await self._editable(user)
         template = await self._template(profile, body.template_id)
@@ -207,6 +224,7 @@ class ArtistService:
             addons=[],  # set, so reading it after flush never lazy-loads (async)
         )
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
+        self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
         profile.services.append(item)
         await self.session.flush()
         return profile
@@ -227,13 +245,20 @@ class ArtistService:
         if "description" in changes:
             item.description = changes["description"]
         self._apply_extras(item, changes)
+        replaced = self._apply_photo(user, item, changes)
         await self.session.flush()
+        if replaced:
+            await self.storage.delete(replaced)
         return profile
 
     async def delete_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
         profile = await self._editable(user)
-        profile.services.remove(self._service(profile, service_id))
+        item = self._service(profile, service_id)
+        photo = item.photo_key
+        profile.services.remove(item)
         await self.session.flush()
+        if photo:
+            await self.storage.delete(photo)
         return profile
 
     async def _approved(self, user: User) -> ArtistProfile:
@@ -286,6 +311,7 @@ class ArtistService:
             addons=[],
         )
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
+        self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
         profile.services.append(item)
         await self.session.flush()
         return profile
@@ -310,9 +336,12 @@ class ArtistService:
         if "description" in changes:
             item.description = changes["description"]
         self._apply_extras(item, changes)
+        replaced = self._apply_photo(user, item, changes)
         item.status = ArtistServiceStatus.pending
         item.rejection_reason = None
         await self.session.flush()
+        if replaced:
+            await self.storage.delete(replaced)
         if left is not None:
             await subcategory_request_service.SubcategoryRequestService(self.session, self.clock).withdraw_if_unused(
                 left
@@ -322,9 +351,11 @@ class ArtistService:
     async def delete_custom_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
         profile = await self._approved(user)
         item = self._custom(profile, service_id)
-        left = item.suggestion_id
+        left, photo = item.suggestion_id, item.photo_key
         profile.services.remove(item)
         await self.session.flush()
+        if photo:
+            await self.storage.delete(photo)
         if left is not None:
             await subcategory_request_service.SubcategoryRequestService(self.session, self.clock).withdraw_if_unused(
                 left

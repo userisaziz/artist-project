@@ -69,10 +69,12 @@ class AddonOut(APIModel):
 
 
 class ServiceExtrasIn(APIModel):
-    """Optional on create; on an edit, a list that is sent replaces the old one and an omitted one stays."""
+    """Optional on create; on an edit, a list that is sent replaces the old one and an omitted one stays.
+    `photo_key` likewise: sent replaces (null removes the photo), omitted keeps it."""
 
     included_items: list[IncludedItem] | None = Field(default=None, max_length=MAX_INCLUDED_ITEMS)
     addons: list[AddonIn] | None = Field(default=None, max_length=MAX_ADDONS)
+    photo_key: str | None = Field(default=None, max_length=255)  # an upload with purpose "service"
 
 
 class ServiceIn(ServiceExtrasIn):
@@ -101,6 +103,7 @@ class ServiceOut(APIModel):
     description: str | None = None
     included_items: list[str]
     addons: list[AddonOut]
+    photo_url: str | None = None
     status: ArtistServiceStatus
     rejection_reason: str | None
     suggested_subcategory: SuggestedSubcategoryOut | None = None  # the artist's own suggestion it was filed under

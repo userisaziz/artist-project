@@ -19,7 +19,7 @@ def addons_out(item: ArtistServiceItem) -> list[dict]:
     return [dict(id=a.id, name=a.name, price_paise=a.price_paise, per_person=a.per_person) for a in item.addons]
 
 
-def service_out(item: ArtistServiceItem) -> dict:
+def service_out(item: ArtistServiceItem, storage: ImageStorage) -> dict:
     return dict(
         id=item.id,
         category_id=item.category_id,
@@ -31,6 +31,7 @@ def service_out(item: ArtistServiceItem) -> dict:
         description=item.description,
         included_items=list(item.included_items),
         addons=addons_out(item),
+        photo_url=storage.url(item.photo_key, "card") if item.photo_key else None,
         status=item.status,
         rejection_reason=item.rejection_reason,
         suggested_subcategory=(
@@ -68,7 +69,7 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
         photo_key=profile.photo_key,
         photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
         categories=list(profile.categories),
-        services=[service_out(s) for s in profile.services],
+        services=[service_out(s, storage) for s in profile.services],
         photos=[photo_out(p, storage) for p in profile.photos],
         kyc={"aadhaar_last4": profile.kyc.aadhaar_last4} if profile.kyc else None,
         rejection_reason=profile.rejection_reason,

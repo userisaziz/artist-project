@@ -156,6 +156,7 @@ class DirectoryService:
                     "category": refs(s.category_id)[0],
                     "subcategory": refs(s.category_id)[1],
                     "booking_count": per_service.get(s.id, 0),
+                    "photo_url": self.storage.url(s.photo_key, "card") if s.photo_key else None,
                     "included_items": list(s.included_items),
                     "addons": addons_out(s),
                 }

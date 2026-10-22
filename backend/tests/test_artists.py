@@ -143,6 +143,7 @@ async def test_service_crud(client):
         "description": None,
         "included_items": [],
         "addons": [],
+        "photo_url": None,
         "status": "approved",
         "rejection_reason": None,
         "suggested_subcategory": None,
