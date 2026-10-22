@@ -69,6 +69,11 @@ class ArtistProfile(Base, TimestampMixin):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("user_account.id"))
     travel_radius_km: Mapped[int | None] = mapped_column(SmallInteger)  # display only, never filters
+    experience_years: Mapped[int | None] = mapped_column(SmallInteger)  # storefront "8 yrs Experience"
+    # Language values (app.artist.constants.Language), in the artist's order.
+    languages: Mapped[list[str]] = mapped_column(
+        ARRAY(String(20)), nullable=False, default=list, server_default=sa.text("'{}'")
+    )
 
     # selectin: async sessions can't lazy-load, and every read of a profile needs all three.
     categories: Mapped[list[Category]] = relationship(

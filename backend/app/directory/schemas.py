@@ -56,6 +56,8 @@ class ArtistPublic(ArtistCard):
     member_since: datetime | None
     completed_bookings: int
     travel_radius_km: int | None  # display only: how far the artist travels, never a search filter
+    experience_years: int | None
+    languages: list[str]  # in the artist's order
     hours: list[WorkingHour]  # 7 items, Monday (0) first
     next_free_date: date | None  # first IST day with an open slot for the shortest service, within the lookahead
     reply_minutes: int | None  # median time to answer a customer message; None until there are enough replies

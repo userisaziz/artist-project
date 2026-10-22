@@ -66,6 +66,8 @@ def profile_out(profile: ArtistProfile, storage: ImageStorage) -> dict:
         latitude=profile.latitude,
         longitude=profile.longitude,
         bio=profile.bio,
+        experience_years=profile.experience_years,
+        languages=list(profile.languages),
         photo_key=profile.photo_key,
         photo_url=storage.url(profile.photo_key, "thumb") if profile.photo_key else None,
         categories=list(profile.categories),

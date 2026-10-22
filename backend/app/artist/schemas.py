@@ -11,11 +11,13 @@ from app.artist.constants import (
     ADDON_NAME_MAX_LENGTH,
     INCLUDED_ITEM_MAX_LENGTH,
     MAX_ADDONS,
+    MAX_EXPERIENCE_YEARS,
     MAX_INCLUDED_ITEMS,
     MAX_PRICE_PAISE,
     MAX_TRAVEL_RADIUS_KM,
     MIN_TRAVEL_RADIUS_KM,
     WEEKDAYS,
+    Language,
 )
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
@@ -34,6 +36,8 @@ class ProfileIn(APIModel):
     category_ids: list[int] = Field(min_length=1, max_length=6)
     photo_key: str | None = Field(default=None, max_length=255)
     bio: str | None = Field(default=None, max_length=1000)
+    experience_years: int | None = Field(default=None, ge=0, le=MAX_EXPERIENCE_YEARS)
+    languages: list[Language] = Field(default_factory=list, max_length=len(Language))  # repeats are dropped
 
 
 class LocationIn(APIModel):
@@ -180,6 +184,8 @@ class ArtistProfileOut(APIModel):
     latitude: float | None
     longitude: float | None
     bio: str | None
+    experience_years: int | None
+    languages: list[str]
     photo_key: str | None
     photo_url: str | None
     categories: list[CategoryOut]

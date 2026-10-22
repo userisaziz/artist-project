@@ -137,6 +137,8 @@ class ArtistService:
         profile.business_name = body.business_name.strip()
         profile.city = body.city
         profile.bio = body.bio
+        profile.experience_years = body.experience_years
+        profile.languages = list(dict.fromkeys(body.languages))  # once each, in the artist's order
         profile.photo_key = body.photo_key
         profile.categories = categories
         await self.session.flush()

@@ -165,6 +165,8 @@ class DirectoryService:
             "member_since": profile.reviewed_at,
             "completed_bookings": completed,
             "travel_radius_km": profile.travel_radius_km,
+            "experience_years": profile.experience_years,
+            "languages": list(profile.languages),
             "hours": await artist_schedule.week(self.session, profile.id),
             "next_free_date": await self._next_free_date(profile.id, services),
             "reply_minutes": await chat_service.reply_minutes(self.session, profile.id),
