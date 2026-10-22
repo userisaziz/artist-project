@@ -1,8 +1,9 @@
 """Service categories (Mehendi, Makeup, …), their subcategories, and the admin's service list under each
-subcategory (migration #6). Admins create them in the admin app."""
+subcategory (migration #6). Admins create them in the admin app. Also the areas of each operating city
+(BTM Layout, Koramangala, …) that artists place their studio in."""
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums import CategoryStatus
@@ -48,3 +49,19 @@ class ServiceTemplate(Base):
             postgresql_ops={"name": "gin_trgm_ops"},
         ),
     )
+
+
+class Area(Base):
+    """A neighbourhood of an operating city, with its rough centre: what customers see as "BTM Layout, Bangalore"
+    and what a dropped pin snaps to. Seeded by migration; admins will edit them later."""
+
+    __tablename__ = "catalog_area"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    city: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa.true(), nullable=False)
+
+    __table_args__ = (sa.UniqueConstraint("city", "name"),)

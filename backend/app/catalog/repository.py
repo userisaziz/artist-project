@@ -7,8 +7,9 @@ from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistServiceItem, artist_categories
-from app.catalog.models import Category, ServiceTemplate
+from app.catalog.models import Area, Category, ServiceTemplate
 from app.shared.enums import CategoryStatus
+from app.shared.geo import distance_km
 
 
 class Usage(NamedTuple):
@@ -152,3 +153,18 @@ class TemplateRepository:
 
     async def delete(self, template: ServiceTemplate) -> None:
         await self.session.delete(template)
+
+
+class AreaRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def in_city(self, city: str) -> Sequence[Area]:
+        query = select(Area).where(Area.city == city, Area.is_active).order_by(Area.name)
+        return (await self.session.scalars(query)).all()
+
+    async def nearest(self, lat: float, lng: float, max_km: float) -> Area | None:
+        """The active area whose centre is closest to (lat, lng), if any is within `max_km`."""
+        km = distance_km(Area.latitude, Area.longitude, lat, lng)
+        query = select(Area).where(Area.is_active, km <= max_km).order_by(km).limit(1)
+        return await self.session.scalar(query)

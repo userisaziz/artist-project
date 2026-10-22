@@ -2,7 +2,7 @@
 
 from tests.support.artist import complete_profile
 from tests.support.auth import admin_headers, sign_in
-from tests.support.catalog import create_category, seed_categories
+from tests.support.catalog import create_category, seed_areas, seed_categories
 
 TEMPLATES = "/api/v1/admin/service-templates"
 
@@ -127,3 +127,30 @@ async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engi
     assert classic["artist_count"] == 1
     response = await client.delete(f"{TEMPLATES}/{classic['id']}", headers=headers)
     assert response.status_code == 409
+
+
+AREAS = "/api/v1/areas"
+
+
+async def test_areas_of_a_city_in_name_order(client, engine):
+    await seed_areas(engine)
+
+    bangalore = (await client.get(AREAS, params={"city": "Bangalore"})).json()
+    nowhere = (await client.get(AREAS, params={"city": "Atlantis"})).json()
+
+    assert [a["name"] for a in bangalore] == ["BTM Layout", "Koramangala"]
+    assert set(bangalore[0]) == {"id", "city", "name", "latitude", "longitude"}
+    assert nowhere == []
+    assert (await client.get(AREAS)).status_code == 422
+
+
+async def test_a_pin_snaps_to_the_nearest_area_within_reach(client, engine):
+    await seed_areas(engine)
+
+    near_btm = await client.get(f"{AREAS}/nearest", params={"lat": 12.9180, "lng": 77.6120})
+    far_away = await client.get(f"{AREAS}/nearest", params={"lat": 13.5, "lng": 77.0})
+
+    assert near_btm.status_code == 200
+    assert (near_btm.json()["name"], near_btm.json()["city"]) == ("BTM Layout", "Bangalore")
+    assert far_away.status_code == 200 and far_away.json() is None  # outside every area: the artist picks by hand
+    assert (await client.get(f"{AREAS}/nearest", params={"lat": 95, "lng": 77.0})).status_code == 422

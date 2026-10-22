@@ -59,3 +59,21 @@ async def create_category(client, headers, **body) -> dict:
     response = await client.post("/api/v1/admin/categories", headers=headers, json=body)
     assert response.status_code == 201, response.json()
     return response.json()
+
+
+# (city, name, latitude, longitude): a few real areas, as the catalog_area migration seeds them.
+AREAS = [
+    ("Bangalore", "Koramangala", 12.9352, 77.6245),
+    ("Bangalore", "BTM Layout", 12.9166, 77.6101),
+    ("Pune", "Baner", 18.5590, 73.7868),
+]
+
+
+async def seed_areas(engine) -> None:
+    """The migration seeds every operating city's areas; tests truncate between runs, so they insert a few."""
+    async with engine.begin() as conn:
+        for city, name, lat, lng in AREAS:
+            await conn.execute(
+                text("INSERT INTO catalog_area (city, name, latitude, longitude) VALUES (:c, :n, :la, :lo)"),
+                {"c": city, "n": name, "la": lat, "lo": lng},
+            )

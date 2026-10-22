@@ -84,3 +84,11 @@ class AdminTemplateOut(APIModel):
     sort_order: int
     is_active: bool
     artist_count: int
+
+
+class AreaOut(ORMModel):
+    id: int
+    city: str
+    name: str
+    latitude: float  # the area's rough centre, for the map; never an artist's own pin
+    longitude: float

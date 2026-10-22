@@ -27,6 +27,8 @@ PUBLIC = {
     "/auth/logout",
     "/categories",
     "/cities",
+    "/areas",
+    "/areas/nearest",
     "/artists",
     "/artists/{artist_id}",
     "/artists/{artist_id}/availability",

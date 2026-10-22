@@ -8,8 +8,10 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.catalog.models import Category, ServiceTemplate
+from app.catalog.constants import NEAREST_AREA_MAX_KM
+from app.catalog.models import Area, Category, ServiceTemplate
 from app.catalog.repository import (
+    AreaRepository,
     CategoryRepository,
     TemplateRepository,
     Usage,
@@ -115,3 +117,16 @@ class CategoryService:
             raise ConflictError("Category is in use; deactivate it instead")
         await self.categories.delete(category)
         await self.session.flush()
+
+
+class AreaService:
+    """The areas of each city, and which one a dropped pin is in."""
+
+    def __init__(self, session: AsyncSession):
+        self.areas = AreaRepository(session)
+
+    async def in_city(self, city: str) -> Sequence[Area]:
+        return await self.areas.in_city(city)
+
+    async def nearest(self, lat: float, lng: float) -> Area | None:
+        return await self.areas.nearest(lat, lng, NEAREST_AREA_MAX_KM)
