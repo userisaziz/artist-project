@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { calls, db, installFakeBackend, json } from '@/test/fake-backend'
 import { renderSignedIn } from '@/test/render-app'
-import type { Policy, TeamMember } from './types'
+import type { Policy, ProfileRequirement, TeamMember } from './types'
 
 // The first render loads the lazy route chunk, which can take over the default 1s in a busy full run.
 const FIRST_RENDER_MS = 5_000
@@ -68,4 +68,36 @@ it('shows an error when the rules can’t load', async () => {
   renderSignedIn('/settings')
 
   expect(await screen.findByText(/Couldn’t load the booking rules/, {}, { timeout: FIRST_RENDER_MS })).toBeInTheDocument()
+}, FLOW_TIMEOUT_MS)
+
+it('switches a profile requirement on with a grace period and validates the days', async () => {
+  const user = userEvent.setup()
+  // Mirrors backend app/requirement/schemas.py RequirementSettingOut.
+  let location: ProfileRequirement = {
+    key: 'location', title: 'Add your studio location', body: 'Clients nearby can only find you once your area and pincode are on your profile.',
+    mandatory: false, grace_days: 7, effective_from: null,
+  }
+  db.overrides['/admin/settings/team'] = () => json(200, [me])
+  db.overrides['/admin/settings/requirements'] = () => json(200, [location])
+  db.overrides['/admin/settings/requirements/location'] = () => {
+    const body = calls.at(-1)?.body as { mandatory: boolean; grace_days: number }
+    location = { ...location, ...body, effective_from: body.mandatory ? '2026-10-22T10:00:00Z' : null }
+    return json(200, location)
+  }
+  renderSignedIn('/settings?tab=requirements')
+
+  expect(await screen.findByText('Add your studio location', {}, { timeout: FIRST_RENDER_MS })).toBeInTheDocument()
+  const days = screen.getByRole('spinbutton', { name: 'Grace period for Add your studio location, in days' })
+  await user.clear(days)
+  await user.type(days, '120')
+  await user.click(screen.getByRole('switch', { name: 'Add your studio location is mandatory' }))
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('At most 90')
+  expect(calls.some((c) => c.method === 'PUT')).toBe(false)
+
+  await user.clear(days)
+  await user.type(days, '14')
+  await user.click(screen.getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(calls).toContainEqual({ method: 'PUT', path: '/admin/settings/requirements/location', body: { mandatory: true, grace_days: 14 } }))
+  expect(await screen.findByText(/^Since /)).toBeInTheDocument()
 }, FLOW_TIMEOUT_MS)

@@ -18,6 +18,7 @@ import type { AdminCategory, ArtistDetail } from '@/lib/types'
 import { IdentityPanel } from './components/identity-panel'
 import { KycChecklist } from './components/kyc-checklist'
 import { PortfolioGrid } from './components/portfolio-grid'
+import { RequirementsCard } from './components/requirements-card'
 import { ServicesList } from './components/services-list'
 import type { Viewing } from './components/viewing'
 import { useArtist, useReviewArtist, useSuspension } from './queries'
@@ -131,6 +132,7 @@ export function ArtistReviewPage() {
           onReinstate={() => { void changeSuspension({ action: 'reinstate' }) }}
         />
       </div>
+      {(a.status === 'approved' || a.status === 'suspended') && <RequirementsCard artistId={a.id} name={a.business_name} />}
 
       <RejectReasonDialog
         open={rejecting}

@@ -245,7 +245,7 @@ export interface AdminReview {
 export type ReviewPage = Page<AdminReview>
 
 /** GET /admin/artists/directory: every non-draft artist ("all"), or one status. */
-export type DirectoryStatus = 'all' | 'approved' | 'pending' | 'suspended'
+export type DirectoryStatus = 'all' | 'approved' | 'pending' | 'suspended' | 'on_hold' // on hold: an overdue profile requirement
 
 export interface DirectoryRow {
   id: string
@@ -260,6 +260,7 @@ export interface DirectoryRow {
   booking_value_30d: number // paise, completed in the last 30 days (paid to the artist directly)
   open_complaints: number | null // null until complaints are tracked
   created_at: string
+  missing_requirements: string[] // keys of mandatory profile requirements not met yet, e.g. 'location'
 }
 
 export type DirectoryPage = Page<DirectoryRow>
@@ -280,4 +281,19 @@ export interface Suspension {
   status: ArtistStatus
   suspension_reason: string | null
   suspended_at: string | null
+}
+
+/** GET /admin/requirements/{artist_id}: mandatory profile items an artist still has to add. */
+export interface PendingRequirement {
+  key: string
+  title: string
+  body: string
+  action: string
+  due_at: string // after this the artist is on hold
+  overdue: boolean
+}
+
+export interface ArtistRequirements {
+  on_hold: boolean
+  items: PendingRequirement[]
 }

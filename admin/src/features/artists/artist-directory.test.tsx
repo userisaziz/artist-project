@@ -2,19 +2,20 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { artist, calls, db, installFakeBackend, json } from '@/test/fake-backend'
 import { renderSignedIn } from '@/test/render-app'
-import type { DirectoryRow, DirectorySummary } from '@/lib/types'
+import type { ArtistRequirements, DirectoryRow, DirectorySummary } from '@/lib/types'
 
 // Mirrors backend app/artist_directory/schemas.py.
 const ayesha: DirectoryRow = {
   id: 'a-1', business_name: 'Ayesha Mehendi Art', photo_url: null, category: 'Mehendi', city: 'Bangalore', status: 'approved',
   rating_average: 4.9, rating_count: 128, bookings_total: 640, booking_value_30d: 24000000, open_complaints: null, created_at: '2024-03-04T10:00:00Z',
+  missing_requirements: [],
 }
 const ink: DirectoryRow = {
   ...ayesha, id: 'a-2', business_name: 'Ink & Om Tattoo', category: 'Tattoo', city: 'Pune', status: 'pending',
   rating_average: null, rating_count: 0, bookings_total: 0, booking_value_30d: 0, created_at: '2026-10-19T05:00:00Z',
 }
 const summary: DirectorySummary = {
-  counts: { all: 2, approved: 1, pending: 1, suspended: 0 }, active_artists: 1, new_this_month: 1, avg_rating: 4.9,
+  counts: { all: 2, approved: 1, pending: 1, suspended: 0, on_hold: 0 }, active_artists: 1, new_this_month: 1, avg_rating: 4.9,
   total_reviews: 128, median_response_minutes: 14, at_risk: 0,
 }
 
@@ -22,6 +23,7 @@ beforeEach(() => {
   installFakeBackend()
   db.overrides['/admin/artists/directory/summary'] = () => json(200, summary)
   db.overrides['/admin/artists/directory?status=all&limit=20'] = () => json(200, { items: [ink, ayesha], next_cursor: null })
+  db.overrides['/admin/requirements/a-1'] = () => json(200, { on_hold: false, items: [] })
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -80,4 +82,35 @@ it('suspending an approved artist needs a reason, then Reinstate brings them bac
   await user.click(screen.getByRole('button', { name: 'Reinstate' }))
   expect(await screen.findByRole('button', { name: 'Suspend artist' })).toBeInTheDocument()
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/reinstate', body: undefined })
+})
+
+it('the On hold chip lists artists missing a mandatory item, with what is missing', async () => {
+  const user = userEvent.setup()
+  const held: DirectoryRow = { ...ayesha, id: 'a-3', business_name: 'Henna by Noor', missing_requirements: ['location'] }
+  db.overrides['/admin/artists/directory?status=on_hold&limit=20'] = () => json(200, { items: [held], next_cursor: null })
+  renderSignedIn('/artist-directory')
+
+  await screen.findByRole('link', { name: /Ayesha Mehendi Art/ }, { timeout: 4000 })
+  await user.click(screen.getByRole('button', { name: /On hold/ }))
+  const row = await screen.findByRole('link', { name: /Henna by Noor/ })
+  expect(within(row).getByText('Missing location')).toBeInTheDocument()
+})
+
+it('an artist missing a requirement shows it on their page, and Remind notifies them', async () => {
+  const user = userEvent.setup()
+  db.artist = artist({ status: 'approved' })
+  // Mirrors backend app/requirement/schemas.py MyRequirements.
+  const pending: ArtistRequirements = {
+    on_hold: true,
+    items: [{ key: 'location', title: 'Add your studio location', body: 'Clients nearby can only find you once…', action: '/artist/location', due_at: '2026-10-20T10:00:00Z', overdue: true }],
+  }
+  db.overrides['/admin/requirements/a-1'] = () => json(200, pending)
+  db.overrides['/admin/requirements/a-1/remind'] = () => json(204)
+  renderSignedIn('/artists/a-1')
+
+  const card = await screen.findByRole('region', { name: 'Profile requirements' }, { timeout: 4000 })
+  expect(within(card).getByText('On hold')).toBeInTheDocument()
+  expect(within(card).getByText('Add your studio location')).toBeInTheDocument()
+  await user.click(within(card).getByRole('button', { name: 'Remind artist' }))
+  await waitFor(() => expect(calls).toContainEqual({ method: 'POST', path: '/admin/requirements/a-1/remind', body: undefined }))
 })

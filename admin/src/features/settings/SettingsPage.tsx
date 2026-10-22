@@ -13,12 +13,14 @@ import { PanelToolbar } from '@/components/console/panel-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AddAdminDialog } from './AddAdminDialog'
+import { RequirementsPanel } from './RequirementsPanel'
 import { TeamPanel } from './TeamPanel'
 import { useCities, usePolicies, useTeam } from './queries'
 import type { SettingsTab } from './types'
 
 const TABS: Chip<SettingsTab>[] = [
   { value: 'policies', label: 'Policies' },
+  { value: 'requirements', label: 'Profile requirements' },
   { value: 'cities', label: 'Cities' },
   { value: 'team', label: 'Team & roles' },
 ]
@@ -40,7 +42,7 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        subtitle="Booking rules, cities and team access."
+        subtitle="Booking rules, profile requirements, cities and team access."
         action={tab === 'team' && <Button size="page" onClick={() => setAdding(true)}><UserPlus aria-hidden className="size-4" /> Add admin</Button>}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -54,6 +56,7 @@ export function SettingsPage() {
           <FilterChips chips={TABS} value={tab} onChange={(next) => setParams({ tab: next })} />
         </PanelToolbar>
         {tab === 'policies' && <PoliciesPanel />}
+        {tab === 'requirements' && <RequirementsPanel />}
         {tab === 'cities' && <CitiesPanel />}
         {tab === 'team' && <TeamPanel />}
       </Panel>

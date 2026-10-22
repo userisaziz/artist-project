@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { ArtistDetail, ArtistSummary, DirectoryPage, DirectoryStatus, DirectorySummary, Page, ReviewStatus, Suspension } from '@/lib/types'
+import type { ArtistDetail, ArtistRequirements, ArtistSummary, DirectoryPage, DirectoryStatus, DirectorySummary, Page, ReviewStatus, Suspension } from '@/lib/types'
 
 export const artistKeys = {
   all: ['admin', 'artists'] as const,
@@ -9,6 +9,7 @@ export const artistKeys = {
   pendingCount: ['admin', 'artists', 'pending-count'] as const,
   directory: (f: DirectoryFilter) => ['admin', 'artists', 'directory', f.status, f.q] as const,
   directorySummary: ['admin', 'artists', 'directory-summary'] as const,
+  requirements: (id: string) => ['admin', 'artists', 'requirements', id] as const,
 }
 
 const DIRECTORY_PAGE_SIZE = 20
@@ -101,4 +102,14 @@ export function useReviewArtist(id: string) {
 /** Logged by the server. Not a query or a mutation on purpose: the full number lives only in the caller's component state. */
 export function revealAadhaar(id: string) {
   return api<{ aadhaar_number: string }>(`/admin/artists/${id}/kyc/reveal`, { method: 'POST' })
+}
+
+/** Mandatory profile items this artist hasn't added yet, and whether that has put them on hold. */
+export function useArtistRequirements(id: string) {
+  return useQuery({ queryKey: artistKeys.requirements(id), queryFn: () => api<ArtistRequirements>(`/admin/requirements/${id}`) })
+}
+
+/** Sends the artist an in-app reminder (and push) to complete their profile. */
+export function useRemindArtist(id: string) {
+  return useMutation({ mutationFn: () => api<void>(`/admin/requirements/${id}/remind`, { method: 'POST' }) })
 }

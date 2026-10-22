@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { City, Policy, TeamMember } from './types'
+import type { City, Policy, ProfileRequirement, RequirementInput, TeamMember } from './types'
 
 export const settingsKeys = {
   all: ['admin', 'settings'] as const,
   policies: ['admin', 'settings', 'policies'] as const,
   cities: ['admin', 'settings', 'cities'] as const,
   team: ['admin', 'settings', 'team'] as const,
+  requirements: ['admin', 'settings', 'requirements'] as const,
 }
 
 export function usePolicies() {
@@ -34,5 +35,18 @@ export function useRemoveAdmin() {
   return useMutation({
     mutationFn: (id: string) => api<void>(`/admin/settings/team/${id}`, { method: 'DELETE' }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: settingsKeys.team }),
+  })
+}
+
+export function useRequirements() {
+  return useQuery({ queryKey: settingsKeys.requirements, queryFn: () => api<ProfileRequirement[]>('/admin/settings/requirements') })
+}
+
+export function useUpdateRequirement() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ key, ...body }: RequirementInput & { key: string }) =>
+      api<ProfileRequirement>(`/admin/settings/requirements/${encodeURIComponent(key)}`, { method: 'PUT', body }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: settingsKeys.requirements }),
   })
 }

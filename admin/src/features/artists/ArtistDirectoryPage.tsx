@@ -28,6 +28,7 @@ const FILTERS: { value: DirectoryStatus; label: string }[] = [
   { value: 'approved', label: 'Approved' },
   { value: 'pending', label: 'Pending' },
   { value: 'suspended', label: 'Suspended' },
+  { value: 'on_hold', label: 'On hold' },
 ]
 
 const EMPTY: Record<DirectoryStatus, string> = {
@@ -35,6 +36,7 @@ const EMPTY: Record<DirectoryStatus, string> = {
   approved: 'No approved artists yet.',
   pending: 'No artists waiting for review.',
   suspended: 'No suspended artists.',
+  on_hold: 'No artists on hold. Everyone has added what\u2019s required.',
 }
 
 /** The design's Artists directory: every listed artist with rating and recent booking value. */
@@ -127,7 +129,10 @@ function DirectoryArtistRow({ artist: a }: { artist: DirectoryRow }) {
       <span className="truncate">{a.city}</span>
       <span className="tabular-nums" title={a.rating_count ? `${a.rating_count} reviews` : undefined}>{a.rating_average === null ? '—' : `★ ${a.rating_average.toFixed(1)}`}</span>
       <span className="tabular-nums">{a.booking_value_30d ? rupeesShort(a.booking_value_30d) : '—'}</span>
-      <span><Badge variant={status.tone}>{status.label}</Badge></span>
+      <span className="flex flex-wrap items-center gap-1">
+        <Badge variant={status.tone}>{status.label}</Badge>
+        {a.missing_requirements.length > 0 && <Badge variant="warning">Missing {a.missing_requirements.join(', ')}</Badge>}
+      </span>
       <span className="text-right text-[12.5px] font-bold text-primary">{a.status === 'pending' ? 'Review' : 'View'}</span>
     </GridRow>
   )
