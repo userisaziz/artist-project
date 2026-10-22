@@ -18,12 +18,14 @@ interface CategoryRowProps {
   /** Set for a category row (toggles its subcategories); unset for a subcategory row. */
   expanded?: boolean
   selected?: boolean
+  /** Shows `meta` as a warning pill: a subcategory artists can't pick from yet. */
+  warn?: boolean
   onOpen: () => void
   actions: ReactNode
 }
 
 /** One Catalog row: initials tile, name and meta, usage counts, status pill and actions. */
-export function CategoryRow({ category: c, columns, meta, expanded, selected = false, onOpen, actions }: CategoryRowProps) {
+export function CategoryRow({ category: c, columns, meta, expanded, selected = false, warn = false, onOpen, actions }: CategoryRowProps) {
   const isCategory = expanded !== undefined
   const Chevron = expanded ? ChevronDown : ChevronRight
   return (
@@ -41,7 +43,11 @@ export function CategoryRow({ category: c, columns, meta, expanded, selected = f
             <span className="truncate">{c.name}</span>
             {isCategory && <Chevron className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
           </button>
-          <div className="truncate text-[11.5px] text-muted-foreground">{meta}</div>
+          {warn ? (
+            <Badge variant="warning" className="mt-0.5">{meta}</Badge>
+          ) : (
+            <div className="truncate text-[11.5px] text-muted-foreground">{meta}</div>
+          )}
         </div>
       </div>
       <span className="tabular-nums">{isCategory ? number.format(c.artist_count) : '—'}</span>

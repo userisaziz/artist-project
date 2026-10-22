@@ -30,7 +30,7 @@ import { ServiceTemplatesPane } from './ServiceTemplatesPane'
 import { useCategories, useDeleteCategory, useSaveCategory } from './queries'
 import { STATUS_LABEL } from './StatusSelect'
 
-const COLUMNS = 'minmax(0,2fr) .7fr .7fr .9fr 96px'
+const COLUMNS = 'minmax(0,2fr) .7fr .7fr .9fr 160px'
 type StatusFilter = CategoryStatus | 'all'
 const FILTERS: StatusFilter[] = ['all', 'active', 'draft', 'inactive']
 
@@ -52,7 +52,17 @@ export function CategoriesPage() {
   const childrenOf = (id: number) => all.filter((c) => c.parent_id === id)
   const byId = (id: number | null) => all.find((c) => c.id === id) ?? null
   const subId = Number(params.get('sub')) || null
-  const selected = byId(subId)?.parent_id != null ? byId(subId) : null
+  const picked = byId(subId)?.parent_id != null ? byId(subId) : null
+  // With nothing picked, open the first subcategory that still needs services (else the first one).
+  const allSubs = topLevel.flatMap((c) => childrenOf(c.id))
+  const selected = picked ?? allSubs.find((s) => s.template_count === 0) ?? allSubs[0] ?? null
+  const [revealed, setRevealed] = useState<number | null>(null)
+  if (selected?.parent_id != null && selected.id !== revealed) {
+    // Expand the selected subcategory's category once per selection, so its highlighted row is in view.
+    const parentId = selected.parent_id
+    setRevealed(selected.id)
+    setExpanded((open) => new Set(open).add(parentId))
+  }
   const filter = FILTERS.find((f) => f === params.get('status')) ?? 'all'
   const shown = filter === 'all' ? topLevel : topLevel.filter((c) => c.status === filter)
   const chips = FILTERS.map((f) => ({
@@ -101,6 +111,7 @@ export function CategoriesPage() {
       category={c}
       onEdit={() => setDialog({ category: c, parent: byId(c.parent_id) })}
       onAddSubcategory={c.parent_id === null ? () => { setExpanded((open) => new Set(open).add(c.id)); setDialog({ category: null, parent: c }) } : undefined}
+      onServices={c.parent_id === null ? undefined : () => updateParams('sub', String(c.id))}
       onStatus={(s) => setStatus(c, s)}
       onDelete={() => setDeleting(c)}
     />
@@ -151,7 +162,8 @@ export function CategoriesPage() {
                     key={s.id}
                     category={s}
                     columns={COLUMNS}
-                    meta={plural(s.template_count, 'catalogue service')}
+                    meta={s.template_count ? plural(s.template_count, 'catalogue service') : 'No services – artists can’t pick it'}
+                    warn={s.template_count === 0}
                     selected={s.id === selected?.id}
                     onOpen={() => updateParams('sub', String(s.id))}
                     actions={actions(s)}
@@ -176,7 +188,7 @@ export function CategoriesPage() {
           <ServiceTemplatesPane category={byId(selected.parent_id)} subcategory={selected} />
         ) : (
           <Panel aria-label="Services" className="px-6 py-16 text-center text-sm text-muted-foreground">
-            Pick a subcategory to manage its services.
+            Artists pick from these services when they set their prices. Add a subcategory under a category, then add its services here.
           </Panel>
         )}
       </div>

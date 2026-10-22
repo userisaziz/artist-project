@@ -61,8 +61,9 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
       {templates.isError && <GridMessage state="error">Couldn’t load services. {templates.error.message}</GridMessage>}
       {templates.data?.length === 0 && (
         <GridMessage state="empty">
-          <p className="font-medium text-foreground">No services yet</p>
-          <p className="mt-1">Artists in {subcategory.name} can’t add a service until this list has one.</p>
+          <p className="font-medium text-foreground">No services in {subcategory.name} yet</p>
+          <p className="mt-1">Artists pick from this list when they set their prices, so they can’t offer {subcategory.name} until it has one.</p>
+          <Button size="sm" className="mt-3" onClick={() => setDialog({ template: null })}><Plus /> Add first service</Button>
         </GridMessage>
       )}
       {templates.data?.map((t) => (

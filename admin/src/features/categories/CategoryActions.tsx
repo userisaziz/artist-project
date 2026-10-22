@@ -16,15 +16,18 @@ interface CategoryActionsProps {
   onEdit: () => void
   /** Only top-level categories take subcategories. */
   onAddSubcategory?: () => void
+  /** Only subcategories hold services. */
+  onServices?: () => void
   onStatus: (status: CategoryStatus) => void
   onDelete: () => void
 }
 
 /** The row's "Edit" link and its ⋯ menu, as on the design's admin tables. */
-export function CategoryActions({ category: c, onEdit, onAddSubcategory, onStatus, onDelete }: CategoryActionsProps) {
+export function CategoryActions({ category: c, onEdit, onAddSubcategory, onServices, onStatus, onDelete }: CategoryActionsProps) {
   const locked = inUse(c)
   return (
     <div className="flex items-center justify-end gap-1.5">
+      {onServices && <Button variant="link" size="xs" className="font-bold" aria-label={`Services for ${c.name}`} onClick={onServices}>Services</Button>}
       <Button variant="link" size="xs" className="font-bold" aria-label={`Edit ${c.name}`} onClick={onEdit}>Edit</Button>
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`More actions for ${c.name}`} />}>
