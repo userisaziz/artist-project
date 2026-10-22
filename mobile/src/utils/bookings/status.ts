@@ -3,7 +3,7 @@ import type { PillTone } from '../../components/common/StatusPill';
 
 /** Spec §2 Bookings tab pills. */
 export const STATUS_PILL: Record<BookingStatus, { label: string; tone: PillTone }> = {
-  requested: { label: 'Awaiting confirmation', tone: 'pending' },
+  requested: { label: 'Requested', tone: 'pending' },
   confirmed: { label: 'Confirmed', tone: 'confirmed' },
   completed: { label: 'Completed', tone: 'brand' },
   declined: { label: 'Declined', tone: 'neutral' },

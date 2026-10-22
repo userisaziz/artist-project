@@ -24,13 +24,18 @@ export default function BookingRequested() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas, paddingTop: insets.top + 56, paddingHorizontal: theme.spacing.lg, paddingBottom: insets.bottom + theme.spacing.lg }}>
-      <View style={{ alignSelf: 'center', width: 72, height: 72, borderRadius: 36, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center' }}>
-        <Svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke={theme.colors.textOnBrand} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <View style={{ alignSelf: 'center', width: 72, height: 72, borderRadius: 36, backgroundColor: theme.colors.pendingSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={34} height={34} viewBox="0 0 24 24" fill="none" stroke={theme.colors.pendingInk} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M5 12.5l4.5 4.5L19 7.5" />
         </Svg>
       </View>
+      {booking.data ? (
+        <View style={{ alignSelf: 'center', marginTop: 16, paddingVertical: 5, paddingHorizontal: 12, borderRadius: theme.radii.pill, backgroundColor: theme.colors.pendingSoft }}>
+          <AppText variant="label" style={{ fontSize: 12, color: theme.colors.pendingInk }}>{`Waiting for ${booking.data.artist.business_name}`}</AppText>
+        </View>
+      ) : null}
       <AppText variant="display" style={{ textAlign: 'center', color: theme.colors.heading, marginTop: 20 }}>
-        {'Booking '}<Accent>requested</Accent>
+        {'Booking '}<Accent color={theme.colors.pendingInk}>requested</Accent>
       </AppText>
       {booking.isPending ? <LoadingView /> : null}
       {booking.isError ? <ErrorView error={booking.error} onRetry={() => { void booking.refetch(); }} /> : null}

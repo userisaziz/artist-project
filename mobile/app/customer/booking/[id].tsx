@@ -122,7 +122,9 @@ export default function BookingDetail() {
       {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}
       {ended ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{ended}</AppText> : null}
       {b.status === 'requested' ? (
-        <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? 'The artist has 3 hours to confirm. If they don’t, the deposit is refunded.' : 'The artist has 3 hours to confirm. If they don’t, the request expires.'}</AppText>
+        <View style={{ borderRadius: theme.radii.md, backgroundColor: theme.colors.pendingSoft, padding: 12 }}>
+          <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? 'The artist has 3 hours to confirm. If they don’t, the deposit is refunded.' : 'The artist has 3 hours to confirm. If they don’t, the request expires.'}</AppText>
+        </View>
       ) : null}
 
       {b.reschedule ? (
