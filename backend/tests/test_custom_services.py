@@ -106,6 +106,8 @@ async def test_admin_approves_and_rejects_custom_services(client, engine):
         "price_paise": 150000,
         "duration_minutes": 60,
         "description": None,
+        "included_items": [],
+        "addons": [],
         "status": "pending",
         "rejection_reason": None,
     }

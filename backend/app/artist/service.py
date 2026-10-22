@@ -16,6 +16,7 @@ from app.artist.aadhaar import is_valid_aadhaar
 from app.artist.models import (
     ArtistKyc,
     ArtistProfile,
+    ArtistServiceAddon,
     ArtistServiceItem,
     PortfolioPhoto,
 )
@@ -168,22 +169,37 @@ class ArtistService:
             raise ValidationError("Pick that category on your profile first")
         return template
 
+    @staticmethod
+    def _apply_extras(item: ArtistServiceItem, changes: dict) -> None:
+        """Included items and add-ons: a list that is given replaces the old one; None leaves it as it is."""
+        if changes.get("included_items") is not None:
+            item.included_items = list(changes["included_items"])
+        if changes.get("addons") is not None:
+            item.addons = [
+                # An edit's exclude_unset dump drops a per_person left at its default.
+                ArtistServiceAddon(
+                    name=a["name"], price_paise=a["price_paise"], per_person=a.get("per_person", False), sort_order=i
+                )
+                for i, a in enumerate(changes["addons"])
+            ]
+
     async def add_service(self, user: User, body: ServiceIn) -> ArtistProfile:
         profile = await self._editable(user)
         template = await self._template(profile, body.template_id)
         if any(s.template_id == template.id for s in profile.services):
             raise ConflictError("You've already added this service")
-        profile.services.append(
-            ArtistServiceItem(
-                template=template,
-                category_id=template.subcategory_id,
-                price_paise=body.price_paise,
-                duration_minutes=body.duration_minutes,
-                description=body.description,
-                status=ArtistServiceStatus.approved,
-                sort_order=self._next_service_order(profile),
-            )
+        item = ArtistServiceItem(
+            template=template,
+            category_id=template.subcategory_id,
+            price_paise=body.price_paise,
+            duration_minutes=body.duration_minutes,
+            description=body.description,
+            status=ArtistServiceStatus.approved,
+            sort_order=self._next_service_order(profile),
+            addons=[],  # set, so reading it after flush never lazy-loads (async)
         )
+        self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
+        profile.services.append(item)
         await self.session.flush()
         return profile
 
@@ -202,6 +218,7 @@ class ArtistService:
                 setattr(item, field, changes[field])
         if "description" in changes:
             item.description = changes["description"]
+        self._apply_extras(item, changes)
         await self.session.flush()
         return profile
 
@@ -249,18 +266,19 @@ class ArtistService:
             place = suggestion.parent_id
         else:
             place = (await self._subcategory(cast(int, body.subcategory_id))).id
-        profile.services.append(
-            ArtistServiceItem(
-                category_id=place,
-                subcategory_request=suggestion,
-                name=name,
-                price_paise=body.price_paise,
-                duration_minutes=body.duration_minutes,
-                description=body.description,
-                status=ArtistServiceStatus.pending,
-                sort_order=self._next_service_order(profile),
-            )
+        item = ArtistServiceItem(
+            category_id=place,
+            subcategory_request=suggestion,
+            name=name,
+            price_paise=body.price_paise,
+            duration_minutes=body.duration_minutes,
+            description=body.description,
+            status=ArtistServiceStatus.pending,
+            sort_order=self._next_service_order(profile),
+            addons=[],
         )
+        self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
+        profile.services.append(item)
         await self.session.flush()
         return profile
 
@@ -283,6 +301,7 @@ class ArtistService:
                 setattr(item, field, changes[field])
         if "description" in changes:
             item.description = changes["description"]
+        self._apply_extras(item, changes)
         item.status = ArtistServiceStatus.pending
         item.rejection_reason = None
         await self.session.flush()

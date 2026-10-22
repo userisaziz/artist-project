@@ -7,7 +7,16 @@ from typing import Annotated
 
 from pydantic import Field, StringConstraints, model_validator
 
-from app.artist.constants import MAX_TRAVEL_RADIUS_KM, MIN_TRAVEL_RADIUS_KM, WEEKDAYS
+from app.artist.constants import (
+    ADDON_NAME_MAX_LENGTH,
+    INCLUDED_ITEM_MAX_LENGTH,
+    MAX_ADDONS,
+    MAX_INCLUDED_ITEMS,
+    MAX_PRICE_PAISE,
+    MAX_TRAVEL_RADIUS_KM,
+    MIN_TRAVEL_RADIUS_KM,
+    WEEKDAYS,
+)
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
 from app.subcategory_request.schemas import SuggestedSubcategoryIn, SuggestedSubcategoryOut
@@ -41,17 +50,42 @@ class LocationIn(APIModel):
         return self
 
 
-class ServiceIn(APIModel):
+IncludedItem = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=INCLUDED_ITEM_MAX_LENGTH)
+]
+
+
+class AddonIn(APIModel):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=ADDON_NAME_MAX_LENGTH)]
+    price_paise: int = Field(gt=0, le=MAX_PRICE_PAISE)
+    per_person: bool = False  # priced per guest ("+₹500 / person")
+
+
+class AddonOut(APIModel):
+    id: uuid.UUID
+    name: str
+    price_paise: int
+    per_person: bool
+
+
+class ServiceExtrasIn(APIModel):
+    """Optional on create; on an edit, a list that is sent replaces the old one and an omitted one stays."""
+
+    included_items: list[IncludedItem] | None = Field(default=None, max_length=MAX_INCLUDED_ITEMS)
+    addons: list[AddonIn] | None = Field(default=None, max_length=MAX_ADDONS)
+
+
+class ServiceIn(ServiceExtrasIn):
     """Onboarding: a service from the admin's list, with the artist's own price and duration."""
 
     template_id: int
-    price_paise: int = Field(gt=0, le=100_000_000)  # ≤ ₹10 lakh
+    price_paise: int = Field(gt=0, le=MAX_PRICE_PAISE)
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
 
 
-class ServicePatch(APIModel):
-    price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
+class ServicePatch(ServiceExtrasIn):
+    price_paise: int | None = Field(default=None, gt=0, le=MAX_PRICE_PAISE)
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
 
@@ -65,12 +99,14 @@ class ServiceOut(APIModel):
     price_paise: int
     duration_minutes: int
     description: str | None = None
+    included_items: list[str]
+    addons: list[AddonOut]
     status: ArtistServiceStatus
     rejection_reason: str | None
     suggested_subcategory: SuggestedSubcategoryOut | None = None  # the artist's own suggestion it was filed under
 
 
-class CustomServiceIn(APIModel):
+class CustomServiceIn(ServiceExtrasIn):
     """After approval: the artist's own service under any active subcategory, or under a subcategory they suggest
     (exactly one of the two); waits for admin review."""
 
@@ -88,7 +124,7 @@ class CustomServiceIn(APIModel):
         return self
 
 
-class CustomServicePatch(APIModel):
+class CustomServicePatch(ServiceExtrasIn):
     subcategory_id: int | None = None
     name: str | None = Field(default=None, min_length=1, max_length=120)
     price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
@@ -213,6 +249,8 @@ class AdminCustomServiceOut(APIModel):
     price_paise: int
     duration_minutes: int
     description: str | None
+    included_items: list[str]
+    addons: list[AddonOut]
     status: ArtistServiceStatus
     rejection_reason: str | None
     created_at: datetime

@@ -18,7 +18,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.catalog.models import Category, ServiceTemplate
@@ -113,6 +113,10 @@ class ArtistServiceItem(Base, TimestampMixin):
     price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    # "What's included" lines, in the artist's order.
+    included_items: Mapped[list[str]] = mapped_column(
+        ARRAY(String(60)), nullable=False, default=list, server_default=sa.text("'{}'")
+    )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     status: Mapped[ArtistServiceStatus] = mapped_column(
         Enum(ArtistServiceStatus, name="artist_service_status", values_callable=lambda e: [m.value for m in e]),
@@ -127,6 +131,9 @@ class ArtistServiceItem(Base, TimestampMixin):
     )
     template: Mapped[ServiceTemplate | None] = relationship(lazy="selectin")
     subcategory_request: Mapped[SubcategoryRequest | None] = relationship(lazy="selectin")
+    addons: Mapped[list["ArtistServiceAddon"]] = relationship(
+        lazy="selectin", order_by="ArtistServiceAddon.sort_order", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         sa.CheckConstraint("price_paise > 0", name="price_positive"),
@@ -142,6 +149,26 @@ class ArtistServiceItem(Base, TimestampMixin):
         """Template rows follow the admin's current name; custom rows keep their own."""
         # ck_artist_service_item_name_or_template guarantees a name when there is no template.
         return self.template.name if self.template else (self.name or "")
+
+
+class ArtistServiceAddon(Base):
+    """A priced extra on one service ("Guest mehendi +₹500 / person"); bookings copy it, so edits never reprice them."""
+
+    __tablename__ = "artist_service_addon"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    service_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_service_item.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
+    per_person: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false(), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    __table_args__ = (sa.CheckConstraint("price_paise > 0", name="price_positive"),)
 
 
 class PortfolioPhoto(Base):

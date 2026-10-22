@@ -15,6 +15,10 @@ from app.upload.service import ImageStorage
 from app.user.models import User
 
 
+def addons_out(item: ArtistServiceItem) -> list[dict]:
+    return [dict(id=a.id, name=a.name, price_paise=a.price_paise, per_person=a.per_person) for a in item.addons]
+
+
 def service_out(item: ArtistServiceItem) -> dict:
     return dict(
         id=item.id,
@@ -25,6 +29,8 @@ def service_out(item: ArtistServiceItem) -> dict:
         price_paise=item.price_paise,
         duration_minutes=item.duration_minutes,
         description=item.description,
+        included_items=list(item.included_items),
+        addons=addons_out(item),
         status=item.status,
         rejection_reason=item.rejection_reason,
         suggested_subcategory=(
@@ -111,6 +117,8 @@ def custom_service_out(row: CustomServiceRow) -> dict:
         price_paise=item.price_paise,
         duration_minutes=item.duration_minutes,
         description=item.description,
+        included_items=list(item.included_items),
+        addons=addons_out(item),
         status=item.status,
         rejection_reason=item.rejection_reason,
         created_at=item.created_at,

@@ -141,6 +141,8 @@ async def test_service_crud(client):
         "price_paise": 300000,
         "duration_minutes": 90,
         "description": None,
+        "included_items": [],
+        "addons": [],
         "status": "approved",
         "rejection_reason": None,
         "suggested_subcategory": None,

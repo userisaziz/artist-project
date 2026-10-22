@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist import schedule_service as artist_schedule
 from app.artist.models import ArtistProfile, ArtistServiceItem
+from app.artist.utils import addons_out
 from app.booking import availability as booking_availability
 from app.booking import rules as booking_rules
 from app.booking.config import get_booking_settings
@@ -155,6 +156,8 @@ class DirectoryService:
                     "category": refs(s.category_id)[0],
                     "subcategory": refs(s.category_id)[1],
                     "booking_count": per_service.get(s.id, 0),
+                    "included_items": list(s.included_items),
+                    "addons": addons_out(s),
                 }
                 for s in services
             ],

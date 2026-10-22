@@ -5,8 +5,22 @@ from datetime import date, datetime
 
 from pydantic import AwareDatetime, Field, field_validator
 
+from app.booking.constants import MAX_ADDON_GUESTS, MAX_BOOKING_ADDONS
 from app.shared.enums import BookingStatus, ReviewStatus
 from app.shared.schemas import APIModel
+
+
+class BookingAddonIn(APIModel):
+    addon_id: uuid.UUID
+    guests: int = Field(default=1, ge=1, le=MAX_ADDON_GUESTS)  # only per-person add-ons take more than 1
+
+
+class BookingAddonOut(APIModel):
+    name: str
+    unit_price_paise: int
+    per_person: bool
+    guests: int
+    line_paise: int  # unit price x guests; already counted in subtotal_paise
 
 
 class BookingIn(APIModel):
@@ -15,6 +29,7 @@ class BookingIn(APIModel):
     start_at: datetime
     address: str = Field(min_length=1, max_length=300)
     note: str | None = Field(default=None, max_length=500)
+    addons: list[BookingAddonIn] = Field(default_factory=list, max_length=MAX_BOOKING_ADDONS)
 
     @field_validator("address")
     @classmethod
@@ -94,6 +109,7 @@ class BookingOut(APIModel):
     balance_paise: int
     commission_paise: int | None  # None when shown to the customer
     artist_earning_paise: int | None
+    addons: list[BookingAddonOut]
     deposit_paid_at: datetime | None
     expires_at: datetime
     responded_at: datetime | None

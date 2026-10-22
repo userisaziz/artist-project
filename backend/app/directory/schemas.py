@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime
 
-from app.artist.schemas import NamedRef, WorkingHour
+from app.artist.schemas import AddonOut, NamedRef, WorkingHour
 from app.shared.schemas import APIModel
 
 
@@ -44,6 +44,8 @@ class PublicService(APIModel):
     category: NamedRef | None
     subcategory: NamedRef | None  # None for older rows that point straight at a top-level category
     booking_count: int  # completed bookings of this service
+    included_items: list[str]
+    addons: list[AddonOut]  # priced extras a customer can pick when booking
 
 
 class ArtistPublic(ArtistCard):

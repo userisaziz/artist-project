@@ -4,9 +4,9 @@ import uuid
 from datetime import datetime
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, SmallInteger, String
 from sqlalchemy.dialects.postgresql import UUID, ExcludeConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.enums import BookingStatus
 from app.shared.models import Base, TimestampMixin
@@ -58,6 +58,10 @@ class Booking(Base, TimestampMixin):
     total_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     deposit_paise: Mapped[int] = mapped_column(Integer, nullable=False)
     commission_paise: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Picked add-ons, copied at request time; their lines are already inside subtotal_paise.
+    addons: Mapped[list["BookingAddon"]] = relationship(
+        lazy="selectin", order_by="BookingAddon.sort_order", cascade="all, delete-orphan"
+    )
     deposit_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     payment_provider: Mapped[str] = mapped_column(String(20), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -103,3 +107,32 @@ class Booking(Base, TimestampMixin):
     @property
     def artist_earning_paise(self) -> int:
         return self.subtotal_paise - self.commission_paise
+
+
+class BookingAddon(Base):
+    """One picked add-on on a booking: name and price copied from the service, so later edits never reprice it."""
+
+    __tablename__ = "booking_addon"
+    __mapper_args__ = {"eager_defaults": True}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    booking_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("booking.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    addon_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("artist_service_addon.id", ondelete="SET NULL"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    unit_price_paise: Mapped[int] = mapped_column(Integer, nullable=False)
+    per_person: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    guests: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    line_paise: Mapped[int] = mapped_column(Integer, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        sa.CheckConstraint("unit_price_paise > 0", name="unit_price_positive"),
+        sa.CheckConstraint("guests >= 1", name="guests_positive"),
+        sa.CheckConstraint("line_paise = unit_price_paise * guests", name="line_is_unit_times_guests"),
+    )

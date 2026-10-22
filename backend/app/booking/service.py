@@ -18,11 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.artist import schedule_service as artist_schedule
+from app.artist.models import ArtistServiceItem
 from app.booking import notices, rules
 from app.booking.config import BookingSettings
-from app.booking.models import Booking
+from app.booking.models import Booking, BookingAddon
 from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, BookingRow
-from app.booking.schemas import BookingIn
+from app.booking.schemas import BookingAddonIn, BookingIn
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.review.filters import review_window_open
 from app.review.models import PUBLIC_REVIEW
@@ -98,6 +99,16 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetim
         "balance_paise": b.balance_paise,
         "commission_paise": None if margin_hidden else b.commission_paise,
         "artist_earning_paise": None if margin_hidden else b.artist_earning_paise,
+        "addons": [
+            {
+                "name": a.name,
+                "unit_price_paise": a.unit_price_paise,
+                "per_person": a.per_person,
+                "guests": a.guests,
+                "line_paise": a.line_paise,
+            }
+            for a in b.addons
+        ],
         "deposit_paid_at": b.deposit_paid_at,
         "expires_at": b.expires_at,
         "responded_at": b.responded_at,
@@ -179,7 +190,34 @@ class NewBooking:
     start_at: datetime
     address: str
     note: str | None
-    price_paise: int
+    price_paise: int  # the service plus any add-on lines
+    addons: tuple[BookingAddon, ...] = ()
+
+
+def addon_lines(service: ArtistServiceItem, picks: list[BookingAddonIn]) -> tuple[BookingAddon, ...]:
+    """The customer's picks as booking lines priced from the service's add-ons; anything off-menu is refused."""
+    offered = {a.id: a for a in service.addons}
+    if len({p.addon_id for p in picks}) != len(picks):
+        raise ValidationError("Pick each add-on once")
+    lines = []
+    for position, pick in enumerate(picks):
+        addon = offered.get(pick.addon_id)
+        if addon is None:
+            raise ValidationError("That add-on isn't offered with this service")
+        if not addon.per_person and pick.guests != 1:
+            raise ValidationError(f"“{addon.name}” isn't priced per person")
+        lines.append(
+            BookingAddon(
+                addon_id=addon.id,
+                name=addon.name,
+                unit_price_paise=addon.price_paise,
+                per_person=addon.per_person,
+                guests=pick.guests,
+                line_paise=addon.price_paise * pick.guests,
+                sort_order=position,
+            )
+        )
+    return tuple(lines)
 
 
 def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> Booking:
@@ -206,6 +244,7 @@ def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> B
         total_paise=p.subtotal_paise if direct else p.total_paise,
         deposit_paise=0 if direct else p.deposit_paise,
         commission_paise=p.commission_paise,
+        addons=list(data.addons),
         # "direct": the customer pays the artist's UPI, so the platform never marks money as received.
         # "mock" (never in production) counts the deposit as paid.
         deposit_paid_at=now if provider == "mock" else None,
@@ -362,6 +401,7 @@ class BookingService:
         service = await self.bookings.approved_service(data.service_id, artist.id)
         if service is None:
             raise NotFoundError("Service not found")
+        addons = addon_lines(service, data.addons)
 
         day = rules.start_day(data.start_at)
         rules.check_bookable_day(day, now)
@@ -385,7 +425,8 @@ class BookingService:
                 start_at=data.start_at,
                 address=data.address,
                 note=data.note,
-                price_paise=service.price_paise,
+                price_paise=service.price_paise + sum(line.line_paise for line in addons),
+                addons=addons,
             ),
         )
         await insert(self.session, booking, TAKEN_SLOT)

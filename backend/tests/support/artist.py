@@ -19,8 +19,9 @@ async def add_kyc(client, headers) -> None:
     assert response.status_code == 200
 
 
-async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -> dict:
-    """A submittable profile: photo, name, category, city, location, one service, `photos` portfolio photos."""
+async def complete_profile(client, headers, photos: int = 6, kyc: bool = True, service: dict | None = None) -> dict:
+    """A submittable profile: photo, name, category, city, location, one service, `photos` portfolio photos.
+    `service` adds fields to that service (e.g. included_items, addons)."""
     cats = await categories(client)
     await client.put(
         "/api/v1/artists/me/profile",
@@ -42,6 +43,7 @@ async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -
             "template_id": (await templates(client))["Bridal Classic"],
             "price_paise": 550000,
             "duration_minutes": 180,
+            **(service or {}),
         },
     )
     for _ in range(photos):
@@ -69,11 +71,18 @@ async def submitted_artist_id(client, phone="+919845066601") -> str:
 
 
 async def approved_artist(
-    client, engine, phone: str, admin: dict, name: str = "Ayesha Mehendi Art", city: str = "Bangalore"
+    client,
+    engine,
+    phone: str,
+    admin: dict,
+    name: str = "Ayesha Mehendi Art",
+    city: str = "Bangalore",
+    service: dict | None = None,
 ) -> dict:
-    """An approved artist with one service, Bridal Classic at ₹5,500 for 3 h. Returns headers, ids."""
+    """An approved artist with one service, Bridal Classic at ₹5,500 for 3 h (plus `service` fields).
+    Returns headers, ids and that service."""
     headers = await sign_in(client, phone)
-    profile = await complete_profile(client, headers)
+    profile = await complete_profile(client, headers, service=service)
     cats = await categories(client)
     await client.put(
         "/api/v1/artists/me/profile",
@@ -87,4 +96,9 @@ async def approved_artist(
     )
     assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 200
     assert (await client.post(f"/api/v1/admin/artists/{profile['id']}/approve", headers=admin)).status_code == 200
-    return {"headers": headers, "id": profile["id"], "service_id": profile["services"][0]["id"]}
+    return {
+        "headers": headers,
+        "id": profile["id"],
+        "service_id": profile["services"][0]["id"],
+        "service": profile["services"][0],
+    }
