@@ -6,16 +6,16 @@ const PAGE_SIZE = 20;
 
 export const directoryKeys = {
   all: ['directory'] as const,
-  list: (categoryId: number | null, q: string) => ['directory', 'list', categoryId, q] as const,
+  list: (categoryId: number | null, q: string, city: string | null) => ['directory', 'list', categoryId, q, city] as const,
   artist: (id: string) => ['directory', 'artist', id] as const,
   availability: (artistId: string, date: string, serviceId: string) => ['directory', 'availability', artistId, date, serviceId] as const,
 };
 
 /** GET /artists, page by page (Explore's infinite list, Home's carousels). */
-export function useArtistList(categoryId: number | null = null, q = '') {
+export function useArtistList(categoryId: number | null = null, q = '', city: string | null = null) {
   return useInfiniteQuery({
-    queryKey: directoryKeys.list(categoryId, q),
-    queryFn: ({ pageParam }) => directoryApi.listArtists({ category_id: categoryId, q: q || undefined, limit: PAGE_SIZE, cursor: pageParam }),
+    queryKey: directoryKeys.list(categoryId, q, city),
+    queryFn: ({ pageParam }) => directoryApi.listArtists({ category_id: categoryId, q: q || undefined, city: city ?? undefined, limit: PAGE_SIZE, cursor: pageParam }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
   });
