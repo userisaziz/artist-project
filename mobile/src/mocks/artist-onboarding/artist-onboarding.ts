@@ -33,6 +33,7 @@ export function artistProfileFixture(overrides: Partial<ArtistProfile> = {}): Ar
     status: 'approved',
     business_name: 'Asha Bridal Studio',
     city: 'Bengaluru',
+    area_id: 1,
     locality: 'Koramangala',
     pincode: '560095',
     address_line: null,

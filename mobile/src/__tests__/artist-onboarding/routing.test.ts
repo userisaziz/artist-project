@@ -2,7 +2,7 @@ import { artistHref, artistStage, resumeStep } from '../../utils/artist-onboardi
 import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
 
 const profile = (over: Partial<ArtistProfile> = {}): ArtistProfile => ({
-  id: 'a', status: 'draft', business_name: 'B', city: 'Pune', locality: 'Baner', pincode: '411045', address_line: null, latitude: null, longitude: null, bio: null, photo_key: 'k', photo_url: 'u',
+  id: 'a', status: 'draft', business_name: 'B', city: 'Pune', area_id: 3, locality: 'Baner', pincode: '411045', address_line: null, latitude: null, longitude: null, bio: null, photo_key: 'k', photo_url: 'u',
   categories: [{ id: 1, slug: 'mehendi', name: 'Mehendi' }], services: [], photos: [],
   rejection_reason: null, submitted_at: null, reviewed_at: null, kyc: null, ...over,
 });
@@ -24,8 +24,9 @@ it('stage follows the review status; a rejection waits on In review until the ar
 
 it('a draft resumes at the first step the server has no data for; six photos go on to Identity', () => {
   expect(resumeStep(null)).toBe('intro');
-  expect(resumeStep(profile({ locality: null, pincode: null }))).toBe('location'); // a profile saved before the Location step
-  expect(resumeStep(profile({ locality: 'Baner', pincode: null }))).toBe('location');
+  expect(resumeStep(profile({ area_id: null, locality: null, pincode: null }))).toBe('location'); // saved before the Location step
+  expect(resumeStep(profile({ area_id: null, locality: 'Baner' }))).toBe('location'); // an old free-text area
+  expect(resumeStep(profile({ pincode: null }))).toBe('location');
   expect(resumeStep(profile())).toBe('services');
   expect(resumeStep(profile({ services: [service] }))).toBe('portfolio');
   expect(resumeStep(profile({ services: [service], photos: photos.slice(0, 5) }))).toBe('portfolio');

@@ -113,6 +113,7 @@ Use these libraries; do not introduce ad-hoc alternatives or competing UI/data k
 - Storage: `expo-secure-store` for tokens
 - Push: `expo-notifications`, used only through `src/core/push/push.ts`
 - Location: `expo-location` (foreground only, when the user taps "Use my current location" / "Near me"), used only through `src/core/location/location.ts`
+- Maps: `react-native-maps` (Apple Maps on iOS, Google Maps on Android; the Android key comes from `GOOGLE_MAPS_ANDROID_API_KEY` in `app.config.ts`, never committed), used only through `src/components/common/PinMap.tsx`
 - Icons: `lucide-react-native` (on `react-native-svg`), used only through `src/components/common/Icon.tsx`; no emoji or text glyphs as icons
 
 **Cross-cutting**: zod is the single validation layer (forms, API schemas, env); TanStack Query is the single server-cache layer on both apps.

@@ -48,9 +48,8 @@ export async function currentPosition(): Promise<Coordinates> {
   }
 }
 
-/** Current position plus the phone's reverse-geocoded area, PIN code and city (any of which may be missing). */
-export async function currentPlace(): Promise<PlaceGuess> {
-  const coords = await currentPosition();
+/** What the phone's reverse geocoder says about a point: area, PIN code and city (any of which may be missing). */
+export async function placeAt(coords: Coordinates): Promise<PlaceGuess> {
   if (!Location) return { coords, locality: null, pincode: null, city: null };
   try {
     const [place] = await Location.reverseGeocodeAsync(coords);
@@ -63,6 +62,11 @@ export async function currentPlace(): Promise<PlaceGuess> {
   } catch {
     return { coords, locality: null, pincode: null, city: null }; // the pin still counts; the artist types the rest
   }
+}
+
+/** Current position plus the phone's reverse-geocoded area, PIN code and city. */
+export async function currentPlace(): Promise<PlaceGuess> {
+  return placeAt(await currentPosition());
 }
 
 /** The message a screen shows for a failed location request. */

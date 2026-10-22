@@ -40,6 +40,8 @@ export interface ArtistProfile {
   status: ArtistStatus;
   business_name: string;
   city: string;
+  /** The catalog area picked in the Location step (GET /areas); null for older free-text areas. */
+  area_id: number | null;
   /** The area clients see, e.g. "Koramangala". Null until the Location step is saved. */
   locality: string | null;
   pincode: string | null;
@@ -69,9 +71,9 @@ export interface ProfileInput {
   bio?: string | null;
 }
 
-/** PUT /artists/me/location. Leaving out address_line clears it. */
+/** PUT /artists/me/location. The area (from GET /areas) sets the area name and the city; leaving out address_line clears it. */
 export interface LocationInput {
-  locality: string;
+  area_id: number;
   pincode: string;
   address_line?: string | null;
   /** Both or neither. Leaving them out clears the pin. */

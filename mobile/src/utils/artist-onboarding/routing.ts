@@ -15,7 +15,7 @@ export function artistStage(profile: ArtistProfile | null, editing: boolean): Ar
 /** Spec §2.1: each Continue saves, so a returning artist resumes at the first step the server has no data for. */
 export function resumeStep(profile: ArtistProfile | null): ResumeStep {
   if (!profile) return 'intro'; // the Profile step creates the row, so a saved row always has profile details
-  if (!profile.locality || !profile.pincode) return 'location';
+  if (profile.area_id === null || !profile.pincode) return 'location'; // an area from the list, not free text
   if (!profile.services.length) return 'services';
   if (profile.photos.length < MIN_PHOTOS) return 'portfolio';
   return 'identity'; // with or without kyc on file: Identity is also where the artist submits
