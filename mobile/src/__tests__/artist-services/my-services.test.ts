@@ -7,7 +7,7 @@ const tree: CatalogCategory[] = [
 ];
 const svc = (id: string, subcategory_id: number): ServiceItem => ({
   id, category_id: subcategory_id, subcategory_id, template_id: null, name: id, price_paise: 100, duration_minutes: 60,
-  description: null, status: 'pending', rejection_reason: null,
+  description: null, status: 'pending', rejection_reason: null, included_items: [], addons: [],
 });
 
 it('titles a group "Category › Subcategory", a top-level category alone, or "Other"', () => {

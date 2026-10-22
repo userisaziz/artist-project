@@ -1,3 +1,5 @@
+import type { ServiceExtrasInput } from '../catalog/catalog';
+
 /** A subcategory the artist suggests while adding a service; only they see it until an admin approves it. */
 export interface SuggestedSubcategoryInput {
   parent_id: number;
@@ -9,7 +11,7 @@ export interface SuggestedSubcategoryInput {
  * POST /artists/me/custom-services: the approved artist's own service, which waits for admin review.
  * Exactly one of `subcategory_id` and `suggested_subcategory` (adding only; editing picks an existing one).
  */
-export interface CustomServiceInput {
+export interface CustomServiceInput extends ServiceExtrasInput {
   subcategory_id?: number;
   suggested_subcategory?: SuggestedSubcategoryInput;
   name: string;

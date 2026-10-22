@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ServiceDetail } from '../../../../../src/components/directory/ServiceDetail';
+import { encodeAddonPicks } from '../../../../../src/utils/bookings/addons';
 
 // Design "Service detail": opened from a package on the storefront; "Check availability" opens Date & time.
 export default function ServiceScreen() {
@@ -9,7 +10,8 @@ export default function ServiceScreen() {
     <ServiceDetail
       artistId={id}
       serviceId={serviceId}
-      onCheckAvailability={(service) => router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id } })}
+      onCheckAvailability={(service, addons) =>
+        router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id, addons: encodeAddonPicks(addons) } })}
     />
   );
 }

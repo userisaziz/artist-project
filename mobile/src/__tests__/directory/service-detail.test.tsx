@@ -18,6 +18,11 @@ const artist: ArtistPublic = {
     id: 's1', name: 'Bridal Mehendi', description: 'Hands and feet, a custom design and a consultation call.',
     price_paise: 350000, duration_minutes: 210, category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
     booking_count: 0,
+    included_items: ['Bridal hands', 'Bridal feet'],
+    addons: [
+      { id: 'ad1', name: 'Guest mehendi', price_paise: 50000, per_person: true },
+      { id: 'ad2', name: 'Organic henna upgrade', price_paise: 40000, per_person: false },
+    ],
   }],
 } as ArtistPublic;
 
@@ -40,11 +45,31 @@ it('shows the service with its price, duration and artist, and opens Date & time
   expect(await screen.findByRole('header', { name: 'Bridal Mehendi' })).toBeTruthy();
   expect(screen.getByText('Mehendi · Bridal')).toBeTruthy();
   expect(screen.getByText('4.9 (86)')).toBeTruthy();
-  expect(screen.getByText('₹3,500')).toBeTruthy();
+  expect(screen.getAllByText('₹3,500')).toHaveLength(2); // "Starting at" and the estimate
   expect(screen.getByText('Hands and feet, a custom design and a consultation call.')).toBeTruthy();
 
   await fireEvent.press(screen.getByText('Check availability'));
-  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), []);
+});
+
+it('lists what is included, and prices the add-ons the customer picks', async () => {
+  send.mockResolvedValue({ status: 200, json: artist });
+  const onCheck = jest.fn();
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} />);
+
+  expect(await screen.findByText('Bridal hands')).toBeTruthy();
+  expect(screen.getByText('Bridal feet')).toBeTruthy();
+  expect(screen.getByLabelText('Estimate ₹3,500')).toBeTruthy();
+
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Guest mehendi/ }));
+  for (let i = 0; i < 3; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'More guests for Guest mehendi' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
+  expect(screen.getByText('4 guests')).toBeTruthy();
+  expect(screen.getByLabelText('Estimate ₹5,900')).toBeTruthy(); // ₹3,500 + 4 × ₹500 + ₹400
+
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
+  await fireEvent.press(screen.getByText('Check availability'));
+  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [{ addon_id: 'ad1', guests: 4 }]);
 });
 
 it('says so when the service is no longer offered', async () => {

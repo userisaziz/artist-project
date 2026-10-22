@@ -22,6 +22,7 @@ export function bookingFixture(overrides: Partial<Booking> = {}): Booking {
     balance_paise: 550000,
     commission_paise: 55000,
     artist_earning_paise: 495000,
+    addons: [],
     deposit_paid_at: null,
     expires_at: '2030-10-30T08:00:00Z',
     responded_at: '2030-10-30T06:00:00Z',

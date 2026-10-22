@@ -1,4 +1,4 @@
-import type { Category } from '../catalog/catalog';
+import type { Category, ServiceAddon, ServiceExtrasInput } from '../catalog/catalog';
 
 export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended';
 
@@ -15,6 +15,9 @@ export interface ServiceItem {
   price_paise: number;
   duration_minutes: number;
   description: string | null;
+  /** "What's included" lines, in order. */
+  included_items: string[];
+  addons: ServiceAddon[];
   status: ServiceStatus; // onboarding picks from the admin's list, so those are approved at once
   rejection_reason: string | null;
   /** The artist's own subcategory suggestion this service was filed under (it sits under the parent meanwhile). */
@@ -59,7 +62,7 @@ export interface ProfileInput {
 }
 
 /** POST /artists/me/services: a template from the catalog, with the artist's own price and duration. */
-export interface ServiceInput {
+export interface ServiceInput extends ServiceExtrasInput {
   template_id: number;
   price_paise: number;
   duration_minutes: number;

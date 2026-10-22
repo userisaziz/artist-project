@@ -19,6 +19,7 @@ import { STATUS_PILL, customerName } from '../../utils/bookings/status';
 import { formatWhen } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
 import type { Booking } from '../../types/bookings/bookings';
+import { AddonLines } from './AddonLines';
 
 const MAX_REASON = 500; // backend ReasonIn
 
@@ -77,6 +78,7 @@ export function ArtistBookingDetail({ bookingId, onMessage, isOpeningChat }: Art
             <InfoRow label="Service" value={b.service_name} />
             <InfoRow label="When" value={formatWhen(b.start_at)} />
             <InfoRow label="Where" value={b.address} />
+            <AddonLines lines={b.addons} />
             <InfoRow label="You earn" value={formatMaybePrice(b.artist_earning_paise)} strong tint={theme.colors.brand} />
           </Card>
           {b.note ? (

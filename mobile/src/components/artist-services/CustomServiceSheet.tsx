@@ -5,8 +5,10 @@ import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 import { BottomSheet } from '../common/BottomSheet';
 import { Chip } from '../common/Chip';
+import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { EMPTY_EXTRAS, draftFromService, extrasInput } from '../../utils/common/service-extras';
 import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
 import type { CustomServiceInput } from '../../types/artist-services/artist-services';
 import type { CatalogCategory } from '../../types/catalog/catalog';
@@ -47,6 +49,7 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
   const [minutes, setMinutes] = useState(service ? String(service.duration_minutes) : '');
   const [description, setDescription] = useState(service?.description ?? '');
   const [suggestion, setSuggestion] = useState('');
+  const [extras, setExtras] = useState(service ? draftFromService(service) : EMPTY_EXTRAS);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const category = withSubs.find((c) => c.id === categoryId) ?? null;
@@ -66,8 +69,10 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
     if (!name.trim()) return 'Enter a name for the service.';
     if (!Number.isInteger(rupees) || rupees <= 0 || rupees > MAX_RUPEES) return 'Enter a price above ₹0.';
     if (!Number.isInteger(mins) || mins <= 0 || mins > MAX_MINUTES) return 'Enter a duration between 1 and 1440 minutes.';
+    const extra = extrasInput(extras);
+    if (!extra.ok) return extra.error;
     const place = subId === SUGGEST ? { suggested_subcategory: { parent_id: categoryId, name: suggestion.trim() } } : { subcategory_id: subId };
-    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null };
+    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null, ...extra.value };
   };
 
   const save = async () => {
@@ -120,8 +125,9 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
           <AppTextField label="Duration (minutes)" value={minutes} onChangeText={setMinutes} keyboardType="number-pad" placeholder="60" />
         </View>
       </View>
-      <AppTextField label="Description (optional)" value={description} onChangeText={setDescription} maxLength={MAX_DESCRIPTION} placeholder="What's included" />
-      {error ? <AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
+      <AppTextField label="Description (optional)" value={description} onChangeText={setDescription} maxLength={MAX_DESCRIPTION} placeholder="About this service" />
+      <ServiceExtrasEditor value={extras} onChange={setExtras} />
+      {error ?<AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
     </BottomSheet>
   );
 }

@@ -4,12 +4,28 @@ export type BookingStatus = 'requested' | 'confirmed' | 'declined' | 'expired' |
 
 export type CancelledBy = 'customer' | 'artist' | 'admin';
 
+/** A picked add-on: guests only matter for per-person ones (1 otherwise). */
+export interface BookingAddonPick {
+  addon_id: string;
+  guests: number;
+}
+
 export interface BookingInput {
   artist_id: string;
   service_id: string;
   start_at: string;
   address: string;
   note?: string | null;
+  addons?: BookingAddonPick[];
+}
+
+/** An add-on copied onto the booking when it was requested; its line is already inside subtotal_paise. */
+export interface BookingAddon {
+  name: string;
+  unit_price_paise: number;
+  per_person: boolean;
+  guests: number;
+  line_paise: number;
 }
 
 /** BookingOut: money is integer paise, copied onto the booking when it is created. */
@@ -35,6 +51,7 @@ export interface Booking {
   /** Artist and admin responses only: customer-facing responses carry null. */
   commission_paise: number | null;
   artist_earning_paise: number | null;
+  addons: BookingAddon[];
   deposit_paid_at: string | null;
   /** min(created + 3h, start_at): a request close to its start must be answered before it begins. */
   expires_at: string;

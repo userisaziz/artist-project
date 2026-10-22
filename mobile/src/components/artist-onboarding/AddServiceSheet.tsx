@@ -5,8 +5,10 @@ import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
+import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { EMPTY_EXTRAS, extrasInput } from '../../utils/common/service-extras';
 import type { ServiceInput } from '../../types/artist-onboarding/artist-onboarding';
 import type { CatalogCategory } from '../../types/catalog/catalog';
 
@@ -33,6 +35,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
   const [price, setPrice] = useState('');
   const [minutes, setMinutes] = useState('');
   const [note, setNote] = useState('');
+  const [extras, setExtras] = useState(EMPTY_EXTRAS);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -43,7 +46,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategoryId(only?.id ?? null);
     setSubId(only?.subcategories.length === 1 ? only.subcategories[0].id : null);
-    setTemplateId(null); setPrice(''); setMinutes(''); setNote(''); setError(null);
+    setTemplateId(null); setPrice(''); setMinutes(''); setNote(''); setExtras(EMPTY_EXTRAS); setError(null);
   }, [visible, categories]);
 
   const category = categories.find((c) => c.id === categoryId) ?? null;
@@ -64,12 +67,15 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     if (templateId === null) { setError('Pick a service.'); return; }
     if (!Number.isInteger(rupees) || rupees <= 0 || rupees > MAX_RUPEES) { setError('Enter a price above ₹0.'); return; }
     if (!Number.isInteger(mins) || mins <= 0 || mins > MAX_MINUTES) { setError('Enter a duration between 1 and 1440 minutes.'); return; }
+    const extra = extrasInput(extras);
+    if (!extra.ok) { setError(extra.error); return; }
     setSaving(true);
     setError(null);
     try {
       await onSubmit({
         template_id: templateId, price_paise: rupees * 100, duration_minutes: mins,
         ...(note.trim() ? { description: note.trim() } : {}),
+        ...extra.value,
       });
       onClose();
     } catch (e) {
@@ -141,6 +147,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
                       </View>
                     </View>
                     <AppTextField label="Note (optional)" value={note} onChangeText={setNote} maxLength={1000} placeholder="e.g. Includes a trial session" />
+                    <ServiceExtrasEditor value={extras} onChange={setExtras} />
                   </>
                 ) : null}
               </>

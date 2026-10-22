@@ -13,6 +13,7 @@ import { ErrorView, LoadingView } from '../../../src/components/common/StateView
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useBooking, useBookingWrite } from '../../../src/hooks/bookings/bookings';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
+import { AddonLines } from '../../../src/components/bookings/AddonLines';
 import { STATUS_PILL } from '../../../src/utils/bookings/status';
 import { refundDueOnCustomerCancel } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
@@ -117,6 +118,7 @@ export default function BookingDetail() {
       ) : null}
       <RateBookingCard booking={b} />
       <Card>
+        <AddonLines lines={b.addons} />
         <Breakdown money={b} paid />
       </Card>
       {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}

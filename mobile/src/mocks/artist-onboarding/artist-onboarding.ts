@@ -13,6 +13,8 @@ export const templateServiceFixture: ServiceItem = {
   description: null,
   status: 'approved',
   rejection_reason: null,
+  included_items: [],
+  addons: [],
 };
 
 export const customServiceFixture: ServiceItem = {

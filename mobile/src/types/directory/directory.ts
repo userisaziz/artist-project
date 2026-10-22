@@ -1,5 +1,6 @@
 import type { WeeklyHour } from '../../utils/common/weekly-hours';
 import type { NamedRef } from '../../core/api/types';
+import type { ServiceAddon } from '../catalog/catalog';
 
 /** GET /artists list item: approved artists only. */
 export interface ArtistCard {
@@ -25,6 +26,10 @@ export interface PublicService {
   subcategory: NamedRef | null;
   /** Completed bookings of this package; the storefront badges the highest as "Most booked". */
   booking_count: number;
+  /** "What's included" lines, in order. */
+  included_items: string[];
+  /** Priced extras the customer can pick when booking. */
+  addons: ServiceAddon[];
 }
 
 /** GET /artists/{id}: the storefront. Never carries KYC, phone, rejection reason or unapproved services. */

@@ -42,6 +42,7 @@ it('suggests a new subcategory under the picked category instead of an existing 
   await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({
     suggested_subcategory: { parent_id: 1, name: 'Couple portrait' },
     name: 'Couple portrait session', price_paise: 400000, duration_minutes: 120, description: null,
+    included_items: [], addons: [],
   }));
 });
 

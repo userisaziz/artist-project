@@ -24,3 +24,20 @@ export interface Subcategory {
 export interface CatalogCategory extends Category {
   subcategories: Subcategory[];
 }
+
+/** A priced extra on an artist's service ("Guest mehendi +₹500 / person"); backend AddonOut. */
+export interface ServiceAddon {
+  id: string;
+  name: string;
+  price_paise: number;
+  per_person: boolean;
+}
+
+/** What an artist sends for an add-on; the server gives it an id. */
+export type ServiceAddonInput = Omit<ServiceAddon, 'id'>;
+
+/** A service's optional extras. On an edit, a list that is sent replaces the old one; an omitted one stays. */
+export interface ServiceExtrasInput {
+  included_items?: string[];
+  addons?: ServiceAddonInput[];
+}
