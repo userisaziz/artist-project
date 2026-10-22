@@ -27,6 +27,20 @@ class ProfileIn(APIModel):
     bio: str | None = Field(default=None, max_length=1000)
 
 
+class LocationIn(APIModel):
+    locality: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+    pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")  # Indian PIN: six digits, never a leading 0
+    address_line: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def both_or_neither(self) -> "LocationIn":
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("Send latitude and longitude together")
+        return self
+
+
 class ServiceIn(APIModel):
     """Onboarding: a service from the admin's list, with the artist's own price and duration."""
 
@@ -120,6 +134,11 @@ class ArtistProfileOut(APIModel):
     status: ArtistStatus
     business_name: str
     city: str
+    locality: str | None
+    pincode: str | None
+    address_line: str | None
+    latitude: float | None
+    longitude: float | None
     bio: str | None
     photo_key: str | None
     photo_url: str | None

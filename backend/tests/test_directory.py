@@ -36,12 +36,16 @@ async def test_directory_lists_only_approved_artists(client, engine):
         "id",
         "business_name",
         "city",
+        "locality",
         "photo_url",
         "cover_url",
+        "photo_urls",
         "categories",
         "from_price_paise",
         "rating",
         "review_count",
+        "distance_km",
+        "free_on",
     }
     assert (card["rating"], card["review_count"]) == (None, 0)
     assert body["next_cursor"] is None

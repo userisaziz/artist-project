@@ -8,6 +8,7 @@ from app.artist.schemas import (
     CustomServiceIn,
     CustomServicePatch,
     KycIn,
+    LocationIn,
     PhotoIn,
     PhotoOrder,
     ProfileIn,
@@ -41,6 +42,18 @@ async def save_profile(
     body: ProfileIn, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
 ) -> dict:
     return profile_out(await service.save_profile(user, body), service.storage)
+
+
+@router.put(
+    "/location",
+    response_model=ArtistProfileOut,
+    summary="Save where the artist works: area, pincode and a private studio / house no.",
+    status_code=200,
+)
+async def save_location(
+    body: LocationIn, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
+) -> dict:
+    return profile_out(await service.save_location(user, body), service.storage)
 
 
 @router.post("/services", response_model=ArtistProfileOut, status_code=201, summary="Add a service from the catalog")

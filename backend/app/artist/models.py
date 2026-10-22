@@ -47,6 +47,12 @@ class ArtistProfile(Base, TimestampMixin):
     )
     business_name: Mapped[str] = mapped_column(String(120), nullable=False)
     city: Mapped[str] = mapped_column(String(60), nullable=False)
+    locality: Mapped[str | None] = mapped_column(String(80))  # the area clients see, e.g. "Koramangala"
+    pincode: Mapped[str | None] = mapped_column(String(6))
+    address_line: Mapped[str | None] = mapped_column(String(120))  # studio / house no.; never public
+    # The pin from the Location step's "Use my current location"; only distances are ever public, never the point.
+    latitude: Mapped[float | None] = mapped_column(sa.Float)
+    longitude: Mapped[float | None] = mapped_column(sa.Float)
     bio: Mapped[str | None] = mapped_column(Text)
     # Provider-neutral storage key (never a full URL), so storage can move off Cloudinary later.
     photo_key: Mapped[str | None] = mapped_column(String(255))

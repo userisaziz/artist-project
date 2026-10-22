@@ -24,6 +24,7 @@ from app.artist.schemas import (
     CustomServiceIn,
     CustomServicePatch,
     KycIn,
+    LocationIn,
     PhotoIn,
     ProfileIn,
     ServiceIn,
@@ -134,6 +135,16 @@ class ArtistService:
         await self.session.flush()
         if old_photo and old_photo != body.photo_key:
             await self.storage.delete(old_photo)
+        return profile
+
+    async def save_location(self, user: User, body: LocationIn) -> ArtistProfile:
+        profile = await self._editable(user)
+        profile.locality = body.locality
+        profile.pincode = body.pincode
+        profile.address_line = body.address_line or None
+        profile.latitude = body.latitude
+        profile.longitude = body.longitude
+        await self.session.flush()
         return profile
 
     def _next_service_order(self, profile: ArtistProfile) -> int:
@@ -380,6 +391,8 @@ class ArtistService:
             missing.append("photo")
         if not profile.categories:
             missing.append("categories")
+        if not (profile.locality and profile.pincode):
+            missing.append("location")
         if not profile.services:
             missing.append("services")
         if len(profile.photos) < MIN_PHOTOS:

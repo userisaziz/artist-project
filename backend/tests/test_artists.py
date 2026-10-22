@@ -256,8 +256,44 @@ async def test_submit_lists_what_is_missing(client):
     response = await client.post("/api/v1/artists/me/submit", headers=headers)
     assert response.status_code == 422
     assert response.json()["code"] == "validation_error"
-    assert response.json()["missing"] == ["photo", "services", "portfolio", "kyc"]
+    assert response.json()["missing"] == ["photo", "location", "services", "portfolio", "kyc"]
     assert response.json()["min_photos"] == 6
+
+
+async def test_location_step_saves_area_pincode_and_optional_address(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Pune", "category_ids": [cats["decor"]]},
+    )
+    saved = await client.put(
+        "/api/v1/artists/me/location",
+        headers=headers,
+        json={"locality": " Koregaon Park ", "pincode": "411001", "address_line": "2nd floor, 14"},
+    )
+    assert saved.status_code == 200
+    body = saved.json()
+    assert (body["locality"], body["pincode"], body["address_line"]) == ("Koregaon Park", "411001", "2nd floor, 14")
+
+    cleared = await client.put(
+        "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": "411045"}
+    )
+    assert (cleared.json()["locality"], cleared.json()["address_line"]) == ("Baner", None)
+
+
+async def test_location_rejects_a_bad_pincode_and_needs_a_profile(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    no_profile = await client.put(
+        "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": "411045"}
+    )
+    assert no_profile.status_code == 404
+    for pincode in ["01234", "011045", "41104A"]:
+        bad = await client.put(
+            "/api/v1/artists/me/location", headers=headers, json={"locality": "Baner", "pincode": pincode}
+        )
+        assert bad.status_code == 422
 
 
 async def test_submit_moves_to_pending_and_locks_edits(client):
@@ -319,3 +355,22 @@ async def test_inactive_categories_stay_on_profiles_but_cannot_be_newly_picked(c
         "/api/v1/artists/me/profile", headers=headers, json={**body, "category_ids": [cats["mehendi"], cats["hair"]]}
     )
     assert draft.status_code == 422
+
+
+async def test_location_saves_the_gps_pin_only_as_a_pair(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Bangalore", "category_ids": [cats["decor"]]},
+    )
+    place = {"locality": "Koramangala", "pincode": "560095"}
+    pinned = await client.put(
+        "/api/v1/artists/me/location", headers=headers, json={**place, "latitude": 12.9352, "longitude": 77.6245}
+    )
+    assert (pinned.json()["latitude"], pinned.json()["longitude"]) == (12.9352, 77.6245)
+    half = await client.put("/api/v1/artists/me/location", headers=headers, json={**place, "latitude": 12.9})
+    assert half.status_code == 422
+    unpinned = await client.put("/api/v1/artists/me/location", headers=headers, json=place)
+    assert (unpinned.json()["latitude"], unpinned.json()["longitude"]) == (None, None)

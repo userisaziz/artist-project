@@ -11,17 +11,22 @@ class ArtistCard(APIModel):
     id: uuid.UUID
     business_name: str
     city: str
+    locality: str | None  # the area the artist works from; never the address
     photo_url: str | None
     cover_url: str | None  # first portfolio photo
+    photo_urls: list[str]  # first few portfolio photos, for Explore's mosaic
     categories: list[NamedRef]
     from_price_paise: int | None  # cheapest approved service
     rating: float | None  # average of public reviews, one decimal; None until the first one
     review_count: int
+    distance_km: float | None  # from the search point (near_lat/near_lng), one decimal; None without one
+    free_on: date | None  # the searched available_on day, when the artist has an open slot then
 
 
 class ArtistCardPage(APIModel):
     items: list[ArtistCard]
     next_cursor: str | None
+    total: int | None = None  # every match across pages; None when not counted (free-date search, saved lists)
 
 
 class PublicPhoto(APIModel):

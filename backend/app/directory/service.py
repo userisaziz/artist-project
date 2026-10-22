@@ -12,10 +12,12 @@ from app.booking import rules as booking_rules
 from app.booking.config import get_booking_settings
 from app.chat import service as chat_service
 from app.core.exceptions import NotFoundError
-from app.directory.constants import NEXT_FREE_LOOKAHEAD_DAYS
+from app.directory.constants import AVAILABLE_ON_SCAN_LIMIT, CARD_PHOTOS, NEXT_FREE_LOOKAHEAD_DAYS
 from app.directory.repository import DirectoryRepository
+from app.directory.utils import SearchFilters
 from app.review.service import ratings_for
 from app.shared.clock import Clock
+from app.shared.cursor import decode_offset_cursor, encode_offset_cursor
 from app.shared.enums import ArtistServiceStatus
 from app.shared.pagination import split_page
 from app.upload.service import ImageStorage
@@ -32,7 +34,13 @@ class DirectoryService:
         self.storage = storage
         self.clock = clock
 
-    def _card_fields(self, profile: ArtistProfile, ratings: dict[uuid.UUID, tuple[float, int]]) -> dict:
+    def _card_fields(
+        self,
+        profile: ArtistProfile,
+        ratings: dict[uuid.UUID, tuple[float, int]],
+        distance_km: float | None = None,
+        free_on: date | None = None,
+    ) -> dict:
         prices = [s.price_paise for s in _bookable(profile.services)]
         cover = profile.photos[0].storage_key if profile.photos else None
         rating, review_count = ratings.get(profile.id, (None, 0))
@@ -42,10 +50,14 @@ class DirectoryService:
             "id": profile.id,
             "business_name": profile.business_name,
             "city": profile.city,
+            "locality": profile.locality,
             "photo_url": self.storage.url(profile.photo_key, "card") if profile.photo_key else None,
             "cover_url": self.storage.url(cover, "card") if cover else None,
             "categories": [{"id": c.id, "name": c.name} for c in profile.categories],
             "from_price_paise": min(prices) if prices else None,
+            "photo_urls": [self.storage.url(p.storage_key, "card") for p in profile.photos[:CARD_PHOTOS]],
+            "distance_km": round(distance_km, 1) if distance_km is not None else None,
+            "free_on": free_on,
         }
 
     async def cards(self, artist_ids: list[uuid.UUID]) -> list[dict]:
@@ -56,14 +68,53 @@ class DirectoryService:
         ratings = await ratings_for(self.session, [p.id for p in profiles])
         return [self._card_fields(p, ratings) for p in profiles]
 
-    async def list(
-        self, city: str | None, category_id: int | None, q: str | None, limit: int, cursor: str | None
-    ) -> tuple[list[dict], str | None]:
-        """Most recently approved first; keyset paging on (approved-at, id)."""
-        rows = await self.artists.approved_page(city, category_id, q, limit, cursor)
-        page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
-        ratings = await ratings_for(self.session, [profile.id for profile, _ in page])
-        return [self._card_fields(profile, ratings) for profile, _ in page], next_cursor
+    async def list(self, filters: SearchFilters, limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
+        """Explore results. The default order (most recently approved) pages by (approved-at, id); every other
+        order, and a free-date search, pages by position."""
+        if filters.uses_keyset:
+            rows = await self.artists.approved_page(filters, limit, cursor)
+            page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
+            found = [(profile, distance, None) for profile, _, distance in page]
+        elif filters.available_on is None:
+            offset = decode_offset_cursor(cursor) if cursor else 0
+            rows = await self.artists.sorted_page(filters, offset, limit + 1)
+            found = [(profile, distance, None) for profile, _, distance in rows[:limit]]
+            next_cursor = encode_offset_cursor(offset + limit) if len(rows) > limit else None
+        else:
+            found, next_cursor = await self._free_on(filters, limit, cursor)
+        ratings = await ratings_for(self.session, [profile.id for profile, _, _ in found])
+        return [self._card_fields(p, ratings, distance, free_on) for p, distance, free_on in found], next_cursor
+
+    async def total(self, filters: SearchFilters) -> int | None:
+        """How many artists match; None for a free-date search, which would mean checking every artist's slots."""
+        return None if filters.available_on else await self.artists.count(filters)
+
+    async def _free_on(
+        self, filters: SearchFilters, limit: int, cursor: str | None
+    ) -> tuple[list[tuple[ArtistProfile, float | None, date]], str | None]:
+        """Walks the sorted matches, keeping artists with an open slot on `available_on` for their shortest service.
+        Scans at most AVAILABLE_ON_SCAN_LIMIT artists per page; the cursor is the next position to check."""
+        day = filters.available_on
+        offset = decode_offset_cursor(cursor) if cursor else 0
+        rows = await self.artists.sorted_page(filters, offset, AVAILABLE_ON_SCAN_LIMIT)
+        found: list[tuple[ArtistProfile, float | None, date]] = []
+        scanned = 0
+        for profile, _, distance in rows:
+            if len(found) == limit:
+                break
+            scanned += 1
+            if await self._has_open_slot(profile, day):
+                found.append((profile, distance, day))
+        more = scanned < len(rows) or len(rows) == AVAILABLE_ON_SCAN_LIMIT
+        return found, encode_offset_cursor(offset + scanned) if more else None
+
+    async def _has_open_slot(self, profile: ArtistProfile, day: date) -> bool:
+        services = _bookable(profile.services)
+        if not services:
+            return False
+        shortest = min(s.duration_minutes for s in services)
+        grid = await booking_availability.day_slots(self.session, profile.id, day, shortest, self.clock.now())
+        return any(slot["available"] for slot in grid["slots"])
 
     async def get(self, profile: ArtistProfile) -> dict:
         """`profile` is an approved artist (resolved by the route's `valid_artist_id`)."""

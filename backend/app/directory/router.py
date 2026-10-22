@@ -4,9 +4,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 
 from app.artist.models import ArtistProfile
-from app.directory.dependencies import get_directory_service, limit_public_reads, valid_artist_id
+from app.directory.dependencies import get_directory_service, limit_public_reads, search_filters, valid_artist_id
 from app.directory.schemas import ArtistCardPage, ArtistPublic, AvailabilityOut
 from app.directory.service import DirectoryService
+from app.directory.utils import SearchFilters
 from app.review.dependencies import get_review_service
 from app.review.schemas import ReviewPage
 from app.review.service import ReviewService
@@ -18,17 +19,21 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=ArtistCardPage, status_code=200, summary="Browse approved artists")
+@router.get(
+    "",
+    response_model=ArtistCardPage,
+    status_code=200,
+    summary="Browse and search approved artists",
+    description="Filters combine; `sort=nearest` needs `near_lat`/`near_lng`. `total` is null for a free-date search.",
+)
 async def list_artists(
-    city: str | None = Query(None, max_length=60),
-    category_id: int | None = None,
-    q: str | None = Query(None, max_length=100),
+    filters: SearchFilters = Depends(search_filters),
     limit: int = Query(20, ge=1, le=50),
     cursor: str | None = None,
     directory: DirectoryService = Depends(get_directory_service),
 ) -> dict:
-    items, next_cursor = await directory.list(city, category_id, q, limit, cursor)
-    return {"items": items, "next_cursor": next_cursor}
+    items, next_cursor = await directory.list(filters, limit, cursor)
+    return {"items": items, "next_cursor": next_cursor, "total": await directory.total(filters)}
 
 
 @router.get("/{artist_id}", response_model=ArtistPublic, summary="An approved artist's public profile", status_code=200)

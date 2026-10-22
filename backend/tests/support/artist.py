@@ -20,7 +20,7 @@ async def add_kyc(client, headers) -> None:
 
 
 async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -> dict:
-    """A submittable profile: photo, name, category, city, one service, `photos` portfolio photos."""
+    """A submittable profile: photo, name, category, city, location, one service, `photos` portfolio photos."""
     cats = await categories(client)
     await client.put(
         "/api/v1/artists/me/profile",
@@ -31,6 +31,9 @@ async def complete_profile(client, headers, photos: int = 6, kyc: bool = True) -
             "category_ids": [cats["mehendi"]],
             "photo_key": await upload_key(client, headers, "artist_photo"),
         },
+    )
+    await client.put(
+        "/api/v1/artists/me/location", headers=headers, json={"locality": "Koramangala", "pincode": "560095"}
     )
     await client.post(
         "/api/v1/artists/me/services",
