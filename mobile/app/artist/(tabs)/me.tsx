@@ -87,6 +87,8 @@ export default function ArtistMe() {
         <Card style={{ marginTop: 14, paddingVertical: 0 }}>
           <MenuRow label="Location" detail={profile?.locality ?? 'Add your area'} onPress={() => router.push('/artist/location')} />
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
+          <MenuRow label="Experience & languages" detail={detailsSummary(profile)} onPress={() => router.push('/artist/details')} />
+          <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
           <MenuRow label="Reviews" detail={reviewsDetail(reviews.data?.pages[0]?.summary)} onPress={() => router.push('/artist/reviews')} />
           <View style={{ height: 1, backgroundColor: theme.colors.separator }} />
           <MenuRow label="Enquiries" detail={enquiries.data?.open ? `${enquiries.data.open} open` : undefined} onPress={() => router.push('/artist/enquiries')} />
@@ -121,4 +123,13 @@ export default function ArtistMe() {
       </View>
     </ScrollView>
   );
+}
+
+/** "8 yrs · Hindi, English", or a prompt when neither is set. */
+function detailsSummary(profile: { experience_years: number | null; languages: string[] } | null | undefined): string {
+  const parts = [
+    profile?.experience_years == null ? null : `${profile.experience_years} yrs`,
+    profile?.languages.length ? profile.languages.join(', ') : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'Add';
 }

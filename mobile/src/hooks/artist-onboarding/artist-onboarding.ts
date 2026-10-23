@@ -4,7 +4,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import * as artistApi from '../../api/artist-onboarding/artist-onboarding';
 import { uploadImage } from '../../api/artist-onboarding/upload';
 import type { PickedImage } from '../../api/artist-onboarding/upload';
-import type { ArtistProfile, LocationInput, MyRequirements, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistProfile, DetailsInput, LocationInput, MyRequirements, PhotoInput, ProfileInput, ServiceInput, UploadPurpose } from '../../types/artist-onboarding/artist-onboarding';
 import { useAuth } from '../../context/auth/auth-provider';
 import { ARTIST_PROFILE_KEY } from '../../core/api/query-keys';
 
@@ -57,6 +57,11 @@ export function useSaveProfile(): UseMutationResult<ArtistProfile, Error, Profil
 /** PUT /artists/me/location — onboarding step 2, or an approved artist completing the location requirement. */
 export function useSaveLocation(): UseMutationResult<ArtistProfile, Error, LocationInput> {
   return useProfileMutation('save-location', artistApi.saveLocation);
+}
+
+/** PATCH /artists/me/details — experience and languages, onboarding or approved (no new review). */
+export function useUpdateDetails(): UseMutationResult<ArtistProfile, Error, DetailsInput> {
+  return useProfileMutation('update-details', artistApi.updateDetails);
 }
 
 /** GET /artists/me/requirements — mandatory profile items still missing (approved artists' warning strip). */

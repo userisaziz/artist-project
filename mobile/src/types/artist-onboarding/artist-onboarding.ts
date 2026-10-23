@@ -135,3 +135,9 @@ export interface MyRequirements {
   on_hold: boolean;
   items: PendingRequirement[];
 }
+
+/** PATCH /artists/me/details: only the fields sent change (no new review for an approved artist). */
+export interface DetailsInput {
+  experience_years?: number | null;
+  languages?: string[];
+}

@@ -60,6 +60,7 @@ export default function ArtistLayout() {
           <Stack.Screen name="support/[id]" />
           <Stack.Screen name="working-hours" />
           <Stack.Screen name="location" />
+          <Stack.Screen name="details" />
           <Stack.Screen name="earnings" />
           <Stack.Screen name="followers" />
           <Stack.Screen name="enquiries/index" />
