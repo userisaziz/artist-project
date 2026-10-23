@@ -6,7 +6,7 @@ ended. Completing it lifts the hold at once, and an admin suspension (a real sta
 from sqlalchemy import ColumnElement, and_, exists, false, func, not_, or_, select
 
 from app.artist.models import ArtistProfile
-from app.requirement.constants import LOCATION, REQUIREMENTS, Requirement
+from app.requirement.constants import EXPERIENCE, LANGUAGES, LOCATION, REQUIREMENTS, Requirement
 from app.requirement.models import RequirementSetting
 from app.shared.enums import ArtistStatus
 
@@ -15,12 +15,20 @@ def missing(requirement: Requirement) -> ColumnElement[bool]:
     """True when the artist hasn't met `requirement`."""
     if requirement.key == LOCATION.key:  # an area picked from the catalog (older free-text areas don't count)
         return or_(ArtistProfile.area_id.is_(None), ArtistProfile.pincode.is_(None))
+    if requirement.key == EXPERIENCE.key:
+        return ArtistProfile.experience_years.is_(None)
+    if requirement.key == LANGUAGES.key:
+        return func.cardinality(ArtistProfile.languages) == 0
     raise ValueError(f"No check for requirement {requirement.key!r}")  # every registered requirement needs one
 
 
 def is_missing(requirement: Requirement, profile: ArtistProfile) -> bool:
     if requirement.key == LOCATION.key:
         return profile.area_id is None or not profile.pincode
+    if requirement.key == EXPERIENCE.key:
+        return profile.experience_years is None
+    if requirement.key == LANGUAGES.key:
+        return not profile.languages
     raise ValueError(f"No check for requirement {requirement.key!r}")
 
 

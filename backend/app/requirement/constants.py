@@ -29,4 +29,18 @@ LOCATION = Requirement(
     action="/artist/location",
 )
 
-REQUIREMENTS: dict[str, Requirement] = {r.key: r for r in (LOCATION,)}
+EXPERIENCE = Requirement(
+    key="experience",
+    title="Add your years of experience",
+    body="Clients compare artists by experience; it shows on your storefront.",
+    action="/artist/details",
+)
+
+LANGUAGES = Requirement(
+    key="languages",
+    title="Add the languages you speak",
+    body="Clients look for an artist they can talk to; your languages show on your storefront.",
+    action="/artist/details",
+)
+
+REQUIREMENTS: dict[str, Requirement] = {r.key: r for r in (LOCATION, EXPERIENCE, LANGUAGES)}

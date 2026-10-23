@@ -24,6 +24,7 @@ from app.artist.repository import ArtistRepository
 from app.artist.schemas import (
     CustomServiceIn,
     CustomServicePatch,
+    DetailsIn,
     KycIn,
     LocationIn,
     PhotoIn,
@@ -136,9 +137,7 @@ class ArtistService:
 
         profile.business_name = body.business_name.strip()
         profile.city = body.city
-        profile.bio = body.bio
-        profile.experience_years = body.experience_years
-        profile.languages = list(dict.fromkeys(body.languages))  # once each, in the artist's order
+        self._apply_details(profile, body)  # bio, experience and languages: only the ones sent
         profile.photo_key = body.photo_key
         profile.categories = categories
         await self.session.flush()
@@ -161,6 +160,26 @@ class ArtistService:
         profile.address_line = body.address_line or None
         profile.latitude = body.latitude
         profile.longitude = body.longitude
+        await self.session.flush()
+        return profile
+
+    @staticmethod
+    def _apply_details(profile: ArtistProfile, body: ProfileIn | DetailsIn) -> None:
+        """Optional fields change only when sent: a step that doesn't show one (e.g. bio) mustn't wipe it."""
+        sent = body.model_fields_set
+        if "bio" in sent and isinstance(body, ProfileIn):
+            profile.bio = body.bio
+        if "experience_years" in sent:
+            profile.experience_years = body.experience_years
+        if "languages" in sent:
+            profile.languages = list(dict.fromkeys(body.languages or []))  # once each, in the artist's order
+
+    async def update_details(self, user: User, body: DetailsIn) -> ArtistProfile:
+        """Experience and languages, while onboarding or once approved (no new review: they're the artist's say)."""
+        profile = await self.get(user)
+        if profile.status not in EDITABLE | {ArtistStatus.approved}:
+            raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
+        self._apply_details(profile, body)
         await self.session.flush()
         return profile
 

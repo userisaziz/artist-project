@@ -68,7 +68,9 @@ async def test_admins_read_and_switch_on_a_requirement(client, engine):
 
     rows = (await client.get(SETTINGS, headers=admin)).json()
     assert [(r["key"], r["mandatory"], r["grace_days"], r["effective_from"]) for r in rows] == [
-        ("location", False, 7, None)
+        ("location", False, 7, None),
+        ("experience", False, 7, None),
+        ("languages", False, 7, None),
     ]
     assert rows[0]["title"]
 
@@ -166,3 +168,22 @@ async def test_notices_go_out_once_per_stage(client, engine):
     inbox = (await client.get("/api/v1/notifications", headers=artist["headers"])).json()["items"]
     kinds = [n["kind"] for n in inbox]
     assert kinds.count("requirement_due") == 1 and kinds.count("requirement_on_hold") == 1
+
+
+async def test_experience_and_languages_can_be_required_and_are_fixed_from_details(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, ARTIST_PHONE, admin)  # no experience or languages given
+    for key in ("experience", "languages"):
+        on = await client.put(f"{SETTINGS}/{key}", headers=admin, json={"mandatory": True, "grace_days": 0})
+        assert on.status_code == 200, on.text
+
+    me = await mine(client, artist)
+    assert ([i["key"] for i in me["items"]], me["on_hold"]) == (["experience", "languages"], True)
+    assert {i["action"] for i in me["items"]} == {"/artist/details"}
+    assert artist["id"] not in await listed(client)
+
+    details = {"experience_years": 6, "languages": ["Hindi"]}
+    fixed = await client.patch("/api/v1/artists/me/details", headers=artist["headers"], json=details)
+    assert fixed.status_code == 200, fixed.text
+    assert await mine(client, artist) == {"on_hold": False, "items": []}
+    assert artist["id"] in await listed(client)

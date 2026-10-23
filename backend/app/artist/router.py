@@ -7,6 +7,7 @@ from app.artist.schemas import (
     ArtistProfileOut,
     CustomServiceIn,
     CustomServicePatch,
+    DetailsIn,
     KycIn,
     LocationIn,
     PhotoIn,
@@ -42,6 +43,19 @@ async def save_profile(
     body: ProfileIn, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
 ) -> dict:
     return profile_out(await service.save_profile(user, body), service.storage)
+
+
+@router.patch(
+    "/details",
+    response_model=ArtistProfileOut,
+    summary="Change years of experience or languages",
+    description="Only the fields sent change. Approved artists stay approved: no new review.",
+    status_code=200,
+)
+async def update_details(
+    body: DetailsIn, user: User = Depends(current_artist), service: ArtistService = Depends(get_artist_service)
+) -> dict:
+    return profile_out(await service.update_details(user, body), service.storage)
 
 
 @router.put(

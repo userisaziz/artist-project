@@ -40,6 +40,13 @@ class ProfileIn(APIModel):
     languages: list[Language] = Field(default_factory=list, max_length=len(Language))  # repeats are dropped
 
 
+class DetailsIn(APIModel):
+    """PATCH /artists/me/details: only the fields sent change."""
+
+    experience_years: int | None = Field(default=None, ge=0, le=MAX_EXPERIENCE_YEARS)
+    languages: list[Language] | None = Field(default=None, max_length=len(Language))  # repeats are dropped
+
+
 class LocationIn(APIModel):
     area_id: int = Field(gt=0)  # from GET /areas; sets the area name and the city
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")  # Indian PIN: six digits, never a leading 0

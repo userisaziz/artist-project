@@ -391,3 +391,40 @@ async def test_location_saves_the_gps_pin_only_as_a_pair(client):
     assert half.status_code == 422
     unpinned = await client.put("/api/v1/artists/me/location", headers=headers, json=place)
     assert (unpinned.json()["latitude"], unpinned.json()["longitude"]) == (None, None)
+
+
+async def test_saving_the_profile_step_keeps_fields_it_does_not_send(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    base = {"business_name": "A", "city": "Bangalore", "category_ids": [cats["decor"]]}
+    full = {
+        **base,
+        "bio": "Bridal mehendi for twelve years.",
+        "experience_years": 12,
+        "languages": ["Hindi", "English"],
+    }
+    await client.put("/api/v1/artists/me/profile", headers=headers, json=full)
+
+    again = (await client.put("/api/v1/artists/me/profile", headers=headers, json=base)).json()  # the step's own fields
+    assert (again["bio"], again["experience_years"], again["languages"]) == (
+        "Bridal mehendi for twelve years.",
+        12,
+        ["Hindi", "English"],
+    )
+    cleared = await client.put(
+        "/api/v1/artists/me/profile", headers=headers, json={**base, "bio": None, "languages": []}
+    )
+    assert (cleared.json()["bio"], cleared.json()["languages"], cleared.json()["experience_years"]) == (None, [], 12)
+
+
+async def test_approved_artists_update_experience_and_languages_without_a_new_review(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, ARTIST_PHONE, admin)
+    url = "/api/v1/artists/me/details"
+
+    years = await client.patch(url, headers=artist["headers"], json={"experience_years": 8})
+    assert (years.status_code, years.json()["experience_years"], years.json()["status"]) == (200, 8, "approved")
+    spoken = (await client.patch(url, headers=artist["headers"], json={"languages": ["Kannada", "Kannada"]})).json()
+    assert (spoken["experience_years"], spoken["languages"]) == (8, ["Kannada"])  # one field at a time; repeats dropped
+    assert (await client.patch(url, headers=artist["headers"], json={"experience_years": 61})).status_code == 422
+    assert (await client.patch(url, headers=artist["headers"], json={"languages": ["Klingon"]})).status_code == 422
