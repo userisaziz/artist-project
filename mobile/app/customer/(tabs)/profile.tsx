@@ -50,6 +50,7 @@ export default function CustomerProfile() {
         <MenuRow label="My quotes" onPress={() => router.push('/customer/enquiries')} />
         <MenuRow label="Saved" onPress={() => router.push('/customer/saved')} />
         <MenuRow label="Saved addresses" onPress={() => router.push('/customer/addresses')} />
+        <MenuRow label="Notifications" onPress={() => router.push('/customer/notifications')} />
         <MenuRow label="Messages" onPress={() => router.push('/customer/messages')} />
         <MenuRow label="Help & support" onPress={() => router.push('/customer/support')} />
       </View>

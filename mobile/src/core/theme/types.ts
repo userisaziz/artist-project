@@ -16,6 +16,7 @@ export interface ThemeColors {
   photoScrim: string; // deep plum laid over photos so white text reads
   canvas: string; heading: string; // blush page + plum headline ink of the auth/onboarding screens
   progressTrack: string; // unfilled segment of the step bar
+  indicatorInactive: string; // carousel dots that aren't the current slide
   roleCard: string; roleTag: string; // Choose role light card + its tag pill
   fieldHalo: string; // soft ring around a focused field
   pendingSoft: string; pendingInk: string; pendingDot: string; // amber: awaiting the artist

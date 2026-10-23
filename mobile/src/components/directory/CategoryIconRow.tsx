@@ -3,6 +3,7 @@ import { AppText } from '../common/AppText';
 import { Icon, type IconName } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 import type { Category } from '../../types/catalog/catalog';
+import { CategoryArt, hasCategoryArt } from './CategoryArt';
 
 interface CategoryIconRowProps {
   categories: Category[];
@@ -27,7 +28,9 @@ export function CategoryIconRow({ categories, onPick }: CategoryIconRowProps) {
         return (
           <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={`${c.name} artists`} onPress={() => onPick(c)} style={{ width: ITEM_WIDTH, alignItems: 'center', gap: 7 }}>
             <View style={[{ width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: lead ? theme.colors.brand : theme.colors.brandSoft }, lead ? theme.shadows.sm : null]}>
-              <Icon name={ICON_BY_SLUG[c.slug] ?? 'sparkles'} size={28} color={lead ? theme.colors.textOnBrand : theme.colors.brand} />
+              {hasCategoryArt(c.slug)
+                ? <CategoryArt slug={c.slug} color={lead ? theme.colors.textOnBrand : theme.colors.brand} />
+                : <Icon name={ICON_BY_SLUG[c.slug] ?? 'sparkles'} size={28} color={lead ? theme.colors.textOnBrand : theme.colors.brand} />}
             </View>
             <AppText variant="caption" numberOfLines={1} style={{ fontSize: 11.5, fontWeight: lead ? '700' : '500', color: lead ? theme.colors.brand : theme.colors.textPrimary }}>{c.name}</AppText>
           </Pressable>

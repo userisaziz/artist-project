@@ -35,6 +35,7 @@ export const lightTheme: Theme = {
     canvas: palette.blush60,
     heading: palette.plum900,
     progressTrack: palette.blush280,
+    indicatorInactive: palette.blush300,
     roleCard: palette.blush150,
     roleTag: palette.blush250,
     fieldHalo: palette.blush100,

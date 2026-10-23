@@ -1,27 +1,30 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Pressable, View, type ImageSourcePropType } from 'react-native';
-import { AppText, Accent } from '../common/AppText';
+import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 
 export interface HeroSlide {
   eyebrow: string;
   title: string;
-  accent: string;
   image: ImageSourcePropType;
+  /** The category the slide is about; opening it filters Explore to that category. */
+  categorySlug?: string;
 }
 
 interface HomeHeroProps {
   slides: HeroSlide[];
-  onOpen: () => void;
+  onOpen: (slide: HeroSlide) => void;
 }
 
 const PHOTO_HEIGHT = 250;
 const CARD_OVERLAP = 36;
+const CARD_RADIUS = 18;
 const SLIDE_MS = 5000;
 const FADE_MS = 900;
 const DOT = 6;
 const DOT_ACTIVE = 18;
+const CHEVRON = 40;
 
 /** The design's Home hero: full-width photos that cross-fade, under a white card with the slide's title and dots. */
 export function HomeHero({ slides, onOpen }: HomeHeroProps) {
@@ -57,21 +60,18 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
           <Animated.Image key={s.eyebrow} source={s.image} resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: fades[i] }} />
         ))}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${slide.title}${slide.accent}. Explore artists`}
-        onPress={onOpen}
+      {/* A row of separate controls, not one button around the dots: buttons can't nest. */}
+      <View
         style={{
           marginTop: -CARD_OVERLAP, marginHorizontal: theme.spacing.md, paddingVertical: 12, paddingLeft: 16, paddingRight: 12,
-          borderRadius: theme.radii.card, backgroundColor: theme.colors.surface, flexDirection: 'row', alignItems: 'center', gap: 12, ...theme.shadows.md,
+          borderRadius: CARD_RADIUS, backgroundColor: theme.colors.surface, flexDirection: 'row', alignItems: 'center', gap: 12,
+          shadowColor: theme.colors.brand, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 4,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <AppText variant="eyebrow" style={{ color: theme.colors.brand }}>{slide.eyebrow}</AppText>
-          <AppText variant="display" style={{ fontSize: 22, lineHeight: 26, color: theme.colors.heading, marginTop: 2 }}>
-            {slide.title}<Accent>{slide.accent}</Accent>
-          </AppText>
-        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${slide.title}. Explore artists`} onPress={() => onOpen(slide)} style={{ flex: 1 }}>
+          <AppText variant="eyebrow" style={{ fontSize: 10.5, letterSpacing: 1.5, color: theme.colors.brand }}>{slide.eyebrow}</AppText>
+          <AppText variant="title" numberOfLines={1} style={{ lineHeight: 19, color: theme.colors.textPrimary, marginTop: 2 }}>{slide.title}</AppText>
+        </Pressable>
         <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
           {slides.map((s, i) => (
             <Pressable
@@ -81,14 +81,19 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
               accessibilityState={{ selected: i === index }}
               onPress={() => setIndex(i)}
               hitSlop={10}
-              style={{ height: DOT, width: i === index ? DOT_ACTIVE : DOT, borderRadius: DOT / 2, backgroundColor: i === index ? theme.colors.brand : theme.colors.brandSoft }}
+              style={{ height: DOT, width: i === index ? DOT_ACTIVE : DOT, borderRadius: DOT / 2, backgroundColor: i === index ? theme.colors.brand : theme.colors.indicatorInactive }}
             />
           ))}
         </View>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${slide.title}`}
+          onPress={() => onOpen(slide)}
+          style={{ width: CHEVRON, height: CHEVRON, borderRadius: CHEVRON / 2, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center' }}
+        >
           <Icon name="chevron-right" size={20} color={theme.colors.textOnBrand} />
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     </View>
   );
 }

@@ -21,15 +21,26 @@ import { ArtistCompactRow } from '../../../src/components/directory/ArtistCompac
 import { ShopBanner } from '../../../src/components/shop/ShopBanner';
 import { greeting } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
-import { NotificationBell } from '../../../src/components/notifications/NotificationBell';
+import { Avatar } from '../../../src/components/common/Avatar';
+import { formatPrice } from '../../../src/utils/common/format';
 import { Icon } from '../../../src/components/common/Icon';
 import type { ArtistCard } from '../../../src/types/directory/directory';
 
 // The design's Home carousel photos (docs/design/atelier/README.md), re-encoded as webp.
 const HERO_SLIDES: HeroSlide[] = [
-  { eyebrow: 'WEDDING SEASON', title: 'Bridal artists, ', accent: 'verified', image: require('../../../assets/hero/home-bridal.webp') },
-  { eyebrow: 'AT YOUR DOOR', title: 'Mehendi and makeup, ', accent: 'at home', image: require('../../../assets/hero/home-makeup.webp') },
+  { eyebrow: 'MEHENDI', title: 'Bridal mehendi artists', categorySlug: 'mehendi', image: require('../../../assets/hero/home-bridal.webp') },
+  { eyebrow: 'MAKEUP & HAIR', title: 'Glam for your big day', categorySlug: 'makeup', image: require('../../../assets/hero/home-makeup.webp') },
 ];
+
+/** The design's "MEHENDI · FROM ₹1,500": the cheapest listed artist in that category, when there is one. */
+function withFromPrice(slides: HeroSlide[], artists: ArtistCard[]): HeroSlide[] {
+  return slides.map((s) => {
+    const prices = artists
+      .filter((a) => a.from_price_paise !== null && a.categories.some((c) => c.name.toLowerCase() === s.categorySlug))
+      .map((a) => a.from_price_paise as number);
+    return prices.length ? { ...s, eyebrow: `${s.eyebrow} · FROM ${formatPrice(Math.min(...prices))}` } : s;
+  });
+}
 const TOP_RATED_COUNT = 3;
 const GRADIENT_HEIGHT = 520;
 
@@ -58,6 +69,11 @@ export default function CustomerHome() {
   const best = topRated(items);
   const openArtist = (id: string) => router.push({ pathname: '/customer/artist/[id]', params: { id } });
   const explore = () => router.navigate({ pathname: '/customer/explore', params: city ? { city } : {} });
+  const openSlide = (slide: HeroSlide) => {
+    const category = categories.data?.find((c) => c.slug === slide.categorySlug);
+    if (!category) { explore(); return; }
+    router.navigate({ pathname: '/customer/explore', params: { categoryId: String(category.id), ...(city ? { city } : {}) } });
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }}>
@@ -85,7 +101,9 @@ export default function CustomerHome() {
         >
           <Icon name="chat" size={22} />
         </Pressable>
-        <NotificationBell onPress={() => router.push('/customer/notifications')} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Your profile" onPress={() => router.navigate('/customer/profile')}>
+          <Avatar uri={user?.avatar_url ?? null} name={[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'You'} size={44} />
+        </Pressable>
       </View>
 
       {city ? null : (
@@ -95,7 +113,7 @@ export default function CustomerHome() {
       )}
 
       <View style={{ marginTop: 14 }}>
-        <HomeHero slides={HERO_SLIDES} onOpen={explore} />
+        <HomeHero slides={withFromPrice(HERO_SLIDES, items)} onOpen={openSlide} />
       </View>
 
       <Pressable
@@ -115,7 +133,7 @@ export default function CustomerHome() {
         </>
       ) : null}
 
-      <SectionHeader title="Discover artists" onSeeAll={explore} seeAllLabel="See all artists" />
+      <SectionHeader title="Discover artists near you" onSeeAll={explore} seeAllLabel="See all artists" />
       {artists.isPending ? <LoadingView /> : null}
       {artists.isError ? <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={artists.error} onRetry={() => { void artists.refetch(); }} /></View> : null}
       {artists.isSuccess && !items.length ? <View style={{ paddingHorizontal: theme.spacing.md }}><EmptyView message="No artists yet. Check back soon." /></View> : null}
