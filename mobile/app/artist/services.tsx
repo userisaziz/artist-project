@@ -6,7 +6,7 @@ import { AppButton } from '../../src/components/common/AppButton';
 import { BackHeader } from '../../src/components/common/BackHeader';
 import { Card } from '../../src/components/common/Card';
 import { StatusPill } from '../../src/components/common/StatusPill';
-import { EmptyView } from '../../src/components/common/StateViews';
+import { EmptyView, ErrorView, LoadingView } from '../../src/components/common/StateViews';
 import { useTheme } from '../../src/core/theme/theme-provider';
 import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
 import { useAddCustomService, useDeleteCustomService, useUpdateCustomService, useUpdateServicePrice } from '../../src/hooks/artist-services/artist-services';
@@ -26,7 +26,8 @@ type SheetState = { mode: 'add' } | { mode: 'edit'; service: ServiceItem } | { m
 export default function MyServices() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: profile } = useArtistProfile();
+  const profileQuery = useArtistProfile();
+  const profile = profileQuery.data;
   const categories = useCategories();
   const addService = useAddCustomService();
   const updateService = useUpdateCustomService();
@@ -36,6 +37,9 @@ export default function MyServices() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tree = categories.data ?? [];
+  // Group titles and the add sheet need the catalog; without it the list would wrongly read "No services yet".
+  const failed = profileQuery.isError ? profileQuery : categories.isError ? categories : null;
+  const ready = !!profile && !!categories.data;
   const groups = groupMyServices(tree, profile?.services ?? []);
 
   const remove = async (id: string) => {
@@ -52,10 +56,22 @@ export default function MyServices() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.xl, gap: 14 }}>
         <BackHeader title="My services" />
-        <AppButton label="Add a custom service" onPress={() => setSheet({ mode: 'add' })} />
+        {failed ? (
+          <ErrorView
+            error={failed.error}
+            onRetry={() => {
+              if (profileQuery.isError) void profileQuery.refetch();
+              if (categories.isError) void categories.refetch();
+            }}
+          />
+        ) : !ready ? (
+          <LoadingView label="Loading your services" />
+        ) : (
+          <AppButton label="Add a custom service" onPress={() => setSheet({ mode: 'add' })} />
+        )}
         {error ? <AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
-        {!groups.length ? <EmptyView message="No services yet." /> : null}
-        {groups.map(([title, services]) => (
+        {ready && !groups.length ? <EmptyView message="No services yet." /> : null}
+        {ready && groups.map(([title, services]) => (
           <View key={title} style={{ gap: 8 }}>
             <AppText variant="eyebrow" style={{ color: theme.colors.brand, letterSpacing: 1.2 }}>{title}</AppText>
             {services.map((s) => (
