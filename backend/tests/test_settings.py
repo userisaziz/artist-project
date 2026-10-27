@@ -6,6 +6,7 @@ from pydantic import SecretStr, ValidationError
 from app.auth.config import AuthSettings
 from app.booking.config import BookingSettings
 from app.core.config import AppSettings, Settings
+from app.notification.config import NotificationSettings
 from app.upload.config import UploadSettings
 
 STRONG_SECRET = "x" * 32
@@ -39,6 +40,12 @@ def test_console_sms_refuses_to_run_in_production():
 def test_fast2sms_needs_an_api_key():
     with pytest.raises(ValidationError, match="FAST2SMS_API_KEY"):
         AuthSettings(environment="staging", sms_provider="fast2sms", fast2sms_api_key=SecretStr(""))
+
+
+def test_console_push_refuses_to_run_in_production():
+    with pytest.raises(ValidationError, match="PUSH_PROVIDER=console"):
+        NotificationSettings(environment="production", push_provider="console")
+    assert NotificationSettings(environment="production", push_provider="expo").push_provider == "expo"
 
 
 def test_fake_storage_refuses_to_run_in_production():

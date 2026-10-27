@@ -428,3 +428,23 @@ async def test_approved_artists_update_experience_and_languages_without_a_new_re
     assert (spoken["experience_years"], spoken["languages"]) == (8, ["Kannada"])  # one field at a time; repeats dropped
     assert (await client.patch(url, headers=artist["headers"], json={"experience_years": 61})).status_code == 422
     assert (await client.patch(url, headers=artist["headers"], json={"languages": ["Klingon"]})).status_code == 422
+
+
+async def test_approved_artists_change_a_service_price_and_duration_without_a_new_review(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, ARTIST_PHONE, admin)
+    url = f"/api/v1/artists/me/services/{artist['service_id']}"
+
+    repriced = await client.patch(url, headers=artist["headers"], json={"price_paise": 600000, "duration_minutes": 150})
+    reworded = await client.patch(url, headers=artist["headers"], json={"description": "New words"})
+
+    assert repriced.status_code == 200
+    body = repriced.json()
+    assert (body["status"], body["services"][0]["price_paise"], body["services"][0]["duration_minutes"]) == (
+        "approved",
+        600000,
+        150,
+    )
+    assert reworded.status_code == 409  # wording and photos are reviewed, so they change only before approval
+    listed = (await client.get(f"/api/v1/artists/{artist['id']}")).json()
+    assert listed["services"][0]["price_paise"] == 600000  # customers see the new price at once

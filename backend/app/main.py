@@ -23,6 +23,7 @@ from app.core.logging import configure_logging
 from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
 from app.health import metrics_router
 from app.health import router as health
+from app.notification.config import get_notification_settings
 from app.review.config import get_review_settings
 from app.router import api_router
 from app.upload.config import get_upload_settings
@@ -33,6 +34,7 @@ SETTINGS_GETTERS = (
     get_auth_settings,
     get_booking_settings,
     get_catalog_settings,
+    get_notification_settings,
     get_review_settings,
     get_upload_settings,
 )

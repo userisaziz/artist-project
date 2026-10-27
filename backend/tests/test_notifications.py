@@ -196,3 +196,27 @@ async def test_expo_provider_posts_messages_and_survives_failures():
     await ExpoPushProvider("https://push.test", 1, httpx.MockTransport(offline))._send([message])
 
     assert seen == [[message], [message]]
+
+
+async def test_tokens_expo_reports_unregistered_stop_getting_pushes(client, engine):
+    _, artist, customer = await setup(client, engine)
+    live, dead = "ExponentPushToken[new-phone]", "ExponentPushToken[uninstalled]"
+    for token in (live, dead):
+        await client.post(f"{INBOX}/devices", headers=artist["headers"], json={"token": token, "platform": "ios"})
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {"status": "ok", "id": "ticket-1"},
+                    {"status": "error", "message": "gone", "details": {"error": "DeviceNotRegistered"}},
+                ]
+            },
+        )
+
+    messages = [{"to": t, "title": "Hi", "body": "There", "data": {}} for t in (live, dead)]
+    await ExpoPushProvider("https://push.test", 1, httpx.MockTransport(handler))._send(messages)
+    await book(client, customer, artist)
+
+    assert [m["to"] for m in ConsolePushProvider.sent] == [live]

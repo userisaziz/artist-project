@@ -47,6 +47,7 @@ from app.user.models import User
 MIN_PHOTOS = 6
 MAX_PHOTOS = 30
 EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
+APPROVED_SERVICE_FIELDS = {"price_paise", "duration_minutes"}
 DELETED_NAME = "Deleted artist"
 
 
@@ -257,9 +258,15 @@ class ArtistService:
         raise NotFoundError("Service not found")
 
     async def update_service(self, user: User, service_id: uuid.UUID, body: ServicePatch) -> ArtistProfile:
-        profile = await self._editable(user)
-        item = self._service(profile, service_id)
+        """Any field while onboarding. Once approved, only price and duration (no new review: they're the artist's
+        say); wording, photos and add-ons were reviewed, so they stay as approved."""
         changes = body.model_dump(exclude_unset=True)
+        profile = await self.get(user)
+        if profile.status == ArtistStatus.approved and not changes.keys() <= APPROVED_SERVICE_FIELDS:
+            raise ConflictError("Once approved, only a service's price and duration can change")
+        if profile.status not in EDITABLE | {ArtistStatus.approved}:
+            raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
+        item = self._service(profile, service_id)
         for field in ("price_paise", "duration_minutes"):
             if changes.get(field) is not None:  # required columns: an explicit null means "leave as is"
                 setattr(item, field, changes[field])
