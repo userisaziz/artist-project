@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 import * as servicesApi from '../../api/artist-services/artist-services';
-import type { CustomServiceInput, CustomServicePatch } from '../../types/artist-services/artist-services';
+import type { CustomServiceInput, CustomServicePatch, ServicePricePatch } from '../../types/artist-services/artist-services';
 import { ARTIST_PROFILE_KEY } from '../../core/api/query-keys';
 
 // Custom-service writes (My services). Each returns the whole artist profile, which replaces the cached one.
@@ -34,4 +34,9 @@ export function useUpdateCustomService(): UseMutationResult<Profile, Error, { id
 /** DELETE /artists/me/custom-services/{id}. */
 export function useDeleteCustomService(): UseMutationResult<Profile, Error, string> {
   return useCustomServiceMutation('delete', (id: string) => servicesApi.deleteCustomService(id));
+}
+
+/** PATCH /artists/me/services/{id} — price and duration of a service from the admin's list; no review. */
+export function useUpdateServicePrice(): UseMutationResult<Profile, Error, { id: string; input: ServicePricePatch }> {
+  return useCustomServiceMutation('update-price', ({ id, input }: { id: string; input: ServicePricePatch }) => servicesApi.updateServicePrice(id, input));
 }

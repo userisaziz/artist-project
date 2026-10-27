@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAddCustomService, useDeleteCustomService, useUpdateCustomService } from '../../hooks/artist-services/artist-services';
+import { useAddCustomService, useDeleteCustomService, useUpdateCustomService, useUpdateServicePrice } from '../../hooks/artist-services/artist-services';
 import { transport } from '../../core/api/client';
 import { ApiError } from '../../core/api/types';
 import type { TransportRequest } from '../../core/api/transport';
-import { artistProfileFixture, customServiceFixture } from '../../mocks/artist-onboarding/artist-onboarding';
+import { artistProfileFixture, customServiceFixture, templateServiceFixture } from '../../mocks/artist-onboarding/artist-onboarding';
 
 const send = jest.spyOn(transport, 'request');
 const profileKey = ['artist', 'me', 'user-1'];
@@ -56,4 +56,17 @@ it('a failed delete surfaces the ApiError and leaves the cached profile alone', 
   expect(error).toBeInstanceOf(ApiError);
   expect(error).toMatchObject({ code: 'not_found', status: 404 });
   expect(client.getQueryData(profileKey)).toBe(before);
+});
+
+it('repricing a service from the admin list patches it and caches the returned profile', async () => {
+  const updated = artistProfileFixture({ services: [{ ...templateServiceFixture, price_paise: 1_600_000 }] });
+  send.mockResolvedValue({ status: 200, json: updated });
+  const { result } = await renderHook(() => useUpdateServicePrice(), { wrapper });
+
+  const input = { price_paise: 1_600_000, duration_minutes: 150 };
+  await act(async () => { await result.current.mutateAsync({ id: templateServiceFixture.id, input }); });
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+  expect(sent()).toMatchObject({ method: 'PATCH', path: `/artists/me/services/${templateServiceFixture.id}`, body: input });
+  expect(client.getQueryData(profileKey)).toEqual(updated);
 });

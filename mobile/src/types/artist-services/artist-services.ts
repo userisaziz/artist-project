@@ -22,3 +22,9 @@ export interface CustomServiceInput extends ServiceExtrasInput {
 
 /** PATCH /artists/me/custom-services/{id}: any field; any edit sends the service back to review. */
 export type CustomServicePatch = Partial<CustomServiceInput>;
+
+/** PATCH /artists/me/services/{id} once approved: a service from the admin's list, live at once with no review. */
+export interface ServicePricePatch {
+  price_paise: number;
+  duration_minutes: number;
+}

@@ -1,6 +1,6 @@
 import { request } from '../../core/api/client';
 import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboarding';
-import type { CustomServiceInput, CustomServicePatch } from '../../types/artist-services/artist-services';
+import type { CustomServiceInput, CustomServicePatch, ServicePricePatch } from '../../types/artist-services/artist-services';
 
 // Custom services (catalog Part 2): approved artists only. Each waits for admin review; any edit sends it back.
 export function addCustomService(body: CustomServiceInput) {
@@ -11,4 +11,9 @@ export function updateCustomService(id: string, body: CustomServicePatch) {
 }
 export function deleteCustomService(id: string) {
   return request<ArtistProfile>(`/artists/me/custom-services/${encodeURIComponent(id)}`, undefined, { auth: true, method: 'DELETE' });
+}
+
+// A service from the admin's list: once approved, only its price and duration change, live at once.
+export function updateServicePrice(id: string, body: ServicePricePatch) {
+  return request<ArtistProfile>(`/artists/me/services/${encodeURIComponent(id)}`, body, { auth: true, method: 'PATCH' });
 }

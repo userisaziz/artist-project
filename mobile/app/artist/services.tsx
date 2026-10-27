@@ -9,19 +9,20 @@ import { StatusPill } from '../../src/components/common/StatusPill';
 import { EmptyView } from '../../src/components/common/StateViews';
 import { useTheme } from '../../src/core/theme/theme-provider';
 import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
-import { useAddCustomService, useDeleteCustomService, useUpdateCustomService } from '../../src/hooks/artist-services/artist-services';
+import { useAddCustomService, useDeleteCustomService, useUpdateCustomService, useUpdateServicePrice } from '../../src/hooks/artist-services/artist-services';
 import { useCategories } from '../../src/hooks/catalog/catalog';
 import { CUSTOM_STATUS_PILL, groupMyServices } from '../../src/utils/artist-services/my-services';
 import { CustomServiceSheet } from '../../src/components/artist-services/CustomServiceSheet';
+import { ServicePriceSheet } from '../../src/components/artist-services/ServicePriceSheet';
 import { formatDuration, formatPrice } from '../../src/utils/common/format';
 import { errorMessage } from '../../src/core/api/error-message';
 import type { ServiceItem } from '../../src/types/artist-onboarding/artist-onboarding';
 
-/** The open sheet: adding, or editing one custom service. */
-type SheetState = { mode: 'add' } | { mode: 'edit'; service: ServiceItem };
+/** The open sheet: adding, editing one custom service, or repricing one from the admin's list. */
+type SheetState = { mode: 'add' } | { mode: 'edit'; service: ServiceItem } | { mode: 'price'; service: ServiceItem };
 
 // Spec §2.2 My services: grouped by "Category › Subcategory"; custom services carry a status pill and can be edited
-// or deleted. Services picked from the admin list are read-only here.
+// or deleted. Services picked from the admin list only change price and duration here, live with no review.
 export default function MyServices() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -29,6 +30,7 @@ export default function MyServices() {
   const categories = useCategories();
   const addService = useAddCustomService();
   const updateService = useUpdateCustomService();
+  const updatePrice = useUpdateServicePrice();
   const deleteService = useDeleteCustomService();
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function MyServices() {
                 service={s}
                 confirming={confirmingId === s.id}
                 deleting={deleteService.isPending}
-                onEdit={() => setSheet({ mode: 'edit', service: s })}
+                onEdit={() => setSheet({ mode: s.template_id === null ? 'edit' : 'price', service: s })}
                 onAskDelete={() => setConfirmingId(s.id)}
                 onCancelDelete={() => setConfirmingId(null)}
                 onDelete={() => { void remove(s.id); }}
@@ -72,7 +74,14 @@ export default function MyServices() {
         ))}
       </ScrollView>
 
-      {sheet ? (
+      {sheet?.mode === 'price' ? (
+        <ServicePriceSheet
+          key={sheet.service.id}
+          service={sheet.service}
+          onClose={() => setSheet(null)}
+          onSubmit={async (input) => { await updatePrice.mutateAsync({ id: sheet.service.id, input }); }}
+        />
+      ) : sheet ? (
         <CustomServiceSheet
           key={sheet.mode === 'edit' ? sheet.service.id : 'add'}
           categories={tree}
@@ -115,6 +124,11 @@ function ServiceRow({ service, confirming, deleting, onEdit, onAskDelete, onCanc
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
           <RowAction label="Edit" accessibilityLabel={`Edit ${service.name}`} onPress={onEdit} />
           <RowAction label="Delete" accessibilityLabel={`Delete ${service.name}`} onPress={onAskDelete} muted />
+        </View>
+      ) : null}
+      {!custom ? (
+        <View style={{ flexDirection: 'row', marginTop: 4 }}>
+          <RowAction label="Edit price" accessibilityLabel={`Edit price of ${service.name}`} onPress={onEdit} />
         </View>
       ) : null}
       {custom && confirming ? (
