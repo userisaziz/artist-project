@@ -11,6 +11,7 @@ import { useAuth } from '../../../src/context/auth/auth-provider';
 import { DeleteAccountButton } from '../../../src/components/auth/DeleteAccountButton';
 import { errorMessage } from '../../../src/core/api/error-message';
 import { Icon } from '../../../src/components/common/Icon';
+import { brand } from '../../../src/core/brand/brand';
 
 // Spec §2 Profile tab: name and phone, My bookings, My orders, Messages, Help & support, the artist side (PUT /users/me/role), Log out.
 export default function CustomerProfile() {
@@ -63,7 +64,7 @@ export default function CustomerProfile() {
       >
         <View style={{ flex: 1 }}>
           <AppText variant="subtitle" style={{ fontSize: 14.5, color: theme.colors.textPrimary }}>{isArtist ? 'Switch to artist' : 'Become an artist'}</AppText>
-          <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{isArtist ? 'Manage your bookings with the same account' : 'Offer your services on Atelier'}</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{isArtist ? 'Manage your bookings with the same account' : `Offer your services on ${brand.name}`}</AppText>
         </View>
         <Icon name="arrow-left-right" size={20} color={theme.colors.brand} />
       </Pressable>

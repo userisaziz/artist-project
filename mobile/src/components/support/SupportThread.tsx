@@ -12,6 +12,7 @@ import { errorMessage } from '../../core/api/error-message';
 import { useMyTicket, useWriteToSupport } from '../../hooks/support/support';
 import { formatWhen } from '../../utils/common/time';
 import { STATUS_LABEL } from '../../utils/support/issues';
+import { brand } from '../../core/brand/brand';
 
 const MESSAGE_MAX = 1000;
 
@@ -46,10 +47,10 @@ export function SupportThread({ ticketId }: { ticketId: string }) {
               <View
                 key={m.id}
                 accessible
-                accessibilityLabel={`${m.author === 'support' ? 'Atelier support' : 'You'}: ${m.text}`}
+                accessibilityLabel={`${m.author === 'support' ? `${brand.name} support` : 'You'}: ${m.text}`}
                 style={{ alignSelf: m.author === 'support' ? 'flex-start' : 'flex-end', maxWidth: '85%', borderRadius: 16, padding: 12, backgroundColor: m.author === 'support' ? theme.colors.surface : theme.colors.brandSoft, borderWidth: 1, borderColor: theme.colors.separator }}
               >
-                <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${m.author === 'support' ? 'Atelier support' : 'You'} · ${formatWhen(m.created_at)}`}</AppText>
+                <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${m.author === 'support' ? `${brand.name} support` : 'You'} · ${formatWhen(m.created_at)}`}</AppText>
                 <AppText variant="body" style={{ color: theme.colors.textPrimary }}>{m.text}</AppText>
               </View>
             ))}

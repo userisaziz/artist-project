@@ -13,6 +13,7 @@ import { METHOD_LABEL, ORDER_STATUS } from '../../utils/shop/cart';
 import { formatPrice } from '../../utils/common/format';
 import { formatWhen } from '../../utils/common/time';
 import type { OrderStatus } from '../../types/shop/shop';
+import { brand } from '../../core/brand/brand';
 
 const STEPS: OrderStatus[] = ['placed', 'confirmed', 'shipped', 'delivered'];
 
@@ -53,7 +54,7 @@ export function OrderDetail({ orderId }: { orderId: string }) {
           ))}
         </View>
       ) : (
-        <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Cancelled by ${o.cancelled_by === 'customer' ? 'you' : o.cancelled_by === 'artist' ? 'the artist' : 'Atelier'}${o.cancel_reason ? `: ${o.cancel_reason}` : '.'}`}</AppText>
+        <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Cancelled by ${o.cancelled_by === 'customer' ? 'you' : o.cancelled_by === 'artist' ? 'the artist' : brand.name}${o.cancel_reason ? `: ${o.cancel_reason}` : '.'}`}</AppText>
       )}
       {o.tracking ? <InfoRow label="Tracking" value={o.tracking} /> : null}
       <View style={{ borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>

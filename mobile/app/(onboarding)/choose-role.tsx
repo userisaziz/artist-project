@@ -11,6 +11,7 @@ import { useTheme } from '../../src/core/theme/theme-provider';
 import { useAuth } from '../../src/context/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
 import { Icon } from '../../src/components/common/Icon';
+import { Logo } from '../../src/components/common/Logo';
 
 const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // design's role-client.jpg
 const ARTIST_PHOTO = require('../../assets/hero/role-artist.webp');     // design's role-creator.jpg
@@ -48,7 +49,7 @@ export default function ChooseRoleScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, paddingHorizontal: theme.spacing.xs }}>
-        <AppText variant="display" style={{ fontSize: 26.5, lineHeight: 28, letterSpacing: -0.66, color: theme.colors.heading }}>Atelier</AppText>
+        <Logo />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"

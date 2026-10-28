@@ -1,4 +1,5 @@
 import type { TokenPair } from './types'
+import { brand } from './brand'
 
 // Fetch client for the Art Circle API.
 // - The access token lives in memory only.
@@ -162,7 +163,7 @@ export async function api<T>(path: string, init: RequestOptions = {}): Promise<T
     else if (refreshed === 'expired') {
       onExpired?.()
       throw new ApiError(SESSION_EXPIRED, 'Your session has expired. Please sign in again.', 401)
-    } else throw new ApiError('service_unavailable', 'Couldn’t reach Atelier. Please try again.', 503)
+    } else throw new ApiError('service_unavailable', `Couldn’t reach ${brand.name}. Please try again.`, 503)
   }
   if (!res.ok) throw await toError(res)
   if (res.status === 204) return undefined as T

@@ -20,6 +20,7 @@ import { CustomerStatusPill } from './CustomerStatusPill'
 import { saveTextFile } from '@/lib/download'
 import { exportCustomers, useCustomerSummary, useCustomers } from './queries'
 import type { CustomerRow, CustomerSegment } from './types'
+import { brand } from '@/lib/brand'
 
 const SEARCH_DEBOUNCE_MS = 300
 const COLUMNS = '2.2fr 1fr .8fr 1.2fr 1fr .9fr .6fr'
@@ -68,7 +69,7 @@ export function CustomersPage() {
     <>
       <PageHeader
         title="Customers"
-        subtitle="People booking artists on Atelier."
+        subtitle={`People booking artists on ${brand.name}.`}
         action={
           <Button variant="outline" size="page" onClick={() => { void download() }} disabled={exporting}>
             <Download aria-hidden className="size-4" /> {exporting ? 'Exporting…' : 'Export CSV'}

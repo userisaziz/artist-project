@@ -9,6 +9,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { toastError } from '@/lib/notify'
 import { useAddAdmin } from './queries'
+import { brand } from '@/lib/brand'
 
 const schema = z.object({ phone: z.string().trim().regex(/^\+[1-9]\d{6,14}$/, 'Use the international format, e.g. +919845067890') })
 type FormValues = z.infer<typeof schema>
@@ -31,7 +32,7 @@ export function AddAdminDialog({ open, onClose }: { open: boolean; onClose: () =
         <form onSubmit={(e) => { void submit(e) }} noValidate>
           <DialogHeader>
             <DialogTitle>Add an admin</DialogTitle>
-            <DialogDescription>They need an Atelier account first: ask them to sign in once with this number.</DialogDescription>
+            <DialogDescription>They need a {brand.name} account first: ask them to sign in once with this number.</DialogDescription>
           </DialogHeader>
           <FieldGroup className="my-4">
             <Field data-invalid={!!form.formState.errors.phone}>

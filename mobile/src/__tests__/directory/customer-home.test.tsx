@@ -94,7 +94,7 @@ it('links to explore, the shop and messages', async () => {
 
   await fireEvent.press(await screen.findByRole('button', { name: 'See all artists' }));
   expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/customer/explore', params: {} });
-  await fireEvent.press(screen.getByRole('button', { name: 'Open the Atelier Shop' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Open the GetReady Shop' }));
   expect(mockNavigate).toHaveBeenCalledWith('/customer/shop');
   await fireEvent.press(screen.getByRole('button', { name: 'Messages' }));
   expect(mockPush).toHaveBeenCalledWith('/customer/messages');

@@ -2,6 +2,7 @@ import { Pressable, View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
+import { brand } from '../../core/brand/brand';
 
 interface ShopBannerProps {
   onPress: () => void;
@@ -16,7 +17,7 @@ export function ShopBanner({ onPress }: ShopBannerProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Open the Atelier Shop"
+      accessibilityLabel={`Open the ${brand.name} Shop`}
       onPress={onPress}
       style={{ height: HEIGHT, borderRadius: theme.radii.card, backgroundColor: theme.colors.brandSoft, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' }}
     >

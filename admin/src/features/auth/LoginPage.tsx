@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
 import { useRequestOtp, useVerifyOtp } from './api'
 import signInPhoto from '@/assets/admin-signin.webp'
+import { Logo } from '@/components/ui/logo'
+import { brand } from '@/lib/brand'
 
 // Atelier hi-fi "Admin sign in": photo panel on the left, the form on the right.
 // The design's email/password + authenticator steps map onto our phone + SMS code
@@ -66,7 +68,7 @@ export function LoginPage() {
       <aside className="relative hidden w-[560px] shrink-0 overflow-hidden lg:block">
         <img src={signInPhoto} alt="" className="absolute inset-0 size-full object-cover object-[45%_30%]" />
         <div className="absolute inset-0 bg-linear-to-b from-plum/15 via-plum/35 to-plum-deep/92" />
-        <div className="absolute top-9 left-10 text-[23.4px] font-semibold tracking-[-0.025em] text-white">Atelier</div>
+        <Logo size="lg" tone="inverse" className="absolute top-9 left-10" />
         <div className="absolute right-10 bottom-10 left-10 text-white">
           <div className="text-[10.5px] font-bold tracking-[0.24em]">ADMIN CONSOLE</div>
           <div className="mt-2.5 text-[31px] leading-[1.02] font-semibold tracking-[-0.025em]">
@@ -110,7 +112,7 @@ export function LoginPage() {
               <Checkbox checked={keepSignedIn} onChange={setKeepSignedIn}>Keep me signed in on this device</Checkbox>
               <PrimaryButton type="submit" disabled={busy}>{busy ? 'Sending code…' : 'Sign in'}</PrimaryButton>
               <p className="mt-[18px] text-xs leading-normal text-muted-foreground">
-                Access is limited to Atelier staff. Every sign-in is confirmed with a one-time code.
+                Access is limited to {brand.name} staff. Every sign-in is confirmed with a one-time code.
               </p>
             </form>
           ) : (

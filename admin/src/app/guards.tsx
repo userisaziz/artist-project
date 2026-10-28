@@ -3,6 +3,7 @@ import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { useAuth } from '@/lib/auth-context'
 import { HOME_PATH, PATHS } from '@/lib/paths'
+import { brand } from '@/lib/brand'
 
 /** Where a guarded page sends the visitor, so sign-in can bring them back. */
 interface FromState {
@@ -16,7 +17,7 @@ function SessionPending() {
     return (
       <ErrorState
         fullPage
-        title="We couldn’t reach Atelier"
+        title={`We couldn’t reach ${brand.name}`}
         description="Your session is still here. Check your connection, then retry."
         onRetry={retryRestore}
       />

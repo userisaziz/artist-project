@@ -11,11 +11,12 @@ import { useReviewPendingCount } from '@/features/reviews/queries'
 import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS, type NavCount } from './nav-items'
+import { Logo } from '@/components/ui/logo'
 
 const number = new Intl.NumberFormat('en-IN')
 const display = (v: string | number) => (typeof v === 'number' ? number.format(v) : v)
 
-/** The design's white "Atelier admin" rail: plain text items, live counts, the signed-in admin at the foot. */
+/** The design's white "<brand> admin" rail: plain text items, live counts, the signed-in admin at the foot. */
 export function Sidebar() {
   const { user, signOut } = useAuth()
   // The queue hooks report "99+" past one page; null or 0 hides the count.
@@ -34,7 +35,7 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 flex h-svh w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
-      <div className="px-2 text-[20.3px] font-semibold tracking-[-0.025em]">Atelier <i className="text-primary">admin</i></div>
+      <Logo size="md" suffix="admin" className="px-2" />
       <nav aria-label="Primary" className="mt-6 flex flex-col gap-0.5 overflow-y-auto text-[13.5px]">
         {NAV_ITEMS.map(({ to, label, count: key, pill }) => {
           const value = key ? counts[key] : undefined

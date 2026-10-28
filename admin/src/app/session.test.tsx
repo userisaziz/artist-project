@@ -64,7 +64,7 @@ it.each<[string, RefreshFailure]>([
   db.refreshFailure = failure
   renderSignedIn('/bookings')
   const alert = await screen.findByRole('alert')
-  expect(within(alert).getByText(/couldn’t reach Atelier/i)).toBeInTheDocument()
+  expect(within(alert).getByText(/couldn’t reach GetReady/i)).toBeInTheDocument()
   expect(window.location.pathname).toBe('/bookings') // not bounced to sign-in
   expect(db.refreshCookie).not.toBeNull()
 

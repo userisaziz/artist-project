@@ -7,6 +7,7 @@ import { formatReplyTime } from '../../utils/directory/storefront';
 import { formatAverage, ratingLong, reviewCountLabel } from '../../utils/reviews/format';
 import type { ArtistPublic } from '../../types/directory/directory';
 import { STATS_OVERLAP } from './StorefrontHero';
+import { brand } from '../../core/brand/brand';
 
 interface StorefrontStatsProps {
   artist: ArtistPublic;
@@ -34,7 +35,7 @@ function stats(artist: ArtistPublic): Stat[] {
     { key: 'bookings', value: String(artist.completed_bookings), label: 'Bookings' },
     artist.experience_years !== null
       ? { key: 'experience', value: `${artist.experience_years} ${artist.experience_years === 1 ? 'yr' : 'yrs'}`, label: 'Experience' }
-      : { key: 'since', value: artist.member_since ? formatMonthShort(artist.member_since) : '—', label: 'On Atelier since' },
+      : { key: 'since', value: artist.member_since ? formatMonthShort(artist.member_since) : '—', label: `On ${brand.name} since` },
   ];
   return artist.reply_minutes === null ? list : [...list, { key: 'reply', value: formatReplyTime(artist.reply_minutes), label: 'Replies in' }];
 }
