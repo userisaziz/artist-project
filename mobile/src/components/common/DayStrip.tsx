@@ -1,4 +1,5 @@
-import { Pressable, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { dayParts, formatDay } from '../../utils/common/time';
@@ -22,7 +23,7 @@ export function DayStrip({ days, value, onChange }: DayStripProps) {
         const selected = d === value;
         const { weekday, day } = dayParts(d);
         return (
-          <Pressable
+          <PressableFeedback
             key={d}
             accessibilityRole="button"
             accessibilityLabel={formatDay(d)}
@@ -32,7 +33,7 @@ export function DayStrip({ days, value, onChange }: DayStripProps) {
           >
             <AppText variant="caption" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textMuted }}>{weekday}</AppText>
             <AppText variant="subtitle" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{String(day)}</AppText>
-          </Pressable>
+          </PressableFeedback>
         );
       })}
     </ScrollView>

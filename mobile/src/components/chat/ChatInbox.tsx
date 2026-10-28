@@ -11,6 +11,7 @@ import { useConversations } from '../../hooks/chat/chat';
 import { useDebouncedValue } from '../../hooks/common/use-debounced-value';
 import { useNow } from '../../hooks/common/use-now';
 import type { ChatSide } from '../../types/chat/chat';
+import { usePullToRefresh } from '../../hooks/common/use-pull-to-refresh';
 
 const MAX_QUERY = 100;
 const EMPTY: Record<ChatSide, string> = {
@@ -34,6 +35,7 @@ export function ChatInbox({ side, searchable = false, onOpen, header }: ChatInbo
   const [query, setQuery] = useState('');
   const q = useDebouncedValue(query.trim());
   const inbox = useConversations(side, searchable ? q : '', useIsFocused());
+  const pull = usePullToRefresh(inbox.refetch);
   const items = inbox.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
@@ -50,6 +52,8 @@ export function ChatInbox({ side, searchable = false, onOpen, header }: ChatInbo
       {inbox.isSuccess && !items.length ? <EmptyView message={q ? `No clients match “${q}”.` : EMPTY[side]} /> : null}
       {items.length ? (
         <FlatList
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
           data={items}
           keyExtractor={(c) => c.id}
           renderItem={({ item }) => <ConversationRow conversation={item} now={now} onPress={() => onOpen(item.id)} />}

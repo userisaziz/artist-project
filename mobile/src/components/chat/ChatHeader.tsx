@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
@@ -14,9 +15,9 @@ export function ChatHeader({ conversation }: { conversation: Conversation | unde
   const name = conversation?.counterpart.name ?? '';
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.separator }}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => router.back()} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+      <PressableFeedback accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={() => router.back()} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
         <Icon name="chevron-left" size={26} />
-      </Pressable>
+      </PressableFeedback>
       <Avatar uri={conversation?.counterpart.photo_url ?? null} name={name || '?'} size={40} />
       <View style={{ flex: 1 }}>
         <AppText variant="subtitle" numberOfLines={1} style={{ fontSize: 15, color: theme.colors.textPrimary }}>{name}</AppText>

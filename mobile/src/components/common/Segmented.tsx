@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -16,7 +17,7 @@ export function Segmented<K extends string>({ options, value, onChange }: Segmen
       {options.map((o) => {
         const selected = o.key === value;
         return (
-          <Pressable
+          <PressableFeedback
             key={o.key}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
@@ -24,7 +25,7 @@ export function Segmented<K extends string>({ options, value, onChange }: Segmen
             style={[{ flex: 1, height: 34, borderRadius: theme.radii.control, alignItems: 'center', justifyContent: 'center' }, selected && { backgroundColor: theme.colors.surface }, selected && theme.shadows.sm]}
           >
             <AppText variant="labelLg" style={{ color: selected ? theme.colors.textPrimary : theme.colors.textMuted }}>{o.label}</AppText>
-          </Pressable>
+          </PressableFeedback>
         );
       })}
     </View>

@@ -39,6 +39,40 @@ it('liking PUTs the like and updates the post wherever it is cached', async () =
   expect(cached()?.[1]).toMatchObject({ liked: false });
 });
 
+it('shows the like at once, before the server answers', async () => {
+  send.mockReturnValue(new Promise(() => {}));
+  const { result } = await renderHook(() => useToggleLike(), { wrapper });
+
+  await act(async () => { result.current.mutate(postFixture({ id: 'p1', like_count: 12 })); });
+
+  expect(cached()?.[0]).toMatchObject({ liked: true, like_count: 13 });
+});
+
+it('rolls the like back when the server refuses', async () => {
+  send.mockRejectedValue(new Error('offline'));
+  const { result } = await renderHook(() => useToggleLike(), { wrapper });
+
+  await act(async () => { await result.current.mutateAsync(postFixture({ id: 'p1', like_count: 12 })).catch(() => {}); });
+
+  expect(cached()?.[0]).toMatchObject({ liked: false, like_count: 12 });
+});
+
+it('shows the follow at once and rolls it back when the server refuses', async () => {
+  client.setQueryData(feedKeys.follow(userId, 'a2'), { following: false });
+  let reject: (e: Error) => void = () => {};
+  send.mockReturnValue(new Promise((_, r) => { reject = r; }));
+  const { result } = await renderHook(() => useToggleFollow(), { wrapper });
+
+  let done: Promise<unknown> = Promise.resolve();
+  await act(async () => { done = result.current.mutateAsync({ artistId: 'a2', following: true }).catch(() => {}); });
+  expect(cached()?.map((p) => p.following)).toEqual([false, true]);
+  expect(client.getQueryData(feedKeys.follow(userId, 'a2'))).toEqual({ following: true });
+
+  await act(async () => { reject(new Error('offline')); await done; });
+  expect(cached()?.map((p) => p.following)).toEqual([false, false]);
+  expect(client.getQueryData(feedKeys.follow(userId, 'a2'))).toEqual({ following: false });
+});
+
 it('unfollowing DELETEs and clears the flag on every post by that artist', async () => {
   client.setQueryData(feedKeys.list(userId, 'for_you'), (d: InfiniteData<Page<Post>> | undefined) =>
     d && { ...d, pages: d.pages.map((p) => ({ ...p, items: p.items.map((i) => ({ ...i, following: true })) })) });

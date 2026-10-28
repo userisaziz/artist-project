@@ -13,6 +13,8 @@ export interface SessionBridge {
   refreshSession: () => Promise<RefreshedSession | null>; // must return null on failure, never throw
   /** The server rejected a freshly refreshed token: the session is dead, sign out. */
   onUnauthorized: () => void;
+  /** The refresh in flight, if any: a cold start opens on the remembered profile before it has an access token. */
+  pendingRefresh?: () => Promise<unknown> | null;
 }
 let bridge: SessionBridge | null = null;
 export function configureSessionBridge(b: SessionBridge | null): void { bridge = b; }
@@ -31,6 +33,10 @@ export async function request<T>(path: string, body?: unknown, opts: RequestOpti
     });
   };
 
+  // A refresh in flight (the cold start's, or a rotation after a 401) is about to hand out the token this call needs:
+  // wait for it instead of spending a round trip on a certain 401.
+  const refreshing = session?.pendingRefresh?.();
+  if (refreshing) await refreshing;
   let res = await send();
   if (res.status === 401 && session) {
     const pair = await session.refreshSession(); // the bridge dedupes concurrent refreshes

@@ -26,6 +26,7 @@ export const lightTheme: Theme = {
     errorBackground: palette.error100,
     success: palette.sage600,
     overlay: palette.scrim,
+    pressedOverlay: `${palette.plum950}1F`, // plum ink at 12%: visible on white, blush and rose surfaces
     brandOnImage: palette.rose600,
     brandInk: palette.rose800,
     imageFallback: palette.blush400,

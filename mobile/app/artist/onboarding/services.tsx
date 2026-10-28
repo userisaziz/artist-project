@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
 import { AppText } from '../../../src/components/common/AppText';
@@ -57,18 +58,18 @@ export default function ServicesStep() {
                 {`${where(s.subcategory_id)} · ${formatPrice(s.price_paise)} · ${formatDuration(s.duration_minutes)}`}
               </AppText>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${s.name}`} onPress={() => { void remove(s.id); }} hitSlop={8}>
+            <PressableFeedback accessibilityRole="button" accessibilityLabel={`Remove ${s.name}`} onPress={() => { void remove(s.id); }} hitSlop={8}>
               <Icon name="close" size={18} color={theme.colors.textMuted} />
-            </Pressable>
+            </PressableFeedback>
           </View>
         ))}
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           onPress={() => setSheet(true)}
           style={{ height: 52, borderRadius: theme.radii.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.colors.border, backgroundColor: theme.colors.washTop, alignItems: 'center', justifyContent: 'center' }}
         >
           <AppText variant="label" style={{ color: theme.colors.brand }}>+ Add service</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
       <AddServiceSheet

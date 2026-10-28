@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, Pressable, ScrollView, View } from 'react-native';
+import { FlatList, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
@@ -13,6 +14,7 @@ import { useProducts } from '../../hooks/shop/shop';
 import { cartCount } from '../../utils/shop/cart';
 import type { ShopCategory } from '../../types/shop/shop';
 import { Icon } from '../common/Icon';
+import { usePullToRefresh } from '../../hooks/common/use-pull-to-refresh';
 
 const CATEGORIES: { key: ShopCategory | null; label: string }[] = [
   { key: null, label: 'All' },
@@ -31,6 +33,7 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
   const [query, setQuery] = useState('');
   const q = useDebouncedValue(query.trim());
   const products = useProducts(category, q);
+  const pull = usePullToRefresh(products.refetch);
   const items = products.data?.pages.flatMap((p) => p.items) ?? [];
   const inCart = cartCount(cart.lines);
 
@@ -41,9 +44,9 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
           <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Shop</AppText>
           <Icon name="sparkles" size={20} color={theme.colors.brand} />
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={inCart ? `Cart, ${inCart} items` : 'Cart, empty'} onPress={onOpenCart} hitSlop={8} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator }}>
+        <PressableFeedback accessibilityRole="button" accessibilityLabel={inCart ? `Cart, ${inCart} items` : 'Cart, empty'} onPress={onOpenCart} hitSlop={8} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator }}>
           <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{`Cart${inCart ? ` · ${inCart}` : ''}`}</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       <View style={{ paddingHorizontal: theme.spacing.md, marginTop: 12 }}>
         <AppTextField label="Search the shop" hideLabel placeholder="Search henna, makeup, accessories" value={query} onChangeText={setQuery} autoCorrect={false} />
@@ -56,6 +59,8 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
       {products.isSuccess && !items.length ? <EmptyView message={q ? `Nothing matches “${q}”.` : 'No products here yet.'} /> : null}
       {items.length ? (
         <FlatList
+          refreshing={pull.refreshing}
+          onRefresh={pull.onRefresh}
           data={items}
           numColumns={2}
           keyExtractor={(p) => p.id}

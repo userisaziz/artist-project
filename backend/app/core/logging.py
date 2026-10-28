@@ -45,3 +45,5 @@ def configure_logging(level: str, json_lines: bool) -> None:
     root.setLevel(level)
     # Our access log replaces uvicorn's, which knows nothing about request ids.
     logging.getLogger("uvicorn.access").disabled = True
+    # httpx logs every request URL at INFO; some providers (the geocoder) take their API key in the query string.
+    logging.getLogger("httpx").setLevel(logging.WARNING)

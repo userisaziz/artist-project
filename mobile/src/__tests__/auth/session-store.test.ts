@@ -26,6 +26,22 @@ it('clear removes the refresh token and any access token left by older builds', 
   expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('ac.access_token');
 });
 
+it('remembers the profile for a fast next launch and forgets it on clear', async () => {
+  const user = { id: 'u1', phone: '+919845012345', roles: ['customer'], active_role: 'customer', is_phone_verified: true, whatsapp_booking_updates: true, is_onboarded: true };
+  await sessionStore.saveUser(user as never);
+  expect(await sessionStore.getUser()).toEqual(user);
+
+  await sessionStore.clear();
+  expect(await sessionStore.getUser()).toBeNull();
+});
+
+it('reads an unreadable stored profile as none', async () => {
+  await SecureStore.setItemAsync('ac.user', '{"id": 7}');
+  expect(await sessionStore.getUser()).toBeNull();
+  await SecureStore.setItemAsync('ac.user', 'not json');
+  expect(await sessionStore.getUser()).toBeNull();
+});
+
 describe('web fallback', () => {
   const dev = (global as { __DEV__?: boolean }).__DEV__;
   afterEach(() => {

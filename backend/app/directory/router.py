@@ -24,7 +24,12 @@ router = APIRouter(
     response_model=ArtistCardPage,
     status_code=200,
     summary="Browse and search approved artists",
-    description="Filters combine; `sort=nearest` needs `near_lat`/`near_lng`. `total` is null for a free-date search.",
+    description=(
+        "Filters combine; `sort=nearest` needs `near_lat`/`near_lng`. With a point, `city` is ignored and results "
+        "are limited to `radius_km` (sent, or widened 5 → 10 → 20 km until 3 artists match, else unlimited); "
+        "`radius_km` in the response is the radius applied and the cursor keeps it. `total` is null for a "
+        "free-date search."
+    ),
 )
 async def list_artists(
     filters: SearchFilters = Depends(search_filters),
@@ -32,8 +37,7 @@ async def list_artists(
     cursor: str | None = None,
     directory: DirectoryService = Depends(get_directory_service),
 ) -> dict:
-    items, next_cursor = await directory.list(filters, limit, cursor)
-    return {"items": items, "next_cursor": next_cursor, "total": await directory.total(filters)}
+    return await directory.search(filters, limit, cursor)
 
 
 @router.get("/{artist_id}", response_model=ArtistPublic, summary="An approved artist's public profile", status_code=200)

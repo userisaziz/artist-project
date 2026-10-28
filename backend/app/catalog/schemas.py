@@ -1,5 +1,7 @@
 """Catalog contracts: the public category tree, and the admin's categories, subcategories and service templates."""
 
+from typing import Literal
+
 from pydantic import Field
 
 from app.shared.enums import CategoryStatus
@@ -92,3 +94,15 @@ class AreaOut(ORMModel):
     name: str
     latitude: float  # the area's rough centre, for the map; never an artist's own pin
     longitude: float
+
+
+class AreaSearchResult(APIModel):
+    """A place a customer typed: a catalog area, or a geocoded place snapped to the nearest area when one is close."""
+
+    label: str  # e.g. "BTM Layout, Bangalore"
+    name: str
+    city: str | None
+    latitude: float
+    longitude: float
+    area_id: int | None  # the catalog area; None for a geocoded place far from every area
+    source: Literal["area", "geocoder"]

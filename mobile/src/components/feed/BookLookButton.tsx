@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
@@ -9,7 +9,7 @@ import { Icon } from '../common/Icon';
 export function BookLookButton({ service, onPress }: { service: NonNullable<Post['service']>; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`Book this look: ${service.name}, from ${formatPrice(service.price_paise)}`}
       onPress={onPress}
@@ -18,6 +18,6 @@ export function BookLookButton({ service, onPress }: { service: NonNullable<Post
       <Icon name="sparkles" size={14} color={theme.colors.brand} />
       <AppText variant="label" style={{ fontSize: 12.5, color: theme.colors.brand }}>{`${service.name} · from ${formatPrice(service.price_paise)}`}</AppText>
       <Icon name="chevron-right" size={14} color={theme.colors.brand} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

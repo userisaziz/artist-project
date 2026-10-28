@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -31,7 +32,7 @@ export function ArtistTile({ artist, saved, onPress, onToggleSave }: ArtistTileP
   const rated = artist.rating !== null && artist.review_count > 0;
   return (
     <View style={{ width: TILE_WIDTH }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={artist.business_name} onPress={onPress}>
+      <PressableFeedback accessibilityRole="button" accessibilityLabel={artist.business_name} onPress={onPress}>
         <View style={{ height: PHOTO_HEIGHT, borderRadius: PHOTO_RADIUS, overflow: 'hidden', backgroundColor: theme.colors.imageFallback }}>
           {artist.cover_url ? <Image source={{ uri: artist.cover_url }} style={{ flex: 1 }} contentFit="cover" transition={150} /> : null}
         </View>
@@ -49,8 +50,8 @@ export function ArtistTile({ artist, saved, onPress, onToggleSave }: ArtistTileP
             {'From '}<AppText variant="caption" style={{ fontFamily: bold, color: theme.colors.textPrimary }}>{formatPrice(artist.from_price_paise)}</AppText>
           </AppText>
         )}
-      </Pressable>
-      <Pressable
+      </PressableFeedback>
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={saved ? `Remove ${artist.business_name} from saved` : `Save ${artist.business_name}`}
         accessibilityState={{ selected: saved }}
@@ -59,7 +60,7 @@ export function ArtistTile({ artist, saved, onPress, onToggleSave }: ArtistTileP
         style={{ position: 'absolute', top: 10, right: 10, width: HEART, height: HEART, borderRadius: HEART / 2, backgroundColor: theme.colors.surface, opacity: 0.92, alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon name="heart" size={16} color={saved ? theme.colors.brand : theme.colors.textPrimary} filled={saved} />
-      </Pressable>
+      </PressableFeedback>
     </View>
   );
 }

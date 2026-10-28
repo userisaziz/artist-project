@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
@@ -28,7 +29,7 @@ export function ArtistCardView({ artist, onPress, variant = 'row' }: ArtistCardV
   const from = artist.from_price_paise === null ? null : `From ${formatPrice(artist.from_price_paise)}`;
   const tile = variant === 'tile';
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       onPress={onPress}
       style={{ width: tile ? TILE_WIDTH : undefined, borderRadius: theme.radii.card, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, overflow: 'hidden' }}
@@ -46,6 +47,6 @@ export function ArtistCardView({ artist, onPress, variant = 'row' }: ArtistCardV
         {from && !tile ? <AppText variant="label" style={{ color: theme.colors.brand }}>{from}</AppText> : null}
       </View>
       {from && tile ? <AppText variant="label" style={{ color: theme.colors.brand, paddingHorizontal: 12, paddingBottom: 12, marginTop: -4 }}>{from}</AppText> : null}
-    </Pressable>
+    </PressableFeedback>
   );
 }

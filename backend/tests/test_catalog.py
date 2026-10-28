@@ -1,5 +1,9 @@
-"""Catalog contract: the admin's service list under each subcategory, and the public category tree."""
+"""Catalog contract: the admin's service list under each subcategory, the public category tree, and areas."""
 
+from sqlalchemy import text
+
+from app.geocoder.dependencies import get_geocoder
+from app.geocoder.schemas import Place
 from tests.support.artist import complete_profile
 from tests.support.auth import admin_headers, sign_in
 from tests.support.catalog import create_category, seed_areas, seed_categories
@@ -154,3 +158,97 @@ async def test_a_pin_snaps_to_the_nearest_area_within_reach(client, engine):
     assert (near_btm.json()["name"], near_btm.json()["city"]) == ("BTM Layout", "Bangalore")
     assert far_away.status_code == 200 and far_away.json() is None  # outside every area: the artist picks by hand
     assert (await client.get(f"{AREAS}/nearest", params={"lat": 95, "lng": 77.0})).status_code == 422
+
+
+class FakeGeocoder:
+    """Stands in for the external geocoder: answers with `places` and records every search."""
+
+    def __init__(self, places: list[Place] | None = None):
+        self.places = places or []
+        self.calls: list[tuple[str, tuple[float, float] | None]] = []
+
+    async def search(self, q: str, near: tuple[float, float] | None = None) -> list[Place]:
+        self.calls.append((q, near))
+        return self.places
+
+
+async def test_area_search_answers_from_catalog_areas_first(client, engine, override):
+    await seed_areas(engine)
+    async with engine.begin() as conn:
+        for name, active in (("Banashankari", True), ("Old Banjara", True), ("Banaswadi", False)):
+            await conn.execute(
+                text(
+                    "INSERT INTO catalog_area (city, name, latitude, longitude, is_active) VALUES ('Bangalore', :n, 12.9, 77.6, :a)"
+                ),
+                {"n": name, "a": active},
+            )
+    geocoder = FakeGeocoder([Place(name="Ignored", label="Ignored", city=None, lat=1.0, lon=1.0)])
+    override(get_geocoder, lambda: geocoder)
+
+    response = await client.get(f"{AREAS}/search", params={"q": "BAN"})
+    btm = (await client.get(f"{AREAS}/search", params={"q": "btm"})).json()
+
+    assert response.status_code == 200
+    # Names starting with the query first, then by name; inactive areas never; city names don't match.
+    assert [r["name"] for r in response.json()] == ["Banashankari", "Baner", "Old Banjara"]
+    assert btm == [
+        {
+            "label": "BTM Layout, Bangalore",
+            "name": "BTM Layout",
+            "city": "Bangalore",
+            "latitude": 12.9166,
+            "longitude": 77.6101,
+            "area_id": btm[0]["area_id"],
+            "source": "area",
+        }
+    ]
+    assert isinstance(btm[0]["area_id"], int)
+    assert geocoder.calls == []  # an area matched, so the geocoder is never asked
+
+
+async def test_area_search_falls_back_to_the_geocoder_snapping_to_the_nearest_area(client, engine, override):
+    await seed_areas(engine)
+    geocoder = FakeGeocoder(
+        [
+            Place(
+                name="Udupi Garden",
+                label="Udupi Garden, BTM 2nd Stage, Bengaluru",
+                city="Bengaluru",
+                lat=12.918,
+                lon=77.612,
+            ),
+            Place(name="Nandi Hills", label="Nandi Hills, Karnataka", city=None, lat=13.37, lon=77.68),
+        ]
+    )
+    override(get_geocoder, lambda: geocoder)
+
+    response = await client.get(f"{AREAS}/search", params={"q": "udupi garden", "lat": 12.93, "lng": 77.62})
+    btm_id = (await client.get(f"{AREAS}/nearest", params={"lat": 12.9166, "lng": 77.6101})).json()["id"]
+
+    assert response.status_code == 200
+    near, far = response.json()
+    assert near == {
+        "label": "Udupi Garden, BTM 2nd Stage, Bengaluru",
+        "name": "Udupi Garden",
+        "city": "Bengaluru",
+        "latitude": 12.918,
+        "longitude": 77.612,
+        "area_id": btm_id,
+        "source": "geocoder",
+    }
+    assert (far["area_id"], far["source"], far["city"]) == (None, "geocoder", None)  # beyond every area
+    assert geocoder.calls == [("udupi garden", (12.93, 77.62))]
+
+
+async def test_area_search_with_nothing_found_is_empty(client, engine, override):
+    await seed_areas(engine)
+    override(get_geocoder, lambda: FakeGeocoder())
+
+    response = await client.get(f"{AREAS}/search", params={"q": "atlantis"})
+
+    assert (response.status_code, response.json()) == (200, [])
+
+
+async def test_area_search_validates_its_query(client):
+    for params in ({"q": "bt"}, {"q": "x" * 81}, {}, {"q": "btm", "lat": 12.9}, {"q": "btm", "lat": 95, "lng": 77}):
+        assert (await client.get(f"{AREAS}/search", params=params)).status_code == 422, params

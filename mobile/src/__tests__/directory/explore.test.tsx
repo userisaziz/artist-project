@@ -71,6 +71,17 @@ it('shows the total, a featured first artist and compact rows, recommended first
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/customer/artist/[id]', params: { id: 'a2' } });
 });
 
+it('a new filter keeps the current artists on screen until its results arrive', async () => {
+  serve((q) => (q.min_rating ? new Promise(() => {}) as never : page([AYESHA])));
+  await wrap(<Explore />);
+  await screen.findByText('Ayesha Mehendi Art');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Rated 4.8 and up' }));
+  await waitFor(() => expect(searches().at(-1)?.min_rating).toBe('4.8'));
+
+  expect(screen.getByText('Ayesha Mehendi Art')).toBeTruthy();
+});
+
 it('rating, home visit and price filters and the sort sheet go to the server', async () => {
   serve(() => page([AYESHA]));
   await wrap(<Explore />);

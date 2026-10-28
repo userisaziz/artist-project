@@ -1,5 +1,6 @@
 import { SaveButton, type SaveToggle } from '../common/SaveButton';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
 import { Photo } from '../common/Photo';
@@ -16,7 +17,7 @@ interface ArticleCardProps { post: Post; now: number; onOpen: () => void; save?:
 export function ArticleCard({ post, now, onOpen, save }: ArticleCardProps) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${post.title}, ${topicLabel(post)} by ${post.artist.business_name}`}
       onPress={onOpen}
@@ -33,6 +34,6 @@ export function ArticleCard({ post, now, onOpen, save }: ArticleCardProps) {
           {save ? <SaveButton name={post.title ?? 'this guide'} saved={save.isSaved(post.id)} onPress={() => save.toggle(post.id)} /> : null}
         </View>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

@@ -48,12 +48,21 @@ function usePatchPosts() {
   };
 }
 
-/** Likes or unlikes `post` (whichever it isn't), then shows the server's count everywhere it's cached. */
+/** Likes or unlikes `post` (whichever it isn't): flips at once everywhere it's cached, rolls back if the server
+ *  refuses, and takes the server's count once the last tap on that post settles. */
 export function useToggleLike() {
+  const client = useQueryClient();
   const patch = usePatchPosts();
   return useMutation({
     mutationFn: (post: Post) => feedApi.setLike(post.id, !post.liked),
-    onSuccess: (result, post) => patch((p) => p.id === post.id, { liked: result.liked, like_count: result.like_count }),
+    onMutate: (post) =>
+      patch((p) => p.id === post.id, { liked: !post.liked, like_count: Math.max(0, post.like_count + (post.liked ? -1 : 1)) }),
+    onError: (_error, post) => patch((p) => p.id === post.id, { liked: post.liked, like_count: post.like_count }),
+    onSuccess: (result, post) => {
+      // A quicker second tap is still in flight: its own answer wins, so an older reply can't flip the heart back.
+      if (client.isMutating({ predicate: (m) => (m.state.variables as Post | undefined)?.id === post.id }) > 1) return;
+      patch((p) => p.id === post.id, { liked: result.liked, like_count: result.like_count });
+    },
   });
 }
 
@@ -85,6 +94,15 @@ export function useToggleFollow() {
   const patch = usePatchPosts();
   return useMutation({
     mutationFn: ({ artistId, following }: { artistId: string; following: boolean }) => feedApi.setFollow(artistId, following),
+    // Flips at once on every post by the artist and their storefront; rolls back if the server refuses.
+    onMutate: ({ artistId, following }) => {
+      patch((p) => p.artist.id === artistId, { following });
+      client.setQueryData(feedKeys.follow(user?.id, artistId), { following });
+    },
+    onError: (_error, { artistId, following }) => {
+      patch((p) => p.artist.id === artistId, { following: !following });
+      client.setQueryData(feedKeys.follow(user?.id, artistId), { following: !following });
+    },
     onSuccess: (result, { artistId }) => {
       patch((p) => p.artist.id === artistId, { following: result.following });
       client.setQueryData(feedKeys.follow(user?.id, artistId), result);

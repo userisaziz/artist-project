@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -14,7 +15,7 @@ interface MenuRowProps {
 export function MenuRow({ label, onPress, detail }: MenuRowProps) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={detail ? `${label}, ${detail}` : undefined}
       onPress={onPress}
@@ -25,6 +26,6 @@ export function MenuRow({ label, onPress, detail }: MenuRowProps) {
         {detail ? <AppText style={{ color: theme.colors.textMuted }}>{detail}</AppText> : null}
         <Icon name="chevron-right" size={18} color={theme.colors.textMuted} />
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

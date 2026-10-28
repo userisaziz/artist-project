@@ -16,6 +16,12 @@ jest.mock('../../context/auth/auth-provider', () => ({
 }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, navigate: mockNavigate }) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
+const mockPosition = jest.fn();
+jest.mock('../../core/location/location', () => ({
+  ...jest.requireActual('../../core/location/location'),
+  currentPosition: () => mockPosition(),
+}));
+const { LocationError } = jest.requireActual('../../core/location/location');
 
 jest.setTimeout(20_000);
 
@@ -34,6 +40,7 @@ const CATEGORIES = [
   { id: 2, slug: 'photography', name: 'Photography', subcategories: [] },
 ];
 
+const BTM_RESULT = { label: 'BTM Layout, Bangalore', name: 'BTM Layout', city: 'Bangalore', latitude: 12.9166, longitude: 77.6101, area_id: 7, source: 'area' };
 const send = jest.spyOn(transport, 'request');
 const sent: string[] = [];
 const paths: string[] = [];
@@ -47,9 +54,11 @@ function serve(artistsStatus = 200) {
     const routes: Record<string, { status: number; json: unknown }> = {
       'GET /categories': { status: 200, json: CATEGORIES },
       'GET /cities': { status: 200, json: ['Bangalore', 'Mumbai'] },
-      'GET /artists': artistsStatus === 200 ? { status: 200, json: { items: ARTISTS, next_cursor: null } } : { status: artistsStatus, json: { detail: 'Server error' } },
+      'GET /artists': artistsStatus === 200 ? { status: 200, json: { items: ARTISTS, next_cursor: null, radius_km: req.path.includes('near_lat') ? 5 : null } } : { status: artistsStatus, json: { detail: 'Server error' } },
       'GET /saved/ids': { status: 200, json: { posts: [], artists: [], products: [] } },
       'GET /notifications/unread-count': { status: 200, json: { count: 0 } },
+      'GET /areas/nearest': { status: 200, json: { id: 7, city: 'Bangalore', name: 'BTM Layout', latitude: 12.9166, longitude: 77.6101 } },
+      'GET /areas/search': { status: 200, json: [BTM_RESULT] },
     };
     return (routes[key] ?? { status: 204, json: null }) as { status: number; json: unknown };
   });
@@ -63,6 +72,8 @@ beforeEach(() => {
   send.mockReset();
   mockPush.mockReset();
   mockNavigate.mockReset();
+  mockPosition.mockReset();
+  mockPosition.mockRejectedValue(new LocationError('denied')); // most tests: the customer said no
 });
 afterEach(() => client.clear());
 afterAll(() => send.mockRestore());
@@ -93,7 +104,7 @@ it('links to explore, the shop and messages', async () => {
   await wrap(<CustomerHome />);
 
   await fireEvent.press(await screen.findByRole('button', { name: 'See all artists' }));
-  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/customer/explore', params: {} });
+  expect(mockNavigate).toHaveBeenCalledWith('/customer/explore');
   await fireEvent.press(screen.getByRole('button', { name: 'Open the GetReady Shop' }));
   expect(mockNavigate).toHaveBeenCalledWith('/customer/shop');
   await fireEvent.press(screen.getByRole('button', { name: 'Messages' }));
@@ -108,18 +119,36 @@ it('shows the error state when artists cannot load', async () => {
   expect(screen.queryByLabelText('Top rated artists')).toBeNull();
 });
 
-it('asks for a city on the first visit, then shows only that city’s artists', async () => {
+it('on landing, finds the customer from the phone and lists artists within the radius around their area', async () => {
+  mockPosition.mockResolvedValue({ latitude: 12.917, longitude: 77.61 });
   serve();
   await wrap(<CustomerHome />);
 
-  expect(await screen.findByText('See artists near you')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Choose city' }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Mumbai' }));
+  expect(await screen.findByRole('button', { name: 'Location: BTM Layout, Bangalore. Change' })).toBeTruthy();
+  expect(await screen.findByText('Artists within 5 km of BTM Layout, Bangalore')).toBeTruthy();
+  const nearby = paths.filter((p) => p.startsWith('/artists') && p.includes('near_lat=12.917'));
+  expect(nearby.length).toBeGreaterThan(0);
+  expect(nearby[0]).toContain('sort=nearest');
+  expect(nearby[0]).not.toContain('city=');
+});
 
-  expect(await screen.findByRole('button', { name: 'Location: Mumbai. Change city' })).toBeTruthy();
-  expect(screen.queryByText('See artists near you')).toBeNull();
-  await waitFor(() => expect(paths.some((p) => p.startsWith('/artists') && p.includes('city=Mumbai'))).toBe(true));
+it('when location is refused, says so and lets the customer search their area instead', async () => {
+  serve();
+  await wrap(<CustomerHome />);
 
-  await fireEvent.press(screen.getByRole('button', { name: 'See all artists' }));
-  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/customer/explore', params: { city: 'Mumbai' } });
+  expect(await screen.findByText(/Allow location access in Settings, or search your area/)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Search your area' }));
+  await fireEvent.changeText(await screen.findByLabelText('Search your area'), 'btm');
+  await fireEvent.press(await screen.findByRole('button', { name: 'BTM Layout, Bangalore' }, { timeout: 2000 }));
+
+  expect(await screen.findByRole('button', { name: 'Location: BTM Layout, Bangalore. Change' })).toBeTruthy();
+  await waitFor(() => expect(paths.some((p) => p.startsWith('/artists') && p.includes('near_lat=12.9166'))).toBe(true));
+});
+
+it('a permanent refusal offers Settings', async () => {
+  mockPosition.mockRejectedValue(new LocationError('blocked'));
+  serve();
+  await wrap(<CustomerHome />);
+
+  expect(await screen.findByRole('button', { name: 'Open Settings' })).toBeTruthy();
 });

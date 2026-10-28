@@ -9,6 +9,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { useArtistEnquiries, useEnquirySummary } from '../../hooks/quotes/quotes';
 import { ARTIST_ENQUIRY_PILL, customerShortName } from '../../utils/quotes/status';
 import type { ArtistEnquiryScope } from '../../types/quotes/quotes';
+import { usePullToRefresh } from '../../hooks/common/use-pull-to-refresh';
 
 const EMPTY: Record<ArtistEnquiryScope, string> = {
   open: 'No new enquiries. Customers can ask for a quote from your page.',
@@ -24,6 +25,7 @@ export function ArtistEnquiries({ onOpen }: { onOpen: (id: string) => void }) {
   const insets = useSafeAreaInsets();
   const [scope, setScope] = useState<ArtistEnquiryScope>('open');
   const enquiries = useArtistEnquiries(scope);
+  const pull = usePullToRefresh(enquiries.refetch);
   const summary = useEnquirySummary();
   const items = enquiries.data?.pages.flatMap((p) => p.items) ?? [];
   const options: { key: ArtistEnquiryScope; label: string }[] = [
@@ -41,6 +43,8 @@ export function ArtistEnquiries({ onOpen }: { onOpen: (id: string) => void }) {
       {enquiries.isError && !enquiries.data ? <ErrorView error={enquiries.error} onRetry={() => { void enquiries.refetch(); }} /> : null}
       {enquiries.isSuccess && !items.length ? <View style={{ marginTop: 12 }}><EmptyView message={EMPTY[scope]} /></View> : null}
       <FlatList
+        refreshing={pull.refreshing}
+        onRefresh={pull.onRefresh}
         data={items}
         keyExtractor={(e) => e.id}
         contentContainerStyle={{ paddingVertical: 12, gap: 10, paddingBottom: insets.bottom + theme.spacing.xl }}

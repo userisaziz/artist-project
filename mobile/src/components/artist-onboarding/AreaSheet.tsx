@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { BottomSheet } from '../common/BottomSheet';
@@ -28,7 +29,7 @@ export function AreaSheet({ visible, city, areas, selectedId, onPick, onClose }:
       <AppTextField label="Search area" hideLabel placeholder="Search area" value={query} onChangeText={setQuery} autoCorrect={false} />
       <View style={{ marginTop: 12 }}>
         {shown.length ? shown.map((a) => (
-          <Pressable
+          <PressableFeedback
             key={a.id}
             accessibilityRole="button"
             accessibilityState={{ selected: a.id === selectedId }}
@@ -37,7 +38,7 @@ export function AreaSheet({ visible, city, areas, selectedId, onPick, onClose }:
           >
             <AppText variant="body" style={{ color: a.id === selectedId ? theme.colors.brand : theme.colors.textPrimary }}>{a.name}</AppText>
             {a.id === selectedId ? <Icon name="check" size={18} color={theme.colors.brand} /> : null}
-          </Pressable>
+          </PressableFeedback>
         )) : (
           <AppText variant="body" style={{ color: theme.colors.textMuted }}>
             {needle ? 'No area by that name yet. Pick the nearest one, or contact support to add yours.' : 'No areas listed for this city yet.'}

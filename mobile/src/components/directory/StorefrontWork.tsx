@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Photo } from '../common/Photo';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -27,14 +28,14 @@ export function StorefrontWork({ photos }: StorefrontWorkProps) {
           <View key={p.id} style={{ width: TILE_WIDTH, aspectRatio: TILE_RATIO, borderRadius: theme.radii.md, overflow: 'hidden' }}>
             <Photo uri={p.thumb_url} label={`Work photo ${i + 1}`} style={{ width: '100%', height: '100%' }} />
             {last ? (
-              <Pressable
+              <PressableFeedback
                 accessibilityRole="button"
                 accessibilityLabel={`See all ${photos.length} photos`}
                 onPress={() => setExpanded(true)}
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.overlay }}
               >
                 <AppText variant="label" style={{ color: theme.colors.textOnBrand }}>{`See all ${photos.length}`}</AppText>
-              </Pressable>
+              </PressableFeedback>
             ) : null}
           </View>
         );

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -32,7 +33,7 @@ function RequirementStrip({ item, onPress }: { item: PendingRequirement; onPress
     : `${item.title} by ${formatDay(istDateKey(item.due_at))} to stay visible to clients.`;
   const ink = item.overdue ? theme.colors.error : theme.colors.pendingInk;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${message} Complete now`}
       onPress={onPress}
@@ -47,6 +48,6 @@ function RequirementStrip({ item, onPress }: { item: PendingRequirement; onPress
         <AppText variant="caption" style={{ color: ink, fontWeight: '700', marginTop: 4 }}>Complete now</AppText>
       </View>
       <Icon name="chevron-right" size={18} color={ink} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

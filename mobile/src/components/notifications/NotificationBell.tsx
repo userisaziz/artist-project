@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -14,7 +15,7 @@ export function NotificationBell({ onPress }: { onPress: () => void }) {
   const unread = useUnreadCount().data ?? 0;
   const label = unread ? `Notifications, ${unread} unread` : 'Notifications';
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
@@ -26,6 +27,6 @@ export function NotificationBell({ onPress }: { onPress: () => void }) {
           <AppText variant="caption" style={{ fontSize: 10, lineHeight: 12, color: theme.colors.textOnBrand }}>{unread > MAX_SHOWN ? `${MAX_SHOWN}+` : String(unread)}</AppText>
         </View>
       ) : null}
-    </Pressable>
+    </PressableFeedback>
   );
 }

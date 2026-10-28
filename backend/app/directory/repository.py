@@ -1,16 +1,17 @@
 """Queries behind the public directory: approved artists, their categories, completed-booking counts."""
 
 import uuid
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
+from dataclasses import replace
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, Row, Select, func, null, or_, select
+from sqlalchemy import ColumnElement, Row, Select, and_, case, func, null, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import raiseload
 
 from app.artist.models import ArtistProfile, ArtistServiceItem, artist_categories
 from app.booking.models import Booking
-from app.catalog.models import Category, ServiceTemplate
+from app.catalog.models import Area, Category, ServiceTemplate
 from app.directory.constants import (
     RECOMMENDED_PRIOR_RATING,
     RECOMMENDED_PRIOR_REVIEWS,
@@ -26,6 +27,11 @@ from app.shared.search import like_pattern
 
 # Approval time; created_at stands in if an approved row somehow lacks it, so paging never meets a NULL.
 LISTED_AT = func.coalesce(ArtistProfile.reviewed_at, ArtistProfile.created_at)
+
+# Where an artist is on the map: their own pin, else the centre of the area they picked (NULL with neither).
+_PINNED = and_(ArtistProfile.latitude.is_not(None), ArtistProfile.longitude.is_not(None))
+ARTIST_LAT = case((_PINNED, ArtistProfile.latitude), else_=Area.latitude)
+ARTIST_LNG = case((_PINNED, ArtistProfile.longitude), else_=Area.longitude)
 
 
 class SearchColumns(NamedTuple):
@@ -62,9 +68,7 @@ class DirectoryRepository:
             .group_by(ArtistServiceItem.artist_id)
             .subquery()
         )
-        distance = (
-            distance_km(ArtistProfile.latitude, ArtistProfile.longitude, *filters.near) if filters.near else null()
-        )
+        distance = distance_km(ARTIST_LAT, ARTIST_LNG, *filters.near) if filters.near else null()
         query = (
             select(ArtistProfile, LISTED_AT, distance)
             .outerjoin(ratings, ratings.c.artist_id == ArtistProfile.id)
@@ -72,7 +76,12 @@ class DirectoryRepository:
             .where(publicly_visible())
             .options(raiseload(ArtistProfile.kyc))
         )
-        if filters.city:
+        if filters.near:
+            # A point replaces the city: "near me" crosses city lines.
+            query = query.outerjoin(Area, Area.id == ArtistProfile.area_id)
+            if filters.radius_km is not None:
+                query = query.where(distance <= filters.radius_km)
+        elif filters.city:
             query = query.where(ArtistProfile.city == filters.city)
         if filters.category_id is not None:
             query = query.where(
@@ -128,6 +137,13 @@ class DirectoryRepository:
     async def count(self, filters: SearchFilters) -> int:
         query, _ = self._search(filters)
         return (await self.session.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
+
+    async def count_within(self, filters: SearchFilters, radii_km: Sequence[float]) -> list[int]:
+        """How many artists match `filters` within each of `radii_km` of `filters.near`, in one query."""
+        query, c = self._search(replace(filters, radius_km=None))
+        found = query.add_columns(c.distance.label("distance_km")).subquery()
+        counts = [func.count().filter(found.c.distance_km <= radius) for radius in radii_km]
+        return list((await self.session.execute(select(*counts))).one())
 
     async def approved(self, artist_id: uuid.UUID) -> ArtistProfile | None:
         return (

@@ -1,4 +1,5 @@
-import { Pressable, TextInput, View, Modal, FlatList } from 'react-native';
+import { TextInput, View, Modal, FlatList } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { useState } from 'react';
 import { useTheme } from '../../core/theme/theme-provider';
 import { AppText } from './AppText';
@@ -55,9 +56,9 @@ export function PhoneInput({ value, onChange, error = false, autoFocus = false }
           flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3], paddingHorizontal: theme.spacing[3.5],
         }}
       >
-        <Pressable testID="country-code-chip" accessibilityLabel={`Country code ${country.code}`} onPress={() => setPickerOpen(true)} hitSlop={theme.spacing.sm}>
+        <PressableFeedback testID="country-code-chip" accessibilityLabel={`Country code ${country.code}`} onPress={() => setPickerOpen(true)} hitSlop={theme.spacing.sm}>
           <AppText variant="phone" style={{ color: theme.colors.textPrimary }}>{country.code}</AppText>
-        </Pressable>
+        </PressableFeedback>
         <View style={{ width: 1, height: 22, backgroundColor: theme.colors.separator }} />
         <TextInput
           testID="phone-national"
@@ -80,23 +81,23 @@ export function PhoneInput({ value, onChange, error = false, autoFocus = false }
       </View>
       </FieldHalo>
       <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }} onPress={() => setPickerOpen(false)}>
+        <PressableFeedback feedback={false} style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }} onPress={() => setPickerOpen(false)}>
           <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radii.card, borderTopRightRadius: theme.radii.card, padding: theme.spacing.md, maxHeight: 420 }}>
             <FlatList
               data={COUNTRIES}
               keyExtractor={(c) => c.code}
               renderItem={({ item }) => (
-                <Pressable
+                <PressableFeedback
                   onPress={() => { emit(item.code, national); setPickerOpen(false); }}
                   style={{ paddingVertical: theme.spacing.sm, flexDirection: 'row', justifyContent: 'space-between' }}
                 >
                   <AppText variant="body" style={{ color: theme.colors.textPrimary }}>{item.name}</AppText>
                   <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{item.code}</AppText>
-                </Pressable>
+                </PressableFeedback>
               )}
             />
           </View>
-        </Pressable>
+        </PressableFeedback>
       </Modal>
     </View>
   );

@@ -29,6 +29,38 @@ export interface ArtistCardPage {
   items: ArtistCard[];
   next_cursor: string | null;
   total: number | null;
+  /** The radius applied around near_lat/near_lng (the server widens 5, 10, 20 km until a few artists match); null
+   *  without a point or when it had to drop the limit. */
+  radius_km?: number | null;
+}
+
+/** GET /areas/search: one of our areas ("area") or, when none match, a place from the geocoder ("geocoder"),
+ *  matched to the nearest of our areas when there is one. The coordinates are the search point either way. */
+export interface PlaceResult {
+  label: string; // "BTM Layout, Bangalore"
+  name: string;
+  city: string | null;
+  latitude: number;
+  longitude: number;
+  area_id: number | null;
+  source: 'area' | 'geocoder';
+}
+
+/** GET /areas/nearest: the named area a point falls in. */
+export interface NearbyArea {
+  id: number;
+  city: string;
+  name: string;
+}
+
+/** Where the customer is looking for artists: from the phone (gps), a searched area or place (search), or a whole
+ *  city from a `?city=` link (city, no point). */
+export interface CustomerPlace {
+  label: string; // "BTM Layout, Bangalore", or the city
+  city: string | null;
+  areaId: number | null;
+  coords: { latitude: number; longitude: number } | null;
+  source: 'gps' | 'search' | 'city';
 }
 
 export type DirectorySort = 'recent' | 'recommended' | 'rating' | 'price' | 'nearest';

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { Photo } from '../common/Photo';
@@ -27,7 +28,7 @@ export function StorefrontServiceRow({ service, mostBooked, onOpen }: Storefront
   const theme = useTheme();
   const price = formatPrice(service.price_paise);
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole={onOpen ? 'button' : undefined}
       accessibilityLabel={[service.name, mostBooked ? 'most booked' : null, price].filter(Boolean).join(', ')}
       disabled={!onOpen}
@@ -68,6 +69,6 @@ export function StorefrontServiceRow({ service, mostBooked, onOpen }: Storefront
           ) : null}
         </View>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

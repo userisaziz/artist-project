@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -34,7 +35,7 @@ export function AddonPicker({ addons, picks, onChange }: AddonPickerProps) {
         const price = `+${formatPrice(a.price_paise)}${a.per_person ? ' / person' : ''}`;
         return (
           <View key={a.id} style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderTopWidth: i ? 1 : 0, borderTopColor: theme.colors.separator }}>
-            <Pressable
+            <PressableFeedback
               accessibilityRole="checkbox"
               accessibilityLabel={`${a.name}, ${price}`}
               accessibilityState={{ checked: on }}
@@ -46,7 +47,7 @@ export function AddonPicker({ addons, picks, onChange }: AddonPickerProps) {
               </View>
               <AppText variant="label" style={{ flex: 1, color: theme.colors.textPrimary }}>{a.name}</AppText>
               <AppText variant="label" style={{ color: theme.colors.brand }}>{price}</AppText>
-            </Pressable>
+            </PressableFeedback>
             {on && a.per_person ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: BOX + 12 }}>
                 <StepButton icon="minus" label={`Fewer guests for ${a.name}`} enabled={guests > 1} onPress={() => setGuests(a.id, guests - 1)} />
@@ -64,7 +65,7 @@ export function AddonPicker({ addons, picks, onChange }: AddonPickerProps) {
 function StepButton({ icon, label, enabled, onPress }: { icon: 'minus' | 'plus'; label: string; enabled: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !enabled }}
@@ -74,6 +75,6 @@ function StepButton({ icon, label, enabled, onPress }: { icon: 'minus' | 'plus';
       style={{ width: STEP, height: STEP, borderRadius: STEP / 2, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center', opacity: enabled ? 1 : 0.4 }}
     >
       <Icon name={icon} size={14} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

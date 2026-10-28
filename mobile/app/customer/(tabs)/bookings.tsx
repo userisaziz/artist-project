@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
@@ -12,6 +13,7 @@ import { useCustomerBookings } from '../../../src/hooks/bookings/bookings';
 import { STATUS_PILL } from '../../../src/utils/bookings/status';
 import { formatWhen } from '../../../src/utils/common/time';
 import type { Booking, CustomerBookingScope } from '../../../src/types/bookings/bookings';
+import { usePullToRefresh } from '../../../src/hooks/common/use-pull-to-refresh';
 
 const SCOPES: { key: CustomerBookingScope; label: string }[] = [
   { key: 'upcoming', label: 'Upcoming' },
@@ -25,6 +27,7 @@ export default function CustomerBookings() {
   const insets = useSafeAreaInsets();
   const [scope, setScope] = useState<CustomerBookingScope>('upcoming');
   const list = useCustomerBookings(scope);
+  const pull = usePullToRefresh(list.refetch);
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
@@ -34,6 +37,8 @@ export default function CustomerBookings() {
         <Segmented options={SCOPES} value={scope} onChange={setScope} />
       </View>
       <FlatList
+        refreshing={pull.refreshing}
+        onRefresh={pull.onRefresh}
         data={items}
         keyExtractor={(b) => b.id}
         contentContainerStyle={{ padding: theme.spacing.md, gap: 12 }}
@@ -54,7 +59,7 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
   const theme = useTheme();
   const pill = STATUS_PILL[booking.status];
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, padding: 14, gap: 10 }}>
+    <PressableFeedback accessibilityRole="button" onPress={onPress} style={{ borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, padding: 14, gap: 10 }}>
       <StatusPill label={pill.label} tone={pill.tone} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Avatar uri={booking.artist.photo_url} name={booking.artist.business_name} size={44} />
@@ -66,7 +71,7 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <AppText variant="label" style={{ color: theme.colors.textSecondary }}>{formatWhen(booking.start_at)}</AppText>
         {booking.can_review ? (
-          <Pressable
+          <PressableFeedback
             accessibilityRole="button"
             accessibilityLabel={`Review ${booking.service_name}`}
             onPress={onPress}
@@ -74,9 +79,9 @@ function BookingCard({ booking, onPress }: { booking: Booking; onPress: () => vo
             style={{ height: 32, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: theme.colors.brandSoft }}
           >
             <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}>Rate it</AppText>
-          </Pressable>
+          </PressableFeedback>
         ) : null}
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -15,7 +16,7 @@ const BUTTON_RADIUS = 10;
 export function ShopBanner({ onPress }: ShopBannerProps) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`Open the ${brand.name} Shop`}
       onPress={onPress}
@@ -29,6 +30,6 @@ export function ShopBanner({ onPress }: ShopBannerProps) {
         <AppText variant="label" style={{ color: theme.colors.textOnBrand }}>Shop now</AppText>
         <Icon name="chevron-right" size={14} color={theme.colors.textOnBrand} />
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

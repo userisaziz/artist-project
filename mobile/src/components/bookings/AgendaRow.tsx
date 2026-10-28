@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { StatusPill } from '../common/StatusPill';
@@ -27,7 +28,7 @@ export function AgendaRow({ booking, showDate = false, complete, onPress }: Agen
   const bar = booking.status === 'requested' ? theme.colors.pendingDot : booking.status === 'confirmed' ? theme.colors.accent : theme.colors.border;
   return (
     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, padding: 12, gap: 10 }}>
-      <Pressable
+      <PressableFeedback
         accessibilityRole={onPress ? 'button' : undefined}
         accessibilityLabel={onPress ? `Open booking ${name}, ${booking.service_name}` : undefined}
         disabled={!onPress}
@@ -44,7 +45,7 @@ export function AgendaRow({ booking, showDate = false, complete, onPress }: Agen
           <AppText variant="caption" style={{ color: theme.colors.textMuted }} numberOfLines={1}>{`${booking.service_name} · ${formatMaybePrice(booking.artist_earning_paise)}`}</AppText>
         </View>
         <StatusPill label={pill.label} tone={pill.tone} />
-      </Pressable>
+      </PressableFeedback>
       {complete ? (
         <>
           <AppButton

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
@@ -40,7 +41,7 @@ export function RequestCard({ booking, now, busy, error, onAccept, onDecline, on
   );
   return (
     <View style={{ borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface, overflow: 'hidden' }}>
-      <Pressable
+      <PressableFeedback
         accessibilityRole={onOpen ? 'button' : undefined}
         accessibilityLabel={onOpen ? `Open request from ${name}` : undefined}
         disabled={!onOpen}
@@ -53,7 +54,7 @@ export function RequestCard({ booking, now, busy, error, onAccept, onDecline, on
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{booking.code}</AppText>
         </View>
         <Countdown deadline={booking.expires_at} now={now} />
-      </Pressable>
+      </PressableFeedback>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14 }}>
         {cell('Service', booking.service_name)}
         {cell('When', formatWhen(booking.start_at))}

@@ -125,11 +125,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return pendingRefresh.current;
   }, [runRefresh]);
 
+  /** The profile saved at the last sign-in, only while its refresh token is still stored. */
+  const readRemembered = useCallback(async (): Promise<User | null> => {
+    try {
+      return (await sessionStore.getRefreshToken()) ? await sessionStore.getUser() : null;
+    } catch {
+      return null; // storage hiccup: the cold start waits for the refresh, as without a remembered profile
+    }
+  }, []);
+
   const restore = useCallback(async () => {
-    const result = await sharedRefresh();
-    // refreshed / signed-out / superseded have already set their status; only a transient failure needs a screen.
-    if (result.kind === 'transient') setStatus('unavailable');
-  }, [sharedRefresh]);
+    const epoch = epochRef.current;
+    const remembered = await readRemembered();
+    // Start the refresh before opening the app, so the first screens' requests wait on it (pendingRefresh).
+    const refreshing = sharedRefresh();
+    const opened = !!remembered && epochRef.current === epoch;
+    if (opened) {
+      setUser(remembered);
+      setStatus('authenticated');
+    }
+    const result = await refreshing;
+    // refreshed / signed-out / superseded have already set their status. A transient failure needs a screen only
+    // when nothing was opened: with a remembered profile the app stays open and each screen offers its own retry.
+    if (result.kind === 'transient' && !opened) setStatus('unavailable');
+  }, [readRemembered, sharedRefresh]);
+
+  // Remember the profile for the next cold start. Only a speed-up: if the write fails, that start waits for the
+  // refresh as before, so there is nothing to show the user.
+  useEffect(() => {
+    if (status !== 'authenticated' || !user) return;
+    sessionStore.saveUser(user).catch(() => undefined);
+  }, [status, user]);
 
   useEffect(() => {
     configureSessionBridge({
@@ -139,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await sharedRefresh();
         return result.kind === 'refreshed' ? result.pair : null;
       },
+      pendingRefresh: () => pendingRefresh.current,
       onUnauthorized: () => {
         signOut().catch(() => {
           // Local state is already signed out (resetLocalSession runs first); only the token delete can fail here,

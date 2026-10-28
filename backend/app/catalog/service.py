@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.catalog.constants import NEAREST_AREA_MAX_KM
+from app.catalog.constants import AREA_SEARCH_LIMIT, NEAREST_AREA_MAX_KM
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.catalog.repository import (
     AreaRepository,
@@ -18,6 +18,7 @@ from app.catalog.repository import (
 )
 from app.catalog.schemas import CategoryIn, CategoryPatch
 from app.core.exceptions import ConflictError, ValidationError
+from app.geocoder import service as geocoder_service
 from app.shared.enums import CategoryStatus
 
 
@@ -120,13 +121,47 @@ class CategoryService:
 
 
 class AreaService:
-    """The areas of each city, and which one a dropped pin is in."""
+    """The areas of each city, which one a dropped pin is in, and what a typed place name points at."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, geocoder: geocoder_service.Geocoder | None = None):
         self.areas = AreaRepository(session)
+        self.geocoder = geocoder or geocoder_service.NoGeocoder()
 
     async def in_city(self, city: str) -> Sequence[Area]:
         return await self.areas.in_city(city)
 
     async def nearest(self, lat: float, lng: float) -> Area | None:
         return await self.areas.nearest(lat, lng, NEAREST_AREA_MAX_KM)
+
+    async def search(self, q: str, near: tuple[float, float] | None = None) -> list[dict]:
+        """Catalog areas named like `q` when there are any (the geocoder isn't asked); otherwise the geocoder's
+        places, each snapped to the nearest area within NEAREST_AREA_MAX_KM."""
+        areas = await self.areas.named_like(q, AREA_SEARCH_LIMIT)
+        if areas:
+            return [
+                {
+                    "label": f"{a.name}, {a.city}",
+                    "name": a.name,
+                    "city": a.city,
+                    "latitude": a.latitude,
+                    "longitude": a.longitude,
+                    "area_id": a.id,
+                    "source": "area",
+                }
+                for a in areas
+            ]
+        results = []
+        for place in (await self.geocoder.search(q, near))[:AREA_SEARCH_LIMIT]:
+            area = await self.areas.nearest(place.lat, place.lon, NEAREST_AREA_MAX_KM)
+            results.append(
+                {
+                    "label": place.label,
+                    "name": place.name,
+                    "city": place.city,
+                    "latitude": place.lat,
+                    "longitude": place.lon,
+                    "area_id": area.id if area else None,
+                    "source": "geocoder",
+                }
+            )
+        return results

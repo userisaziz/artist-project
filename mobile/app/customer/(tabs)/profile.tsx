@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
@@ -21,8 +22,9 @@ export default function CustomerProfile() {
   const { user, chooseRole, signOut } = useAuth();
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'You';
-  const isArtist = !!user?.roles.includes('artist');
+  // Plain checks, not optional chains inside `||` / `!!`: the React Compiler can't memoize this screen around those.
+  const name = (user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : '') || 'You';
+  const isArtist = user ? user.roles.includes('artist') : false;
 
   const switchSide = async () => {
     if (switching) return;
@@ -56,7 +58,7 @@ export default function CustomerProfile() {
         <MenuRow label="Help & support" onPress={() => router.push('/customer/support')} />
       </View>
 
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         onPress={() => { void switchSide(); }}
         disabled={switching}
@@ -67,12 +69,12 @@ export default function CustomerProfile() {
           <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{isArtist ? 'Manage your bookings with the same account' : `Offer your services on ${brand.name}`}</AppText>
         </View>
         <Icon name="arrow-left-right" size={20} color={theme.colors.brand} />
-      </Pressable>
+      </PressableFeedback>
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: 8 }}>{error}</AppText> : null}
 
-      <Pressable accessibilityRole="button" onPress={() => { void signOut(); }} style={{ marginTop: 24, alignSelf: 'center', padding: 12 }}>
+      <PressableFeedback accessibilityRole="button" onPress={() => { void signOut(); }} style={{ marginTop: 24, alignSelf: 'center', padding: 12 }}>
         <AppText variant="button" style={{ color: theme.colors.brand }}>Log out</AppText>
-      </Pressable>
+      </PressableFeedback>
       <DeleteAccountButton />
     </ScrollView>
   );

@@ -112,7 +112,8 @@ async def test_near_a_point_sorts_by_distance_and_shows_it(client, engine):
     admin = await admin_headers(client, engine)
     far = await approved_artist(client, engine, "+919845073001", admin, name="Indiranagar")
     near = await approved_artist(client, engine, "+919845073002", admin, name="Jayanagar")
-    await approved_artist(client, engine, "+919845073003", admin, name="Unplaced")
+    unplaced = await approved_artist(client, engine, "+919845073003", admin, name="Unplaced")
+    await sql(engine, "update artist_profile set area_id = null where id = :id", id=unplaced["id"])  # no area either
     await place(engine, far, INDIRANAGAR)
     await place(engine, near, JAYANAGAR)
 
@@ -139,3 +140,109 @@ async def test_available_on_keeps_artists_with_a_free_slot_that_day(client, engi
     assert body["items"][0]["free_on"] == day.isoformat()
     assert body["total"] is None  # not counted: checking every artist's slots is too costly
     assert free["id"] == body["items"][0]["id"]
+
+
+KM_PER_DEGREE_LAT = 111.195
+
+
+def north(km: float) -> tuple[float, float]:
+    """A point `km` due north of Koramangala's centre."""
+    return (KORAMANGALA[0] + km / KM_PER_DEGREE_LAT, KORAMANGALA[1])
+
+
+NEAR_KORAMANGALA = f"near_lat={KORAMANGALA[0]}&near_lng={KORAMANGALA[1]}"
+
+
+async def placed(client, engine, admin, phone: str, name: str, km: float) -> dict:
+    artist = await approved_artist(client, engine, phone, admin, name=name)
+    await place(engine, artist, north(km))
+    return artist
+
+
+async def test_radius_km_keeps_only_artists_that_close(client, engine):
+    admin = await admin_headers(client, engine)
+    await placed(client, engine, admin, "+919845075001", "Two", 2)
+    await placed(client, engine, admin, "+919845075002", "Seven", 7)
+    await placed(client, engine, admin, "+919845075003", "Thirty", 30)
+
+    body = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&radius_km=8")
+    assert (names(body), body["total"], body["radius_km"]) == (["Two", "Seven"], 2, 8.0)
+    assert names(await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&radius_km=3")) == ["Two"]
+    for bad in ("0", "-1", "51"):
+        assert (await client.get(f"/api/v1/artists?{NEAR_KORAMANGALA}&radius_km={bad}")).status_code == 422
+    # Without a point there is no radius: the parameter is ignored.
+    plain = await search(client, "?radius_km=3")
+    assert (plain["total"], plain["radius_km"]) == (3, None)
+
+
+async def test_an_artist_without_a_pin_is_placed_at_their_area_centre(client, engine):
+    admin = await admin_headers(client, engine)
+    await approved_artist(client, engine, "+919845076001", admin, name="AreaOnly")  # Koramangala, no pin
+    btm = "near_lat=12.9166&near_lng=77.6101"  # BTM Layout's centre, ~2.6 km from Koramangala's
+
+    body = await search(client, f"?sort=nearest&{btm}&radius_km=3")
+    assert names(body) == ["AreaOnly"]
+    assert 2.2 <= body["items"][0]["distance_km"] <= 3
+    assert names(await search(client, f"?sort=nearest&{btm}&radius_km=2")) == []
+
+
+async def test_without_a_radius_the_search_widens_until_three_artists_match(client, engine):
+    admin = await admin_headers(client, engine)
+    await placed(client, engine, admin, "+919845077001", "Two", 2)
+    await placed(client, engine, admin, "+919845077002", "Seven", 7)
+    await placed(client, engine, admin, "+919845077003", "Eight", 8)
+    await placed(client, engine, admin, "+919845077004", "Fifteen", 15)
+
+    body = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}")  # 5 km has one; 10 km has three
+    assert (names(body), body["total"], body["radius_km"]) == (["Two", "Seven", "Eight"], 3, 10.0)
+
+
+async def test_with_too_few_artists_even_at_20_km_no_radius_applies(client, engine):
+    admin = await admin_headers(client, engine)
+    await placed(client, engine, admin, "+919845078001", "Two", 2)
+    await placed(client, engine, admin, "+919845078002", "Thirty", 30)
+
+    body = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}")
+    assert (names(body), body["total"], body["radius_km"]) == (["Two", "Thirty"], 2, None)
+
+
+async def test_a_point_ignores_the_city_filter(client, engine):
+    admin = await admin_headers(client, engine)
+    await placed(client, engine, admin, "+919845079001", "Local", 1)
+    over_the_line = await placed(client, engine, admin, "+919845079002", "OverTheLine", 2)
+    await sql(engine, "update artist_profile set city = 'Hosur' where id = :id", id=over_the_line["id"])
+
+    near = await search(client, f"?city=Bangalore&sort=nearest&{NEAR_KORAMANGALA}&radius_km=5")
+    assert names(near) == ["Local", "OverTheLine"]
+    assert names(await search(client, "?city=Bangalore")) == ["Local"]  # without a point the city still applies
+
+
+async def test_later_pages_keep_the_first_pages_radius(client, engine):
+    admin = await admin_headers(client, engine)
+    await placed(client, engine, admin, "+919845070101", "One", 1)
+    await placed(client, engine, admin, "+919845070102", "Two", 2)
+    await placed(client, engine, admin, "+919845070103", "Six", 6)
+    await placed(client, engine, admin, "+919845070104", "Seven", 7)
+    mover = await placed(client, engine, admin, "+919845070105", "Mover", 30)
+
+    first = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&limit=2")  # 5 km has two; 10 km has four
+    assert (names(first), first["radius_km"], first["total"]) == (["One", "Two"], 10.0, 4)
+    # Widening afresh would now stop at 5 km (three within it); the cursor keeps 10 km.
+    await place(engine, mover, north(3))
+    rest = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&limit=2&cursor={first['next_cursor']}")
+    assert (names(rest), rest["radius_km"], rest["total"]) == (["Mover", "Six"], 10.0, 5)
+    last = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&limit=2&cursor={rest['next_cursor']}")
+    assert (names(last), last["next_cursor"]) == (["Seven"], None)
+
+    # A radius the client sent is carried the same way, even when later pages don't resend it.
+    sent = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&radius_km=2.5&limit=1")
+    assert (names(sent), sent["radius_km"]) == (["One"], 2.5)
+    after = await search(client, f"?sort=nearest&{NEAR_KORAMANGALA}&limit=1&cursor={sent['next_cursor']}")
+    assert (names(after), after["radius_km"], after["next_cursor"]) == (["Two"], 2.5, None)
+
+    # The default order (most recently approved) pages by keyset inside the same wrapper.
+    recent = await search(client, f"?{NEAR_KORAMANGALA}&radius_km=20&limit=3")
+    more = await search(client, f"?{NEAR_KORAMANGALA}&limit=3&cursor={recent['next_cursor']}")
+    assert (len(recent["items"]), len(more["items"]), more["radius_km"]) == (3, 2, 20.0)
+    bad = await client.get(f"/api/v1/artists?{NEAR_KORAMANGALA}&cursor=bmVhcnx4fG9mZnNldHwy")  # near|x|offset|2
+    assert bad.status_code == 422

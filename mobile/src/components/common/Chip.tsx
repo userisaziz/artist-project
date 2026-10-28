@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -7,7 +7,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
       onPress={onPress}
@@ -20,6 +20,6 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
     >
       {selected ? <Icon name="check" size={14} color={theme.colors.textOnBrand} /> : null}
       <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{label}</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }

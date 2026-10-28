@@ -27,6 +27,7 @@ class ArtistCardPage(APIModel):
     items: list[ArtistCard]
     next_cursor: str | None
     total: int | None = None  # every match across pages; None when not counted (free-date search, saved lists)
+    radius_km: float | None = None  # near a point: the radius applied; None without a point or with no limit
 
 
 class PublicPhoto(APIModel):

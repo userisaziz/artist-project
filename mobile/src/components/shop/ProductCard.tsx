@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Photo } from '../common/Photo';
 import { Price } from './Price';
@@ -12,10 +13,10 @@ export function ProductCard({ product, onOpen, onAdd }: { product: Product; onOp
   const theme = useTheme();
   const out = product.stock === 0;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${product.name}, ${product.seller.business_name}`} onPress={onOpen} style={{ flex: 1, gap: 6 }}>
+    <PressableFeedback accessibilityRole="button" accessibilityLabel={`${product.name}, ${product.seller.business_name}`} onPress={onOpen} style={{ flex: 1, gap: 6 }}>
       <View>
         {product.photos[0] ? <Photo uri={product.photos[0].url} style={{ width: '100%', height: IMAGE_HEIGHT, borderRadius: theme.radii.md }} /> : null}
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel={out ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
           accessibilityState={{ disabled: out }}
@@ -25,11 +26,11 @@ export function ProductCard({ product, onOpen, onAdd }: { product: Product; onOp
           style={{ position: 'absolute', right: 8, bottom: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', opacity: out ? 0.5 : 1 }}
         >
           <AppText style={{ fontSize: 18, color: theme.colors.brand }}>+</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       <AppText variant="label" numberOfLines={2} style={{ fontSize: 13, color: theme.colors.textPrimary }}>{product.name}</AppText>
       <AppText variant="caption" numberOfLines={1} style={{ color: theme.colors.textMuted }}>{product.seller.business_name}</AppText>
       {out ? <AppText variant="caption" style={{ color: theme.colors.error }}>Out of stock</AppText> : <Price price={product.price_paise} mrp={product.mrp_paise} />}
-    </Pressable>
+    </PressableFeedback>
   );
 }

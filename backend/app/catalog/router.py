@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 
 from app.catalog.config import get_catalog_settings
-from app.catalog.dependencies import get_area_service, get_category_service, limit_public_reads
-from app.catalog.schemas import AreaOut, CatalogCategoryOut
+from app.catalog.dependencies import get_area_service, get_category_service, limit_public_reads, search_point
+from app.catalog.schemas import AreaOut, AreaSearchResult, CatalogCategoryOut
 from app.catalog.service import AreaService, CategoryService
 from app.catalog.utils import catalog_tree
 from app.shared.responses import errors
@@ -33,6 +33,22 @@ async def list_areas(
 ) -> list:
     """What an artist picks their studio's area from, e.g. "BTM Layout" in Bangalore. Unknown cities have none."""
     return list(await areas.in_city(city))
+
+
+@router.get(
+    "/areas/search",
+    response_model=list[AreaSearchResult],
+    summary="Places matching what a customer typed",
+    status_code=200,
+)
+async def search_areas(
+    q: str = Query(..., min_length=3, max_length=80),
+    near: tuple[float, float] | None = Depends(search_point),
+    areas: AreaService = Depends(get_area_service),
+) -> list[dict]:
+    """Catalog areas whose name matches `q` (names starting with it first); when none do, places from the geocoder,
+    each linked to the nearest catalog area if one is close. At most 10. `lat`/`lng` rank places near the searcher."""
+    return await areas.search(q, near)
 
 
 @router.get(

@@ -132,6 +132,15 @@ it('follows the artist', async () => {
   expect(await screen.findByRole('button', { name: 'Unfollow Ayesha Mehendi Art' })).toBeTruthy();
 });
 
+it('opened from a list, shows the artist’s name at once while the rest loads', async () => {
+  const card = artist();
+  client.setQueryData(['directory', 'search', { sort: 'recommended' }], { pages: [{ items: [card], next_cursor: null, total: 1 }], pageParams: [null] });
+  serve(customerRoutes({ 'GET /artists/a1': () => new Promise(() => {}) }));
+  await wrap(<ArtistStorefrontScreen />);
+
+  expect(screen.getByText(/Ayesha/)).toBeTruthy();
+});
+
 it('offers a retry when the artist cannot be loaded', async () => {
   serve(customerRoutes({ 'GET /artists/a1': { status: 500, json: { detail: 'Something went wrong' } } }));
   await wrap(<ArtistStorefrontScreen />);

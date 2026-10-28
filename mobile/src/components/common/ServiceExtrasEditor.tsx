@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { AppTextField } from './AppTextField';
 import { Icon } from './Icon';
@@ -36,9 +37,9 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
         <View key={`${text}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
           <Icon name="check" size={14} color={theme.colors.brand} />
           <AppText variant="body" style={{ flex: 1, color: theme.colors.textPrimary }}>{text}</AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${text}`} hitSlop={8} onPress={() => onChange({ ...value, included: value.included.filter((_, j) => j !== i) })}>
+          <PressableFeedback accessibilityRole="button" accessibilityLabel={`Remove ${text}`} hitSlop={8} onPress={() => onChange({ ...value, included: value.included.filter((_, j) => j !== i) })}>
             <Icon name="close" size={16} color={theme.colors.textMuted} />
-          </Pressable>
+          </PressableFeedback>
         </View>
       ))}
       {value.included.length < MAX_INCLUDED_ITEMS ? (
@@ -46,9 +47,9 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
           <View style={{ flex: 1 }}>
             <AppTextField label="Included item" hideLabel placeholder="e.g. Bridal hands" value={item} onChangeText={setItem} maxLength={INCLUDED_ITEM_MAX_LENGTH} onSubmitEditing={addItem} returnKeyType="done" />
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Add included item" onPress={addItem} style={{ height: 48, paddingHorizontal: theme.spacing[3.5], justifyContent: 'center' }}>
+          <PressableFeedback accessibilityRole="button" accessibilityLabel="Add included item" onPress={addItem} style={{ height: 48, paddingHorizontal: theme.spacing[3.5], justifyContent: 'center' }}>
             <AppText variant="label" style={{ color: theme.colors.brand }}>Add</AppText>
-          </Pressable>
+          </PressableFeedback>
         </View>
       ) : null}
 
@@ -64,7 +65,7 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Pressable
+            <PressableFeedback
               accessibilityRole="checkbox"
               accessibilityLabel={`Add-on ${i + 1} priced per person`}
               accessibilityState={{ checked: a.perPerson }}
@@ -75,21 +76,21 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
                 {a.perPerson ? <Icon name="check" size={13} color={theme.colors.textOnBrand} /> : null}
               </View>
               <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Priced per person</AppText>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Remove add-on ${i + 1}`} hitSlop={8} onPress={() => onChange({ ...value, addons: value.addons.filter((_, j) => j !== i) })}>
+            </PressableFeedback>
+            <PressableFeedback accessibilityRole="button" accessibilityLabel={`Remove add-on ${i + 1}`} hitSlop={8} onPress={() => onChange({ ...value, addons: value.addons.filter((_, j) => j !== i) })}>
               <AppText variant="caption" style={{ color: theme.colors.error }}>Remove</AppText>
-            </Pressable>
+            </PressableFeedback>
           </View>
         </View>
       ))}
       {value.addons.length < MAX_ADDONS ? (
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           onPress={() => onChange({ ...value, addons: [...value.addons, { name: '', price: '', perPerson: false }] })}
           style={{ height: 44, borderRadius: theme.radii.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' }}
         >
           <AppText variant="label" style={{ color: theme.colors.brand }}>+ Add an add-on</AppText>
-        </Pressable>
+        </PressableFeedback>
       ) : null}
     </View>
   );

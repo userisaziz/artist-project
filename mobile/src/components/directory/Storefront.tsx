@@ -5,7 +5,7 @@ import type { SaveToggle } from '../common/SaveButton';
 import { BackHeader } from '../common/BackHeader';
 import { ErrorView, LoadingView } from '../common/StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
-import { useArtistPublic } from '../../hooks/directory/directory';
+import { useArtistPublic, useCachedArtistCard } from '../../hooks/directory/directory';
 import { StorefrontReviews } from '../reviews/StorefrontReviews';
 import { mostBookedId, packageCountLabel } from '../../utils/directory/storefront';
 import type { ArtistPublic, PublicService } from '../../types/directory/directory';
@@ -65,9 +65,20 @@ export function Storefront({ artistId, customer }: StorefrontProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { data: artist, isPending, isError, error, refetch } = useArtistPublic(artistId);
+  const card = useCachedArtistCard(artistId);
   const [picking, setPicking] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const offsets = useRef<Partial<Record<string, number>>>({});
+
+  if (isPending && card) {
+    // Opened from a list: the hero is already known, so it shows at once and the rest fills in below it.
+    return (
+      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <StorefrontHero artist={card} save={customer?.save} />
+        <LoadingView />
+      </ScrollView>
+    );
+  }
 
   if (isPending || isError) {
     return (

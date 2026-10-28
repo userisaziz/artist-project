@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
@@ -46,12 +47,12 @@ export default function ArtistCalendar() {
       <View style={{ borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <AppText variant="subtitle" style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}>{formatMonth(visible.year, visible.month)}</AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={8} onPress={() => move(-1)} style={{ paddingHorizontal: 10 }}>
+          <PressableFeedback accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={8} onPress={() => move(-1)} style={{ paddingHorizontal: 10 }}>
             <Icon name="chevron-left" size={22} color={theme.colors.brand} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Next month" hitSlop={8} onPress={() => move(1)} style={{ paddingHorizontal: 10 }}>
+          </PressableFeedback>
+          <PressableFeedback accessibilityRole="button" accessibilityLabel="Next month" hitSlop={8} onPress={() => move(1)} style={{ paddingHorizontal: 10 }}>
             <Icon name="chevron-right" size={22} color={theme.colors.brand} />
-          </Pressable>
+          </PressableFeedback>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
           {WEEKDAYS.map((w, i) => (
@@ -67,7 +68,7 @@ export default function ArtistCalendar() {
             const hasRequested = day.some((b) => b.status === 'requested');
             const count = day.length;
             return (
-              <Pressable
+              <PressableFeedback
                 key={key}
                 accessibilityRole="button"
                 accessibilityLabel={`${formatDay(key)}, ${count ? `${count} ${count === 1 ? 'booking' : 'bookings'}` : 'no bookings'}`}
@@ -82,7 +83,7 @@ export default function ArtistCalendar() {
                   {hasConfirmed ? <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.accent }} /> : null}
                   {hasRequested ? <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.pendingDot }} /> : null}
                 </View>
-              </Pressable>
+              </PressableFeedback>
             );
           })}
         </View>

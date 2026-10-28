@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { StatusPill, type PillTone } from '../common/StatusPill';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -20,7 +21,7 @@ export function EnquiryRow({ enquiry, title, pill, onPress }: EnquiryRowProps) {
   const when = formatDay(enquiry.event_date);
   const price = enquiry.quote ? ` · ${formatPrice(enquiry.quote.price_paise)}` : '';
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${when}, ${pill.label}${price}`}
       onPress={onPress}
@@ -32,6 +33,6 @@ export function EnquiryRow({ enquiry, title, pill, onPress }: EnquiryRowProps) {
       </View>
       <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`Event ${when}${price}`}</AppText>
       <AppText variant="caption" numberOfLines={2} style={{ color: theme.colors.textSecondary }}>{enquiry.details}</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Photo } from '../common/Photo';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -21,7 +22,7 @@ export function ArtistPostCards({ posts, onOpen }: ArtistPostCardsProps) {
         const cover = post.cover_url ?? post.photos[0]?.url ?? null;
         const headline = post.title ?? post.text ?? '';
         return (
-          <Pressable
+          <PressableFeedback
             key={post.id}
             accessibilityRole="button"
             accessibilityLabel={`${headline}, ${topicLabel(post)}`}
@@ -33,7 +34,7 @@ export function ArtistPostCards({ posts, onOpen }: ArtistPostCardsProps) {
               <AppText variant="eyebrow" style={{ fontSize: 10, color: theme.colors.brand }}>{topicLabel(post).toUpperCase()}</AppText>
               <AppText variant="label" numberOfLines={2} style={{ fontSize: 13, lineHeight: 18, color: theme.colors.textPrimary }}>{headline}</AppText>
             </View>
-          </Pressable>
+          </PressableFeedback>
         );
       })}
     </View>

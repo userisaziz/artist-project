@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,14 +24,14 @@ export default function IntroScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.washTop, paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
       {/* The role is already chosen, so there is nothing to go back to: the close button signs out, like Back on sign-up. */}
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel="Sign out"
         onPress={() => { void signOut(); }}
         style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon name="close" size={18} />
-      </Pressable>
+      </PressableFeedback>
       <View style={{ flexDirection: 'row', gap: 8, height: 308, marginTop: 18 }}>
         <Image source={ARTIST_PHOTO} contentFit="cover" style={[tile, { flex: 1.2 }]} />
         <View style={{ flex: 1, gap: 8 }}>

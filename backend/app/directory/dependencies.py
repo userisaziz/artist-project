@@ -45,6 +45,12 @@ def search_filters(
     available_on: date | None = Query(None, description="Only artists with an open slot this IST day"),
     near_lat: float | None = Query(None, ge=-90, le=90),
     near_lng: float | None = Query(None, ge=-180, le=180),
+    radius_km: float | None = Query(
+        None,
+        gt=0,
+        le=constants.MAX_RADIUS_KM,
+        description="With near_lat/near_lng: only artists this close. Omitted: widens 5, 10, 20 km, then no limit",
+    ),
     sort: DirectorySort = DirectorySort.recent,
 ) -> SearchFilters:
     if (near_lat is None) != (near_lng is None):
@@ -61,6 +67,7 @@ def search_filters(
         home_visit=home_visit,
         available_on=available_on,
         near=near,
+        radius_km=radius_km if near else None,
         sort=sort,
     )
 

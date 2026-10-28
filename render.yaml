@@ -39,5 +39,9 @@ services:
         value: expo
       - key: PAYMENT_PROVIDER
         value: direct
+      - key: GEOCODER_PROVIDER
+        value: geoapify
+      - key: GEOCODER_API_KEY
+        sync: false # Geoapify key for area search; server-side only
       - key: WEB_CONCURRENCY
         value: "1"

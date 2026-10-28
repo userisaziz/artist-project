@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { DayStrip } from './DayStrip';
 import { EmptyView, ErrorView, LoadingView } from './StateViews';
@@ -45,7 +46,7 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
           const selected = s.start_at === value && s.available;
           const time = formatTime(s.start_at);
           return (
-            <Pressable
+            <PressableFeedback
               key={s.start_at}
               accessibilityRole="button"
               accessibilityLabel={`${time}, ${s.available ? 'available' : 'taken'}`}
@@ -55,7 +56,7 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
               style={{ width: '31.5%', height: 44, borderRadius: theme.radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? theme.colors.brand : s.available ? theme.colors.surface : theme.colors.canvas, borderWidth: selected ? 0 : 1, borderColor: theme.colors.separator }}
             >
               <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : s.available ? theme.colors.textPrimary : theme.colors.textMuted, textDecorationLine: s.available ? 'none' : 'line-through' }}>{time}</AppText>
-            </Pressable>
+            </PressableFeedback>
           );
         })}
       </View>

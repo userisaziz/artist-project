@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { fieldBorder } from '../common/FieldHalo';
@@ -13,7 +14,7 @@ export function CityField({ value, cities, onChange }: { value: string | null; c
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel="City"
         onPress={() => setOpen(true)}
@@ -24,12 +25,12 @@ export function CityField({ value, cities, onChange }: { value: string | null; c
       >
         <AppText variant="subtitle" style={{ color: value ? theme.colors.textPrimary : theme.colors.textMuted }}>{value ?? 'Choose your city'}</AppText>
         <AppText style={{ color: theme.colors.brand }}>▾</AppText>
-      </Pressable>
+      </PressableFeedback>
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable accessibilityLabel="Close" style={{ flex: 1, backgroundColor: theme.colors.overlay }} onPress={() => setOpen(false)} />
+        <PressableFeedback feedback={false} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: theme.colors.overlay }} onPress={() => setOpen(false)} />
         <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingBottom: insets.bottom + 12 }}>
           {cities.map((city) => (
-            <Pressable
+            <PressableFeedback
               key={city}
               accessibilityRole="button"
               onPress={() => { onChange(city); setOpen(false); }}
@@ -37,7 +38,7 @@ export function CityField({ value, cities, onChange }: { value: string | null; c
             >
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{city}</AppText>
               {city === value ? <Icon name="check" size={18} color={theme.colors.brand} /> : null}
-            </Pressable>
+            </PressableFeedback>
           ))}
         </View>
       </Modal>

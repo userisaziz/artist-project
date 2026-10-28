@@ -50,6 +50,9 @@
     ],
     "scheme": "artcircle",
     "newArchEnabled": true,
+    "experiments": {
+      "reactCompiler": true
+    },
     "extra": {
       "router": {},
       "eas": {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
@@ -57,7 +58,7 @@ export function ArticleView({ postId, nav }: { postId: string; nav: FeedNavigati
           {p.title ? <AppText variant="display" accessibilityRole="header" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>{p.title}</AppText> : null}
           <PostAuthor post={p} now={now} onOpenArtist={nav.openArtist} />
           {blocks.map((b, i) => <ArticleBlockView key={i} block={b} />)}
-          <Pressable
+          <PressableFeedback
             accessibilityRole="button"
             accessibilityLabel={`Written by ${artist.business_name}, ${rating}`}
             onPress={() => nav.openArtist(artist.id)}
@@ -70,7 +71,7 @@ export function ArticleView({ postId, nav }: { postId: string; nav: FeedNavigati
               <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{rating}</AppText>
             </View>
             <Icon name="chevron-right" size={20} color={theme.colors.textMuted} />
-          </Pressable>
+          </PressableFeedback>
         </View>
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>

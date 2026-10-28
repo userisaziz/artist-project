@@ -14,6 +14,7 @@ export interface ThemeColors {
   inputBackground: string; border: string; borderFocus: string;
   error: string; errorBackground: string; success: string;
   overlay: string;
+  pressedOverlay: string; // the ripple / tint a control shows under the finger
   brandOnImage: string; brandInk: string; imageFallback: string; // deeper roses that stay legible over photos
   washTop: string; washBottom: string; // full-screen blush gradient (Choose role)
   photoScrim: string; // deep plum laid over photos so white text reads

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
@@ -115,20 +116,20 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
-        <Pressable accessibilityRole="button" onPress={onCancel} disabled={busy} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" onPress={onCancel} disabled={busy} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
-        </Pressable>
+        </PressableFeedback>
         <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>New post</AppText>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!missing || busy }} onPress={() => { void publish(); }} disabled={!!missing || busy} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" accessibilityState={{ disabled: !!missing || busy }} onPress={() => { void publish(); }} disabled={!!missing || busy} hitSlop={8}>
           <AppText variant="label" style={{ color: missing || busy ? theme.colors.textMuted : theme.colors.brand }}>Post</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.md, gap: 14, paddingBottom: insets.bottom + theme.spacing.xl }}>
         <Segmented options={[{ key: 'photos', label: 'Photos' }, { key: 'article', label: 'Article' }]} value={kind} onChange={switchKind} />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {(article ? (cover ? [cover] : []) : photos).map((p, i) => (
-            <Pressable
+            <PressableFeedback
               key={`${p.uri}:${i}`}
               accessibilityRole="button"
               accessibilityLabel={`Remove photo ${i + 1}`}
@@ -137,10 +138,10 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
             >
               <Photo uri={p.uri} style={{ width: article ? TILE * 2 : TILE, height: TILE, borderRadius: theme.radii.md }} />
               <View style={{ position: 'absolute', top: 4, right: 4 }}><Icon name="close" size={16} color={theme.colors.textOnBrand} /></View>
-            </Pressable>
+            </PressableFeedback>
           ))}
           {(article ? !cover : photos.length < MAX_PHOTOS) ? (
-            <Pressable
+            <PressableFeedback
               accessibilityRole="button"
               accessibilityLabel={article ? 'Add a cover photo' : 'Add photos'}
               disabled={busy}
@@ -148,7 +149,7 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
               style={{ width: article ? TILE * 2 : TILE, height: TILE, borderRadius: theme.radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' }}
             >
               <AppText variant="caption" style={{ color: theme.colors.textMuted, textAlign: 'center' }}>{article ? '+ Cover photo' : '+ Photos'}</AppText>
-            </Pressable>
+            </PressableFeedback>
           ) : null}
         </ScrollView>
 

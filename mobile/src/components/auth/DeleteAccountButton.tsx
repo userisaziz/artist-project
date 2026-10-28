@@ -1,4 +1,5 @@
-import { Alert, Pressable } from 'react-native';
+import { Alert } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { useDeleteAccount } from '../../hooks/auth/auth';
@@ -24,7 +25,7 @@ export function DeleteAccountButton() {
     );
 
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityState={{ disabled: remove.isPending }}
       disabled={remove.isPending}
@@ -32,6 +33,6 @@ export function DeleteAccountButton() {
       style={{ alignSelf: 'center', padding: 12 }}
     >
       <AppText variant="label" style={{ color: theme.colors.error }}>{remove.isPending ? 'Deleting…' : 'Delete account'}</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }

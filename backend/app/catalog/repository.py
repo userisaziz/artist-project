@@ -3,13 +3,14 @@
 from collections.abc import Iterable, Sequence
 from typing import NamedTuple
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistServiceItem, artist_categories
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.shared.enums import CategoryStatus
 from app.shared.geo import distance_km
+from app.shared.search import like_pattern
 
 
 class Usage(NamedTuple):
@@ -161,6 +162,18 @@ class AreaRepository:
 
     async def in_city(self, city: str) -> Sequence[Area]:
         query = select(Area).where(Area.city == city, Area.is_active).order_by(Area.name)
+        return (await self.session.scalars(query)).all()
+
+    async def named_like(self, q: str, limit: int) -> Sequence[Area]:
+        """Active areas whose name contains `q` (any case): names starting with it first, then by name."""
+        pattern = like_pattern(q)
+        starts = case((Area.name.ilike(pattern[1:], escape="\\"), 0), else_=1)
+        query = (
+            select(Area)
+            .where(Area.is_active, Area.name.ilike(pattern, escape="\\"))
+            .order_by(starts, Area.name, Area.city)
+            .limit(limit)
+        )
         return (await self.session.scalars(query)).all()
 
     async def nearest(self, lat: float, lng: float, max_km: float) -> Area | None:

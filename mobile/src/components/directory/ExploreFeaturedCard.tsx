@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -30,7 +31,7 @@ export function ExploreFeaturedCard({ artist, availability, saved, onToggleSave,
     </View>
   );
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${artist.business_name}, ${ratingShort(artist.rating, artist.review_count)}`}
       onPress={onPress}
@@ -65,6 +66,6 @@ export function ExploreFeaturedCard({ artist, availability, saved, onToggleSave,
           {availability ? <AppText variant="caption" style={{ fontWeight: '600', color: theme.colors.confirmedInk }}>{`● ${availability}`}</AppText> : null}
         </View>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

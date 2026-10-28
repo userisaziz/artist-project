@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
@@ -91,7 +92,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <Pressable accessibilityLabel="Close" style={{ flex: 1, backgroundColor: theme.colors.overlay }} onPress={onClose} />
+        <PressableFeedback feedback={false} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: theme.colors.overlay }} onPress={onClose} />
         <View style={{ maxHeight: '85%', backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom + 16 }}>
           <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 8, gap: 14 }} keyboardShouldPersistTaps="handled">
             <AppText variant="title" style={{ color: theme.colors.heading }}>Add a service</AppText>
@@ -118,7 +119,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
                   const added = addedIds.includes(t.id);
                   const selected = templateId === t.id;
                   return (
-                    <Pressable
+                    <PressableFeedback
                       key={t.id}
                       accessibilityRole="radio"
                       accessibilityLabel={added ? `${t.name}, added` : t.name}
@@ -136,7 +137,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
                         {t.description ? <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>{t.description}</AppText> : null}
                       </View>
                       {added ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Added</AppText> : null}
-                    </Pressable>
+                    </PressableFeedback>
                   );
                 })}
                 {templateId !== null ? (

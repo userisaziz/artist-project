@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatTime } from '../../utils/common/time';
+import { isPendingMessage } from '../../hooks/chat/chat';
 import type { ChatMessage } from '../../types/chat/chat';
 
 const MODERATION_NOTE: Record<NonNullable<ChatMessage['moderation']>, string> = {
@@ -13,7 +14,7 @@ const MODERATION_NOTE: Record<NonNullable<ChatMessage['moderation']>, string> = 
 export function MessageBubble({ message, mine, author }: { message: ChatMessage; mine: boolean; author: string }) {
   const theme = useTheme();
   const time = formatTime(message.created_at);
-  const note = mine && message.moderation ? MODERATION_NOTE[message.moderation] : null;
+  const note = isPendingMessage(message) ? 'Sending…' : mine && message.moderation ? MODERATION_NOTE[message.moderation] : null;
   return (
     <View accessible accessibilityLabel={`${mine ? 'You' : author || 'Them'}: ${message.text}, ${time}${note ? `. ${note}` : ''}`} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%', marginVertical: 3, opacity: note ? 0.6 : 1 }}>
       <View

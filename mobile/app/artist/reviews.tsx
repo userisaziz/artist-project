@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, View } from 'react-native';
+import { PressableFeedback } from '../../src/components/common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/common/AppText';
 import { BackHeader } from '../../src/components/common/BackHeader';
@@ -117,7 +118,7 @@ function ArtistReviewRow({ review, businessName, onReply, onReport }: ArtistRevi
 function SmallAction({ label, accessibilityLabel, onPress, muted = false }: { label: string; accessibilityLabel: string; onPress: () => void; muted?: boolean }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
@@ -125,6 +126,6 @@ function SmallAction({ label, accessibilityLabel, onPress, muted = false }: { la
       style={{ height: 34, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: muted ? theme.colors.neutralSoft : theme.colors.brandSoft }}
     >
       <AppText variant="label" style={{ fontSize: 13, color: muted ? theme.colors.textSecondary : theme.colors.brand }}>{label}</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }

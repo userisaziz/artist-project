@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
@@ -58,9 +59,9 @@ function AddressRow({ address }: { address: SavedAddress }) {
       <AppTextField label="Label" value={label} onChangeText={setLabel} maxLength={LABEL_MAX} />
       <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{address.address}</AppText>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${address.label}`} onPress={confirmDelete} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" accessibilityLabel={`Delete ${address.label}`} onPress={confirmDelete} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.error }}>Delete</AppText>
-        </Pressable>
+        </PressableFeedback>
         {renamed ? (
           <AppButton label="Save label" variant="secondary" loading={update.isPending} onPress={() => update.mutate({ id: address.id, body: { label: label.trim() } })} />
         ) : null}

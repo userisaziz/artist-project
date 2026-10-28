@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
@@ -29,9 +30,9 @@ export function PinConfirmSheet({ start, onConfirm, onClose }: PinConfirmSheetPr
     <Modal visible={!!start} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: theme.colors.surface }}>
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: theme.spacing.md, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close map" onPress={onClose} hitSlop={10}>
+          <PressableFeedback accessibilityRole="button" accessibilityLabel="Close map" onPress={onClose} hitSlop={10}>
             <Icon name="close" size={22} color={theme.colors.textPrimary} />
-          </Pressable>
+          </PressableFeedback>
           <View style={{ flex: 1 }}>
             <AppText variant="label" style={{ fontSize: 16, color: theme.colors.textPrimary }}>Confirm your studio location</AppText>
             <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Move the map so the pin sits on your studio</AppText>

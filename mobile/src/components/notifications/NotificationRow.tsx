@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { shortAgo } from '../../utils/common/time';
@@ -11,7 +12,7 @@ export function NotificationRow({ item, now, onOpen }: { item: AppNotification; 
   const theme = useTheme();
   const unread = !item.read_at;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${unread ? 'Unread. ' : ''}${item.title}. ${item.body}`}
       onPress={() => onOpen(item)}
@@ -25,6 +26,6 @@ export function NotificationRow({ item, now, onOpen }: { item: AppNotification; 
         </View>
         <AppText variant="body" numberOfLines={2} style={{ color: theme.colors.textSecondary }}>{item.body}</AppText>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

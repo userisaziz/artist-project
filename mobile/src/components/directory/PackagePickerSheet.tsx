@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { BottomSheet } from '../common/BottomSheet';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -19,7 +20,7 @@ export function PackagePickerSheet({ visible, services, onPick, onClose }: Packa
   return (
     <BottomSheet visible={visible} title="Choose a package" onClose={onClose}>
       {services.map((s) => (
-        <Pressable
+        <PressableFeedback
           key={s.id}
           accessibilityRole="button"
           accessibilityLabel={`Book ${s.name}`}
@@ -31,7 +32,7 @@ export function PackagePickerSheet({ visible, services, onPick, onClose }: Packa
             <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{serviceMeta(s)}</AppText>
           </View>
           <AppText variant="subtitle" style={{ fontSize: 15, lineHeight: 20, color: theme.colors.brand }}>{formatPrice(s.price_paise)}</AppText>
-        </Pressable>
+        </PressableFeedback>
       ))}
     </BottomSheet>
   );

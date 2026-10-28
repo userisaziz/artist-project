@@ -29,6 +29,7 @@ PUBLIC = {
     "/cities",
     "/areas",
     "/areas/nearest",
+    "/areas/search",
     "/artists",
     "/artists/{artist_id}",
     "/artists/{artist_id}/availability",

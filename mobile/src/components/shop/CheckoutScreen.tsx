@@ -1,6 +1,7 @@
 import { AddressPicker, type AddressBook } from '../common/AddressPicker';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
@@ -81,7 +82,7 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
               g.methods.map((m) => {
                 const selected = methodFor(g.seller.id, g.methods) === m;
                 return (
-                  <Pressable
+                  <PressableFeedback
                     key={m}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
@@ -93,7 +94,7 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
                       <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{METHOD_LABEL[m].title}</AppText>
                       <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{METHOD_LABEL[m].detail}</AppText>
                     </View>
-                  </Pressable>
+                  </PressableFeedback>
                 );
               })
             )}

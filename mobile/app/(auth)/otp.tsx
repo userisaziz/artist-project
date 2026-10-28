@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../../src/components/common/PressableFeedback';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AppText } from '../../src/components/common/AppText';
 import { AppButton } from '../../src/components/common/AppButton';
@@ -87,7 +88,7 @@ export default function OtpScreen() {
         <OtpInput onComplete={submit} onChange={(c) => { setCode(c); if (c) setError(null); }} error={shaking} busy={busy} />
       </View>
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm }}>{error}</AppText> : null}
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityState={{ disabled: !canResend }}
         onPress={canResend ? resend : undefined}
@@ -103,7 +104,7 @@ export default function OtpScreen() {
         ) : (
           <AppText variant="label" style={{ color: theme.colors.brand }}>Resend code</AppText>
         )}
-      </Pressable>
+      </PressableFeedback>
     </FormScreen>
   );
 }

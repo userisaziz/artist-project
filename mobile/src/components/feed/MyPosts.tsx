@@ -1,4 +1,5 @@
-import { Alert, FlatList, Pressable, View } from 'react-native';
+import { Alert, FlatList, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
@@ -53,9 +54,9 @@ export function MyPosts({ onNewPost }: { onNewPost: () => void }) {
                   {item.moderation !== 'live' ? <AppText variant="caption" style={{ color: theme.colors.error }}>Hidden by our team: it no longer shows in the Feed.</AppText> : null}
                   {item.featured ? <AppText variant="caption" style={{ color: theme.colors.brand }}>Featured at the top of the Feed</AppText> : null}
                 </View>
-                <Pressable accessibilityRole="button" accessibilityLabel="Delete post" hitSlop={8} disabled={remove.isPending} onPress={() => confirmDelete(item)}>
+                <PressableFeedback accessibilityRole="button" accessibilityLabel="Delete post" hitSlop={8} disabled={remove.isPending} onPress={() => confirmDelete(item)}>
                   <AppText variant="label" style={{ color: theme.colors.error }}>Delete</AppText>
-                </Pressable>
+                </PressableFeedback>
               </View>
             );
           }}

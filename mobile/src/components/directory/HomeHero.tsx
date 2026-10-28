@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Pressable, View, type ImageSourcePropType } from 'react-native';
+import { AccessibilityInfo, Animated, View, type ImageSourcePropType } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -68,13 +69,13 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
           shadowColor: theme.colors.brand, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 4,
         }}
       >
-        <Pressable accessibilityRole="button" accessibilityLabel={`${slide.title}. Explore artists`} onPress={() => onOpen(slide)} style={{ flex: 1 }}>
+        <PressableFeedback accessibilityRole="button" accessibilityLabel={`${slide.title}. Explore artists`} onPress={() => onOpen(slide)} style={{ flex: 1 }}>
           <AppText variant="eyebrow" style={{ fontSize: 10.5, letterSpacing: 1.5, color: theme.colors.brand }}>{slide.eyebrow}</AppText>
           <AppText variant="title" numberOfLines={1} style={{ lineHeight: 19, color: theme.colors.textPrimary, marginTop: 2 }}>{slide.title}</AppText>
-        </Pressable>
+        </PressableFeedback>
         <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
           {slides.map((s, i) => (
-            <Pressable
+            <PressableFeedback
               key={s.eyebrow}
               accessibilityRole="button"
               accessibilityLabel={`Slide ${i + 1} of ${slides.length}`}
@@ -85,14 +86,14 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
             />
           ))}
         </View>
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel={`Open ${slide.title}`}
           onPress={() => onOpen(slide)}
           style={{ width: CHEVRON, height: CHEVRON, borderRadius: CHEVRON / 2, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center' }}
         >
           <Icon name="chevron-right" size={20} color={theme.colors.textOnBrand} />
-        </Pressable>
+        </PressableFeedback>
       </View>
     </View>
   );

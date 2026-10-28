@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { Icon } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -19,7 +19,7 @@ interface SaveButtonProps {
 export function SaveButton({ name, saved, onPress }: SaveButtonProps) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={saved ? `Remove ${name} from saved` : `Save ${name}`}
       accessibilityState={{ selected: saved }}
@@ -28,6 +28,6 @@ export function SaveButton({ name, saved, onPress }: SaveButtonProps) {
       style={{ padding: theme.spacing[1] }}
     >
       <Icon name="bookmark" size={20} color={saved ? theme.colors.brand : theme.colors.textMuted} filled={saved} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

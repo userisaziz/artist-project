@@ -10,10 +10,11 @@ import { SaveButton, type SaveToggle } from '../common/SaveButton';
 import { useTheme } from '../../core/theme/theme-provider';
 import { categoryLine } from './ArtistCardView';
 import { splitName } from '../../utils/directory/storefront';
-import type { ArtistPublic } from '../../types/directory/directory';
+import type { ArtistCard } from '../../types/directory/directory';
 
 interface StorefrontHeroProps {
-  artist: ArtistPublic;
+  /** A list card is enough, so the hero can show while the full page loads. */
+  artist: ArtistCard;
   /** Saving the artist (customers); the artist's own preview leaves it out. */
   save?: SaveToggle;
 }

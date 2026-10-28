@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { BottomSheet } from './BottomSheet';
 import { Icon } from './Icon';
@@ -27,7 +28,7 @@ export function ChoiceSheet<T>({ visible, title, choices, selected, onPick, onCl
         {choices.map((c) => {
           const on = c.value === selected;
           return (
-            <Pressable
+            <PressableFeedback
               key={c.label}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
@@ -36,7 +37,7 @@ export function ChoiceSheet<T>({ visible, title, choices, selected, onPick, onCl
             >
               <AppText variant="body" style={{ color: on ? theme.colors.brand : theme.colors.textPrimary, fontWeight: on ? '700' : '400' }}>{c.label}</AppText>
               {on ? <Icon name="check" size={18} color={theme.colors.brand} /> : null}
-            </Pressable>
+            </PressableFeedback>
           );
         })}
       </View>

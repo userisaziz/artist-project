@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { StatusPill } from '../common/StatusPill';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -13,7 +14,7 @@ export function TicketList({ tickets, onOpen }: { tickets: SupportTicket[]; onOp
   return (
     <View>
       {tickets.map((t) => (
-        <Pressable
+        <PressableFeedback
           key={t.id}
           accessibilityRole="button"
           accessibilityLabel={`${t.code}, ${t.subject}, ${STATUS_LABEL[t.status]}`}
@@ -25,7 +26,7 @@ export function TicketList({ tickets, onOpen }: { tickets: SupportTicket[]; onOp
             {t.booking ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${t.booking.service_name} · ${t.booking.code}`}</AppText> : null}
           </View>
           <StatusPill label={STATUS_LABEL[t.status]} tone={TONE[t.status]} />
-        </Pressable>
+        </PressableFeedback>
       ))}
     </View>
   );

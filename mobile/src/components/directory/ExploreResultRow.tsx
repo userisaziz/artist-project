@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -22,7 +23,7 @@ export function ExploreResultRow({ artist, availability, onPress }: ExploreResul
   const theme = useTheme();
   const photo = artist.photo_urls[0] ?? artist.cover_url ?? artist.photo_url;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${artist.business_name}, ${ratingShort(artist.rating, artist.review_count)}`}
       onPress={onPress}
@@ -45,6 +46,6 @@ export function ExploreResultRow({ artist, availability, onPress }: ExploreResul
         )}
         {availability ? <AppText variant="caption" style={{ fontWeight: '600', color: theme.colors.confirmedInk }}>{`● ${availability}`}</AppText> : null}
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

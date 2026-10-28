@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
@@ -99,9 +100,9 @@ export default function IdentityStep() {
       {onFile ? (
         <View style={{ marginTop: 20, padding: 14, gap: 8, borderRadius: theme.radii.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}>
           <AppText variant="label" style={{ fontSize: 15, color: theme.colors.textPrimary }}>{`Aadhaar on file •••• ${onFile.aadhaar_last4}`}</AppText>
-          <Pressable accessibilityRole="button" onPress={replace} hitSlop={8} style={{ alignSelf: 'flex-start' }}>
+          <PressableFeedback accessibilityRole="button" onPress={replace} hitSlop={8} style={{ alignSelf: 'flex-start' }}>
             <AppText variant="label" style={{ color: theme.colors.brand }}>Replace details</AppText>
-          </Pressable>
+          </PressableFeedback>
         </View>
       ) : (
         <>
@@ -139,7 +140,7 @@ function CardSide({ title, side, onPress }: { title: 'Front' | 'Back'; side: Sid
   const name = `${title.toLowerCase()} of card`;
   return (
     <View style={{ flex: 1, gap: 6 }}>
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={side.uploading ? `Uploading ${name}` : side.key ? `Retake ${name}` : `Add ${name}`}
         disabled={side.uploading}
@@ -156,7 +157,7 @@ function CardSide({ title, side, onPress }: { title: 'Front' | 'Back'; side: Sid
           <AppText style={{ fontSize: 22, color: theme.colors.brand }}>+</AppText>
         )}
         {side.uploading ? <ActivityIndicator color={theme.colors.brand} /> : null}
-      </Pressable>
+      </PressableFeedback>
       <AppText variant="label" style={{ fontSize: 13, color: theme.colors.textSecondary }}>
         {title}
         {side.key ? <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}> · Retake</AppText> : null}

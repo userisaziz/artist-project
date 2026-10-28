@@ -1,69 +1,68 @@
 import { useState } from 'react';
-import { currentPosition, locationErrorMessage } from '../../core/location/location';
-import type { Coordinates } from '../../core/location/location';
-import type { DirectorySort } from '../../types/directory/directory';
+import { useDetectLocation } from './use-detect-location';
+import type { CustomerPlace, DirectorySort } from '../../types/directory/directory';
 import type { ExploreSearch } from './directory';
 
 export const TOP_RATED = 4.8;
 
-/** Explore's filter chips, sort and "Near me" point; `search` is what goes to GET /artists. */
+/** Explore's filter chips and sort; the search point comes from the shared place. */
 export interface ExploreFilters {
   sort: DirectorySort;
   minRating: number | null;
   maxPricePaise: number | null;
   homeVisit: boolean;
   availableOn: string | null;
-  near: Coordinates | null;
 }
 
-const NONE: Omit<ExploreFilters, 'sort'> = { minRating: null, maxPricePaise: null, homeVisit: false, availableOn: null, near: null };
+const NONE: Omit<ExploreFilters, 'sort'> = { minRating: null, maxPricePaise: null, homeVisit: false, availableOn: null };
 const DEFAULT_SORT: DirectorySort = 'recommended';
 
-export function useExploreFilters(base: { city: string | null; categoryId: number | null; q: string }) {
+/** `search` is what goes to GET /artists. With a point (the phone's position or a searched area) the server keeps to a
+ *  radius around it and the city is left out; without one, the place's city (if any) filters. */
+export function useExploreFilters(base: { place: CustomerPlace | null; categoryId: number | null; q: string }) {
   const [filters, setFilters] = useState<ExploreFilters>({ ...NONE, sort: DEFAULT_SORT });
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const phone = useDetectLocation({ auto: false });
   const set = (change: Partial<ExploreFilters>) => setFilters((f) => ({ ...f, ...change }));
+  const point = base.place?.coords ?? null;
+  // "Nearest" needs a point: if the place loses it (cleared, or a whole city picked), fall back to the default.
+  const sort = filters.sort === 'nearest' && !point ? DEFAULT_SORT : filters.sort;
+  const nearMe = sort === 'nearest';
 
-  /** "Near me": off again if on; otherwise asks the phone where it is and sorts by distance. */
+  /** "Near me": off again if on; otherwise sorts by distance, finding the phone first when there's no point yet. */
   const toggleNear = async () => {
-    setLocationError(null);
-    if (filters.near) {
-      set({ near: null, sort: filters.sort === 'nearest' ? DEFAULT_SORT : filters.sort });
+    if (nearMe) {
+      set({ sort: DEFAULT_SORT });
       return;
     }
-    setLocating(true);
-    try {
-      set({ near: await currentPosition(), sort: 'nearest' });
-    } catch (e) {
-      setLocationError(locationErrorMessage(e));
-    } finally {
-      setLocating(false);
-    }
+    if (!point && !(await phone.locate())) return;
+    set({ sort: 'nearest' });
   };
 
   const search: ExploreSearch = {
-    city: base.city ?? undefined,
+    city: point ? undefined : base.place?.city ?? undefined,
     category_id: base.categoryId,
     q: base.q || undefined,
-    sort: filters.sort,
+    sort,
     min_rating: filters.minRating,
     max_price_paise: filters.maxPricePaise,
     home_visit: filters.homeVisit,
     available_on: filters.availableOn,
-    near_lat: filters.near?.latitude ?? null,
-    near_lng: filters.near?.longitude ?? null,
+    near_lat: point?.latitude ?? null,
+    near_lng: point?.longitude ?? null,
   };
-  const active = filters.minRating !== null || filters.maxPricePaise !== null || filters.homeVisit || !!filters.availableOn || !!filters.near;
+  const active = filters.minRating !== null || filters.maxPricePaise !== null || filters.homeVisit || !!filters.availableOn || nearMe;
 
   return {
-    filters,
+    filters: { ...filters, sort },
     search,
     active,
-    locating,
-    locationError,
+    nearMe,
+    hasPoint: !!point,
+    locating: phone.locating,
+    locationError: phone.error,
+    phone,
     set,
     toggleNear,
-    clear: () => { setLocationError(null); setFilters({ ...NONE, sort: DEFAULT_SORT }); },
+    clear: () => setFilters({ ...NONE, sort: DEFAULT_SORT }),
   };
 }

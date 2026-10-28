@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { Photo } from '../common/Photo';
@@ -48,7 +49,7 @@ export function ServicePhotoField({ value, onChange }: ServicePhotoFieldProps) {
         {value.url ? (
           <Photo uri={value.url} label="Package photo" style={{ width: TILE, height: TILE, borderRadius: theme.radii.md }} />
         ) : (
-          <Pressable
+          <PressableFeedback
             accessibilityRole="button"
             accessibilityLabel="Add a package photo"
             accessibilityState={{ busy: uploading }}
@@ -57,16 +58,16 @@ export function ServicePhotoField({ value, onChange }: ServicePhotoFieldProps) {
             style={{ width: TILE, height: TILE, borderRadius: theme.radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.canvas }}
           >
             {uploading ? <ActivityIndicator color={theme.colors.brand} /> : <Icon name="plus" size={22} color={theme.colors.brand} />}
-          </Pressable>
+          </PressableFeedback>
         )}
         {value.url ? (
           <View style={{ gap: theme.spacing.sm }}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Change package photo" disabled={uploading} onPress={() => { void pick(); }} hitSlop={6}>
+            <PressableFeedback accessibilityRole="button" accessibilityLabel="Change package photo" disabled={uploading} onPress={() => { void pick(); }} hitSlop={6}>
               <AppText variant="label" style={{ color: theme.colors.brand }}>{uploading ? 'Uploading…' : 'Change'}</AppText>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Remove package photo" disabled={uploading} onPress={() => onChange({ url: null, key: null })} hitSlop={6}>
+            </PressableFeedback>
+            <PressableFeedback accessibilityRole="button" accessibilityLabel="Remove package photo" disabled={uploading} onPress={() => onChange({ url: null, key: null })} hitSlop={6}>
               <AppText variant="label" style={{ color: theme.colors.error }}>Remove</AppText>
-            </Pressable>
+            </PressableFeedback>
           </View>
         ) : (
           <AppText variant="caption" style={{ flex: 1, color: theme.colors.textMuted }}>Customers see it next to this package on your page.</AppText>

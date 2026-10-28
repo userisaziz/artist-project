@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
@@ -102,7 +103,7 @@ export default function ArtistMe() {
           <MenuRow label="Help & support" onPress={() => router.push('/artist/support')} />
         </Card>
 
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           onPress={() => { void toCustomer(); }}
           disabled={switching}
@@ -113,12 +114,12 @@ export default function ArtistMe() {
             <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Book other artists with the same account</AppText>
           </View>
           <Icon name="arrow-left-right" size={20} color={theme.colors.brand} />
-        </Pressable>
+        </PressableFeedback>
         {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: 8 }}>{error}</AppText> : null}
 
-        <Pressable accessibilityRole="button" onPress={() => { void signOut(); }} style={{ marginTop: 24, alignSelf: 'center', padding: 12 }}>
+        <PressableFeedback accessibilityRole="button" onPress={() => { void signOut(); }} style={{ marginTop: 24, alignSelf: 'center', padding: 12 }}>
           <AppText variant="button" style={{ color: theme.colors.brand }}>Log out</AppText>
-        </Pressable>
+        </PressableFeedback>
         <DeleteAccountButton />
       </View>
     </ScrollView>

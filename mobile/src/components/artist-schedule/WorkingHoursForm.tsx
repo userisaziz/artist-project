@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Switch, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
@@ -123,7 +124,7 @@ function ScheduleFields({ schedule }: { schedule: Schedule }) {
       {schedule.days_off.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {schedule.days_off.map((day) => (
-            <Pressable
+            <PressableFeedback
               key={day}
               accessibilityRole="button"
               accessibilityLabel={`Remove day off ${formatDay(day)}`}
@@ -133,7 +134,7 @@ function ScheduleFields({ schedule }: { schedule: Schedule }) {
             >
               <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{formatDay(day)}</AppText>
               <Icon name="close" size={14} color={theme.colors.textSecondary} />
-            </Pressable>
+            </PressableFeedback>
           ))}
         </View>
       ) : (

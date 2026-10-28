@@ -1,4 +1,5 @@
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -26,7 +27,7 @@ export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
     );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Open ${artist.business_name}`} onPress={() => onOpenArtist(artist.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+      <PressableFeedback accessibilityRole="button" accessibilityLabel={`Open ${artist.business_name}`} onPress={() => onOpenArtist(artist.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
         <Avatar uri={artist.photo_url} name={artist.business_name} size={40} />
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -35,18 +36,17 @@ export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
           </View>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${artist.city} · ${shortAgo(post.created_at, now)}`}</AppText>
         </View>
-      </Pressable>
-      <Pressable
+      </PressableFeedback>
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={following ? `Unfollow ${artist.business_name}` : `Follow ${artist.business_name}`}
         accessibilityState={{ busy: follow.isPending }}
-        disabled={follow.isPending}
         onPress={toggle}
         hitSlop={6}
         style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: following ? theme.colors.separator : theme.colors.brand, backgroundColor: following ? theme.colors.surface : theme.colors.brandSoft }}
       >
         <AppText variant="label" style={{ fontSize: 12.5, color: following ? theme.colors.textSecondary : theme.colors.brand }}>{following ? 'Following' : 'Follow'}</AppText>
-      </Pressable>
+      </PressableFeedback>
     </View>
   );
 }

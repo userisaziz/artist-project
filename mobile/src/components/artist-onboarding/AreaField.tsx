@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { fieldBorder } from '../common/FieldHalo';
 import { Icon } from '../common/Icon';
@@ -20,7 +20,7 @@ export function AreaField({ city, areas, value, onChange }: AreaFieldProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={value ? `Area: ${value.name}. Change area` : 'Choose your area'}
         onPress={() => setOpen(true)}
@@ -31,7 +31,7 @@ export function AreaField({ city, areas, value, onChange }: AreaFieldProps) {
       >
         <AppText variant="subtitle" style={{ color: value ? theme.colors.textPrimary : theme.colors.textMuted }}>{value?.name ?? 'Choose your area'}</AppText>
         <Icon name="chevron-down" size={16} color={theme.colors.brand} />
-      </Pressable>
+      </PressableFeedback>
       <AreaSheet
         visible={open}
         city={city}

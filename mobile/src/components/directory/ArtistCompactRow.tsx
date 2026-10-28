@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -23,7 +24,7 @@ export function ArtistCompactRow({ artist, onPress }: ArtistCompactRowProps) {
   const rest = [rated ? `(${artist.review_count})` : null, artist.categories.map((c) => c.name).join(', ') || null, artist.locality ?? artist.city]
     .filter(Boolean).join(' · ');
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       onPress={onPress}
       style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: RADIUS, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}
@@ -46,6 +47,6 @@ export function ArtistCompactRow({ artist, onPress }: ArtistCompactRowProps) {
           </AppText>
         )}
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

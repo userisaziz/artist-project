@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../../src/components/common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/common/AppText';
 import { AppButton } from '../../src/components/common/AppButton';
@@ -161,7 +162,7 @@ function ServiceRow({ service, confirming, deleting, onEdit, onAskDelete, onCanc
 function RowAction({ label, accessibilityLabel, onPress, muted = false }: { label: string; accessibilityLabel: string; onPress: () => void; muted?: boolean }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
@@ -169,6 +170,6 @@ function RowAction({ label, accessibilityLabel, onPress, muted = false }: { labe
       style={{ height: 34, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center', backgroundColor: muted ? theme.colors.neutralSoft : theme.colors.brandSoft }}
     >
       <AppText variant="label" style={{ fontSize: 13, color: muted ? theme.colors.textSecondary : theme.colors.brand }}>{label}</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }

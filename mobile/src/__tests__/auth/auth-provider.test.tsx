@@ -60,6 +60,7 @@ async function signedIn(): Promise<void> {
 
 beforeEach(() => {
   store.refreshToken = null;
+  store.user = null;
   store.saves = [];
   send.mockReset();
   clearCache.mockClear();
@@ -114,6 +115,51 @@ describe('cold-start restore', () => {
 
     expect(screen.getByText('status:authenticated')).toBeTruthy();
     expect(store.refreshToken).toBe('refresh-1');
+  });
+
+  it('with a remembered profile, opens the app at once and refreshes in the background', async () => {
+    store.refreshToken = 'refresh-0';
+    store.user = userFixture;
+    const refresh = deferred<TransportResponse>();
+    routes({ '/auth/refresh': () => refresh.promise, '/bookings': () => reply(200, []) });
+
+    await renderProvider();
+    expect(screen.getByText('status:authenticated')).toBeTruthy();
+    expect(auth.user?.id).toBe(userFixture.id);
+
+    const bookings = getBookings(); // a screen's first request waits for the refresh instead of a wasted 401
+    await act(async () => { refresh.resolve({ status: 200, json: tokenPairFixture(1) }); await bookings; });
+    expect(callsTo('/bookings')).toHaveLength(1);
+    expect(callsTo('/bookings')[0].headers).toEqual({ Authorization: `Bearer ${tokenPairFixture(1).access_token}` });
+    expect(store.refreshToken).toBe('refresh-1');
+  });
+
+  it('with a remembered profile, a 401 from refresh still signs out', async () => {
+    store.refreshToken = 'refresh-0';
+    store.user = userFixture;
+    routes({ '/auth/refresh': () => reply(401, authErrorBody) });
+
+    await renderProvider();
+
+    expect(screen.getByText('status:unauthenticated')).toBeTruthy();
+    expect(store.refreshToken).toBeNull();
+    expect(store.user).toBeNull();
+  });
+
+  it('with a remembered profile, a network error keeps the app open instead of the unavailable screen', async () => {
+    store.refreshToken = 'refresh-0';
+    store.user = userFixture;
+    routes({ '/auth/refresh': () => Promise.reject(networkError()) });
+
+    await renderProvider();
+
+    expect(screen.getByText('status:authenticated')).toBeTruthy();
+    expect(store.refreshToken).toBe('refresh-0');
+  });
+
+  it('remembers the signed-in profile for the next launch', async () => {
+    await signedIn();
+    expect(store.user?.id).toBe(userFixture.id);
   });
 
   it.each([[503, serviceUnavailableBody], [429, { code: 'rate_limited', message: 'Too many requests' }]])(

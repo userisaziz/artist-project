@@ -21,6 +21,12 @@ RECOMMENDED_PRIOR_REVIEWS = 5
 # A free-date search checks each candidate's real slots (two queries each), so one page scans at most this many.
 AVAILABLE_ON_SCAN_LIMIT = 100
 
+# "Near me" without a radius widens step by step, stopping at the first radius with enough artists; with too few
+# even at the last step, no radius applies. A radius the client sends is capped at MAX_RADIUS_KM.
+NEARBY_RADII_KM = (5.0, 10.0, 20.0)
+NEARBY_MIN_RESULTS = 3
+MAX_RADIUS_KM = 50.0
+
 
 class DirectorySort(StrEnum):
     recent = "recent"  # most recently approved first (the default; keyset paging)

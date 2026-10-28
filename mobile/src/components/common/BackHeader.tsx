@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { useRouter } from 'expo-router';
 import { AppText } from './AppText';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -17,7 +18,7 @@ export function BackHeader({ title, step, onBack }: BackHeaderProps) {
   const router = useRouter();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3], minHeight: 44 }}>
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel="Back"
         onPress={onBack ?? (() => router.back())}
@@ -25,7 +26,7 @@ export function BackHeader({ title, step, onBack }: BackHeaderProps) {
         style={{ width: 40, height: 40, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon name="chevron-left" size={22} />
-      </Pressable>
+      </PressableFeedback>
       <AppText variant="title" style={{ flex: 1, color: theme.colors.heading }}>{title ?? ''}</AppText>
       {step ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{step}</AppText> : null}
     </View>

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -19,13 +20,13 @@ export function Stepper({ label, value, canDecrease, canIncrease, onDecrease, on
   const button = { width: 30, height: 30, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' } as const;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label} earlier`} accessibilityState={{ disabled: !canDecrease }} disabled={!canDecrease} onPress={onDecrease} hitSlop={6} style={[button, { opacity: canDecrease ? 1 : 0.4 }]}>
+      <PressableFeedback accessibilityRole="button" accessibilityLabel={`${label} earlier`} accessibilityState={{ disabled: !canDecrease }} disabled={!canDecrease} onPress={onDecrease} hitSlop={6} style={[button, { opacity: canDecrease ? 1 : 0.4 }]}>
         <Icon name="minus" size={14} />
-      </Pressable>
+      </PressableFeedback>
       <AppText variant="label" accessibilityLabel={`${label} ${value}`} style={{ minWidth: 44, textAlign: 'center', color: theme.colors.textPrimary }}>{value}</AppText>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label} later`} accessibilityState={{ disabled: !canIncrease }} disabled={!canIncrease} onPress={onIncrease} hitSlop={6} style={[button, { opacity: canIncrease ? 1 : 0.4 }]}>
+      <PressableFeedback accessibilityRole="button" accessibilityLabel={`${label} later`} accessibilityState={{ disabled: !canIncrease }} disabled={!canIncrease} onPress={onIncrease} hitSlop={6} style={[button, { opacity: canIncrease ? 1 : 0.4 }]}>
         <Icon name="plus" size={14} />
-      </Pressable>
+      </PressableFeedback>
     </View>
   );
 }

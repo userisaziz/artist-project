@@ -6,3 +6,6 @@ PUBLIC_READS_PER_IP = Limit(hits=300, window_seconds=60)
 
 # A pin further than this from every area's centre snaps to none: the artist picks their area by hand.
 NEAREST_AREA_MAX_KM = 6.0
+
+# Area search answers with at most this many places.
+AREA_SEARCH_LIMIT = 10

@@ -7,26 +7,29 @@ import { AppButton } from '../../../src/components/common/AppButton';
 import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { Icon } from '../../../src/components/common/Icon';
-import { CitySheet } from '../../../src/components/directory/CitySheet';
+import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
 import { ExploreFilterBar } from '../../../src/components/directory/ExploreFilterBar';
 import type { FilterChipSpec } from '../../../src/components/directory/ExploreFilterBar';
 import { ExploreResultRow } from '../../../src/components/directory/ExploreResultRow';
 import { ExploreResultsHeader } from '../../../src/components/directory/ExploreResultsHeader';
-import { useCity } from '../../../src/context/directory/city-context';
+import { useCity, useCustomerPlace } from '../../../src/context/directory/city-context';
+import { placeLine } from '../../../src/utils/directory/place';
 import { useTheme } from '../../../src/core/theme/theme-provider';
-import { useCategories, useCities } from '../../../src/hooks/catalog/catalog';
+import { useCategories } from '../../../src/hooks/catalog/catalog';
 import { useDebounced } from '../../../src/hooks/common/use-debounced';
 import { useNow } from '../../../src/hooks/common/use-now';
-import { useArtistSearch } from '../../../src/hooks/directory/directory';
+import { useArtistSearch, usePrefetchArtist } from '../../../src/hooks/directory/directory';
 import { TOP_RATED, useExploreFilters } from '../../../src/hooks/directory/use-explore-filters';
 import { useSaveToggle } from '../../../src/hooks/saved/saved';
 import { formatPrice } from '../../../src/utils/common/format';
 import { formatDay, istDateKey } from '../../../src/utils/common/time';
 import { availabilityLabel } from '../../../src/utils/directory/format';
 import { SORT_LABELS, dateChoices, priceChoices, sortChoices } from '../../../src/utils/directory/explore-choices';
+import { usePullToRefresh } from '../../../src/hooks/common/use-pull-to-refresh';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const PLACEHOLDER_OPACITY = 0.55;
 type Sheet = 'city' | 'date' | 'price' | 'sort' | null;
 
 /** A chip selection seeded from a search param; a new param re-selects the chip. */
@@ -56,13 +59,14 @@ export default function Explore() {
   const q = useDebounced(query.trim(), SEARCH_DEBOUNCE_MS);
   const params = useExploreParams();
   const [categoryId, setCategoryId] = useParamSelection(params.categoryId);
-  const { city, setCity } = useCity();
+  const { setCity } = useCity();
+  const { place, setPlace } = useCustomerPlace();
   useEffect(() => { if (params.city) setCity(params.city); }, [params.city, setCity]); // a `?city=` link wins
   const categories = useCategories();
-  const cities = useCities();
-  const explore = useExploreFilters({ city, categoryId, q });
+  const explore = useExploreFilters({ place, categoryId, q });
   const { filters, set } = explore;
   const list = useArtistSearch(explore.search);
+  const pull = usePullToRefresh(list.refetch);
   const saveArtist = useSaveToggle('artist');
   const [sheet, setSheet] = useState<Sheet>(null);
   const todayKey = istDateKey(useNow());
@@ -71,15 +75,19 @@ export default function Explore() {
   const total = list.data?.pages[0]?.total ?? null;
   const shown = total ?? items.length;
   const count = `${shown}${total === null && list.hasNextPage ? '+' : ''} ${shown === 1 && !list.hasNextPage ? 'artist' : 'artists'}`;
-  const where = filters.near ? 'near you' : city ? `in ${city}` : 'in all cities';
+  const where = placeLine(place, list.data?.pages[0]?.radius_km);
   const category = categories.data?.find((c) => c.id === categoryId);
   const filtered = explore.active || !!category;
-  const openArtist = (id: string) => router.push({ pathname: '/customer/artist/[id]', params: { id } });
+  const prefetchArtist = usePrefetchArtist();
+  const openArtist = (id: string) => {
+    prefetchArtist(id);
+    router.push({ pathname: '/customer/artist/[id]', params: { id } });
+  };
   const close = () => setSheet(null);
 
   const chips: FilterChipSpec[] = [
     ...(category ? [{ key: 'category', label: `${category.name} ×`, accessibilityLabel: `Remove ${category.name} filter`, active: true, onPress: () => setCategoryId(null) }] : []),
-    { key: 'near', label: explore.locating ? 'Locating…' : 'Near me', accessibilityLabel: 'Near me', icon: 'map-pin', active: !!filters.near, onPress: () => { void explore.toggleNear(); } },
+    { key: 'near', label: explore.locating ? 'Locating…' : 'Near me', accessibilityLabel: 'Near me', icon: 'map-pin', active: explore.nearMe, onPress: () => { void explore.toggleNear(); } },
     { key: 'date', label: filters.availableOn ? formatDay(filters.availableOn) : 'Date', accessibilityLabel: 'Date', opensMenu: true, active: !!filters.availableOn, onPress: () => setSheet('date') },
     { key: 'price', label: filters.maxPricePaise ? `Under ${formatPrice(filters.maxPricePaise)}` : 'Price', accessibilityLabel: 'Price', opensMenu: true, active: filters.maxPricePaise !== null, onPress: () => setSheet('price') },
     { key: 'rating', label: `★ ${TOP_RATED}+`, accessibilityLabel: `Rated ${TOP_RATED} and up`, active: filters.minRating !== null, onPress: () => set({ minRating: filters.minRating === null ? TOP_RATED : null }) },
@@ -119,8 +127,11 @@ export default function Explore() {
         <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, paddingHorizontal: theme.spacing.md, marginTop: 8 }}>{explore.locationError}</AppText>
       ) : null}
       <FlatList
+        refreshing={pull.refreshing}
+        onRefresh={pull.onRefresh}
         data={items}
         keyExtractor={(a) => a.id}
+        style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1 }} // the previous search, until the new one answers
         contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: 12 }}
         renderItem={({ item, index }) => (index === 0 ? (
           <ExploreFeaturedCard
@@ -147,10 +158,10 @@ export default function Explore() {
         ListEmptyComponent={empty}
         ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" /> : null}
       />
-      <CitySheet visible={sheet === 'city'} cities={cities.data ?? []} selected={city} onPick={(next) => { setCity(next); close(); }} onClose={close} />
+      <PlaceSheet visible={sheet === 'city'} current={place} phone={explore.phone} onPick={(next) => { setPlace(next); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'date'} title="Free on" choices={dateChoices(todayKey)} selected={filters.availableOn} onPick={(availableOn) => { set({ availableOn }); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'price'} title="Starting price" choices={priceChoices()} selected={filters.maxPricePaise} onPick={(maxPricePaise) => { set({ maxPricePaise }); close(); }} onClose={close} />
-      <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices(!!filters.near)} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
+      <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices(explore.hasPoint)} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
     </View>
   );
 }

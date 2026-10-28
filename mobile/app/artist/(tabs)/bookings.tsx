@@ -13,6 +13,7 @@ import { RequestCard } from '../../../src/components/bookings/RequestCard';
 import { useChatOpener } from '../../../src/hooks/chat/chat';
 import { AgendaRow } from '../../../src/components/bookings/AgendaRow';
 import type { ArtistBookingScope, Booking } from '../../../src/types/bookings/bookings';
+import { usePullToRefresh } from '../../../src/hooks/common/use-pull-to-refresh';
 
 const EMPTY: Record<ArtistBookingScope, string> = {
   requests: 'No requests waiting for you.',
@@ -30,6 +31,7 @@ export default function ArtistBookings() {
   const [scope, setScope] = useState<ArtistBookingScope>('requests');
   const requests = useArtistBookings('requests'); // always loaded: it feeds the "Requests · n" count
   const other = useArtistBookings(scope === 'past' ? 'past' : 'upcoming');
+  const pull = usePullToRefresh(() => Promise.all([requests.refetch(), other.refetch()]));
   const list = scope === 'requests' ? requests : other;
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const requestCount = requests.data ? `${requests.data.pages.reduce((n, p) => n + p.items.length, 0)}${requests.hasNextPage ? '+' : ''}` : '…';
@@ -68,6 +70,8 @@ export default function ArtistBookings() {
         />
       </View>
       <FlatList
+        refreshing={pull.refreshing}
+        onRefresh={pull.onRefresh}
         data={items}
         keyExtractor={(b) => b.id}
         contentContainerStyle={{ padding: theme.spacing.md, gap: 12 }}

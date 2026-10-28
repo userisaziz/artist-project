@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -40,14 +41,14 @@ export function CurrentLocationCard({ state, title, detail, onDetect, onChange }
           <AppText variant="label" numberOfLines={1} style={{ color: theme.colors.textPrimary }}>{title}</AppText>
           {detail ? <AppText variant="caption" numberOfLines={1} style={{ color: theme.colors.textSecondary, marginTop: 2 }}>{detail}</AppText> : null}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Change location" onPress={onChange} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" accessibilityLabel="Change location" onPress={onChange} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.brand }}>Change</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
     );
   }
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel="Use my current location"
       onPress={onDetect}
@@ -61,6 +62,6 @@ export function CurrentLocationCard({ state, title, detail, onDetect, onChange }
         <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>{'Fastest · uses your phone’s GPS'}</AppText>
       </View>
       <Icon name="chevron-right" size={18} color={theme.colors.brand} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

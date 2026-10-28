@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
@@ -77,7 +78,7 @@ export default function PortfolioStep() {
       <FormHeading eyebrow="STEP 4 · PORTFOLIO" title="Show your" accent="best work" subtitle={`Add at least ${MIN_PHOTOS} photos. Your first photo becomes your cover.`} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
         {photos.map((p, i) => (
-          <Pressable
+          <PressableFeedback
             key={p.id}
             accessibilityLabel={`Portfolio photo ${i + 1}`}
             accessibilityState={{ selected: selected === p.id }}
@@ -91,7 +92,7 @@ export default function PortfolioStep() {
                 <AppText variant="eyebrow" style={{ fontSize: 10.5, letterSpacing: 0, color: theme.colors.brand }}>Cover</AppText>
               </View>
             ) : null}
-          </Pressable>
+          </PressableFeedback>
         ))}
         {uploading.map((u) => (
           <View key={u.localId} style={tile} accessibilityLabel="Uploading photo">
@@ -100,7 +101,7 @@ export default function PortfolioStep() {
           </View>
         ))}
         {count + uploading.length < MAX_PHOTOS ? (
-          <Pressable
+          <PressableFeedback
             accessibilityRole="button"
             accessibilityLabel="Add photos"
             onPress={() => { void add(); }}
@@ -108,7 +109,7 @@ export default function PortfolioStep() {
           >
             <AppText style={{ fontSize: 22, color: theme.colors.brand }}>+</AppText>
             <AppText variant="label" style={{ fontSize: 12, color: theme.colors.brand }}>Add</AppText>
-          </Pressable>
+          </PressableFeedback>
         ) : null}
       </View>
 

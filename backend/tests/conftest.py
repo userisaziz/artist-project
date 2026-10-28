@@ -29,6 +29,8 @@ os.environ["FAST2SMS_API_KEY"] = ""
 os.environ["DEV_OTP_CODE"] = ""
 os.environ["STORAGE_PROVIDER"] = "fake"
 os.environ["PAYMENT_PROVIDER"] = "mock"
+os.environ["GEOCODER_PROVIDER"] = "none"
+os.environ["GEOCODER_API_KEY"] = ""
 # Fixed Fernet key for tests (32 zero bytes, base64) — never used outside the test DB.
 os.environ["AADHAAR_ENCRYPTION_KEY"] = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 

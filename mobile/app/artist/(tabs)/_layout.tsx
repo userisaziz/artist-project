@@ -18,6 +18,7 @@ export default function ArtistTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        freezeOnBlur: true, // a tab out of sight stops re-rendering (clock ticks, polls) while another is in use
         tabBarActiveTintColor: theme.colors.brand,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.separator },

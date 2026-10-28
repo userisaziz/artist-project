@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
@@ -69,13 +70,13 @@ function ProductFields({ product, onDone }: { product: Product; onDone: () => vo
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
-        <Pressable accessibilityRole="button" onPress={onDone} disabled={update.isPending} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" onPress={onDone} disabled={update.isPending} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
-        </Pressable>
+        </PressableFeedback>
         <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>Edit product</AppText>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: blocked }} disabled={blocked} onPress={save} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" accessibilityState={{ disabled: blocked }} disabled={blocked} onPress={save} hitSlop={8}>
           <AppText variant="label" style={{ color: blocked ? theme.colors.textMuted : theme.colors.brand }}>{update.isPending ? 'Saving…' : 'Save'}</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.md, gap: 14, paddingBottom: insets.bottom + theme.spacing.xl }}>
         <AppTextField label="Name" value={name} onChangeText={setName} maxLength={120} />

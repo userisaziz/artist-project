@@ -1,4 +1,4 @@
-import { Pressable } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
@@ -21,7 +21,7 @@ export function FilterChip({ label, active, onPress, accessibilityLabel, icon, o
   const theme = useTheme();
   const ink = active ? theme.colors.textOnBrand : theme.colors.textPrimary;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected: active }}
@@ -35,6 +35,6 @@ export function FilterChip({ label, active, onPress, accessibilityLabel, icon, o
       {icon ? <Icon name={icon} size={14} color={active ? ink : theme.colors.brand} /> : null}
       <AppText variant="labelMd" style={{ color: ink }}>{label}</AppText>
       {opensMenu ? <Icon name="chevron-down" size={13} color={ink} /> : null}
-    </Pressable>
+    </PressableFeedback>
   );
 }

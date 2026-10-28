@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import type { StarRating } from '../../types/reviews/reviews';
@@ -22,7 +23,7 @@ export function StarPicker({ value, onChange, disabled = false }: StarPickerProp
       {VALUES.map((n) => {
         const lit = value !== null && n <= value;
         return (
-          <Pressable
+          <PressableFeedback
             key={n}
             accessibilityRole="radio"
             accessibilityLabel={`${n} ${n === 1 ? 'star' : 'stars'}`}
@@ -32,7 +33,7 @@ export function StarPicker({ value, onChange, disabled = false }: StarPickerProp
             style={{ width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="star" size={STAR_SIZE} color={lit ? theme.colors.brand : theme.colors.border} filled={lit} />
-          </Pressable>
+          </PressableFeedback>
         );
       })}
     </View>

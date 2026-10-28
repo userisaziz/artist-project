@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -17,7 +18,7 @@ export function ConversationRow({ conversation, now, onPress }: ConversationRowP
   const { counterpart, last_message: last, unread_count: unread, booking } = conversation;
   const label = unread ? `${counterpart.name}, ${unread} unread` : counterpart.name;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
@@ -45,6 +46,6 @@ export function ConversationRow({ conversation, now, onPress }: ConversationRowP
         </View>
         {booking ? <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{bookingTag(booking)}</AppText> : null}
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

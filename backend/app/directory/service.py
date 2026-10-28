@@ -1,6 +1,7 @@
 """The public artist directory: approved artists only, their approved services, and free slots."""
 
 import uuid
+from dataclasses import replace
 from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,9 +14,15 @@ from app.booking import rules as booking_rules
 from app.booking.config import get_booking_settings
 from app.chat import service as chat_service
 from app.core.exceptions import NotFoundError
-from app.directory.constants import AVAILABLE_ON_SCAN_LIMIT, CARD_PHOTOS, NEXT_FREE_LOOKAHEAD_DAYS
+from app.directory.constants import (
+    AVAILABLE_ON_SCAN_LIMIT,
+    CARD_PHOTOS,
+    NEARBY_MIN_RESULTS,
+    NEARBY_RADII_KM,
+    NEXT_FREE_LOOKAHEAD_DAYS,
+)
 from app.directory.repository import DirectoryRepository
-from app.directory.utils import SearchFilters
+from app.directory.utils import SearchFilters, decode_near_cursor, encode_near_cursor
 from app.review.service import ratings_for
 from app.shared.clock import Clock
 from app.shared.cursor import decode_offset_cursor, encode_offset_cursor
@@ -68,6 +75,34 @@ class DirectoryService:
         profiles = await self.artists.approved_many(artist_ids)
         ratings = await ratings_for(self.session, [p.id for p in profiles])
         return [self._card_fields(p, ratings) for p in profiles]
+
+    async def search(self, filters: SearchFilters, limit: int, cursor: str | None) -> dict:
+        """One page of Explore results with its total and, near a point, the radius applied. The first page of a
+        search near a point picks the radius (the client's, else the auto-widened one); its cursor carries that
+        radius so every later page keeps it."""
+        if filters.near is None:
+            items, next_cursor = await self.list(filters, limit, cursor)
+            return {"items": items, "next_cursor": next_cursor, "total": await self.total(filters), "radius_km": None}
+        carried = decode_near_cursor(cursor) if cursor else None
+        if carried is not None:
+            radius, cursor = carried
+        elif filters.radius_km is not None:
+            radius = filters.radius_km
+        else:
+            radius = await self._widened_radius(filters)
+        filters = replace(filters, radius_km=radius)
+        items, next_cursor = await self.list(filters, limit, cursor)
+        return {
+            "items": items,
+            "next_cursor": encode_near_cursor(radius, next_cursor) if next_cursor else None,
+            "total": await self.total(filters),
+            "radius_km": radius,
+        }
+
+    async def _widened_radius(self, filters: SearchFilters) -> float | None:
+        """The smallest of NEARBY_RADII_KM with at least NEARBY_MIN_RESULTS matches; None (no limit) if none has."""
+        counts = await self.artists.count_within(filters, NEARBY_RADII_KM)
+        return next((r for r, n in zip(NEARBY_RADII_KM, counts, strict=True) if n >= NEARBY_MIN_RESULTS), None)
 
     async def list(self, filters: SearchFilters, limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
         """Explore results. The default order (most recently approved) pages by (approved-at, id); every other

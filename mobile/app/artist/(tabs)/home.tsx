@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { RequirementsBanner } from '../../../src/components/artist-onboarding/RequirementsBanner';
@@ -47,7 +48,7 @@ export default function ArtistHome() {
       </View>
       <RequirementsBanner onOpen={(action) => router.push(action as Href)} />
 
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel="Earnings this month, see every month"
         onPress={() => router.push('/artist/earnings')}
@@ -58,14 +59,14 @@ export default function ArtistHome() {
         <AppText variant="caption" style={{ color: theme.colors.textOnBrand, opacity: 0.85 }}>
           {d ? `${d.completed_this_month} completed · ${d.upcoming} upcoming` : ' '}
         </AppText>
-      </Pressable>
+      </PressableFeedback>
       {dashboard.isError ? <ErrorView error={dashboard.error} onRetry={() => { void dashboard.refetch(); }} /> : null}
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 12 }}>
         <AppText variant="title" style={heading}>New requests</AppText>
-        <Pressable accessibilityRole="button" onPress={() => router.navigate('/artist/bookings')} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" onPress={() => router.navigate('/artist/bookings')} hitSlop={8}>
           <AppText variant="label" style={{ fontSize: 13, color: theme.colors.brand }}>See all</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       {requests.isPending ? <LoadingView /> : null}
       {requests.isError ? <ErrorView error={requests.error} onRetry={() => { void requests.refetch(); }} /> : null}

@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppButton } from '../common/AppButton';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -36,11 +37,10 @@ export function StorefrontActions({ businessName, onBook, onMessage, messaging, 
         <AppButton label="Enquire" accessibilityLabel={`Request a quote from ${businessName}`} variant="secondary" onPress={onEnquire} />
       </View>
       {follow ? (
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel={`${follow.following ? 'Unfollow' : 'Follow'} ${businessName}`}
           accessibilityState={{ selected: follow.following, busy: follow.pending }}
-          disabled={follow.pending}
           onPress={follow.onToggle}
           style={{
             width: FOLLOW_SIZE,
@@ -54,7 +54,7 @@ export function StorefrontActions({ businessName, onBook, onMessage, messaging, 
           }}
         >
           <Icon name={follow.following ? 'check' : 'plus'} size={20} color={theme.colors.brand} />
-        </Pressable>
+        </PressableFeedback>
       ) : null}
     </View>
   );

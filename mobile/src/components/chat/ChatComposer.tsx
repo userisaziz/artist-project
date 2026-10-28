@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { TextInput, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -8,7 +9,8 @@ const MAX_MESSAGE = 2000; // backend MESSAGE_MAX_LENGTH
 interface ChatComposerProps {
   sending: boolean;
   error: string | null;
-  /** Resolves once sent; the draft is cleared only then, so a failed send keeps the text. */
+  /** Resolves once sent. The field clears at once (the thread shows the message as pending); a failed send puts the
+   *  text back unless something new was typed meanwhile. */
   onSend: (text: string) => Promise<unknown>;
 }
 
@@ -16,19 +18,16 @@ interface ChatComposerProps {
 export function ChatComposer({ sending, error, onSend }: ChatComposerProps) {
   const theme = useTheme();
   const [draft, setDraft] = useState('');
-  const inFlight = useRef(false); // render state lags a fast double tap
   const text = draft.trim();
   const submit = async () => {
-    if (!text || inFlight.current) return;
-    inFlight.current = true;
+    if (!text) return;
     const sent = draft;
+    setDraft('');
     try {
       await onSend(text);
-      setDraft((current) => (current === sent ? '' : current)); // keep anything typed while it was sending
     } catch {
-      // The failure is shown through `error` from the mutation; the draft stays for a retry.
-    } finally {
-      inFlight.current = false;
+      // The failure is shown through `error` from the mutation; the text comes back for a retry.
+      setDraft((current) => (current ? current : sent));
     }
   };
   return (
@@ -45,16 +44,16 @@ export function ChatComposer({ sending, error, onSend }: ChatComposerProps) {
           multiline
           style={{ flex: 1, maxHeight: 120, minHeight: 42, borderRadius: 21, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.inputBackground, paddingHorizontal: 16, paddingVertical: 10, color: theme.colors.textPrimary, fontFamily: theme.typography.body.fontFamily, fontSize: 14 }}
         />
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel="Send"
-          accessibilityState={{ disabled: !text || sending }}
-          disabled={!text || sending}
+          accessibilityState={{ disabled: !text, busy: sending }}
+          disabled={!text}
           onPress={() => { void submit(); }}
-          style={{ height: 42, paddingHorizontal: 18, borderRadius: 21, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center', opacity: !text || sending ? 0.5 : 1 }}
+          style={{ height: 42, paddingHorizontal: 18, borderRadius: 21, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center', opacity: !text ? 0.5 : 1 }}
         >
           <AppText variant="button" style={{ color: theme.colors.textOnBrand }}>Send</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
     </View>
   );

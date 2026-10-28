@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
@@ -86,30 +87,30 @@ export function ProductForm({ onCancel, onSaved }: { onCancel: () => void; onSav
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
-        <Pressable accessibilityRole="button" onPress={onCancel} disabled={!!progress} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" onPress={onCancel} disabled={!!progress} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
-        </Pressable>
+        </PressableFeedback>
         <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>New product</AppText>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!missing || !!progress }} disabled={!!missing || !!progress} onPress={() => { void publish(); }} hitSlop={8}>
+        <PressableFeedback accessibilityRole="button" accessibilityState={{ disabled: !!missing || !!progress }} disabled={!!missing || !!progress} onPress={() => { void publish(); }} hitSlop={8}>
           <AppText variant="label" style={{ color: missing || progress ? theme.colors.textMuted : theme.colors.brand }}>Publish</AppText>
-        </Pressable>
+        </PressableFeedback>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.md, gap: 14, paddingBottom: insets.bottom + theme.spacing.xl }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {photos.map((p, i) => (
-            <Pressable key={`${p.uri}:${i}`} accessibilityRole="button" accessibilityLabel={`Remove photo ${i + 1}`} onPress={() => setPhotos((all) => all.filter((_, j) => j !== i))}>
+            <PressableFeedback key={`${p.uri}:${i}`} accessibilityRole="button" accessibilityLabel={`Remove photo ${i + 1}`} onPress={() => setPhotos((all) => all.filter((_, j) => j !== i))}>
               <Photo uri={p.uri} style={{ width: TILE, height: TILE, borderRadius: theme.radii.md }} />
-            </Pressable>
+            </PressableFeedback>
           ))}
           {photos.length < MAX_PHOTOS ? (
-            <Pressable
+            <PressableFeedback
               accessibilityRole="button"
               accessibilityLabel="Add photos"
               onPress={() => { void pickImages(MAX_PHOTOS - photos.length).then((picked) => setPhotos((all) => [...all, ...picked].slice(0, MAX_PHOTOS))).catch((e: unknown) => setError(errorMessage(e))); }}
               style={{ width: TILE, height: TILE, borderRadius: theme.radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' }}
             >
               <AppText variant="caption" style={{ color: theme.colors.textMuted }}>+ Photos</AppText>
-            </Pressable>
+            </PressableFeedback>
           ) : null}
         </ScrollView>
         <AppTextField label="Name" placeholder="Bridal mehendi starter kit" value={name} onChangeText={setName} maxLength={120} />

@@ -1,4 +1,5 @@
-import { Pressable, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -23,9 +24,9 @@ export function StorefrontTabs({ tabs, onSelect }: StorefrontTabsProps) {
       style={{ marginTop: 20, borderBottomWidth: 1, borderBottomColor: theme.colors.separator, flexGrow: 0 }}
     >
       {tabs.map((t) => (
-        <Pressable key={t.key} accessibilityRole="link" accessibilityLabel={`Go to ${t.label}`} onPress={() => onSelect(t.key)} hitSlop={8} style={{ paddingVertical: 12 }}>
+        <PressableFeedback key={t.key} accessibilityRole="link" accessibilityLabel={`Go to ${t.label}`} onPress={() => onSelect(t.key)} hitSlop={8} style={{ paddingVertical: 12 }}>
           <AppText variant="label" style={{ fontSize: 14, color: theme.colors.textSecondary }}>{t.label}</AppText>
-        </Pressable>
+        </PressableFeedback>
       ))}
     </ScrollView>
   );

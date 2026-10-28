@@ -1,4 +1,5 @@
-import { KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { PressableFeedback } from './PressableFeedback';
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
@@ -24,14 +25,14 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
         {onBack || step ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3] }}>
             {onBack ? (
-              <Pressable
+              <PressableFeedback
                 accessibilityRole="button"
                 accessibilityLabel="Back"
                 onPress={onBack}
                 style={{ width: 40, height: 40, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Icon name="chevron-left" size={22} />
-              </Pressable>
+              </PressableFeedback>
             ) : null}
             {step ? (
               <View style={{ flex: 1, flexDirection: 'row', gap: theme.spacing[1.5] }} accessibilityLabel={`Step ${step} of ${steps}`}>

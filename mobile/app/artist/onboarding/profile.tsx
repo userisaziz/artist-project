@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { FormScreen, FormHeading } from '../../../src/components/common/FormScreen';
@@ -93,7 +94,7 @@ export default function ProfileStep() {
       footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saveProfile.isPending} disabled={!ready} />}
     >
       <FormHeading eyebrow="STEP 1 · PROFILE" title="Tell clients" accent="who you are" />
-      <Pressable
+      <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={photoKey ? 'Change profile photo' : 'Add profile photo'}
         onPress={() => { void choosePhoto(); }}
@@ -109,7 +110,7 @@ export default function ProfileStep() {
           <AppText variant="label" style={{ fontSize: 14, color: theme.colors.textPrimary }}>Profile photo</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>A clear, smiling photo builds trust</AppText>
         </View>
-      </Pressable>
+      </PressableFeedback>
 
       <View style={{ marginTop: 20 }}>
         <AppTextField label="Business name" value={name} onChangeText={setName} maxLength={120} autoCapitalize="words" placeholder="e.g. Ayesha Mehendi Art" />

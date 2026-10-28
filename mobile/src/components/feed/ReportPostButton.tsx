@@ -1,4 +1,5 @@
-import { Alert, Pressable } from 'react-native';
+import { Alert } from 'react-native';
+import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
@@ -24,8 +25,8 @@ export function ReportPostButton({ postId }: { postId: string }) {
       { text: 'Cancel', style: 'cancel' },
     ]);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Report this post" hitSlop={8} disabled={report.isPending} onPress={ask}>
+    <PressableFeedback accessibilityRole="button" accessibilityLabel="Report this post" hitSlop={8} disabled={report.isPending} onPress={ask}>
       <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Report</AppText>
-    </Pressable>
+    </PressableFeedback>
   );
 }
