@@ -1,6 +1,6 @@
 import { Select } from "@base-ui/react/select"
 import { Check, ChevronDown } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 export interface FilterOption<T extends string> {
   value: T
