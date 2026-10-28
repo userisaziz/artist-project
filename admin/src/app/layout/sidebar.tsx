@@ -37,7 +37,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
       <Logo size="md" suffix="admin" className="px-2" />
-      <nav aria-label="Primary" className="mt-6 flex flex-col gap-0.5 overflow-y-auto text-[13.5px]">
+      <nav aria-label="Primary" className="mt-6 flex flex-col gap-0.5 overflow-y-auto overscroll-contain text-[13.5px] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:var(--line)_transparent] focus-within:[scrollbar-color:var(--line)_transparent]">
         {NAV_ITEMS.map(({ to, label, count: key, pill }) => {
           const value = key ? counts[key] : undefined
           return (

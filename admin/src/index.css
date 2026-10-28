@@ -166,7 +166,9 @@
     }
   html {
     @apply font-sans;
-    /* Thin rose-tinted scrollbars instead of the platform's thick grey ones. */
+    }
+  /* Thin rose-tinted scrollbars on every scroll area (scrollbar-width is not inherited, so it is set per element). */
+  * {
     scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
     }
