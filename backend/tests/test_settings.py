@@ -37,6 +37,22 @@ def test_console_sms_refuses_to_run_in_production():
         AuthSettings(environment="production", sms_provider="console")
 
 
+def test_dev_otp_code_refuses_to_run_in_production():
+    with pytest.raises(ValidationError, match="DEV_OTP_CODE"):
+        AuthSettings(
+            environment="production",
+            sms_provider="fast2sms",
+            fast2sms_api_key=SecretStr("k"),
+            dev_otp_code=SecretStr("123456"),
+        )
+    with pytest.raises(ValidationError):
+        AuthSettings(environment="staging", dev_otp_code=SecretStr("12ab"))  # six digits, like a real code
+    assert (
+        AuthSettings(environment="staging", dev_otp_code=SecretStr("123456")).dev_otp_code.get_secret_value()
+        == "123456"
+    )
+
+
 def test_fast2sms_needs_an_api_key():
     with pytest.raises(ValidationError, match="FAST2SMS_API_KEY"):
         AuthSettings(environment="staging", sms_provider="fast2sms", fast2sms_api_key=SecretStr(""))

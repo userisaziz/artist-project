@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 import pytest
+from pydantic import SecretStr
 
 from app.auth.config import AuthSettings, get_auth_settings
 from app.auth.dependencies import otp_request_per_ip, otp_request_per_phone
@@ -351,3 +352,16 @@ async def test_local_cors_echoes_the_origin_with_credentials(engine, monkeypatch
         )
     assert response.headers["access-control-allow-origin"] == origin
     assert response.headers["access-control-allow-credentials"] == "true"
+
+
+async def test_a_dev_otp_code_signs_in_any_number_outside_production(client, override):
+    override(get_auth_settings, lambda: AuthSettings(sms_provider="console", dev_otp_code=SecretStr("123456")))
+    other = "+919845011122"
+    for phone in (PHONE, other):
+        assert (await client.post("/api/v1/auth/otp/request", json={"phone": phone})).status_code == 204
+
+    wrong = await client.post("/api/v1/auth/otp/verify", json={"phone": PHONE, "code": "654321"})
+    signed_in = await client.post("/api/v1/auth/otp/verify", json={"phone": other, "code": "123456"})
+
+    assert wrong.status_code == 401  # still a real check: expiry, attempts and limits apply
+    assert (signed_in.status_code, signed_in.json()["user"]["phone"]) == (200, other)

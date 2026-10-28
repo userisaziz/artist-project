@@ -26,6 +26,7 @@ os.environ["DATABASE_URL"] = settings.test_database_url
 os.environ["ENVIRONMENT"] = "test"
 os.environ["SMS_PROVIDER"] = "console"
 os.environ["FAST2SMS_API_KEY"] = ""
+os.environ["DEV_OTP_CODE"] = ""
 os.environ["STORAGE_PROVIDER"] = "fake"
 os.environ["PAYMENT_PROVIDER"] = "mock"
 # Fixed Fernet key for tests (32 zero bytes, base64) — never used outside the test DB.

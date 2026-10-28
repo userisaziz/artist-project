@@ -70,7 +70,7 @@ class AuthService:
             raise RateLimitError("Please wait before requesting another code")
         for otp in await self.auth.unconsumed_otps(phone):
             otp.consumed_at = now
-        code = generate_otp()
+        code = self.settings.dev_otp_code.get_secret_value() or generate_otp()
         otp = OtpCode(
             phone=phone, code_hash=hash_otp(code), expires_at=now + timedelta(minutes=self.settings.otp_ttl_minutes)
         )
