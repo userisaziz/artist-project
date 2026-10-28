@@ -12,9 +12,13 @@
     --radius-item: 9px;
     --radius-control: 10px;
     --radius-menu: 14px;
+    --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 }
 
 :root {
+    --motion-fast: 120ms;
+    --motion-base: 180ms;
+    --motion-slow: 240ms;
     --palette-blush50: #FFF8FB;
     --palette-blush60: #FDF2F5;
     --palette-blush75: #FFF5F8;

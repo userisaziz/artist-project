@@ -5,7 +5,7 @@ The single source for GetReady's brand in both apps.
 | File | Holds |
 |---|---|
 | `brand.json` | Names: brand name, admin name, wordmark text |
-| `tokens.json` | Design system: colours (`color`), fonts (`font`), text styles (`typography`), spacing, radii, tracking, shadows |
+| `tokens.json` | Design system: colours (`color`), fonts (`font`), text styles (`typography`), spacing, radii, tracking, shadows, motion (durations + easing) |
 | `logos/` | Logo files (none yet: the wordmark is text in the heading face) |
 
 ## Changing something
@@ -17,7 +17,7 @@ The single source for GetReady's brand in both apps.
 Generated (do not edit by hand):
 
 - mobile: `src/core/theme/tokens/{palette,typography,spacing,radii,shadows}.ts`, `src/core/brand/brand.ts`, `expo.name` in `app.json`
-- admin: `src/brand.css` (fonts, text sizes, tracking, radii, `--palette-*` colours), `src/lib/brand.ts`, `<title>` in `index.html`
+- admin: `src/brand.css` (fonts, text sizes, tracking, radii, easing, `--motion-*` durations, `--palette-*` colours), `src/lib/brand.ts`, `<title>` in `index.html`
 
 ## How the apps use it
 

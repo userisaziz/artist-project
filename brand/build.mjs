@@ -53,9 +53,11 @@ const brandCss = `${CSS_HEADER}@theme inline {
 ${webText.map(([k, v]) => `    --text-${k}: ${v};`).join('\n')}
 ${Object.entries(t.tracking).map(([k, v]) => `    --tracking-${k}: ${v};`).join('\n')}
 ${t.webRadius.map((k) => `    --radius-${k}: ${px(t.radius[k])};`).join('\n')}
+    --ease-snappy: ${t.motion.ease};
 }
 
 :root {
+${['fast', 'base', 'slow'].map((k) => `    --motion-${k}: ${t.motion[k]};`).join('\n')}
 ${Object.entries(t.color).map(([k, v]) => `    --palette-${k}: ${v};`).join('\n')}
 }
 `;

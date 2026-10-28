@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS, type NavCount } from './nav-items'
 import { Logo } from '@/components/ui/logo'
+import { preloadPage } from '@/app/page-chunks'
 
 const number = new Intl.NumberFormat('en-IN')
 const display = (v: string | number) => (typeof v === 'number' ? number.format(v) : v)
@@ -34,7 +35,7 @@ export function Sidebar() {
   const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')
 
   return (
-    <aside className="sticky top-0 flex h-svh w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
+    <aside className="flex h-full w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
       <Logo size="md" suffix="admin" className="px-2" />
       <nav aria-label="Primary" className="mt-6 flex flex-col gap-0.5 overflow-y-auto text-[13.5px]">
         {NAV_ITEMS.map(({ to, label, count: key, pill }) => {
@@ -43,10 +44,14 @@ export function Sidebar() {
             <NavLink
               key={to}
               to={to}
+              onPointerEnter={() => preloadPage(to)}
+              onFocus={() => preloadPage(to)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center justify-between rounded-[10px] px-3 py-[9px] transition-colors hover:bg-halo',
-                  isActive ? 'bg-halo font-bold text-primary' : 'font-medium text-foreground',
+                  // The active item's rose tick grows in; colours ease and a press dips the item slightly.
+                  'relative flex items-center justify-between rounded-control px-3 py-2.25 transition-[background-color,color,transform] duration-(--motion-fast) ease-snappy hover:bg-halo active:scale-[0.98]',
+                  'before:absolute before:top-1/2 before:left-0 before:h-4 before:w-0.75 before:-translate-y-1/2 before:rounded-full before:bg-primary before:transition-transform before:duration-(--motion-base) before:ease-snappy',
+                  isActive ? 'bg-halo font-bold text-primary before:scale-y-100' : 'font-medium text-foreground before:scale-y-0',
                 )
               }
             >
