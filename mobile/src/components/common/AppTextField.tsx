@@ -43,7 +43,7 @@ export function AppTextField({ label, error, hideLabel = false, accessory, style
             ...fieldBorder(theme.colors, focused, !!error),
             backgroundColor: theme.colors.inputBackground,
             color: theme.colors.textPrimary,
-            paddingHorizontal: 12,
+            paddingHorizontal: theme.spacing[3],
             fontSize: theme.typography.subtitle.fontSize,
             fontFamily: theme.typography.body.fontFamily,
           },

@@ -17,7 +17,7 @@ interface DayStripProps {
 export function DayStrip({ days, value, onChange }: DayStripProps) {
   const theme = useTheme();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 16 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing[2], paddingVertical: theme.spacing[4] }}>
       {days.map((d) => {
         const selected = d === value;
         const { weekday, day } = dayParts(d);
@@ -28,7 +28,7 @@ export function DayStrip({ days, value, onChange }: DayStripProps) {
             accessibilityLabel={formatDay(d)}
             accessibilityState={{ selected }}
             onPress={() => onChange(d)}
-            style={{ width: DAY_WIDTH, paddingVertical: 10, borderRadius: 16, alignItems: 'center', gap: 2, backgroundColor: selected ? theme.colors.brand : theme.colors.surface, borderWidth: selected ? 0 : 1, borderColor: theme.colors.separator }}
+            style={{ width: DAY_WIDTH, paddingVertical: theme.spacing[2.5], borderRadius: theme.radii.lg, alignItems: 'center', gap: theme.spacing[0.5], backgroundColor: selected ? theme.colors.brand : theme.colors.surface, borderWidth: selected ? 0 : 1, borderColor: theme.colors.separator }}
           >
             <AppText variant="caption" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textMuted }}>{weekday}</AppText>
             <AppText variant="subtitle" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{String(day)}</AppText>

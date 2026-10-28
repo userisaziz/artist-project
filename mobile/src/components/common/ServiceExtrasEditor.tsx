@@ -30,10 +30,10 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
     onChange({ ...value, addons: value.addons.map((a, i) => (i === index ? { ...a, ...patch } : a)) });
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: theme.spacing[3] }}>
       <AppText variant="label" style={{ color: theme.colors.textSecondary }}>What’s included (optional)</AppText>
       {value.included.map((text, i) => (
-        <View key={`${text}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View key={`${text}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
           <Icon name="check" size={14} color={theme.colors.brand} />
           <AppText variant="body" style={{ flex: 1, color: theme.colors.textPrimary }}>{text}</AppText>
           <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${text}`} hitSlop={8} onPress={() => onChange({ ...value, included: value.included.filter((_, j) => j !== i) })}>
@@ -42,20 +42,20 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
         </View>
       ))}
       {value.included.length < MAX_INCLUDED_ITEMS ? (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing[2] }}>
           <View style={{ flex: 1 }}>
             <AppTextField label="Included item" hideLabel placeholder="e.g. Bridal hands" value={item} onChangeText={setItem} maxLength={INCLUDED_ITEM_MAX_LENGTH} onSubmitEditing={addItem} returnKeyType="done" />
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Add included item" onPress={addItem} style={{ height: 48, paddingHorizontal: 14, justifyContent: 'center' }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Add included item" onPress={addItem} style={{ height: 48, paddingHorizontal: theme.spacing[3.5], justifyContent: 'center' }}>
             <AppText variant="label" style={{ color: theme.colors.brand }}>Add</AppText>
           </Pressable>
         </View>
       ) : null}
 
-      <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: 8 }}>Add-ons (optional)</AppText>
+      <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing[2] }}>Add-ons (optional)</AppText>
       {value.addons.map((a, i) => (
-        <View key={i} style={{ gap: 8, padding: 12, borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.separator }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View key={i} style={{ gap: theme.spacing[2], padding: theme.spacing[3], borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.separator }}>
+          <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
             <View style={{ flex: 2 }}>
               <AppTextField label={`Add-on ${i + 1} name`} hideLabel placeholder="e.g. Guest mehendi" value={a.name} onChangeText={(name) => setAddon(i, { name })} maxLength={ADDON_NAME_MAX_LENGTH} />
             </View>
@@ -69,9 +69,9 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
               accessibilityLabel={`Add-on ${i + 1} priced per person`}
               accessibilityState={{ checked: a.perPerson }}
               onPress={() => setAddon(i, { perPerson: !a.perPerson })}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}
             >
-              <View style={{ width: BOX, height: BOX, borderRadius: 5, alignItems: 'center', justifyContent: 'center', borderWidth: a.perPerson ? 0 : 1.5, borderColor: theme.colors.border, backgroundColor: a.perPerson ? theme.colors.brand : theme.colors.surface }}>
+              <View style={{ width: BOX, height: BOX, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', borderWidth: a.perPerson ? 0 : 1.5, borderColor: theme.colors.border, backgroundColor: a.perPerson ? theme.colors.brand : theme.colors.surface }}>
                 {a.perPerson ? <Icon name="check" size={13} color={theme.colors.textOnBrand} /> : null}
               </View>
               <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Priced per person</AppText>

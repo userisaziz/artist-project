@@ -25,9 +25,9 @@ interface AddressPickerProps {
 export function AddressPicker({ choices, pickedId, onPick, remember, onRememberChange }: AddressPickerProps) {
   const theme = useTheme();
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: theme.spacing[2] }}>
       {choices.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing[2] }} keyboardShouldPersistTaps="handled">
           {choices.map((c) => <Chip key={c.id} label={c.label} selected={c.id === pickedId} onPress={() => onPick(c)} />)}
         </ScrollView>
       ) : null}

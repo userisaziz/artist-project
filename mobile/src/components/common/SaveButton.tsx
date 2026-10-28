@@ -25,7 +25,7 @@ export function SaveButton({ name, saved, onPress }: SaveButtonProps) {
       accessibilityState={{ selected: saved }}
       onPress={onPress}
       hitSlop={8}
-      style={{ padding: 4 }}
+      style={{ padding: theme.spacing[1] }}
     >
       <Icon name="bookmark" size={20} color={saved ? theme.colors.brand : theme.colors.textMuted} filled={saved} />
     </Pressable>

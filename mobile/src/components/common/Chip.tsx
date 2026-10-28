@@ -12,14 +12,14 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={{
-        height: 36, paddingHorizontal: 14, borderRadius: theme.radii.pill, justifyContent: 'center',
-        flexDirection: 'row', alignItems: 'center', gap: 4,
+        height: 36, paddingHorizontal: theme.spacing[3.5], borderRadius: theme.radii.pill, justifyContent: 'center',
+        flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1],
         backgroundColor: selected ? theme.colors.brand : theme.colors.surface,
         borderWidth: selected ? 0 : 1, borderColor: theme.colors.border,
       }}
     >
       {selected ? <Icon name="check" size={14} color={theme.colors.textOnBrand} /> : null}
-      <AppText variant="label" style={{ fontSize: 13, color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{label}</AppText>
+      <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{label}</AppText>
     </Pressable>
   );
 }

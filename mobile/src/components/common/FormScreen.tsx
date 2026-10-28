@@ -22,21 +22,21 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: gutter, paddingBottom: theme.spacing.md }}
       >
         {onBack || step ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3] }}>
             {onBack ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Back"
                 onPress={onBack}
-                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 40, height: 40, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
               >
                 <Icon name="chevron-left" size={22} />
               </Pressable>
             ) : null}
             {step ? (
-              <View style={{ flex: 1, flexDirection: 'row', gap: 6 }} accessibilityLabel={`Step ${step} of ${steps}`}>
+              <View style={{ flex: 1, flexDirection: 'row', gap: theme.spacing[1.5] }} accessibilityLabel={`Step ${step} of ${steps}`}>
                 {Array.from({ length: steps }, (_, i) => (
-                  <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < step ? theme.colors.brand : theme.colors.progressTrack }} />
+                  <View key={i} style={{ flex: 1, height: 4, borderRadius: theme.radii.pill, backgroundColor: i < step ? theme.colors.brand : theme.colors.progressTrack }} />
                 ))}
               </View>
             ) : null}
@@ -45,7 +45,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
         {children}
       </ScrollView>
       {footer ? (
-        <View style={{ paddingHorizontal: gutter, paddingTop: 10, paddingBottom: insets.bottom + 10, backgroundColor: theme.colors.canvas }}>{footer}</View>
+        <View style={{ paddingHorizontal: gutter, paddingTop: theme.spacing[2.5], paddingBottom: insets.bottom + theme.spacing[2.5], backgroundColor: theme.colors.canvas }}>{footer}</View>
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -56,12 +56,12 @@ export function FormHeading({ eyebrow, title, accent, subtitle }: { eyebrow: str
   const theme = useTheme();
   return (
     <View style={{ paddingTop: theme.spacing.md + theme.spacing.xs }}>
-      <AppText variant="eyebrow" style={{ fontSize: 10.5, letterSpacing: 2.5, color: theme.colors.brand }}>{eyebrow}</AppText>
-      <AppText variant="display" style={{ fontSize: 25, lineHeight: 26, letterSpacing: -0.62, color: theme.colors.heading, marginTop: theme.spacing.sm }}>
+      <AppText variant="formEyebrow" style={{ color: theme.colors.brand }}>{eyebrow}</AppText>
+      <AppText variant="formTitle" style={{ color: theme.colors.heading, marginTop: theme.spacing.sm }}>
         {`${title} `}<Accent light color={theme.colors.brand}>{accent}</Accent>
       </AppText>
       {subtitle ? (
-        <AppText variant="body" style={{ fontSize: 13, lineHeight: 19, color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>{subtitle}</AppText>
+        <AppText variant="bodySm" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>{subtitle}</AppText>
       ) : null}
     </View>
   );

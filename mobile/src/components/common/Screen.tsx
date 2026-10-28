@@ -14,7 +14,7 @@ export function Screen({ children, scroll = false, keyboardOffset = true }: { ch
     <View style={{ flex: 1, padding: theme.spacing.lg }}>{children}</View>
   );
   return (
-    <View style={[{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top }, Platform.OS === 'web' && { paddingTop: 40 }]}>
+    <View style={[{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top }, Platform.OS === 'web' && { paddingTop: theme.spacing[10] }]}>
       {keyboardOffset ? (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           {body}

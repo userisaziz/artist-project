@@ -16,9 +16,9 @@ interface StepperProps {
 /** Minus, a value, plus: small bounded numbers such as opening hours. */
 export function Stepper({ label, value, canDecrease, canIncrease, onDecrease, onIncrease }: StepperProps) {
   const theme = useTheme();
-  const button = { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' } as const;
+  const button = { width: 30, height: 30, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' } as const;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${label} earlier`} accessibilityState={{ disabled: !canDecrease }} disabled={!canDecrease} onPress={onDecrease} hitSlop={6} style={[button, { opacity: canDecrease ? 1 : 0.4 }]}>
         <Icon name="minus" size={14} />
       </Pressable>

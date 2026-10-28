@@ -7,7 +7,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const theme = useTheme();
   return (
-    <View style={[{ borderRadius: 18, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, padding: 14 }, style]}>
+    <View style={[{ borderRadius: theme.radii.xl, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, padding: theme.spacing[3.5] }, style]}>
       {children}
     </View>
   );

@@ -15,7 +15,7 @@ export function InfoRow({ label, value, strong = false, tint }: InfoRowProps) {
   const theme = useTheme();
   const text = strong ? theme.typography.subtitle : theme.typography.body;
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 6 }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing[3], paddingVertical: theme.spacing[1.5] }}>
       <AppText style={[text, { color: strong ? theme.colors.textPrimary : theme.colors.textSecondary }]}>{label}</AppText>
       <AppText style={[text, { flexShrink: 1, textAlign: 'right', color: tint ?? theme.colors.textPrimary }]}>{value}</AppText>
     </View>

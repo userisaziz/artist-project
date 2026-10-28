@@ -39,8 +39,8 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
       <AppText variant="title" style={{ color: theme.colors.heading }}>{formatDay(date)}</AppText>
       {slots.isPending ? <LoadingView /> : null}
       {slots.isError ? <ErrorView error={slots.error} onRetry={() => { void slots.refetch(); }} /> : null}
-      {slots.data && !slots.data.slots.some((s) => s.available) ? <View style={{ marginTop: 10 }}><EmptyView message="No open times this day. Try another date." /></View> : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+      {slots.data && !slots.data.slots.some((s) => s.available) ? <View style={{ marginTop: theme.spacing[2.5] }}><EmptyView message="No open times this day. Try another date." /></View> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2], marginTop: theme.spacing[3] }}>
         {slots.data?.slots.map((s) => {
           const selected = s.start_at === value && s.available;
           const time = formatTime(s.start_at);
@@ -54,7 +54,7 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
               onPress={() => onChange(s.start_at)}
               style={{ width: '31.5%', height: 44, borderRadius: theme.radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? theme.colors.brand : s.available ? theme.colors.surface : theme.colors.canvas, borderWidth: selected ? 0 : 1, borderColor: theme.colors.separator }}
             >
-              <AppText variant="label" style={{ fontSize: 13, color: selected ? theme.colors.textOnBrand : s.available ? theme.colors.textPrimary : theme.colors.textMuted, textDecorationLine: s.available ? 'none' : 'line-through' }}>{time}</AppText>
+              <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : s.available ? theme.colors.textPrimary : theme.colors.textMuted, textDecorationLine: s.available ? 'none' : 'line-through' }}>{time}</AppText>
             </Pressable>
           );
         })}

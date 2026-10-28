@@ -27,13 +27,13 @@ export function FilterChip({ label, active, onPress, accessibilityLabel, icon, o
       accessibilityState={{ selected: active }}
       onPress={onPress}
       style={{
-        height: 34, paddingHorizontal: 14, borderRadius: theme.radii.pill, flexDirection: 'row', alignItems: 'center', gap: 4,
+        height: 34, paddingHorizontal: theme.spacing[3.5], borderRadius: theme.radii.pill, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1],
         backgroundColor: active ? theme.colors.heading : theme.colors.surface,
         borderWidth: active ? 0 : 1, borderColor: theme.colors.border,
       }}
     >
       {icon ? <Icon name={icon} size={14} color={active ? ink : theme.colors.brand} /> : null}
-      <AppText variant="label" style={{ fontSize: 12.5, color: ink }}>{label}</AppText>
+      <AppText variant="labelMd" style={{ color: ink }}>{label}</AppText>
       {opensMenu ? <Icon name="chevron-down" size={13} color={ink} /> : null}
     </Pressable>
   );

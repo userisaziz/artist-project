@@ -52,11 +52,11 @@ export function PhoneInput({ value, onChange, error = false, autoFocus = false }
         style={{
           height: 54, borderRadius: theme.radii.md, ...fieldBorder(theme.colors, focused, error),
           backgroundColor: theme.colors.inputBackground,
-          flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14,
+          flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3], paddingHorizontal: theme.spacing[3.5],
         }}
       >
         <Pressable testID="country-code-chip" accessibilityLabel={`Country code ${country.code}`} onPress={() => setPickerOpen(true)} hitSlop={theme.spacing.sm}>
-          <AppText variant="subtitle" style={{ fontSize: 17, color: theme.colors.textPrimary }}>{country.code}</AppText>
+          <AppText variant="phone" style={{ color: theme.colors.textPrimary }}>{country.code}</AppText>
         </Pressable>
         <View style={{ width: 1, height: 22, backgroundColor: theme.colors.separator }} />
         <TextInput
@@ -74,7 +74,7 @@ export function PhoneInput({ value, onChange, error = false, autoFocus = false }
           placeholderTextColor={theme.colors.textMuted}
           style={{
             flex: 1, height: '100%', color: theme.colors.textPrimary,
-            fontSize: 17, fontFamily: theme.typography.body.fontFamily,
+            fontSize: theme.typography.phone.fontSize, fontFamily: theme.typography.body.fontFamily,
           }}
         />
       </View>

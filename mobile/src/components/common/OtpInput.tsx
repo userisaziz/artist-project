@@ -89,7 +89,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
 
   return (
     <Animated.View
-      style={{ transform: [{ translateX: shake }], gap: 7, flexDirection: 'row' }}
+      style={{ transform: [{ translateX: shake }], gap: theme.spacing[1.75], flexDirection: 'row' }}
     >
       {digits.map((d, i) => (
         <FieldHalo key={i} focused={focusedIndex === i && !error} radius={theme.radii.md} style={{ flex: 1, minWidth: 0 }}>
@@ -116,8 +116,8 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
             ...fieldBorder(theme.colors, focusedIndex === i, error),
             backgroundColor: theme.colors.inputBackground,
             textAlign: 'center',
-            fontSize: 22,
-            fontFamily: theme.typography.eyebrow.fontFamily, // bold digits, as designed
+            fontSize: theme.typography.otpDigit.fontSize,
+            fontFamily: theme.typography.otpDigit.fontFamily,
             color: theme.colors.textPrimary,
           }}
         />

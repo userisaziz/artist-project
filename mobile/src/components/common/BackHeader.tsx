@@ -16,13 +16,13 @@ export function BackHeader({ title, step, onBack }: BackHeaderProps) {
   const theme = useTheme();
   const router = useRouter();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3], minHeight: 44 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
         onPress={onBack ?? (() => router.back())}
         hitSlop={8}
-        style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: 40, height: 40, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
       >
         <Icon name="chevron-left" size={22} />
       </Pressable>

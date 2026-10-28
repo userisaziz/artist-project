@@ -18,10 +18,10 @@ export function MenuRow({ label, onPress, detail }: MenuRowProps) {
       accessibilityRole="button"
       accessibilityLabel={detail ? `${label}, ${detail}` : undefined}
       onPress={onPress}
-      style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14 }}
+      style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: theme.spacing[3.5] }}
     >
       <AppText variant="body" style={{ color: theme.colors.textPrimary, fontFamily: theme.typography.label.fontFamily }}>{label}</AppText>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1] }}>
         {detail ? <AppText style={{ color: theme.colors.textMuted }}>{detail}</AppText> : null}
         <Icon name="chevron-right" size={18} color={theme.colors.textMuted} />
       </View>

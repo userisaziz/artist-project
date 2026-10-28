@@ -11,7 +11,7 @@ interface StatusPillProps {
 
 /** Small rounded status label, e.g. "Awaiting confirmation" (amber) or "Confirmed" (green). */
 export function StatusPill({ label, tone }: StatusPillProps) {
-  const { colors, radii } = useTheme();
+  const { colors, radii, spacing } = useTheme();
   const palette: Record<PillTone, [string, string]> = {
     pending: [colors.pendingSoft, colors.pendingInk],
     confirmed: [colors.confirmedSoft, colors.confirmedInk],
@@ -21,8 +21,8 @@ export function StatusPill({ label, tone }: StatusPillProps) {
   };
   const [bg, fg] = palette[tone];
   return (
-    <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: bg }}>
-      <AppText variant="label" style={{ fontSize: 11.5, color: fg }}>{label}</AppText>
+    <View style={{ alignSelf: 'flex-start', paddingHorizontal: spacing[2.5], paddingVertical: spacing[1], borderRadius: radii.pill, backgroundColor: bg }}>
+      <AppText variant="labelSm" style={{ color: fg }}>{label}</AppText>
     </View>
   );
 }

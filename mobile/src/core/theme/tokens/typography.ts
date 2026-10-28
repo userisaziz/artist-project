@@ -22,4 +22,14 @@ export const typographyTokens = {
   label:    { fontFamily: fontFamilies.sansSemiBold,  fontSize: 12, lineHeight: 16, letterSpacing: 0 },
   caption:  { fontFamily: fontFamilies.sansRegular,   fontSize: 12, lineHeight: 16, letterSpacing: 0 },
   button:   { fontFamily: fontFamilies.sansSemiBold,  fontSize: 15, lineHeight: 20, letterSpacing: 0 },
+  // Recurring size steps beside the base variants (exact design values). Change one here and every user follows.
+  labelSm:  { fontFamily: fontFamilies.sansSemiBold,  fontSize: 11.5, lineHeight: 16, letterSpacing: 0 }, // status pills
+  labelMd:  { fontFamily: fontFamilies.sansSemiBold,  fontSize: 12.5, lineHeight: 16, letterSpacing: 0 }, // filter chips
+  labelLg:  { fontFamily: fontFamilies.sansSemiBold,  fontSize: 13, lineHeight: 16, letterSpacing: 0 }, // chips, segments, time slots, links
+  bodySm:   { fontFamily: fontFamilies.sansRegular,   fontSize: 13, lineHeight: 19, letterSpacing: 0 }, // form subtitles
+  formEyebrow: { fontFamily: fontFamilies.sansBold,   fontSize: 10.5, lineHeight: 14, letterSpacing: 2.5 },
+  formTitle:   { fontFamily: fontFamilies.headingSemiBold, fontSize: 25, lineHeight: 26, letterSpacing: -0.62 },
+  sectionTitle: { fontFamily: fontFamilies.headingSemiBold, fontSize: 18.7, lineHeight: 24, letterSpacing: -0.43 }, // the design's 24px heading x0.78
+  phone:    { fontFamily: fontFamilies.sansSemiBold,  fontSize: 17, lineHeight: 24, letterSpacing: 0 }, // phone number entry
+  otpDigit: { fontFamily: fontFamilies.sansBold,      fontSize: 22, lineHeight: 28, letterSpacing: 0 }, // one-time code boxes
 } as const;

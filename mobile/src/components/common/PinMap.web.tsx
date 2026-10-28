@@ -19,7 +19,7 @@ export function PinMap({ start, onMove }: PinMapProps) {
   const theme = useTheme();
   useEffect(() => { onMove(start); }, [start, onMove]);
   return (
-    <View style={{ height: HEIGHT, borderRadius: theme.radii.md, backgroundColor: theme.colors.washBottom, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+    <View style={{ height: HEIGHT, borderRadius: theme.radii.md, backgroundColor: theme.colors.washBottom, alignItems: 'center', justifyContent: 'center', gap: theme.spacing[1.5] }}>
       <Icon name="map-pin" size={28} color={theme.colors.brand} />
       <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Map preview isn’t available on web</AppText>
       <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${start.latitude.toFixed(5)}, ${start.longitude.toFixed(5)}`}</AppText>
