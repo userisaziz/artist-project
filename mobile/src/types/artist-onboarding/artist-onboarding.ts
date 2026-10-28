@@ -112,10 +112,13 @@ export interface KycInput {
 
 export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post' | 'shop' | 'service';
 
-/** POST `fields` plus the image (form field `file`) to `upload_url`, then send `key` to our API. */
+/** Send the image to `upload_url`, then send `key` to our API (backend app/upload/schemas.py UploadOut).
+ *  POST: multipart form of `fields` plus the image as `file` (Cloudinary). PUT: the raw image with `headers` (R2). */
 export interface UploadTicket {
   upload_url: string;
+  method: 'POST' | 'PUT';
   fields: Record<string, string>;
+  headers: Record<string, string>;
   key: string;
 }
 

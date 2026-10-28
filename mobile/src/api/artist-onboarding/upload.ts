@@ -20,7 +20,7 @@ export async function pickImages(limit: number): Promise<PickedImage[]> {
   return res.assets.map((a) => ({ uri: a.uri, width: a.width, height: a.height }));
 }
 
-/** Spec §2: shrink on the device, get a signed form, post straight to storage, and return what our API needs. */
+/** Spec §2: shrink on the device, get a signed upload, send straight to storage, and return what our API needs. */
 export async function uploadImage(image: PickedImage, purpose: UploadPurpose): Promise<PhotoInput> {
   const small = await shrink(image);
   const ticket = await artistApi.uploadTicket(purpose);
@@ -48,27 +48,39 @@ async function shrink({ uri, width, height }: PickedImage): Promise<PickedImage>
   }
 }
 
-/** The multipart file part. Web reads the local blob first; native hands React Native the file URI. */
-async function filePart(uri: string): Promise<Blob> {
-  if (Platform.OS !== 'web') return { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob; // React Native's file part
+/** Reads a local file (file:// on native, blob: on web) into a Blob; a failure here is the file, not the network. */
+async function localBlob(uri: string): Promise<Blob> {
   try {
     return await (await fetch(uri)).blob();
   } catch (e) {
-    throw fileReadError(e); // a local blob URL, not the network
+    throw fileReadError(e);
   }
 }
 
-/** Multipart POST of the signed fields plus the file. Failures become ApiErrors so screens can show them. */
-export async function postToStorage(ticket: UploadTicket, uri: string): Promise<void> {
+/** The multipart file part. Web reads the local blob first; native hands React Native the file URI. */
+async function filePart(uri: string): Promise<Blob> {
+  if (Platform.OS !== 'web') return { uri, name: 'photo.jpg', type: 'image/jpeg' } as unknown as Blob; // React Native's file part
+  return localBlob(uri);
+}
+
+/** POST: multipart form of the signed fields plus the file (Cloudinary). PUT: the raw file with the signed headers (R2). */
+async function storageRequest(ticket: UploadTicket, uri: string): Promise<RequestInit> {
+  if (ticket.method === 'PUT') return { method: 'PUT', headers: ticket.headers, body: await localBlob(uri) };
   const form = new FormData();
   for (const [k, v] of Object.entries(ticket.fields)) form.append(k, v);
   form.append('file', await filePart(uri), 'photo.jpg');
+  return { method: 'POST', body: form };
+}
+
+/** Sends the file to storage as the ticket says. Failures become ApiErrors so screens can show them. */
+export async function postToStorage(ticket: UploadTicket, uri: string): Promise<void> {
+  const request = await storageRequest(ticket, uri);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(ticket.upload_url, { method: 'POST', body: form, signal: controller.signal });
+    res = await fetch(ticket.upload_url, { ...request, signal: controller.signal });
   } catch (e) {
     if (isNetworkFailure(e)) throw new ApiError('network_error', 'Network unreachable. Check your connection.', 0, { cause: e });
     throw e;

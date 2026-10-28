@@ -10,7 +10,9 @@ jest.mock('expo-image-manipulator', () => ({ SaveFormat: { JPEG: 'jpeg' }, Image
 jest.mock('../../api/artist-onboarding/artist-onboarding', () => ({ uploadTicket: jest.fn() }));
 
 // Shape of backend POST /uploads/signature (app/upload/schemas.py).
-const ticket: UploadTicket = { upload_url: 'https://storage.example.com/bucket', fields: { key: 'artists/a/photo.jpg', policy: 'p' }, key: 'artists/a/photo.jpg' };
+const ticket: UploadTicket = { upload_url: 'https://storage.example.com/bucket', method: 'POST', fields: { key: 'artists/a/photo.jpg', policy: 'p' }, headers: {}, key: 'artists/a/photo.jpg' };
+// R2: a presigned PUT; the signature pins Content-Type, so the headers must be sent as given.
+const putTicket: UploadTicket = { upload_url: 'https://acct.r2.cloudflarestorage.com/pics/artists/a/x?X-Amz-Signature=s', method: 'PUT', fields: {}, headers: { 'Content-Type': 'image/jpeg' }, key: 'artists/a/x' };
 const fakeTicket: UploadTicket = { ...ticket, upload_url: 'https://fake.storage/bucket' };
 const image = { uri: 'file:///photo.jpg', width: 4000, height: 3000 };
 
@@ -77,6 +79,30 @@ describe('postToStorage', () => {
     const p = postToStorage(ticket, 'blob:http://localhost/123');
     await expect(p).rejects.toMatchObject({ code: 'file_read_error', cause });
     expect(fetchMock).toHaveBeenCalledTimes(1); // never reached storage
+  });
+});
+
+describe('postToStorage with a presigned PUT', () => {
+  it('PUTs the raw image with the signed headers, not a form', async () => {
+    const blob = { size: 3 };
+    fetchMock.mockResolvedValueOnce({ blob: async () => blob }).mockResolvedValueOnce({ ok: true, status: 200 });
+    await postToStorage(putTicket, 'file:///small.jpg');
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'file:///small.jpg');
+    expect(fetchMock).toHaveBeenNthCalledWith(2, putTicket.upload_url, expect.objectContaining({
+      method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob,
+    }));
+  });
+
+  it('reports an unreadable local file as file_read_error and never reaches storage', async () => {
+    const cause = new TypeError('Network request failed');
+    fetchMock.mockRejectedValueOnce(cause);
+    await expect(postToStorage(putTicket, 'file:///gone.jpg')).rejects.toMatchObject({ code: 'file_read_error', cause });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps a storage rejection (e.g. an expired signature) to upload_failed', async () => {
+    fetchMock.mockResolvedValueOnce({ blob: async () => ({}) }).mockResolvedValueOnce({ ok: false, status: 403 });
+    await expect(postToStorage(putTicket, 'file:///small.jpg')).rejects.toMatchObject({ code: 'upload_failed', status: 403 });
   });
 });
 

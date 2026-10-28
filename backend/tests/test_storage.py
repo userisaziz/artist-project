@@ -4,7 +4,12 @@ import time
 import uuid
 from urllib.parse import parse_qs, urlparse
 
-from app.upload.service import CloudinaryStorage, FakeStorage
+import pytest
+from botocore.exceptions import EndpointConnectionError
+from pydantic import ValidationError
+
+from app.upload.config import UploadSettings
+from app.upload.service import CloudinaryStorage, FakeStorage, R2Storage, r2_client
 
 
 def test_cloudinary_signature_matches_documented_example():
@@ -71,3 +76,87 @@ def test_fake_storage_private_url_and_owns_aadhaar():
     assert storage.owns(key, owner, "aadhaar")
     assert not storage.owns(key, owner, "portfolio")
     assert storage.private_url(key).startswith(f"https://fake.storage/private/{key}.jpg?expires_at=")
+
+
+def _r2(client=None) -> R2Storage:
+    return R2Storage(client or r2_client("acct", "key-id", "secret"), "pics", "pics-private", "https://pub-abc.r2.dev/")
+
+
+def test_r2_upload_is_a_presigned_put_pinned_to_the_key_and_jpeg():
+    owner = uuid.uuid4()
+    ticket = _r2().upload_params(owner, "portfolio")
+    url = urlparse(ticket["upload_url"])
+    q = parse_qs(url.query)
+    assert ticket["method"] == "PUT"
+    assert ticket["fields"] == {}
+    assert ticket["headers"] == {"Content-Type": "image/jpeg"}
+    assert ticket["key"].startswith(f"artists/{owner}/portfolio/")
+    assert url.netloc == "acct.r2.cloudflarestorage.com"
+    assert url.path == f"/pics/{ticket['key']}"
+    assert q["X-Amz-Algorithm"] == ["AWS4-HMAC-SHA256"]
+    assert "content-type" in q["X-Amz-SignedHeaders"][0]  # another file type breaks the signature
+    assert q["X-Amz-Expires"] == [str(R2Storage.UPLOAD_TTL_SECONDS)]
+
+
+def test_r2_aadhaar_goes_to_the_private_bucket():
+    ticket = _r2().upload_params(uuid.uuid4(), "aadhaar")
+    assert urlparse(ticket["upload_url"]).path == f"/pics-private/{ticket['key']}"
+
+
+def test_r2_every_variant_is_the_public_original():
+    storage = _r2()
+    assert {storage.url("artists/x/portfolio/abc", v) for v in ("thumb", "card", "full")} == {
+        "https://pub-abc.r2.dev/artists/x/portfolio/abc"
+    }
+
+
+def test_r2_private_url_is_a_presigned_get_from_the_private_bucket():
+    url = urlparse(_r2().private_url("artists/x/aadhaar/abc", expires_in=300))
+    q = parse_qs(url.query)
+    assert url.path == "/pics-private/artists/x/aadhaar/abc"
+    assert q["X-Amz-Expires"] == ["300"]
+    assert "X-Amz-Signature" in q
+
+
+class _RecordingS3:
+    """Stands in for the boto3 client: records deletes, or fails them."""
+
+    def __init__(self, error: Exception | None = None):
+        self.deleted: list[tuple[str, str]] = []
+        self.error = error
+
+    def delete_object(self, *, Bucket: str, Key: str) -> None:
+        if self.error:
+            raise self.error
+        self.deleted.append((Bucket, Key))
+
+
+async def test_r2_delete_targets_the_right_bucket():
+    s3 = _RecordingS3()
+    storage = _r2(s3)
+    await storage.delete("artists/x/portfolio/abc")
+    await storage.delete("artists/x/aadhaar/abc", private=True)
+    assert s3.deleted == [("pics", "artists/x/portfolio/abc"), ("pics-private", "artists/x/aadhaar/abc")]
+
+
+async def test_r2_failed_delete_is_logged_not_raised(caplog):
+    storage = _r2(_RecordingS3(EndpointConnectionError(endpoint_url="https://acct.r2.cloudflarestorage.com")))
+    await storage.delete("artists/x/portfolio/abc")
+    assert "R2 delete artists/x/portfolio/abc failed" in caplog.text
+
+
+def test_r2_settings_need_every_value_and_two_buckets():
+    full = {
+        "storage_provider": "r2",
+        "r2_account_id": "acct",
+        "r2_access_key_id": "key-id",
+        "r2_secret_access_key": "secret",
+        "r2_bucket": "pics",
+        "r2_private_bucket": "pics-private",
+        "r2_public_url": "https://pub-abc.r2.dev",
+    }
+    assert UploadSettings(**full).r2_bucket == "pics"
+    with pytest.raises(ValidationError, match="R2_PUBLIC_URL"):
+        UploadSettings(**{**full, "r2_public_url": ""})
+    with pytest.raises(ValidationError, match="separate private bucket"):
+        UploadSettings(**{**full, "r2_private_bucket": "pics"})
