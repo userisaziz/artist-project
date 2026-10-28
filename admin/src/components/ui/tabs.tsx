@@ -23,14 +23,14 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
+  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-0.75 text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
   {
     variants: {
       variant: {
         default: "bg-muted",
         line: "gap-1 bg-transparent",
         // The console's pill switcher (Atelier admin): white active pill on a pink track
-        segment: "gap-1.5 rounded-[10px] bg-halo group-data-horizontal/tabs:h-auto",
+        segment: "gap-1.5 rounded-control bg-halo group-data-horizontal/tabs:h-auto",
       },
     },
     defaultVariants: {

@@ -22,7 +22,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "min-w-[190px] rounded-[14px] border border-line bg-popover p-1.5 text-popover-foreground shadow-[0_12px_32px_rgba(182,77,117,0.16)] outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "min-w-[190px] rounded-menu border border-line bg-popover p-1.5 text-popover-foreground shadow-[0_12px_32px_rgba(182,77,117,0.16)] outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}
@@ -42,7 +42,7 @@ function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-variant={variant}
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-[9px] px-2.5 py-[9px] text-[13px] font-medium outline-none select-none data-highlighted:bg-halo data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[variant=destructive]:text-destructive [&_svg]:size-4 [&_svg]:shrink-0",
+        "flex cursor-pointer items-center gap-2 rounded-item px-2.5 py-2.25 text-label-lg font-medium outline-none select-none data-highlighted:bg-halo data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[variant=destructive]:text-destructive [&_svg]:size-4 [&_svg]:shrink-0",
         className
       )}
       {...props}

@@ -26,7 +26,7 @@ function FilterSelect<T extends string>({ label, value, options, onValueChange, 
       <Select.Trigger
         aria-label={label}
         className={cn(
-          "flex h-[34px] cursor-pointer items-center gap-1.5 rounded-[10px] border border-input bg-card px-3 text-[12.5px] font-semibold text-foreground outline-none select-none focus-visible:ring-[3px] focus-visible:ring-halo data-popup-open:bg-halo",
+          "flex h-[34px] cursor-pointer items-center gap-1.5 rounded-control border border-input bg-card px-3 text-label-md font-semibold text-foreground outline-none select-none focus-visible:ring-[3px] focus-visible:ring-halo data-popup-open:bg-halo",
           className
         )}
       >
@@ -37,13 +37,13 @@ function FilterSelect<T extends string>({ label, value, options, onValueChange, 
       </Select.Trigger>
       <Select.Portal>
         <Select.Positioner alignItemWithTrigger={false} align="end" sideOffset={6} className="z-50 outline-none">
-          <Select.Popup className="w-[200px] rounded-[14px] border border-line bg-card p-1.5 shadow-[0_12px_32px_rgba(182,77,117,0.16)] outline-none">
+          <Select.Popup className="w-[200px] rounded-menu border border-line bg-card p-1.5 shadow-[0_12px_32px_rgba(182,77,117,0.16)] outline-none">
             <Select.List>
               {options.map((o) => (
                 <Select.Item
                   key={o.value}
                   value={o.value}
-                  className="flex cursor-pointer items-center justify-between rounded-[9px] px-2.5 py-[9px] text-[13px] font-medium text-foreground outline-none select-none data-highlighted:bg-halo data-selected:font-bold data-selected:text-primary"
+                  className="flex cursor-pointer items-center justify-between rounded-item px-2.5 py-2.25 text-label-lg font-medium text-foreground outline-none select-none data-highlighted:bg-halo data-selected:font-bold data-selected:text-primary"
                 >
                   <Select.ItemText>{o.label}</Select.ItemText>
                   <Select.ItemIndicator>

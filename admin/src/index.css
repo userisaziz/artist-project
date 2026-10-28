@@ -64,6 +64,16 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    /* Recurring steps beside Tailwind's scale (exact design values; mirror mobile typography/radii).
+       New names must also be registered in src/lib/utils.ts so cn() merges them as sizes, not colours. */
+    --text-eyebrow: 11px;
+    --text-label-sm: 11.5px;
+    --text-label-md: 12.5px;
+    --text-label-lg: 13px;
+    --tracking-caps: 0.06em;
+    --radius-item: 9px;
+    --radius-control: 10px;
+    --radius-menu: 14px;
 }
 
 /* Atelier palette (docs/design/atelier); mirrors mobile/src/theme/tokens/palette.ts */
