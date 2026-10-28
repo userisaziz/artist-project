@@ -1,4 +1,6 @@
 .env
+backend/.env.*
+!backend/.env.example
 __pycache__/
 *.pyc
 .pytest_cache/
