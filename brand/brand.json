@@ -1,0 +1,9 @@
+{
+  "$note": "GetReady brand: the single source for names in both apps. Edit here, then run `npm run brand` at the repo root.",
+  "name": "GetReady",
+  "adminName": "GetReady admin",
+  "logo": {
+    "wordmark": "GetReady",
+    "files": "brand/logos/ (none yet: the wordmark is text in the heading face)"
+  }
+}

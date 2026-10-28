@@ -2,7 +2,8 @@
   "name": "artist-project",
   "private": true,
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "brand": "node brand/build.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7"

@@ -2,12 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/plus-jakarta-sans";
+@import "./brand.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Plus Jakarta Sans Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -64,72 +64,63 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
-    /* Recurring steps beside Tailwind's scale (exact design values; mirror mobile typography/radii).
-       New names must also be registered in src/lib/utils.ts so cn() merges them as sizes, not colours. */
-    --text-eyebrow: 11px;
-    --text-label-sm: 11.5px;
-    --text-label-md: 12.5px;
-    --text-label-lg: 13px;
-    --tracking-caps: 0.06em;
-    --radius-item: 9px;
-    --radius-control: 10px;
-    --radius-menu: 14px;
+    /* Brand fonts, text sizes, tracking and radius steps: generated in src/brand.css (from brand/tokens.json). */
 }
 
-/* Atelier palette (docs/design/atelier); mirrors mobile/src/theme/tokens/palette.ts */
+/* Semantic colours: each points at a brand palette swatch (src/brand.css, generated from brand/tokens.json). */
 :root {
-    --background: #FAF8F9;
-    --foreground: #49313B;
-    --card: #FFFFFF;
-    --card-foreground: #49313B;
-    --popover: #FFFFFF;
-    --popover-foreground: #49313B;
-    --primary: #B64D75;
-    --primary-foreground: #FFFFFF;
-    --secondary: #FCE3EC;
-    --secondary-foreground: #7A2E4E;
-    --muted: #FBEAF1;
-    --muted-foreground: #896F7D;
-    --accent: #FFE4EE;
-    --accent-foreground: #B64D75;
-    --destructive: #A33A3A;
-    --border: #F0CFDD;
-    --input: #EBC3D5;
-    --ring: #B64D75;
+    --background: var(--palette-mist50);
+    --foreground: var(--palette-ink900);
+    --card: var(--palette-white);
+    --card-foreground: var(--palette-ink900);
+    --popover: var(--palette-white);
+    --popover-foreground: var(--palette-ink900);
+    --primary: var(--palette-rose500);
+    --primary-foreground: var(--palette-white);
+    --secondary: var(--palette-blush150);
+    --secondary-foreground: var(--palette-plum700);
+    --muted: var(--palette-blush120);
+    --muted-foreground: var(--palette-ink500);
+    --accent: var(--palette-blush200);
+    --accent-foreground: var(--palette-rose500);
+    --destructive: var(--palette-error600);
+    --border: var(--palette-line200);
+    --input: var(--palette-line300);
+    --ring: var(--palette-rose500);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.75rem;
-    --sidebar: #FFFFFF;
-    --sidebar-foreground: #49313B;
-    --sidebar-primary: #B64D75;
-    --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #FFE4EE;
-    --sidebar-accent-foreground: #B64D75;
-    --sidebar-border: #F0CFDD;
-    --sidebar-ring: #B64D75;
+    --sidebar: var(--palette-white);
+    --sidebar-foreground: var(--palette-ink900);
+    --sidebar-primary: var(--palette-rose500);
+    --sidebar-primary-foreground: var(--palette-white);
+    --sidebar-accent: var(--palette-blush200);
+    --sidebar-accent-foreground: var(--palette-rose500);
+    --sidebar-border: var(--palette-line200);
+    --sidebar-ring: var(--palette-rose500);
     /* Sign-in screen brand tones (Atelier hi-fi "Admin sign in") */
-    --blush: #FDF2F5;            /* page wash behind the form */
-    --plum: #7A2F55;             /* photo scrim, top */
-    --plum-deep: #4A1B33;        /* photo scrim, bottom; display headings */
-    --subtle-foreground: #6E5262; /* body copy and labels on blush */
-    --placeholder: #B293A3;
-    --halo: #FCEEF3;             /* soft focus ring; table header and active nav wash */
+    --blush: var(--palette-blush60);            /* page wash behind the form */
+    --plum: var(--palette-rose800);             /* photo scrim, top */
+    --plum-deep: var(--palette-plum900);        /* photo scrim, bottom; display headings */
+    --subtle-foreground: var(--palette-ink700); /* body copy and labels on blush */
+    --placeholder: var(--palette-ink400);
+    --halo: var(--palette-blush100);             /* soft focus ring; table header and active nav wash */
     /* Console tones (Atelier hi-fi admin screens) */
-    --line: #F0DCE5;             /* card and bar borders */
-    --line-soft: #F7E3EC;        /* row dividers */
-    --rose: #F5B6D0;             /* highlight border, recent chart bars */
-    --faint: #9C8591;            /* chart axis, search placeholder */
-    --row-hover: #FFF8FB;
-    --primary-hover: #9F3F64;
-    --success: #2F6B47;
-    --success-soft: #E3F1E7;
-    --warning: #9A6514;
-    --warning-soft: #FDF0DC;
-    --danger-soft: #FBE3E3;
-    --neutral-soft: #F2EEF0;
+    --line: var(--palette-line100);             /* card and bar borders */
+    --line-soft: var(--palette-line50);        /* row dividers */
+    --rose: var(--palette-blush300);             /* highlight border, recent chart bars */
+    --faint: var(--palette-ink450);            /* chart axis, search placeholder */
+    --row-hover: var(--palette-blush50);
+    --primary-hover: var(--palette-rose600);
+    --success: var(--palette-sage600);
+    --success-soft: var(--palette-sage100);
+    --warning: var(--palette-amber700);
+    --warning-soft: var(--palette-amber100);
+    --danger-soft: var(--palette-error120);
+    --neutral-soft: var(--palette-mist80);
 }
 
 .dark {
