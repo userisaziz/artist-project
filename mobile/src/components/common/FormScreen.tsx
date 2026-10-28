@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, View } from 'react-native';
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
@@ -16,7 +16,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
   const insets = useSafeAreaInsets();
   const gutter = theme.spacing.md + theme.spacing.xs;
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: gutter, paddingBottom: theme.spacing.md }}
