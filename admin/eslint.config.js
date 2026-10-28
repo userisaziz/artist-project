@@ -12,7 +12,7 @@ const FEATURES = [
 ];
 
 export default [
-  { ignores: ["dist/**", "storybook-static/**"] },
+  { ignores: ["dist/**", "storybook-static/**", "ds-bundle/**", ".design-sync/**", ".ds-sync/**"] },
   {
     files: ["src/**/*.{ts,tsx}"],
     // boundary-check only: inline eslint-disable comments target other configs' rules

@@ -1,0 +1,43 @@
+# Render Blueprint: the API as a Docker web service (staging). Secrets marked sync: false are entered in the
+# Render dashboard when the Blueprint is applied; nothing secret lives in this file.
+services:
+  - type: web
+    name: art-circle-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: ohio # next to the Neon database (us-east-2)
+    healthCheckPath: /health/live
+    # The free plan has no pre-deploy step, so migrations run before the server starts (they are idempotent).
+    dockerCommand: >-
+      sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+      --proxy-headers --forwarded-allow-ips '*' --timeout-graceful-shutdown 20 --no-server-header"
+    envVars:
+      - key: ENVIRONMENT
+        value: staging
+      - key: DATABASE_URL
+        sync: false # postgresql+asyncpg://USER:PASSWORD@HOST/DB?ssl=require (Neon direct endpoint, not the pooler)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AADHAAR_ENCRYPTION_KEY
+        sync: false # Fernet key; keep a backup
+      - key: CORS_ORIGINS
+        sync: false # JSON list, e.g. ["https://art-circle-admin.vercel.app"]
+      - key: ALLOWED_HOSTS
+        value: '["*"]'
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: SMS_PROVIDER
+        value: console
+      - key: DEV_OTP_CODE
+        value: "123456"
+      - key: STORAGE_PROVIDER
+        value: fake
+      - key: PUSH_PROVIDER
+        value: expo
+      - key: PAYMENT_PROVIDER
+        value: direct
+      - key: WEB_CONCURRENCY
+        value: "1"
