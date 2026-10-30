@@ -2,7 +2,8 @@
 
 Idempotent — every block checks for its own rows first (slugs / phones / user_id), so re-running
 adds nothing. Seeds: catalog categories + subcategories + service templates, an admin, customers,
-and artist profiles (approved + one pending) with services, addons and portfolio photos.
+and artist profiles (approved + one pending) with services, addons and portfolio photos, plus avatar
+and service photos; image assets are uploaded to R2 by `seed_images`.
 """
 
 import asyncio
@@ -220,8 +221,14 @@ async def seed_user(session, phone, first, last, roles, active_role) -> User:
     return user
 
 
+def _asset_keys(business: str) -> tuple[str, list[str]]:
+    """(avatar key, cover keys) in the seed-assets layout — the single source of truth for both uploads and rows."""
+    slug = business.replace(" ", "-").lower()
+    return f"seed/{slug}/avatar.jpg", [f"seed/{slug}/cover-1.jpg", f"seed/{slug}/cover-2.jpg"]
+
+
 async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, tuple[User, ArtistProfile]]) -> None:
-    services_by_artist = {
+    services_by_artist: dict[str, list[tuple[str, str, int, int, list[tuple[str, int, bool]]]]] = {
         "Henna by Priya": [
             (
                 "bridal-mehendi",
@@ -246,11 +253,29 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
         ],
     }
     for phone, _first, _last, business, city, locality, lat, lng, status, years, langs in ARTISTS:
+        avatar_key, cover_keys = _asset_keys(business)
         user = (await session.execute(select(User).where(User.phone == phone))).scalar_one()
         profile = (
             await session.execute(select(ArtistProfile).where(ArtistProfile.user_id == user.id))
         ).scalar_one_or_none()
         if profile is not None:
+            if profile.photo_key is None:
+                profile.photo_key = avatar_key
+            services = (
+                (
+                    await session.execute(
+                        select(ArtistServiceItem)
+                        .where(ArtistServiceItem.artist_id == profile.id)
+                        .order_by(ArtistServiceItem.sort_order)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for i, s in enumerate(services):
+                if s.photo_key is None:
+                    s.photo_key = cover_keys[i % len(cover_keys)]
+            await session.flush()
             by_phone[phone] = (user, profile)
             continue
         area = (
@@ -265,6 +290,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
             latitude=lat,
             longitude=lng,
             bio=f"{business} — {years} yrs of experience in {city}.",
+            photo_key=avatar_key,
             status=status,
             experience_years=years,
             languages=langs,
@@ -297,6 +323,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
                 price_paise=price,
                 duration_minutes=dur,
                 sort_order=order,
+                photo_key=cover_keys[order % len(cover_keys)],
                 included_items=["Travelling kit included", "All products provided"],
             )
             session.add(item)
@@ -310,7 +337,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
         session.add(
             PortfolioPhoto(
                 artist_id=profile.id,
-                storage_key=f"seed/{business.replace(' ', '-').lower()}/cover-1.jpg",
+                storage_key=cover_keys[0],
                 width=1080,
                 height=1350,
                 sort_order=0,
@@ -319,7 +346,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
         session.add(
             PortfolioPhoto(
                 artist_id=profile.id,
-                storage_key=f"seed/{business.replace(' ', '-').lower()}/cover-2.jpg",
+                storage_key=cover_keys[1],
                 width=1080,
                 height=1350,
                 sort_order=1,
