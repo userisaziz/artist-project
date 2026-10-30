@@ -6,6 +6,7 @@
 <script src="./support.js"></script>
 </head>
 <body>
+<template id="__bundler_thumbnail" data-bg-color="#FBEAF1"><svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><rect x="140" y="80" width="120" height="240" rx="22" fill="#fff" stroke="#B64D75" stroke-width="6"/><text x="200" y="222" text-anchor="middle" font-family="Georgia,serif" font-size="72" font-style="italic" fill="#B64D75">A</text></svg></template>
 <x-dc>
 <helmet>
 <meta name="design_doc_mode" content="canvas">
@@ -50,7 +51,7 @@ a{color:#B64D75;text-decoration:none}a:hover{color:#49313B}
 <!-- AUTH -->
 <sc-if value="{{ show.welcome }}" hint-placeholder-val="{{ true }}">
 <div style="height:852px;position:relative;background:#F4B6CB;overflow:hidden">
-  <img src="assets/hero/welcome.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%">
+  <img src="assets/hero/s-welcome.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%">
   <div style="position:absolute;left:0;right:0;bottom:0;height:300px;background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.85) 45%,#FFFFFF 70%);pointer-events:none"></div>
   <div style="position:absolute;left:24px;right:24px;top:96px">
     <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#7A2F55">Atelier</div>
@@ -80,35 +81,35 @@ a{color:#B64D75;text-decoration:none}a:hover{color:#49313B}
 
 <sc-if value="{{ show.role }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:852px;padding:58px 16px 30px;box-sizing:border-box;background:linear-gradient(180deg,#FFF5F8 0%,#FCEEF3 100%);display:flex;flex-direction:column">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 4px 0"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds));color:#7A2F55">Atelier</span><span style="display:flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.18em;color:#C76B93;font-weight:600"><svg width="22" height="14" viewBox="0 0 28 18" fill="none" stroke="#C76B93" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg>BEAUTY · ART · YOU</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 4px 0"><span style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(26px * var(--hds));color:#7A2F55">Atelier</span></div>
   <div style="padding:22px 4px 0">
-    <div style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:#C76B93">Welcome to Atelier ♥</div>
+    
     <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(38px * var(--hds));line-height:1;color:#49313B;margin-top:8px">What brings you <i style="font-weight:500;color:#C76B93">here?</i></div>
-    <div style="font-size:13.5px;line-height:1.5;color:#6E5262;margin-top:10px;max-width:300px">Whether you’re here to look your best or share your talent, we’re so glad you’re here.</div>
+    
   </div>
-  <div onClick="{{ go.home }}" style="margin-top:20px;display:flex;border-radius:22px;overflow:hidden;background:#FFE9F0;border:1px solid #F5D3E0;cursor:pointer;min-height:236px">
-    <div style="width:44%;flex:none;position:relative;border-radius:0 22px 22px 0;overflow:hidden"><img src="assets/hero/hero-makeup.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%"></div>
+  <div onClick="{{ go.home }}" style="margin-top:20px;display:flex;border-radius:22px;overflow:hidden;background:#FFE9F0;border:1px solid #F5D3E0;cursor:pointer;min-height:200px">
+    <div style="width:44%;flex:none;position:relative;border-radius:0 22px 22px 0;overflow:hidden"><img src="assets/hero/s-makeup.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%"></div>
     <div style="flex:1;min-width:0;padding:16px 14px 16px 16px;display:flex;flex-direction:column">
-      <span style="width:40px;height:40px;border-radius:20px;background:#FFE4EE;color:#9F3F64;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path><path d="M12 18.5s-3-1.8-3-3.6a1.5 1.5 0 0 1 3-.4 1.5 1.5 0 0 1 3 .4c0 1.8-3 3.6-3 3.6z"></path></svg></span><div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#C76B93;margin-top:10px">Browse · Compare · Book</div>
-      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(23px * var(--hds));line-height:1.02;color:#49313B;margin-top:4px">Explore &amp; Book an Artist</div>
-      <div style="font-size:11.5px;line-height:1.45;color:#6E5262;margin-top:6px">Discover artists, explore portfolios, check reviews and book.</div>
+      <span style="width:40px;height:40px;border-radius:20px;background:#FFE4EE;color:#9F3F64;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path><path d="M12 18.5s-3-1.8-3-3.6a1.5 1.5 0 0 1 3-.4 1.5 1.5 0 0 1 3 .4c0 1.8-3 3.6-3 3.6z"></path></svg></span>
+      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(23px * var(--hds));line-height:1.02;color:#49313B;margin-top:12px">Book an artist</div>
+      
       <div style="flex:1;min-height:10px"></div>
-      <div style="height:38px;border-radius:999px;background:#9F3F64;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">Find your artist →</div>
+      <div style="height:38px;border-radius:999px;background:#9F3F64;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">Find artists →</div>
     </div>
   </div>
-  <div onClick="{{ go.onbIntro }}" style="margin-top:12px;display:flex;border-radius:22px;overflow:hidden;background:#FFF8FB;border:1px solid #F5D3E0;cursor:pointer;min-height:236px">
+  <div onClick="{{ go.onbIntro }}" style="margin-top:12px;display:flex;border-radius:22px;overflow:hidden;background:#FFF8FB;border:1px solid #F5D3E0;cursor:pointer;min-height:200px">
     <div style="flex:1;min-width:0;padding:16px 14px 16px 16px;display:flex;flex-direction:column">
-      <span style="width:40px;height:40px;border-radius:20px;background:#FFE4EE;color:#9F3F64;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18M11 12.5v2h2v-2"></path></svg></span><div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#C76B93;margin-top:10px">Showcase · Get booked · Grow</div>
-      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(23px * var(--hds));line-height:1.02;color:#49313B;margin-top:4px">Offer Your Services</div>
-      <div style="font-size:11.5px;line-height:1.45;color:#6E5262;margin-top:6px">Create your profile, list services, set availability and get discovered.</div>
+      <span style="width:40px;height:40px;border-radius:20px;background:#FFE4EE;color:#9F3F64;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="3"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18M11 12.5v2h2v-2"></path></svg></span>
+      <div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(23px * var(--hds));line-height:1.02;color:#49313B;margin-top:12px">Offer my services</div>
+      
       <div style="flex:1;min-height:10px"></div>
-      <div style="height:38px;border-radius:999px;background:#FFE4EE;color:#9F3F64;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">Become an artist →</div>
+      <div style="height:38px;border-radius:999px;background:#FFE4EE;color:#9F3F64;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">Get started →</div>
     </div>
-    <div style="width:44%;flex:none;position:relative;border-radius:22px 0 0 22px;overflow:hidden"><img src="assets/hero/hero-mehendi.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:68% 45%"></div>
+    <div style="width:44%;flex:none;position:relative;border-radius:22px 0 0 22px;overflow:hidden"><img src="assets/hero/s-mehendi.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:68% 45%"></div>
   </div>
   <div style="flex:1;min-height:14px"></div>
   <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-top:16px"><span style="width:60px;height:1px;background:#EBC3D5"></span><svg width="22" height="14" viewBox="0 0 28 18" fill="none" stroke="#C76B93" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9C10 3 3 1 2 5s5 7 12 4zM14 9c4-6 11-8 12-4s-5 7-12 4z"></path><path d="M13 10l-3 7M15 10l3 7"></path></svg><span style="width:60px;height:1px;background:#EBC3D5"></span></div>
-  <div style="text-align:center;font-size:11.5px;color:#C76B93;margin-top:6px">One account. Endless possibilities. ♡</div>
+  
 </div>
 </sc-if>
 
@@ -120,7 +121,7 @@ a{color:#B64D75;text-decoration:none}a:hover{color:#49313B}
     <div style="display:flex;gap:8px;align-items:center"><div onClick="{{ go.chat }}" style="width:44px;height:44px;border-radius:22px;background:#fff;border:1px solid #F0DCE5;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#49313B;position:relative"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"></path></svg><span style="position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:5px;background:#C76B93;border:2px solid #fff"></span></div><div onClick="{{ go.profile }}" style="width:44px;height:44px;cursor:pointer"><image-slot id="v2-me-avatar" shape="circle" placeholder="You"></image-slot></div></div>
   </div>
   <div style="margin-top:14px;position:relative">
-    <div style="height:250px;position:relative;overflow:hidden;background:#FCEEF3"><img src="assets/hero/hero-mehendi.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 50%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o0 }};transform:scale({{ hero.s0 }})"><img src="assets/hero/hero-makeup.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 28%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o1 }};transform:scale({{ hero.s1 }})"></div>
+    <div style="height:250px;position:relative;overflow:hidden;background:#FCEEF3"><img src="assets/hero/s-mehendi.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 50%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o0 }};transform:scale({{ hero.s0 }})"><img src="assets/hero/s-makeup.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 28%;transition:opacity .9s ease, transform 5s ease;opacity:{{ hero.o1 }};transform:scale({{ hero.s1 }})"></div>
     <div onClick="{{ go.explore }}" style="position:relative;margin:-36px 16px 0;padding:12px 12px 12px 16px;border-radius:18px;background:#FFFFFF;box-shadow:0 8px 24px rgba(182,77,117,.16);display:flex;align-items:center;gap:12px;cursor:pointer">
       <div style="flex:1;min-width:0"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#B64D75">{{ hero.tag }}</div><div style="font-family:var(--hd);letter-spacing:var(--hdls);font-weight:600;font-size:calc(22px * var(--hds));line-height:1.1;margin-top:2px">{{ hero.title }}</div></div>
       <div style="display:flex;gap:4px;align-items:center"><span onClick="{{ hero.go0 }}" style="height:6px;border-radius:3px;cursor:pointer;transition:all .3s;width:{{ hero.w0 }}px;background:{{ hero.c0 }}"></span><span onClick="{{ hero.go1 }}" style="height:6px;border-radius:3px;cursor:pointer;transition:all .3s;width:{{ hero.w1 }}px;background:{{ hero.c1 }}"></span></div>
