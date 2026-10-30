@@ -263,7 +263,7 @@ git commit -m "fix: chunk Expo push sends into batches of 100"
 `all_users`/`all_customers` to artists; city/status/category/join-date filters behave as specified."""
 
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest_asyncio
 import sqlalchemy as sa
@@ -345,7 +345,7 @@ async def test_category_filter_matches_the_chosen_category_or_its_subcategories(
 async def test_join_date_range_is_inclusive(client, engine):
     await admin_headers(client, engine)
     await sign_in(client, "+919845070001")  # every account here is created today
-    today = datetime.now(timezone.utc).date().isoformat()  # server timestamps are UTC
+    today = datetime.now(UTC).date().isoformat()  # server timestamps are UTC
 
     async with db_session() as session:
         assert await audience_size(session, "all_artists", joined_from=today) == 1
@@ -399,7 +399,7 @@ class BroadcastPreviewOut(APIModel):
 class BroadcastIn(BroadcastPreviewIn):
     title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=TITLE_MAX)]
     body: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=BODY_MAX)]
-    link: Annotated[str | None, StringConstraints(max_length=LINK_MAX, pattern=r"^/(?!/)")] = None
+    link: Annotated[str | None, StringConstraints(max_length=LINK_MAX, pattern=r"^/(?:[^/]|$)")] = None
 
 
 class BroadcastSentOut(APIModel):
@@ -432,7 +432,7 @@ class BroadcastPage(APIModel):
 recipient (kind `announcement`), queues a push per registered device, and records an immutable row.
 The inbox row is the record; a lost push is acceptable, exactly like every other push in the app."""
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Select, String, exists, func, insert, literal, or_, select
@@ -440,10 +440,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.catalog.models import Category
-from app.notification.constants import ANNOUNCEMENT, BODY_MAX, LINK_MAX, PENDING_PUSH, TITLE_MAX
+from app.notification.constants import ANNOUNCEMENT, BODY_MAX, PENDING_PUSH, TITLE_MAX
 from app.notification.models import Notification, NotificationBroadcast, PushDevice
 from app.shared.enums import ArtistStatus, UserRole
-from app.shared.pagination import keyset, split_page
 from app.user.models import User, UserRoleGrant
 
 if TYPE_CHECKING:
@@ -458,32 +457,37 @@ SEGMENT_ROLES: dict[str, tuple[UserRole, ...]] = {
 
 def recipient_query(segment: str, f: "BroadcastFilters") -> Select:
     """The exact audience: active users holding the segment's role grant, one row per person.
-    Any artist-only filter (city / status / category) silently narrows the segment to artists —
-    combined with `all_customers` that predictably yields nobody."""
+    Artists pass only at the chosen profile status (`approved` by default); an artist who has not
+    built a profile yet still counts. City / category filters join the profile, so any artist-only
+    filter inherently narrows the segment to artists — combined with `all_customers` that
+    predictably yields nobody."""
     roles = SEGMENT_ROLES[segment]
-    artist_filtered = f.city is not None or f.artist_status is not None or f.category_id is not None
-    if artist_filtered:
-        roles = (UserRole.artist,)
+    status = ArtistStatus(f.artist_status) if f.artist_status else ArtistStatus.approved
     query = (
         select(User.id)
         .join(UserRoleGrant, UserRoleGrant.user_id == User.id)
         .where(User.is_active.is_(True), UserRoleGrant.role.in_(roles))
         .distinct()
     )
+    if segment != "all_customers":
+        query = query.outerjoin(ArtistProfile, ArtistProfile.user_id == User.id)
+        if f.artist_status is None:
+            query = query.where(or_(ArtistProfile.id.is_(None), ArtistProfile.status == status))
+        else:
+            query = query.where(ArtistProfile.status == status)
     if f.joined_from is not None:
-        query = query.where(
-            User.created_at >= datetime.combine(f.joined_from, time.min, tzinfo=timezone.utc)
-        )
+        query = query.where(User.created_at >= datetime.combine(f.joined_from, time.min, tzinfo=UTC))
     if f.joined_to is not None:
         query = query.where(
-            User.created_at < datetime.combine(f.joined_to + timedelta(days=1), time.min, tzinfo=timezone.utc)
+            User.created_at < datetime.combine(f.joined_to + timedelta(days=1), time.min, tzinfo=UTC)
         )
-    if artist_filtered:
-        query = query.join(ArtistProfile, ArtistProfile.user_id == User.id)
+    if f.artist_status is not None or f.city is not None or f.category_id is not None:
+        if segment == "all_customers":
+            # An artist-only filter on a customer segment: the inner join makes it predictably empty.
+            query = query.join(ArtistProfile, ArtistProfile.user_id == User.id)
+            query = query.where(ArtistProfile.status == status)
         if f.city is not None:
             query = query.where(ArtistProfile.city == f.city)
-        status = ArtistStatus(f.artist_status) if f.artist_status else ArtistStatus.approved
-        query = query.where(ArtistProfile.status == status)
         if f.category_id is not None:
             # Service items point at subcategories; legacy rows point at a top-level category.
             # Matching the chosen id or any of its children covers both (two levels only).
