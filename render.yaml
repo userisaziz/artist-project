@@ -2,7 +2,9 @@
 # Render dashboard when the Blueprint is applied; nothing secret lives in this file.
 services:
   - type: web
-    name: art-circle-api
+    # Must stay in sync with the URL used everywhere else (mobile/.env.production, keep-warm.yml,
+    # admin/vercel.json): the service name sets the onrender.com subdomain.
+    name: artist-project
     runtime: docker
     rootDir: backend
     dockerfilePath: ./Dockerfile
