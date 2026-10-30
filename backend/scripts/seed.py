@@ -6,13 +6,17 @@ and artist profiles (approved + one pending) with services, addons and portfolio
 """
 
 import asyncio
+from pathlib import Path
 
+from botocore.exceptions import ClientError
 from sqlalchemy import select
 
 from app.artist.models import ArtistProfile, ArtistServiceAddon, ArtistServiceItem, PortfolioPhoto
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.core.database import SessionLocal, engine
 from app.shared.enums import ArtistStatus, CategoryStatus, UserRole
+from app.upload.config import get_upload_settings
+from app.upload.service import r2_client
 from app.user.models import User, UserAddress
 
 # name, slug, [(subcategory name, slug, [(service template name, description)])]
@@ -137,6 +141,35 @@ ARTISTS = [
     ),
 ]
 ADMIN_PHONE = "+919800000000"
+
+ASSETS_DIR = Path(__file__).resolve().parent / "seed-assets"
+
+
+def seed_images() -> int:
+    """Upload seed-assets/**.jpg to the R2 public bucket under the same key (skip objects that exist).
+
+    Under fake storage nothing can be uploaded, so the step is skipped — the DB rows still get their keys,
+    exactly like real uploads behave in fake mode. Returns the number of newly uploaded objects.
+    """
+    s = get_upload_settings()
+    if s.storage_provider != "r2":
+        print(f"seed images: skipped (storage_provider={s.storage_provider!r}, need 'r2')")
+        return 0
+    client = r2_client(s.r2_account_id, s.r2_access_key_id, s.r2_secret_access_key.get_secret_value())
+    uploaded = skipped = 0
+    for path in sorted(ASSETS_DIR.rglob("*.jpg")):
+        key = path.relative_to(ASSETS_DIR).as_posix()
+        try:
+            client.head_object(Bucket=s.r2_bucket, Key=key)
+            skipped += 1
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] not in ("404", "NoSuchKey"):
+                print(f"seed images: head_object({key}) failed: {exc}")
+                raise
+            client.put_object(Bucket=s.r2_bucket, Key=key, Body=path.read_bytes(), ContentType="image/jpeg")
+            uploaded += 1
+    print(f"seed images: {uploaded} uploaded, {skipped} already present")
+    return uploaded
 
 
 async def seed_catalog(session) -> dict[str, Category]:
@@ -316,6 +349,7 @@ def _now():
 
 async def main() -> None:
     async with SessionLocal() as session:
+        seed_images()
         cats = await seed_catalog(session)
         await seed_user(session, ADMIN_PHONE, "Ops", "Admin", [UserRole.admin], None)
         for phone, first, last, roles, active in CUSTOMERS:
