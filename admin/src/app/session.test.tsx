@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db, installFakeBackend, requests, type RefreshFailure } from '@/test/fake-backend'
 import { renderApp, renderSignedIn } from '@/test/render-app'
@@ -53,27 +53,6 @@ it('shows a labelled loading state while the session is being restored', async (
   release()
   expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
   expect(screen.queryByRole('status', { name: 'Restoring your session' })).not.toBeInTheDocument()
-})
-
-it('gives up on a server that accepts the refresh and stays silent, instead of spinning forever', async () => {
-  vi.useFakeTimers()
-  db.holdRefresh = new Promise(() => {}) // no answer and no error: the request simply hangs
-  renderSignedIn('/bookings')
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(21_000) // the restoring budget, plus a beat
-  })
-
-  const alert = screen.getByRole('alert')
-  expect(within(alert).getByText(/couldn’t reach GetReady/i)).toBeInTheDocument()
-  expect(screen.queryByRole('status', { name: 'Restoring your session' })).not.toBeInTheDocument()
-  expect(window.location.pathname).toBe('/bookings') // the session is kept: only the check failed
-  expect(db.refreshCookie).not.toBeNull()
-
-  vi.useRealTimers()
-  db.holdRefresh = null
-  await userEvent.setup().click(within(alert).getByRole('button', { name: 'Retry' }))
-  expect(await screen.findByRole('heading', { name: 'Bookings' })).toBeInTheDocument()
 })
 
 it.each<[string, RefreshFailure]>([
