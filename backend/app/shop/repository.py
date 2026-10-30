@@ -89,7 +89,7 @@ class ShopRepository:
             .order_by(Product.id)
             .with_for_update(of=Product)
         )
-        return list(rows.tuples().all())
+        return list(rows.all())
 
     async def product(self, product_id: uuid.UUID) -> Product | None:
         return await self.session.scalar(select(Product).where(Product.id == product_id).with_for_update())

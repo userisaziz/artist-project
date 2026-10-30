@@ -69,7 +69,7 @@ class SupportRepository:
             .where(TicketMessage.ticket_id == ticket_id)
             .order_by(TicketMessage.created_at, TicketMessage.id)
         )
-        return list(rows.tuples().all())
+        return list(rows.all())
 
     async def counts(self, admin_id: uuid.UUID) -> dict[str, int]:
         row = (

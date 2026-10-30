@@ -40,7 +40,8 @@ class PlatformRepository:
             .where(UserRoleGrant.role == UserRole.admin)
             .order_by(UserRoleGrant.granted_at, User.id)
         )
-        return list(rows.tuples().all())
+        # A Row is a tuple as of SQLAlchemy 2.1; the old .tuples() filter is a deprecated no-op.
+        return list(rows.all())
 
     async def by_phone(self, phone: str) -> User | None:
         return await self.session.scalar(select(User).where(User.phone == phone))
