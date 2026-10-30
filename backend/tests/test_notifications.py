@@ -220,3 +220,17 @@ async def test_tokens_expo_reports_unregistered_stop_getting_pushes(client, engi
     await book(client, customer, artist)
 
     assert [m["to"] for m in ConsolePushProvider.sent] == [live]
+
+
+async def test_expo_provider_chunks_batches_over_100():
+    batches: list[list[dict]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        batch = json.loads(request.content)
+        batches.append(batch)
+        return httpx.Response(200, json={"data": [{"status": "ok"} for _ in batch]})
+
+    messages = [{"to": f"ExponentPushToken[{i}]", "title": "Hi", "body": "There", "data": {}} for i in range(250)]
+    await ExpoPushProvider("https://push.test", 1, httpx.MockTransport(handler))._send(messages)
+
+    assert [len(b) for b in batches] == [100, 100, 50]

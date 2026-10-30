@@ -73,11 +73,14 @@ class ExpoPushProvider:
     async def _send(self, messages: list[PushMessage]) -> None:
         try:
             async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
-                response = await client.post(self.url, json=messages)
-            if response.status_code >= 400:
-                logger.warning("Expo push failed (%s): %s", response.status_code, response.text[:300])
-                return
-            dead = unregistered_tokens(messages, response.json())
+                dead: list[str] = []
+                for start in range(0, len(messages), 100):  # Expo caps requests at 100 messages
+                    chunk = messages[start : start + 100]
+                    response = await client.post(self.url, json=chunk)
+                    if response.status_code >= 400:
+                        logger.warning("Expo push failed (%s): %s", response.status_code, response.text[:300])
+                        continue
+                    dead.extend(unregistered_tokens(chunk, response.json()))
         except (httpx.HTTPError, ValueError) as exc:  # ValueError: a body that isn't JSON
             logger.warning("Expo push failed: %s", exc)
             return
