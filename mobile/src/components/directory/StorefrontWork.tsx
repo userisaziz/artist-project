@@ -29,6 +29,7 @@ export function StorefrontWork({ photos }: StorefrontWorkProps) {
             <Photo uri={p.thumb_url} label={`Work photo ${i + 1}`} style={{ width: '100%', height: '100%' }} />
             {last ? (
               <PressableFeedback
+                feedback={false}
                 accessibilityRole="button"
                 accessibilityLabel={`See all ${photos.length} photos`}
                 onPress={() => setExpanded(true)}
