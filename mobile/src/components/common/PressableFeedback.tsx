@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Platform, Pressable, type PressableProps, type PressableStateCallbackType } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { springs, useReducedMotion } from '../../core/motion/motion';
@@ -24,6 +25,7 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
   const responds = !rest.disabled && !!(rest.onPress || rest.onLongPress);
   const dims = feedback && responds;
   const dips = scale && responds && !reduced; // reduced motion keeps the dim/ripple, drops the dip
+  const [pressed, setPressed] = useState(false);
   const dip = useSharedValue(1);
   const dipStyle = useAnimatedStyle(() => ({ transform: [{ scale: dip.value }] }));
   const ripple = dims && Platform.OS === 'android'
@@ -33,17 +35,26 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
     const base = typeof style === 'function' ? style(state) : style;
     return dims && state.pressed && Platform.OS !== 'android' ? [base, { opacity: PRESSED_OPACITY }] : base;
   };
+  if (!dips) {
+    // Plain Pressable for the common case: identical feedback, no animated machinery.
+    return <Pressable {...rest} android_ripple={ripple} style={pressedStyle} />;
+  }
+  // Reanimated only discovers animated styles that are direct elements of the style array — a
+  // function-form style is never called during its scan, so the dip is resolved in JS instead.
+  const userStyle = typeof style === 'function' ? style({ pressed }) : style;
   return (
     <AnimatedPressable
       {...rest}
       android_ripple={ripple}
-      style={(state: PressableStateCallbackType) => [pressedStyle(state), dipStyle]}
+      style={[userStyle, pressed && dims && Platform.OS !== 'android' ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
       onPressIn={(e) => {
-        if (dips) dip.set(withSpring(PRESSED_SCALE, springs.press));
+        setPressed(true);
+        dip.set(withSpring(PRESSED_SCALE, springs.press));
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        if (dips) dip.set(withSpring(1, springs.press));
+        setPressed(false);
+        dip.set(withSpring(1, springs.press)); // unconditional reset: the dip can never stick
         rest.onPressOut?.(e);
       }}
     />

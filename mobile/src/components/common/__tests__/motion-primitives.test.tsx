@@ -19,7 +19,7 @@ it('PressableScale keeps its child tappable and answers presses', async () => {
   expect(onPress).toHaveBeenCalled();
 });
 
-it('PressableScale with feedback off stays silent on press but still fires', async () => {
+it('still fires onPress with feedback off', async () => {
   const onPress = jest.fn();
   await wrap(
     <PressableScale feedback={false} accessibilityRole="button" accessibilityLabel="Tap" onPress={onPress}>
@@ -28,4 +28,29 @@ it('PressableScale with feedback off stays silent on press but still fires', asy
   );
   await fireEvent.press(screen.getByLabelText('Tap'));
   expect(onPress).toHaveBeenCalled();
+});
+
+it('attaches the animated dip handle so the spring can drive the view', async () => {
+  await wrap(
+    <PressableScale accessibilityRole="button" accessibilityLabel="Probe" onPress={() => {}}>
+      <AppText>Probe</AppText>
+    </PressableScale>,
+  );
+  const host = screen.getByLabelText('Probe');
+  const animated = (host.props as { jestAnimatedStyle?: { value?: unknown } }).jestAnimatedStyle;
+  expect(animated?.value).toEqual({ transform: [{ scale: 1 }] });
+});
+
+it('forwards user press handlers alongside the dip', async () => {
+  const onPressIn = jest.fn();
+  const onPressOut = jest.fn();
+  await wrap(
+    <PressableScale accessibilityRole="button" accessibilityLabel="Fwd" onPressIn={onPressIn} onPressOut={onPressOut} onPress={() => {}}>
+      <AppText>Fwd</AppText>
+    </PressableScale>,
+  );
+  await fireEvent(screen.getByLabelText('Fwd'), 'pressIn');
+  await fireEvent(screen.getByLabelText('Fwd'), 'pressOut');
+  expect(onPressIn).toHaveBeenCalledTimes(1);
+  expect(onPressOut).toHaveBeenCalledTimes(1);
 });
