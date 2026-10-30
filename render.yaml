@@ -39,7 +39,19 @@ services:
       - key: DEV_OTP_CODE
         value: "123456"
       - key: STORAGE_PROVIDER
-        value: fake
+        value: r2 # fake hands clients upload tickets for the unroutable placeholder fake.storage, so client uploads always fail; dev uses the real R2 buckets (values in backend/.env.dev)
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false # public images (getready-dev)
+      - key: R2_PRIVATE_BUCKET
+        sync: false # identity documents (getready-dev-private); must differ from R2_BUCKET
+      - key: R2_PUBLIC_URL
+        sync: false # the public bucket's r2.dev address
       - key: PUSH_PROVIDER
         value: expo
       - key: PAYMENT_PROVIDER
