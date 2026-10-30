@@ -62,7 +62,6 @@
       "./plugins/with-android-autofill-highlight"
     ],
     "scheme": "artcircle",
-    "newArchEnabled": true,
     "experiments": {
       "reactCompiler": true
     },
