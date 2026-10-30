@@ -8,7 +8,8 @@ import { brand } from './brand'
 //   `credentials: 'include'` + `X-Session-Transport`, and the JSON body carries `refresh_token: null`.
 // - The only thing persisted is the non-secret "Keep me signed in" choice, so a refresh after a page
 //   reload asks for the same kind of cookie (persistent vs. this browser session only).
-// A 401 triggers one refresh, then a retry.
+// A 401 triggers one refresh, then a retry. Both session round trips are time-boxed (SESSION_TIMEOUT_MS):
+// a server that accepts a request and never answers is reported as unreachable, not waited on forever.
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'
 
@@ -20,6 +21,13 @@ const GENERIC_MESSAGE = 'Something went wrong. Please try again.'
 
 /** Raised when a mid-session refresh is refused: the app is already heading back to sign-in, so screens stay quiet. */
 export const SESSION_EXPIRED = 'session_expired'
+
+/**
+ * How long the app waits for a session round trip (the load-time refresh, and the "who am I" behind it) when the
+ * server accepts the request and then stays silent. Without a ceiling "Restoring your session" spins forever; with
+ * one it becomes the Retry screen, which is honest: the session is still there, the answer isn't.
+ */
+export const SESSION_TIMEOUT_MS = 20_000
 
 /** Every failed call becomes an ApiError; screens branch on `code` (the backend's stable contract). */
 export class ApiError extends Error {
@@ -91,9 +99,9 @@ async function toError(res: Response): Promise<ApiError> {
 async function requestRefresh(): Promise<RefreshResult> {
   let res: Response
   try {
-    res = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', ...cookieTransport() }) // no body: the cookie is the token
+    res = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', signal: AbortSignal.timeout(SESSION_TIMEOUT_MS), ...cookieTransport() }) // no body: the cookie is the token
   } catch {
-    return 'unavailable' // offline / DNS / CORS: the session may well still be valid
+    return 'unavailable' // offline / DNS / CORS / no answer in time: the session may well still be valid
   }
   if (res.status === 401 || res.status === 403) {
     accessToken = null
@@ -141,13 +149,17 @@ export interface RequestOptions {
   transport?: ReturnType<typeof cookieTransport>
   /** 'text' for non-JSON downloads such as CSV exports. */
   parse?: 'json' | 'text'
+  /** Ceiling for the whole call (both attempts). Only the load-time session check uses it, so a silent server cannot hang the app open. */
+  timeoutMs?: number
 }
 
 export async function api<T>(path: string, init: RequestOptions = {}): Promise<T> {
+  const signal = init.timeoutMs ? AbortSignal.timeout(init.timeoutMs) : undefined
   const send = () =>
     fetch(`${API_URL}${path}`, {
       method: init.method ?? 'GET',
       credentials: init.transport?.credentials,
+      signal,
       headers: {
         ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

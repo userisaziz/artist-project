@@ -6,10 +6,10 @@ Internal web console for Art Circle: build the service catalog (**Catalog**), ap
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173, talks to http://localhost:8000/api/v1
+npm run dev          # http://localhost:5173, API through Vite's /api proxy → http://localhost:8000/api/v1
 ```
 
-Point it at another API with `VITE_API_URL=http://host:port/api/v1 npm run dev`.
+Dev keeps the API **same-origin** (Vite forwards `/api`, exactly like `vercel.json` does in production), so the httpOnly `ac_refresh` cookie stays first-party and a reload restores the session. Forward it elsewhere with `VITE_DEV_API_TARGET=http://host:port npm run dev`; to skip the proxy and hit a backend directly, `npm run dev -- --mode local` (reads `VITE_API_URL` from `.env.local`).
 
 ## Signing in
 

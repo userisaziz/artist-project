@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { SESSION_TIMEOUT_MS } from '@/lib/api'
 import { db, installFakeBackend, requests, type RefreshFailure } from '@/test/fake-backend'
 import { renderApp, renderSignedIn } from '@/test/render-app'
 
@@ -12,7 +13,10 @@ beforeEach(() => {
   sessionStorage.clear()
   window.history.pushState({}, '', '/')
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.restoreAllMocks() // the timeout-signal spy must not outlive its test
+  vi.unstubAllGlobals()
+})
 
 const refreshCalls = () => requests.filter((r) => r.path === '/auth/refresh')
 
@@ -53,6 +57,27 @@ it('shows a labelled loading state while the session is being restored', async (
   release()
   expect(await screen.findByRole('heading', { name: /Neha/ })).toBeInTheDocument()
   expect(screen.queryByRole('status', { name: 'Restoring your session' })).not.toBeInTheDocument()
+})
+
+it('gives up on a server that accepts the refresh and stays silent, instead of spinning forever', async () => {
+  // The app bounds the refresh with a timeout signal; the test owns the clock, so it aborts that signal itself.
+  const silence = new AbortController()
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(silence.signal)
+  db.holdRefresh = new Promise(() => {}) // no answer and no error: the request just hangs
+  renderSignedIn('/bookings')
+  expect(await screen.findByRole('status', { name: 'Restoring your session' })).toBeInTheDocument()
+  expect(timeout).toHaveBeenCalledWith(SESSION_TIMEOUT_MS)
+
+  silence.abort(new DOMException('The operation timed out.', 'TimeoutError')) // the budget runs out
+  const alert = await screen.findByRole('alert')
+  expect(within(alert).getByText(/couldn’t reach GetReady/i)).toBeInTheDocument()
+  expect(screen.queryByRole('status', { name: 'Restoring your session' })).not.toBeInTheDocument()
+  expect(window.location.pathname).toBe('/bookings') // the session is kept: only the check failed
+  expect(db.refreshCookie).not.toBeNull()
+
+  db.holdRefresh = null
+  await userEvent.setup().click(within(alert).getByRole('button', { name: 'Retry' }))
+  expect(await screen.findByRole('heading', { name: 'Bookings' })).toBeInTheDocument()
 })
 
 it.each<[string, RefreshFailure]>([

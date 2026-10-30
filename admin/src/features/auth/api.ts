@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { api, ApiError, cookieTransport, endSession, session } from '@/lib/api'
+import { api, ApiError, cookieTransport, endSession, SESSION_TIMEOUT_MS, session } from '@/lib/api'
 import type { TokenPair, User } from '@/lib/types'
 
 // Auth request declarations: types + fetchers + react-query hooks, kept out of the provider
@@ -20,9 +20,9 @@ export function verifyOtp(phone: string, code: string, keepSignedIn: boolean): P
   return api<TokenPair>('/auth/otp/verify', { method: 'POST', body: { phone, code }, transport: cookieTransport(keepSignedIn) })
 }
 
-/** The signed-in user behind the current access token. */
+/** The signed-in user behind the current access token. Time-boxed like the refresh, so opening the app never hangs. */
 export function getCurrentUser(): Promise<User> {
-  return api<User>('/users/me')
+  return api<User>('/users/me', { timeoutMs: SESSION_TIMEOUT_MS })
 }
 
 export interface VerifyInput {
