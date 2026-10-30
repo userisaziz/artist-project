@@ -156,8 +156,11 @@ def seed_images() -> int:
         print(f"seed images: skipped (storage_provider={s.storage_provider!r}, need 'r2')")
         return 0
     client = r2_client(s.r2_account_id, s.r2_access_key_id, s.r2_secret_access_key.get_secret_value())
+    paths = sorted(p for p in ASSETS_DIR.rglob("*") if p.suffix.lower() in (".jpg", ".jpeg"))
+    if not paths:
+        raise RuntimeError(f"seed images: no .jpg assets under {ASSETS_DIR} — refusing to seed key-only rows")
     uploaded = skipped = 0
-    for path in sorted(ASSETS_DIR.rglob("*.jpg")):
+    for path in paths:
         key = path.relative_to(ASSETS_DIR).as_posix()
         try:
             client.head_object(Bucket=s.r2_bucket, Key=key)
