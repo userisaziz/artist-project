@@ -7,3 +7,7 @@ for (const file of ['.env.test', '.env']) {
     }
   }
 }
+
+// Reanimated's jest mock keeps worklet APIs (withTiming/withSpring/useAnimatedStyle/entry animations)
+// synchronous in tests. Must stay in sync with the installed major version — expo install pins it.
+require('react-native-reanimated').setUpTests();
