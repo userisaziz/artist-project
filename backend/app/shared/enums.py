@@ -3,13 +3,13 @@
 import enum
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     customer = "customer"
     artist = "artist"
     admin = "admin"
 
 
-class ArtistStatus(str, enum.Enum):
+class ArtistStatus(enum.StrEnum):
     """Artist profile review state: draft → pending → approved | rejected (→ pending again).
     An admin can suspend an approved artist (hidden, no bookings) and reinstate them to approved."""
 
@@ -20,7 +20,7 @@ class ArtistStatus(str, enum.Enum):
     suspended = "suspended"
 
 
-class ArtistServiceStatus(str, enum.Enum):
+class ArtistServiceStatus(enum.StrEnum):
     """Custom services need admin approval; services picked from the admin list are approved on creation."""
 
     approved = "approved"
@@ -28,7 +28,7 @@ class ArtistServiceStatus(str, enum.Enum):
     rejected = "rejected"
 
 
-class CategoryStatus(str, enum.Enum):
+class CategoryStatus(enum.StrEnum):
     """draft: being set up, admin-only. inactive: no new picks; artists who have it keep it. active: public and pickable."""
 
     draft = "draft"
@@ -36,7 +36,7 @@ class CategoryStatus(str, enum.Enum):
     active = "active"
 
 
-class BookingStatus(str, enum.Enum):
+class BookingStatus(enum.StrEnum):
     """requested → confirmed → completed; a request can also be declined, expire unanswered, or be cancelled."""
 
     requested = "requested"
@@ -47,7 +47,7 @@ class BookingStatus(str, enum.Enum):
     completed = "completed"
 
 
-class ReviewStatus(str, enum.Enum):
+class ReviewStatus(enum.StrEnum):
     """published and flagged are public; hidden waits for a moderator out of sight; removed is final."""
 
     published = "published"

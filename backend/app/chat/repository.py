@@ -184,13 +184,14 @@ class ChatRepository:
     async def reply_minutes(self, artist_id: uuid.UUID) -> tuple[float | None, int]:
         """(median minutes, sample size) from a customer message the artist could see to the artist's next one."""
         delivered = or_(Message.moderation.is_(None), Message.moderation == MessageModeration.allowed)
-        window = {"partition_by": Message.conversation_id, "order_by": (Message.created_at, Message.id)}
+        partition = Message.conversation_id
+        order = (Message.created_at, Message.id)
         timeline = (
             select(
                 Message.sender,
                 Message.created_at,
-                func.lag(Message.sender).over(**window).label("previous_sender"),
-                func.lag(Message.created_at).over(**window).label("previous_at"),
+                func.lag(Message.sender).over(partition_by=partition, order_by=order).label("previous_sender"),
+                func.lag(Message.created_at).over(partition_by=partition, order_by=order).label("previous_at"),
             )
             .join(Conversation, Conversation.id == Message.conversation_id)
             .where(Conversation.artist_id == artist_id, delivered)

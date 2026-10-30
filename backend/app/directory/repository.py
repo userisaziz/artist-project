@@ -186,7 +186,8 @@ class DirectoryRepository:
             )
             .group_by(Booking.service_id)
         )
-        return {service_id: count for service_id, count in rows.all()}
+        # The WHERE already drops booking rows without a service; the check only tells the type checker that.
+        return {service_id: count for service_id, count in rows.all() if service_id is not None}
 
 
 def _recommended_score(c: SearchColumns) -> ColumnElement:

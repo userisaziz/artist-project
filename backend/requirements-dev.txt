@@ -3,6 +3,8 @@
 pytest>=8.3
 pytest-asyncio>=0.26
 pytest-cov>=6.0
-ruff>=0.8
-mypy>=1.13
+# The gates are pinned, not ranged: a lint rule added in a newer release turns a green repo red in CI
+# while every local run stays green. Bump these deliberately, with the fixes they ask for in the same commit.
+ruff==0.17.3
+mypy==2.4.1
 pip-audit>=2.7

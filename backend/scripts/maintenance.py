@@ -55,7 +55,8 @@ async def send_requirement_notices(clock: Clock = SYSTEM_CLOCK) -> dict[str, int
     async with SessionLocal() as session:
         sent = await RequirementService(session, clock).send_notices()
         await session.commit()
-    return dict(sent)
+    # The stages are literal keys; the report hands out plain strings.
+    return {str(stage): count for stage, count in sent.items()}
 
 
 async def main() -> None:

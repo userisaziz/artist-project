@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import secrets
 import uuid as uuid_mod
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -38,7 +38,7 @@ def hash_token(token: str) -> str:
 
 def _create_token(user_id: uuid_mod.UUID, token_type: str, ttl: timedelta) -> tuple[str, str]:
     jti = str(uuid_mod.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user_id),
         "type": token_type,

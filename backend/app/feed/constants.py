@@ -27,12 +27,12 @@ MODERATION_NOTE_MAX = 500
 RECENT_DAYS = 7
 
 
-class PostKind(str, enum.Enum):
+class PostKind(enum.StrEnum):
     photos = "photos"
     article = "article"
 
 
-class Moderation(str, enum.Enum):
+class Moderation(enum.StrEnum):
     """live: in the feed. hidden: taken down by a moderator (the artist still sees it). removed: final."""
 
     live = "live"
@@ -40,7 +40,7 @@ class Moderation(str, enum.Enum):
     removed = "removed"
 
 
-class PostTopic(str, enum.Enum):
+class PostTopic(enum.StrEnum):
     """look: a photo set of finished work; guide: how-to; story: behind the scenes, a client's day."""
 
     look = "look"

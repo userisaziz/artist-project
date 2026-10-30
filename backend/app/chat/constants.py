@@ -10,14 +10,14 @@ OPENS_PER_USER = Limit(hits=60, window_seconds=3600)
 MESSAGE_MAX_LENGTH = 2000
 
 
-class ChatSide(str, enum.Enum):
+class ChatSide(enum.StrEnum):
     """Which side of a conversation wrote a message, or is reading it."""
 
     customer = "customer"
     artist = "artist"
 
 
-class MessageModeration(str, enum.Enum):
+class MessageModeration(enum.StrEnum):
     """A message the contact filter caught. `held`: only the sender sees it until an admin decides; `allowed`:
     delivered as normal; `hidden`: never delivered, the sender is told why. Unflagged messages have none."""
 

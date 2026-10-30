@@ -33,14 +33,14 @@ MAX_PRICE_PAISE = 10_000_000  # ₹1,00,000
 ORDERS_PER_USER = Limit(hits=20, window_seconds=3600)
 
 
-class ProductStatus(str, enum.Enum):
+class ProductStatus(enum.StrEnum):
     """live: sellable (when the artist has it switched on). removed: taken down by an admin."""
 
     live = "live"
     removed = "removed"
 
 
-class OrderStatus(str, enum.Enum):
+class OrderStatus(enum.StrEnum):
     placed = "placed"
     confirmed = "confirmed"
     shipped = "shipped"

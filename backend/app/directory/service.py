@@ -35,6 +35,11 @@ def _bookable(services: list[ArtistServiceItem]) -> list[ArtistServiceItem]:
     return [s for s in services if s.status == ArtistServiceStatus.approved]
 
 
+# One matched artist: the profile, its distance from the searched point (None when the search isn't near one),
+# and the day it was free on (None unless the search asked for a specific day).
+Hit = tuple[ArtistProfile, float | None, date | None]
+
+
 class DirectoryService:
     def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
@@ -81,7 +86,7 @@ class DirectoryService:
         search near a point picks the radius (the client's, else the auto-widened one); its cursor carries that
         radius so every later page keeps it."""
         if filters.near is None:
-            items, next_cursor = await self.list(filters, limit, cursor)
+            items, next_cursor = await self.browse(filters, limit, cursor)
             return {"items": items, "next_cursor": next_cursor, "total": await self.total(filters), "radius_km": None}
         carried = decode_near_cursor(cursor) if cursor else None
         if carried is not None:
@@ -91,7 +96,7 @@ class DirectoryService:
         else:
             radius = await self._widened_radius(filters)
         filters = replace(filters, radius_km=radius)
-        items, next_cursor = await self.list(filters, limit, cursor)
+        items, next_cursor = await self.browse(filters, limit, cursor)
         return {
             "items": items,
             "next_cursor": encode_near_cursor(radius, next_cursor) if next_cursor else None,
@@ -104,9 +109,10 @@ class DirectoryService:
         counts = await self.artists.count_within(filters, NEARBY_RADII_KM)
         return next((r for r, n in zip(NEARBY_RADII_KM, counts, strict=True) if n >= NEARBY_MIN_RESULTS), None)
 
-    async def list(self, filters: SearchFilters, limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
+    async def browse(self, filters: SearchFilters, limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
         """Explore results. The default order (most recently approved) pages by (approved-at, id); every other
         order, and a free-date search, pages by position."""
+        found: list[Hit]
         if filters.uses_keyset:
             rows = await self.artists.approved_page(filters, limit, cursor)
             page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
@@ -117,7 +123,7 @@ class DirectoryService:
             found = [(profile, distance, None) for profile, _, distance in rows[:limit]]
             next_cursor = encode_offset_cursor(offset + limit) if len(rows) > limit else None
         else:
-            found, next_cursor = await self._free_on(filters, limit, cursor)
+            found, next_cursor = await self._free_on(filters, filters.available_on, limit, cursor)
         ratings = await ratings_for(self.session, [profile.id for profile, _, _ in found])
         return [self._card_fields(p, ratings, distance, free_on) for p, distance, free_on in found], next_cursor
 
@@ -126,14 +132,13 @@ class DirectoryService:
         return None if filters.available_on else await self.artists.count(filters)
 
     async def _free_on(
-        self, filters: SearchFilters, limit: int, cursor: str | None
-    ) -> tuple[list[tuple[ArtistProfile, float | None, date]], str | None]:
-        """Walks the sorted matches, keeping artists with an open slot on `available_on` for their shortest service.
+        self, filters: SearchFilters, day: date, limit: int, cursor: str | None
+    ) -> tuple[list[Hit], str | None]:
+        """Walks the sorted matches, keeping artists with an open slot on `day` for their shortest service.
         Scans at most AVAILABLE_ON_SCAN_LIMIT artists per page; the cursor is the next position to check."""
-        day = filters.available_on
         offset = decode_offset_cursor(cursor) if cursor else 0
         rows = await self.artists.sorted_page(filters, offset, AVAILABLE_ON_SCAN_LIMIT)
-        found: list[tuple[ArtistProfile, float | None, date]] = []
+        found: list[Hit] = []
         scanned = 0
         for profile, _, distance in rows:
             if len(found) == limit:

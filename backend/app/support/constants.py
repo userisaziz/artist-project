@@ -37,7 +37,7 @@ TICKETS_PER_USER = Limit(hits=10, window_seconds=3600)
 MESSAGES_PER_USER = Limit(hits=60, window_seconds=3600)
 
 
-class TicketStatus(str, enum.Enum):
+class TicketStatus(enum.StrEnum):
     """new: no reply yet. waiting_on_user: support replied. open: the requester wrote again. resolved: closed."""
 
     new = "new"
@@ -46,7 +46,7 @@ class TicketStatus(str, enum.Enum):
     resolved = "resolved"
 
 
-class TicketPriority(str, enum.Enum):
+class TicketPriority(enum.StrEnum):
     low = "low"
     normal = "normal"
     urgent = "urgent"
