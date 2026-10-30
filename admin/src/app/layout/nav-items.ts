@@ -19,6 +19,7 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: PATHS.overview, label: 'Overview' },
   { to: PATHS.notifications, label: 'Notifications', count: 'unreadNotifications', pill: true },
+  { to: PATHS.broadcasts, label: 'Broadcasts' },
   { to: PATHS.artists, label: 'Verification', count: 'pendingArtists', pill: true },
   { to: PATHS.artistDirectory, label: 'Artists', count: 'artistsTotal' },
   { to: PATHS.customers, label: 'Customers' },

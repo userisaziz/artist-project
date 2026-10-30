@@ -832,7 +832,7 @@ export interface AdminBroadcast {
   body: string
   link: string | null
   segment: string
-  filters: Record<string, unknown>
+  filters: BroadcastFilters
   recipient_count: number
   push_count: number
   created_at: string
@@ -949,7 +949,7 @@ export function useCities() {
 - [ ] **Step 4: Write the failing UI tests** — `admin/src/features/broadcasts/broadcasts.test.tsx`:
 
 ```tsx
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { calls, db, installFakeBackend } from '@/test/fake-backend'
 import { renderSignedIn } from '@/test/render-app'
@@ -968,9 +968,11 @@ it('lists past sends with their audience and reach', async () => {
   db.broadcasts = [sentRow]
   renderSignedIn('/broadcasts')
 
-  expect(await screen.findByText('Festive slots open', {}, { timeout: 4000 })).toBeInTheDocument()
-  expect(screen.getByText('Everyone')).toBeInTheDocument()
-  expect(screen.getByText('2 people · 1 with push')).toBeInTheDocument()
+  const row = (await screen.findByText('Festive slots open', {}, { timeout: 4000 })).closest('tr')
+  expect(row).not.toBeNull()
+  // "Everyone" also labels the audience picker, so read the table row itself.
+  expect(within(row as HTMLElement).getByText('Everyone')).toBeInTheDocument()
+  expect(within(row as HTMLElement).getByText('2 people · 1 with push')).toBeInTheDocument()
 })
 
 it('previews the audience, confirms, and sends', async () => {
@@ -997,7 +999,7 @@ it('refuses to send to an empty audience', async () => {
   const user = userEvent.setup()
   renderSignedIn('/broadcasts')
 
-  await user.click(await screen.findByRole('button', { name: 'Audience' }, { timeout: 4000 }))
+  await user.click(await screen.findByLabelText('Audience', {}, { timeout: 4000 }))
   await user.click(await screen.findByRole('option', { name: 'All customers' }))
   await user.type(await screen.findByLabelText('Title'), 'Hello')
   await user.type(screen.getByLabelText('Message'), 'Nobody here')
@@ -1099,6 +1101,9 @@ const SEGMENT_LABEL: Record<string, string> = {
   all_customers: 'All customers',
 }
 
+/** A broadcast's link must be an in-app path (`/x`), never an absolute URL. Mirrors the backend rule. */
+const LINK_PATTERN = /^\/(?:[^/]|$)/
+
 /** Compose an announcement, see its exact audience, confirm, and send it to in-app inboxes and push. */
 export function BroadcastsPage() {
   const [segment, setSegment] = useState<BroadcastSegment>('all_users')
@@ -1119,13 +1124,17 @@ export function BroadcastsPage() {
   const rows = history.data?.pages.flatMap((p) => p.items) ?? []
 
   const artistFiltersVisible = segment !== 'all_customers'
-  const filters: BroadcastFilters = {
-    city: city || null,
-    artist_status: artistFiltersVisible ? status : null,
-    category_id: categoryId ? Number(categoryId) : null,
-    joined_from: joinedFrom || null,
-    joined_to: joinedTo || null,
-  }
+  // Memoised so the debounce below only restarts when a filter actually changes, not on every render.
+  const filters = useMemo<BroadcastFilters>(
+    () => ({
+      city: city || null,
+      artist_status: artistFiltersVisible ? status : null,
+      category_id: categoryId ? Number(categoryId) : null,
+      joined_from: joinedFrom || null,
+      joined_to: joinedTo || null,
+    }),
+    [city, artistFiltersVisible, status, categoryId, joinedFrom, joinedTo],
+  )
 
   // The audience query runs on the settled state, so edits debounce instead of firing per keystroke.
   const [settled, setSettled] = useState({ segment, filters })
@@ -1136,7 +1145,7 @@ export function BroadcastsPage() {
   const preview = useBroadcastPreview(settled.segment, settled.filters)
   const counts = preview.data
 
-  const linkValid = link === '' || /^\/(?!\/)/.test(link)
+  const linkValid = link === '' || LINK_PATTERN.test(link)
   const canSend = title.trim() !== '' && message.trim() !== '' && linkValid && (counts?.recipients ?? 0) > 0
 
   const cityOptions: FilterOption<string>[] = [
@@ -1184,7 +1193,7 @@ export function BroadcastsPage() {
               }
             }}
           />
-          {artistFiltersVisible && <FilterSelect label="Status" value={status} options={STATUS_OPTIONS} onValueChange={setStatus} />}
+          {artistFiltersVisible && <FilterSelect<'approved' | 'pending' | 'draft'> label="Status" value={status} options={STATUS_OPTIONS} onValueChange={setStatus} />}
           {artistFiltersVisible && <FilterSelect label="City" value={city} options={cityOptions} onValueChange={setCity} />}
           {artistFiltersVisible && <FilterSelect label="Category" value={categoryId} options={categoryOptions} onValueChange={setCategoryId} />}
         </div>

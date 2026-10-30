@@ -32,6 +32,7 @@ export function AppRoutes() {
           <Route path={PATHS.enquiries} element={<pages.EnquiriesPage />} />
           <Route path={PATHS.subcategoryRequests} element={<pages.SubcategoryRequestsPage />} />
           <Route path={PATHS.notifications} element={<pages.NotificationsPage />} />
+          <Route path={PATHS.broadcasts} element={<pages.BroadcastsPage />} />
           <Route path={PATHS.customers} element={<pages.CustomersPage />} />
           <Route path={PATHS.customerDetail} element={<pages.CustomerDetailPage />} />
           <Route path={PATHS.support} element={<pages.SupportPage />} />

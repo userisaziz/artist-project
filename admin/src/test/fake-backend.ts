@@ -1,9 +1,18 @@
 import type { AdminBooking, AdminCategory, AdminKyc, AdminOverview, AdminReview, ArtistDetail, CustomServiceItem, ServiceTemplate, User } from '@/lib/types'
 import { API_URL } from '@/lib/api'
+import type { AdminBroadcast, BroadcastFilters, BroadcastPreviewOut, BroadcastSegment } from '@/features/broadcasts/types'
 import type { AdminNotification } from '@/features/notifications/types'
 
 // A tiny in-memory backend behind fetch: just enough of the API contract for these flows.
 export const ADMIN: User = { id: 'u-admin', phone: '+919845000001', roles: ['admin'], active_role: null, first_name: 'Neha', last_name: 'Menon', email: null }
+
+const CITIES = ['Bangalore', 'Mumbai', 'Delhi NCR', 'Hyderabad', 'Chennai', 'Pune']
+
+/** Deterministic audience counts so previews and the confirm dialog always read the same. */
+function audienceFor(segment: BroadcastSegment, _filters: BroadcastFilters): BroadcastPreviewOut {
+  if (segment === 'all_customers') return { recipients: 0, with_push: 0 }
+  return segment === 'all_artists' ? { recipients: 1, with_push: 1 } : { recipients: 2, with_push: 1 }
+}
 
 // Generated Aadhaar number (not a real person's): 234123412346, so the masked form ends 2346.
 export const KYC: AdminKyc = {
@@ -72,7 +81,7 @@ export type RefreshFailure = 'network' | number
 
 export interface Db {
   categories: AdminCategory[]; templates: ServiceTemplate[]; customServices: CustomServiceItem[]; artist: ArtistDetail
-  bookings: AdminBooking[]; reviews: AdminReview[]; notifications: AdminNotification[]; overview: AdminOverview; me: User
+  bookings: AdminBooking[]; reviews: AdminReview[]; notifications: AdminNotification[]; broadcasts: AdminBroadcast[]; overview: AdminOverview; me: User
   /** The httpOnly `ac_refresh` cookie the browser holds for /api/v1/auth (null: none). JS in the app never sees it. */
   refreshCookie: string | null
   /** When set, /auth/refresh fails this way instead of reading the cookie. */
@@ -227,6 +236,26 @@ function route(method: string, path: string, body: any): Response {
     db.notifications = db.notifications.map((n) => (ids === null || ids.includes(n.id) ? { ...n, read_at: n.read_at ?? '2026-10-21T12:00:00Z' } : n))
     return json(204)
   }
+  // Live cities for the broadcast composer's city filter (the public catalog endpoint).
+  if (method === 'GET' && path === '/cities') return json(200, CITIES)
+  // Admin broadcasts (backend app/notification/admin_router.py).
+  if (method === 'POST' && path === '/admin/broadcasts/preview') {
+    const { segment, filters } = body as { segment: BroadcastSegment; filters: BroadcastFilters }
+    return json(200, audienceFor(segment, filters))
+  }
+  if (method === 'POST' && path === '/admin/broadcasts') {
+    const input = body as { segment: BroadcastSegment; filters: BroadcastFilters; title: string; body: string; link: string | null }
+    const counts = audienceFor(input.segment, input.filters)
+    if (counts.recipients === 0) return json(422, { code: 'validation_error', message: 'This audience has no recipients' })
+    const row: AdminBroadcast = {
+      id: `bc-${db.broadcasts.length + 1}`, title: input.title, body: input.body, link: input.link ?? null,
+      segment: input.segment, filters: input.filters, recipient_count: counts.recipients, push_count: counts.with_push,
+      created_at: '2026-10-31T09:00:00Z',
+    }
+    db.broadcasts = [row, ...db.broadcasts]
+    return json(201, { id: row.id, recipients: counts.recipients, with_push: counts.with_push })
+  }
+  if (method === 'GET' && path === '/admin/broadcasts') return json(200, { items: db.broadcasts, next_cursor: null })
   return json(404, { code: 'not_found', message: `No fake route for ${method} ${path}` })
 }
 
@@ -240,7 +269,7 @@ const aborted = (signal: AbortSignal): Promise<never> =>
 /** Fresh fake data, and a fetch stub that routes every request to it. Call from beforeEach. */
 export function installFakeBackend(): void {
   db = {
-    categories: [], templates: [], customServices: [], artist: artist(), bookings: [], reviews: [], notifications: [], overview: OVERVIEW, me: ADMIN,
+    categories: [], templates: [], customServices: [], artist: artist(), bookings: [], reviews: [], notifications: [], broadcasts: [], overview: OVERVIEW, me: ADMIN,
     refreshCookie: null, refreshFailure: null, holdRefresh: null, logoutFails: false, accessRevoked: false, overrides: {},
   }
   calls = []

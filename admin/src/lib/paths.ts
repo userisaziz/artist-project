@@ -9,6 +9,7 @@ export const PATHS = {
   login: '/login',
   overview: '/overview',
   notifications: '/notifications',
+  broadcasts: '/broadcasts',
   artists: '/artists',
   artistDetail: '/artists/:id',
   artistDirectory: '/artist-directory',

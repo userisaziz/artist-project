@@ -5,6 +5,7 @@ import { PATHS } from '@/lib/paths'
 // hover/focus (before the click) and the shell can warm the rest once the browser is idle.
 const loaders = {
   NotificationsPage: () => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
+  BroadcastsPage: () => import('@/features/broadcasts/BroadcastsPage').then((m) => ({ default: m.BroadcastsPage })),
   OverviewPage: () => import('@/features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
   ArtistQueuePage: () => import('@/features/artists/ArtistQueuePage').then((m) => ({ default: m.ArtistQueuePage })),
   ArtistDirectoryPage: () => import('@/features/artists/ArtistDirectoryPage').then((m) => ({ default: m.ArtistDirectoryPage })),
@@ -34,6 +35,7 @@ export const pages = Object.fromEntries(
 
 const loaderByPath: Record<string, () => Promise<unknown>> = {
   [PATHS.notifications]: loaders.NotificationsPage,
+  [PATHS.broadcasts]: loaders.BroadcastsPage,
   [PATHS.overview]: loaders.OverviewPage,
   [PATHS.artists]: loaders.ArtistQueuePage,
   [PATHS.artistDirectory]: loaders.ArtistDirectoryPage,
