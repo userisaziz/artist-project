@@ -37,10 +37,10 @@ Expected: `package.json` gains a `expo-updates` entry in dependencies (~`57.x.x`
 - [ ] **Step 2: Configure updates URL and runtime policy**
 
 ```bash
-npx eas update:configure
+npx eas-cli update:configure --non-interactive
 ```
 
-If prompted to choose a runtime version policy, select **fingerprint**. Then verify `mobile/app.json` contains both keys inside the `"expo"` object; if the CLI did not add the fingerprint policy, add it manually. The two additions must read exactly:
+The CLI sets `updates.url`, defaults `runtimeVersion` to the `appVersion` policy, and adds the `channel` fields to `eas.json`. Flip the policy to `fingerprint` in `mobile/app.json` (edit the `"policy"` value directly) and verify `mobile/app.json` contains both keys inside the `"expo"` object. The two additions must read exactly:
 
 ```json
 "runtimeVersion": { "policy": "fingerprint" },
@@ -93,10 +93,10 @@ Expected: `android/` regenerated from the new config (dir is gitignored — `git
 - [ ] **Step 5: Record the local fingerprint**
 
 ```bash
-npx expo-updates fingerprint:hash
+npx expo-updates fingerprint:generate --platform android
 ```
 
-Expected: a hash string prints. **Save it** (e.g. in the task notes) — Tasks 2 and 3 compare against it.
+Expected: a JSON blob of fingerprint sources ending with a top-level `"hash"` field. **Save that hash value** (e.g. in the task notes) — Tasks 2 and 3 compare against it.
 
 - [ ] **Step 6: Lint check**
 
@@ -126,15 +126,15 @@ Expected: 4 files staged, commit succeeds.
 - [ ] **Step 1: Confirm EAS auth**
 
 ```bash
-cd /Users/almabetter/artist-project/mobile && npx eas whoami
+cd /Users/almabetter/artist-project/mobile && npx eas-cli whoami
 ```
 
-Expected: `userisaziz`. If not logged in: `npx eas login`.
+Expected: `userisaziz`. If not logged in: `npx eas-cli login`.
 
 - [ ] **Step 2: Start the build (long-running — run in background)**
 
 ```bash
-npx eas build -p android --profile preview --non-interactive
+npx eas-cli build -p android --profile preview --non-interactive
 ```
 
 Run as a background task and poll every ~2 minutes. Expected after ~15-25 min: `Build finished` with an artifact URL and a build-details URL. If it fails, read the failed log via the printed build-details URL before retrying.
@@ -147,7 +147,7 @@ Open the build-details URL (or the build logs) and find the **Runtime version** 
 
 ```bash
 cd /Users/almabetter/artist-project/mobile
-URL=$(npx eas build:list --platform android --limit 1 --status=finished --json \
+URL=$(npx eas-cli build:list --platform android --limit 1 --status=finished --json \
   | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['artifact']['buildUrl'])")
 mkdir -p builds
 curl -L -o builds/getready-ota-baseline.apk "$URL"
@@ -183,7 +183,7 @@ Expected: app opens; Welcome screen renders (or login/home when signed in) and, 
 - [ ] **Step 1: Pre-publish fingerprint check**
 
 ```bash
-npx expo-updates fingerprint:hash
+npx expo-updates fingerprint:generate --platform android
 ```
 
 Expected: equals the binary's runtime version recorded in Task 2 Step 3. **Do not publish until equal** (mismatch = the OTA would be silently ignored by every device).
@@ -191,7 +191,7 @@ Expected: equals the binary's runtime version recorded in Task 2 Step 3. **Do no
 - [ ] **Step 2: Record the reference API URL**
 
 ```bash
-npx eas env:list --environment preview
+npx eas-cli env:list --environment preview
 ```
 
 Expected: shows `EXPO_PUBLIC_API_URL` (and `GOOGLE_MAPS_ANDROID_API_KEY`). Save the API URL value for Step 7.
@@ -220,7 +220,7 @@ git commit -m "chore(mobile): add OTA pickup marker on welcome screen"
 
 ```bash
 cd mobile
-npx eas update --branch preview --message "OTA pickup marker"
+npx eas-cli update --branch preview --message "OTA pickup marker"
 ```
 
 Expected: output shows the computed fingerprint and `Committed update` / an update group id. If the CLI prompts about uncommitted changes, abort and commit/push first — never publish from a dirty tree.
@@ -228,7 +228,7 @@ Expected: output shows the computed fingerprint and `Committed update` / an upda
 - [ ] **Step 6: Confirm the served update**
 
 ```bash
-npx eas update:list --branch preview
+npx eas-cli update:list --branch preview
 ```
 
 Expected: lists the new update, Runtime column matching the fingerprint from Step 1.
@@ -243,7 +243,7 @@ adb shell am force-stop com.userisaziz.artcircle
 adb shell am start -n com.userisaziz.artcircle/.MainActivity   # launch 2: applies the update
 ```
 
-Expected: Welcome body now shows `... booked in minutes. [OTA]`. If signed in, first log out (Profile tab → **Log out**) so the Welcome screen shows. Then sign back in / browse the home feed: **data must load** — this proves the OTA bundle's `EXPO_PUBLIC_API_URL` matches the APK's backend. If network calls fail, the bundle got the wrong URL: `EXPO_PUBLIC_API_URL=<value from Step 2> npx eas update --branch preview --message "fix api url"` and re-verify.
+Expected: Welcome body now shows `... booked in minutes. [OTA]`. If signed in, first log out (Profile tab → **Log out**) so the Welcome screen shows. Then sign back in / browse the home feed: **data must load** — this proves the OTA bundle's `EXPO_PUBLIC_API_URL` matches the APK's backend. If network calls fail, the bundle got the wrong URL: `EXPO_PUBLIC_API_URL=<value from Step 2> npx eas-cli update --branch preview --message "fix api url"` and re-verify.
 
 - [ ] **Step 8: Remove the marker and republish clean state**
 
@@ -254,7 +254,7 @@ cd /Users/almabetter/artist-project
 git add "mobile/app/(auth)/welcome.tsx"
 git diff --cached --name-status
 git commit -m "chore(mobile): remove OTA pickup marker"
-cd mobile && npx eas update --branch preview --message "remove OTA marker"
+cd mobile && npx eas-cli update --branch preview --message "remove OTA marker"
 ```
 
 Device check: after two restarts the marker is gone again.
@@ -283,7 +283,7 @@ In `mobile/app/(auth)/welcome.tsx`, change the body to:
 
 ```bash
 npx expo prebuild -p android --clean
-npx expo-updates fingerprint:hash        # expected: DIFFERENT from the recorded build fingerprint
+npx expo-updates fingerprint:generate --platform android  # expected: DIFFERENT from the recorded build fingerprint
 ```
 
 - [ ] **Step 4: Commit the temporary test changes**
@@ -299,7 +299,7 @@ git commit -m "chore(mobile): temporary fingerprint guard test"
 
 ```bash
 cd mobile
-npx eas update --branch preview --message "fingerprint guard test"
+npx eas-cli update --branch preview --message "fingerprint guard test"
 ```
 
 Expected: publish succeeds but the CLI warns the fingerprint matches no existing build/runtime.
@@ -327,8 +327,8 @@ git diff --cached --name-status
 git commit -m "chore(mobile): revert fingerprint guard test"
 cd mobile
 npx expo prebuild -p android --clean
-npx expo-updates fingerprint:hash        # expected: matches the build fingerprint again
-npx eas update --branch preview --message "restore matching fingerprint"
+npx expo-updates fingerprint:generate --platform android  # expected: matches the build fingerprint again
+npx eas-cli update --branch preview --message "restore matching fingerprint"
 ```
 
 Device: two restarts → app normal, no marker.
@@ -343,7 +343,7 @@ Device: two restarts → app normal, no marker.
 
 ```bash
 cd /Users/almabetter/artist-project/mobile
-npx eas update:republish --branch preview
+npx eas-cli update:republish --branch preview
 ```
 
 Interactive: select the newest update group. Expected: `Republished` confirmation. (This re-points the channel at that group — the operation you'd use in seconds if a bad OTA ever shipped.)
@@ -354,13 +354,13 @@ Two force-stop/relaunch cycles on the device. Expected: app unchanged and functi
 
 - [ ] **Step 3: Done — no commits**
 
-No file changes in this task. The OTA pipeline is live: JS changes now ship with `npx eas update --branch preview`; native changes still require `npx eas build -p android --profile preview`.
+No file changes in this task. The OTA pipeline is live: JS changes now ship with `npx eas-cli update --branch preview`; native changes still require `npx eas-cli build -p android --profile preview`.
 
 ---
 
 ## Troubleshooting
 
-- **Local fingerprint ≠ binary runtime version.** Causes, in order of likelihood: (1) stale local `android/` — re-run `npx expo prebuild -p android --clean` and re-hash; (2) env-dependent resolved config — `mobile/app.config.ts` injects `GOOGLE_MAPS_ANDROID_API_KEY` and `EAS_PROJECT_ID` from the environment, so a key present locally (`mobile/.env.local`) but absent in the EAS `preview` environment (or vice versa) changes the resolved config and the fingerprint. Compare `npx eas env:list --environment preview` against local values, align them, re-hash; a rebuilt APK is required if the binary's runtime differs from what you need to publish against.
+- **Local fingerprint ≠ binary runtime version.** Causes, in order of likelihood: (1) stale local `android/` — re-run `npx expo prebuild -p android --clean` and re-hash; (2) env-dependent resolved config — `mobile/app.config.ts` injects `GOOGLE_MAPS_ANDROID_API_KEY` and `EAS_PROJECT_ID` from the environment, so a key present locally (`mobile/.env.local`) but absent in the EAS `preview` environment (or vice versa) changes the resolved config and the fingerprint. Compare `npx eas-cli env:list --environment preview` against local values, align them, re-hash; a rebuilt APK is required if the binary's runtime differs from what you need to publish against.
 - **`adb` not found** — use `/opt/homebrew/share/android-commandlinetools/platform-tools/adb`.
 - **`eas update` asks about uncommitted changes** — stop, commit the work (path-scoped), then publish; never publish a dirty tree for this feature.
-- **Device never downloads** — verify the binary was built AFTER Task 1 committed (older APKs have no channel embedded) and that the device has network; check `npx eas update:list --branch preview` shows a runtime matching the binary.
+- **Device never downloads** — verify the binary was built AFTER Task 1 committed (older APKs have no channel embedded) and that the device has network; check `npx eas-cli update:list --branch preview` shows a runtime matching the binary.
