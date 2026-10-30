@@ -15,6 +15,7 @@ import { PanelToolbar } from '@/components/console/panel-toolbar'
 import { Button } from '@/components/ui/button'
 import { dateTime, rupees } from '@/lib/format'
 import { toastError } from '@/lib/notify'
+import { useRevealWhenStacked } from '@/lib/use-reveal-when-stacked'
 import { OrderStatusPill } from './OrderStatusPill'
 import { useOrderSummary, useSetOrderStatus, useShopOrders } from './queries'
 import { PAYMENT_LABEL, type OrderStatus, type OrderView, type ShopOrder } from './types'
@@ -40,6 +41,7 @@ export function ShopOrdersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const rows = orders.data?.pages.flatMap((p) => p.items) ?? []
   const selected = rows.find((o) => o.id === selectedId) ?? null
+  const paneRef = useRevealWhenStacked<HTMLDivElement>(selected?.id)
   const chips: Chip<OrderView>[] = VIEWS.map((v) => ({ value: v, label: summary ? `${VIEW_LABEL[v]} ${number.format(summary.counts[v])}` : VIEW_LABEL[v] }))
 
   return (
@@ -85,7 +87,7 @@ export function ShopOrdersPage() {
             </PanelFooter>
           )}
         </Panel>
-        {selected && <OrderPanel order={selected} onClose={() => setSelectedId(null)} />}
+        {selected && <div ref={paneRef} className="scroll-mt-4"><OrderPanel order={selected} onClose={() => setSelectedId(null)} /></div>}
       </div>
     </>
   )

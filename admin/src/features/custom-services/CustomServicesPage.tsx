@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { artistPath } from '@/lib/paths'
+import { CellLabel } from '@/components/console/cell-label'
 import { Button } from '@/components/ui/button'
 import { FilterChips } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
@@ -72,7 +73,7 @@ export function CustomServicesPage() {
             </div>
             <span className="tabular-nums">{rupees(s.price_paise)}</span>
             <span>{duration(s.duration_minutes)}</span>
-            <span className="text-muted-foreground">{dateTime(s.created_at)}</span>
+            <span className="text-muted-foreground"><CellLabel>Submitted</CellLabel>{dateTime(s.created_at)}</span>
             {pending && (
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" aria-label={`Reject ${s.name}`} onClick={() => setRejecting(s)} disabled={decide.isPending}>

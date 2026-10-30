@@ -1,3 +1,4 @@
+import { CellLabel } from '@/components/console/cell-label'
 import { GridRow } from '@/components/console/grid-row'
 import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +33,7 @@ export function RequestRow({ request: r, columns, busy, onApprove, onReject }: R
         <InitialsAvatar name={r.artist.business_name} />
         <span className="truncate">{r.artist.business_name}</span>
       </div>
-      <span className="tabular-nums">{r.services_waiting}</span>
+      <span className="tabular-nums"><CellLabel>Services waiting</CellLabel>{r.services_waiting}</span>
       <span><Badge variant={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge></span>
       <div className="flex justify-end gap-2">
         {r.status === 'pending' ? (

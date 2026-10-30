@@ -143,7 +143,7 @@ export function LoginPage() {
                       key={i}
                       index={i}
                       aria-invalid={!!error}
-                      className="h-[58px] w-[52px] rounded-xl border border-border bg-card text-[22px] font-bold first:rounded-xl last:rounded-xl data-[active=true]:border-2 data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-halo"
+                      className="h-[58px] w-11 rounded-xl sm:w-[52px] border border-border bg-card text-[22px] font-bold first:rounded-xl last:rounded-xl data-[active=true]:border-2 data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-halo"
                     />
                   ))}
                 </InputOTPGroup>

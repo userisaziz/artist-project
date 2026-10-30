@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { UserPlus } from 'lucide-react'
 import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -94,8 +95,8 @@ function CitiesPanel() {
       {cities.data?.map((c) => (
         <GridRow key={c.name} columns={CITY_COLUMNS}>
           <span className="font-bold">{c.name}</span>
-          <span className="tabular-nums">{number.format(c.artists)}</span>
-          <span className="tabular-nums">{number.format(c.bookings_30d)}</span>
+          <span className="tabular-nums"><CellLabel>Artists</CellLabel>{number.format(c.artists)}</span>
+          <span className="tabular-nums"><CellLabel>Bookings · 30d</CellLabel>{number.format(c.bookings_30d)}</span>
         </GridRow>
       ))}
     </>

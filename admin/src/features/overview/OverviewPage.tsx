@@ -4,7 +4,9 @@ import { KpiTile } from '@/components/console/kpi-tile'
 import { useAuth } from '@/lib/auth-context'
 import { rupees, rupeesShort } from '@/lib/format'
 import { trend } from '@/lib/trend'
+import { MD_UP, useMediaQuery } from '@/lib/use-media-query'
 import type { AdminOverview } from '@/lib/types'
+import { OverviewFilters } from './OverviewFilters'
 import { useOverview } from './queries'
 import { useOverviewFilters } from './use-overview-filters'
 import { VerificationQueuePanel } from './VerificationQueuePanel'
@@ -24,10 +26,13 @@ export function OverviewPage() {
   const { filters } = useOverviewFilters()
   const overview = useOverview(filters)
   const o = overview.data
+  const roomy = useMediaQuery(MD_UP)
   const [hour] = useState(() => new Date().getHours()) // fixed for the visit, so re-renders don't flip the greeting
 
   return (
     <div className="flex flex-col">
+      {/* the top bar has no room for the filters on a phone, so they open the page instead */}
+      {!roomy && <div className="mb-3.5 flex flex-wrap gap-2"><OverviewFilters /></div>}
       <h1 className="text-[26.5px] leading-none font-semibold tracking-[-0.025em]">
         {greeting(hour)}, <Accent>{user?.first_name ?? 'there'}</Accent>
       </h1>

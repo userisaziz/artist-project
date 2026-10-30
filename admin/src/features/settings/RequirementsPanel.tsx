@@ -3,6 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -72,15 +73,19 @@ function RequirementRow({ requirement }: { requirement: ProfileRequirement }) {
           </div>
           <p className="text-muted-foreground">{requirement.body}</p>
         </div>
-        <Controller
-          control={form.control}
-          name="mandatory"
-          render={({ field }) => (
-            <Switch checked={field.value} onCheckedChange={field.onChange} aria-label={`${requirement.title} is mandatory`} />
-          )}
-        />
+        <span className="flex items-center gap-2">
+          <CellLabel>Mandatory</CellLabel>
+          <Controller
+            control={form.control}
+            name="mandatory"
+            render={({ field }) => (
+              <Switch checked={field.value} onCheckedChange={field.onChange} aria-label={`${requirement.title} is mandatory`} />
+            )}
+          />
+        </span>
         <div>
           <div className="flex items-center gap-2">
+            <CellLabel>Grace</CellLabel>
             <Input id={fieldId} type="number" inputMode="numeric" min={0} max={MAX_GRACE_DAYS} className="w-20" aria-label={`Grace period for ${requirement.title}, in days`} aria-invalid={!!graceError} {...form.register('grace_days')} />
             <span>days</span>
           </div>

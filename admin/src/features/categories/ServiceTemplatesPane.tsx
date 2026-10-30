@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { CellLabel } from '@/components/console/cell-label'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { GridHeader } from '@/components/console/grid-header'
@@ -68,12 +69,12 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
       )}
       {templates.data?.map((t) => (
         <GridRow key={t.id} columns={COLUMNS}>
-          <span className="text-muted-foreground tabular-nums">{t.sort_order}</span>
-          <div className="min-w-0">
+          <span className="text-muted-foreground tabular-nums max-md:hidden">{t.sort_order}</span>
+          <div className="min-w-0 max-md:basis-full">
             <div className="truncate font-bold">{t.name}</div>
             {t.description && <div className="text-[11.5px] text-muted-foreground">{t.description}</div>}
           </div>
-          <span className="tabular-nums">{t.artist_count}</span>
+          <span className="tabular-nums"><CellLabel>Artists</CellLabel>{t.artist_count}</span>
           <Switch checked={t.is_active} onCheckedChange={(v) => setActive(t, v)} aria-label={`${t.name} active`} />
           <div className="flex justify-end">
             <Button variant="ghost" size="icon-sm" aria-label={`Edit ${t.name}`} onClick={() => setDialog({ template: t })}><Pencil /></Button>

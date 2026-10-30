@@ -11,10 +11,14 @@ interface GridRowProps {
   children: ReactNode
 }
 
-/** One table row on the shared grid template; the whole row is the link to its detail. */
+/**
+ * One table row on the shared grid template; the whole row is the link to its detail.
+ * On phones the row becomes a card: the first cell takes the full width and the rest wrap beneath it.
+ * Cells mark themselves `max-md:hidden` to drop off the card, and use CellLabel to name a bare number.
+ */
 export function GridRow({ columns, to, onClick, selected = false, children }: GridRowProps) {
   const className = cn(
-    'grid items-center gap-3 border-b border-line-soft px-4 py-[11px] text-[13px] text-foreground transition-colors hover:bg-row-hover',
+    'flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line-soft px-4 py-3 text-[13px] *:first:basis-full md:grid md:gap-3 md:py-[11px] text-foreground transition-colors hover:bg-row-hover',
     (to || onClick) && 'cursor-pointer',
     selected && 'bg-halo hover:bg-halo',
   )

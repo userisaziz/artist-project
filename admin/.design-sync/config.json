@@ -1,0 +1,37 @@
+{
+  "projectId": "08f5bf8b-c59f-4b40-a30d-2707b23c09ed",
+  "shape": "storybook",
+  "storybookConfigDir": ".storybook",
+  "storybookStatic": ".design-sync/sb-reference",
+  "readmeHeader": ".design-sync/conventions.md",
+  "pkg": "@art-circle/atelier-admin",
+  "globalName": "AtelierAdmin",
+  "buildCmd": "node .design-sync/web-build.mjs",
+  "entry": ".design-sync/.cache/web-pkg/dist/index.js",
+  "srcDir": "../../../src",
+  "cssEntry": "dist/styles.css",
+  "extraFonts": [
+    "../../../node_modules/@fontsource-variable/plus-jakarta-sans/index.css"
+  ],
+  "overrides": {
+    "AlertDialog": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "Dialog": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "DropdownMenu": {
+      "cardMode": "single",
+      "primaryStory": "RowActions"
+    },
+    "Toaster": {
+      "cardMode": "single",
+      "primaryStory": "Success"
+    },
+    "Field": {
+      "cardMode": "column"
+    }
+  }
+}

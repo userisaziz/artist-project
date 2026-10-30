@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router'
 import { Search } from 'lucide-react'
 import { FilterChips } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -128,12 +129,12 @@ function DirectoryArtistRow({ artist: a }: { artist: DirectoryRow }) {
       <span className="truncate">{a.category ?? '—'}</span>
       <span className="truncate">{a.city}</span>
       <span className="tabular-nums" title={a.rating_count ? `${a.rating_count} reviews` : undefined}>{a.rating_average === null ? '—' : `★ ${a.rating_average.toFixed(1)}`}</span>
-      <span className="tabular-nums">{a.booking_value_30d ? rupeesShort(a.booking_value_30d) : '—'}</span>
+      <span className="tabular-nums"><CellLabel>30d</CellLabel>{a.booking_value_30d ? rupeesShort(a.booking_value_30d) : '—'}</span>
       <span className="flex flex-wrap items-center gap-1">
         <Badge variant={status.tone}>{status.label}</Badge>
         {a.missing_requirements.length > 0 && <Badge variant="warning">Missing {a.missing_requirements.join(', ')}</Badge>}
       </span>
-      <span className="text-right text-[12.5px] font-bold text-primary">{a.status === 'pending' ? 'Review' : 'View'}</span>
+      <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">{a.status === 'pending' ? 'Review' : 'View'}</span>
     </GridRow>
   )
 }

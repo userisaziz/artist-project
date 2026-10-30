@@ -31,7 +31,7 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar elevated={scrolled} />
-        <main ref={scrollRef} className="min-w-0 flex-1 overflow-y-auto overscroll-contain px-7 py-[22px] [scrollbar-gutter:stable]">
+        <main ref={scrollRef} className="min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-7 md:py-[22px] [scrollbar-gutter:stable]">
           {/* keyed by path: a page that crashed recovers when the admin navigates elsewhere */}
           <RouteErrorBoundary resetKey={pathname}>
             <Suspense fallback={<PageSkeleton />}>

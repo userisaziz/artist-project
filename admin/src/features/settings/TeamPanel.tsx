@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -42,7 +43,7 @@ export function TeamPanel() {
             {m.is_me && <Badge variant="brand">You</Badge>}
           </div>
           <span className="truncate">{m.email ?? m.phone}</span>
-          <span>{dateTime(m.admin_since)}</span>
+          <span><CellLabel>Admin since</CellLabel>{dateTime(m.admin_since)}</span>
           <span className="text-right">
             {!m.is_me && <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setRemoving(m)}>Remove</Button>}
           </span>

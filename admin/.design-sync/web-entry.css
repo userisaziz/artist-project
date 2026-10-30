@@ -1,0 +1,2 @@
+/* The app's own stylesheet: Tailwind v4 compiles it against every class used in admin/src. */
+@import "../src/index.css";

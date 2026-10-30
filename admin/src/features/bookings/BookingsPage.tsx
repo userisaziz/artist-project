@@ -114,7 +114,7 @@ function BookingRow({ booking: b }: { booking: AdminBooking }) {
       <span className="truncate">{b.artist.city}</span>
       <span className="truncate tabular-nums">{rupees(b.total_paise)}</span>
       <span><BookingStatusPill status={b.status} /></span>
-      <span className="text-right text-[12.5px] font-bold text-primary">Open</span>
+      <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">Open</span>
     </GridRow>
   )
 }

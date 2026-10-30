@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
 import { RejectReasonDialog } from '@/components/RejectReasonDialog'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -78,8 +79,8 @@ export function ShopProductsPage() {
             </div>
             <span className="truncate">{p.seller.business_name}</span>
             <span className="tabular-nums">{rupees(p.price_paise)}</span>
-            <span className={p.stock <= LOW_STOCK ? 'font-bold text-warning tabular-nums' : 'tabular-nums'}>{number.format(p.stock)}</span>
-            <span className="tabular-nums">{number.format(p.sold)}</span>
+            <span className={p.stock <= LOW_STOCK ? 'font-bold text-warning tabular-nums' : 'tabular-nums'}><CellLabel>Stock</CellLabel>{number.format(p.stock)}</span>
+            <span className="tabular-nums"><CellLabel>Sold</CellLabel>{number.format(p.sold)}</span>
             <span>
               {p.status === 'removed'
                 ? <Badge variant="danger">Removed</Badge>

@@ -63,7 +63,7 @@ export function ReviewsPage() {
             <span className="tabular-nums">★ {r.rating}</span>
             <span className="truncate">{r.flag ? FLAGS[r.flag].label : '—'}</span>
             <span><ReviewStatusPill status={r.status} /></span>
-            <span className="text-right text-[12.5px] font-bold text-primary">{decisionsFor(r.status).length > 0 && r.status !== 'published' ? 'Moderate' : 'View'}</span>
+            <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">{decisionsFor(r.status).length > 0 && r.status !== 'published' ? 'Moderate' : 'View'}</span>
           </GridRow>
         ))}
         {list.isSuccess && rows.length > 0 && (

@@ -77,7 +77,7 @@ export interface Db {
   refreshCookie: string | null
   /** When set, /auth/refresh fails this way instead of reading the cookie. */
   refreshFailure: RefreshFailure | null
-  /** When set, /auth/refresh waits for this promise before answering (to observe the restoring state). */
+  /** When set, /auth/refresh waits for this promise before answering (to observe the restoring state; one that never settles is a silent server). */
   holdRefresh: Promise<void> | null
   /** When true, POST /auth/logout drops the connection. */
   logoutFails: boolean
@@ -233,6 +233,10 @@ function route(method: string, path: string, body: any): Response {
 const headersOf = (init: RequestInit): Record<string, string> =>
   Object.fromEntries(Object.entries((init.headers ?? {}) as Record<string, string>).map(([k, v]) => [k.toLowerCase(), v]))
 
+/** A browser drops an in-flight fetch the moment its signal aborts; the fake must too, or timeouts look like success. */
+const aborted = (signal: AbortSignal): Promise<never> =>
+  new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+
 /** Fresh fake data, and a fetch stub that routes every request to it. Call from beforeEach. */
 export function installFakeBackend(): void {
   db = {
@@ -241,21 +245,25 @@ export function installFakeBackend(): void {
   }
   calls = []
   requests = []
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit = {}) => {
+  vi.stubGlobal('fetch', vi.fn((url: string, init: RequestInit = {}) => {
     const path = url.slice(API_URL.length)
     const method = init.method ?? 'GET'
     const body = init.body ? JSON.parse(String(init.body)) : undefined
     const req: FakeRequest = { method, path, body, headers: headersOf(init), credentials: init.credentials }
     calls.push({ method, path, body })
     requests.push(req)
-    if (path === '/auth/refresh') {
-      if (db.holdRefresh) await db.holdRefresh
-      if (db.refreshFailure === 'network') throw new TypeError('Failed to fetch')
+    const handle = async (): Promise<Response> => {
+      if (path === '/auth/refresh') {
+        if (db.holdRefresh) await db.holdRefresh
+        if (db.refreshFailure === 'network') throw new TypeError('Failed to fetch')
+      }
+      if (path === '/auth/logout' && db.logoutFails) throw new TypeError('Failed to fetch')
+      const override = db.overrides[path]
+      if (override) return override()
+      if (db.accessRevoked && !path.startsWith('/auth/')) return json(401, AUTH_ERROR)
+      return authRoute(req) ?? route(method, path, body)
     }
-    if (path === '/auth/logout' && db.logoutFails) throw new TypeError('Failed to fetch')
-    const override = db.overrides[path]
-    if (override) return override()
-    if (db.accessRevoked && !path.startsWith('/auth/')) return json(401, AUTH_ERROR)
-    return authRoute(req) ?? route(method, path, body)
+    // The race starts before any waiting, so a signal aborted during a hold drops the request too.
+    return init.signal ? Promise.race([handle(), aborted(init.signal)]) : handle()
   }))
 }

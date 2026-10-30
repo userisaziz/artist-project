@@ -1,3 +1,4 @@
+import { CellLabel } from '@/components/console/cell-label'
 import { GridRow } from '@/components/console/grid-row'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,8 +29,8 @@ export function EnquiryRow({ enquiry: e, columns, busy, onAllow, onHide }: Enqui
         <div className="truncate font-bold">“{e.text}”</div>
         <div className="truncate text-[11.5px] text-muted-foreground">From {from} · {dateTime(e.created_at)}</div>
       </div>
-      <span className="truncate">{e.customer.name}</span>
-      <span className="truncate">{e.artist.name}</span>
+      <span className="truncate"><CellLabel>Customer</CellLabel>{e.customer.name}</span>
+      <span className="truncate"><CellLabel>Artist</CellLabel>{e.artist.name}</span>
       <span className="truncate">{flagLabel(e.flag)}</span>
       <span><Badge variant={STATUS[e.status].tone}>{STATUS[e.status].label}</Badge></span>
       <div className="flex justify-end gap-2">

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -77,8 +78,8 @@ export function FeedModerationPage() {
               </div>
             </div>
             <span className="capitalize">{p.kind === 'article' ? 'Article' : 'Photos'}</span>
-            <span className="tabular-nums">{number.format(p.like_count)}</span>
-            <span className="tabular-nums">{p.report_count}</span>
+            <span className="tabular-nums"><CellLabel>Likes</CellLabel>{number.format(p.like_count)}</span>
+            <span className="tabular-nums"><CellLabel>Reports</CellLabel>{p.report_count}</span>
             <span><PostStatusPill post={p} /></span>
             <span className="flex flex-wrap justify-end gap-1">
               {p.moderation === 'live' && (

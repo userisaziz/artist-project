@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { Plus } from 'lucide-react'
 import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -12,6 +13,7 @@ import { Panel } from '@/components/console/panel'
 import { PanelFooter } from '@/components/console/panel-footer'
 import { PanelToolbar } from '@/components/console/panel-toolbar'
 import { Button } from '@/components/ui/button'
+import { useRevealWhenStacked } from '@/lib/use-reveal-when-stacked'
 import { NewTicketDialog } from './NewTicketDialog'
 import { TicketPanel } from './TicketPanel'
 import { TicketStatusPill } from './TicketStatusPill'
@@ -31,6 +33,7 @@ export function SupportPage() {
   const raw = params.get('view')
   const view = isView(raw) ? raw : 'open'
   const selected = params.get('ticket')
+  const paneRef = useRevealWhenStacked<HTMLDivElement>(selected)
   const queue = useQueue(view)
   const summary = useSupportSummary().data
   const [creating, setCreating] = useState(false)
@@ -81,7 +84,7 @@ export function SupportPage() {
             </PanelFooter>
           )}
         </Panel>
-        {selected && <TicketPanel ticketId={selected} onClose={() => set('ticket', null)} />}
+        {selected && <div ref={paneRef} className="scroll-mt-4"><TicketPanel ticketId={selected} onClose={() => set('ticket', null)} /></div>}
       </div>
       <NewTicketDialog open={creating} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); set('ticket', id) }} />
     </>
@@ -100,9 +103,9 @@ function TicketRow({ ticket: t, now, selected, onOpen }: { ticket: Ticket; now: 
       </div>
       <span className="truncate">{t.subject}</span>
       <span className="capitalize">{t.channel}</span>
-      <span className="tabular-nums">{waitingFor(t.waiting_since, now)}</span>
+      <span className="tabular-nums"><CellLabel>Waiting</CellLabel>{waitingFor(t.waiting_since, now)}</span>
       <span><TicketStatusPill ticket={t} /></span>
-      <span className="text-right text-[12.5px] font-bold text-primary">{t.status === 'resolved' ? 'View' : 'Reply'}</span>
+      <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">{t.status === 'resolved' ? 'View' : 'Reply'}</span>
     </GridRow>
   )
 }

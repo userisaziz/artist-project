@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridRow } from '@/components/console/grid-row'
 import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Badge } from '@/components/ui/badge'
@@ -50,8 +51,8 @@ export function CategoryRow({ category: c, columns, meta, expanded, selected = f
           )}
         </div>
       </div>
-      <span className="tabular-nums">{isCategory ? number.format(c.artist_count) : '—'}</span>
-      <span className="tabular-nums">{number.format(c.service_count)}</span>
+      <span className="tabular-nums"><CellLabel>Artists</CellLabel>{isCategory ? number.format(c.artist_count) : '—'}</span>
+      <span className="tabular-nums"><CellLabel>Services</CellLabel>{number.format(c.service_count)}</span>
       <span><Badge variant={STATUS_TONE[c.status]}>{STATUS_LABEL[c.status]}</Badge></span>
       {actions}
     </GridRow>

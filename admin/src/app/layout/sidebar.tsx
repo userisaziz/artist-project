@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router'
-import { LogOut } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useDirectorySummary, usePendingCount } from '@/features/artists/queries'
 import { useCustomServicePendingCount } from '@/features/custom-services/queries'
 import { useEnquirySummary } from '@/features/enquiries/queries'
@@ -17,8 +19,33 @@ import { preloadPage } from '@/app/page-chunks'
 const number = new Intl.NumberFormat('en-IN')
 const display = (v: string | number) => (typeof v === 'number' ? number.format(v) : v)
 
-/** The design's white "<brand> admin" rail: plain text items, live counts, the signed-in admin at the foot. */
+/** The design's white "<brand> admin" rail, shown beside the page from laptop width up. */
 export function Sidebar() {
+  return (
+    <aside className="hidden h-full w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground lg:flex">
+      <SidebarContent />
+    </aside>
+  )
+}
+
+/** Below laptop width the rail lives in a drawer, opened from the top bar's menu button; picking a page closes it. */
+export function MobileNav() {
+  const [open, setOpen] = useState(false)
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" title="Open navigation" />}>
+        <Menu />
+      </SheetTrigger>
+      <SheetContent side="left" className="w-[264px] gap-0 bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
+        <SheetTitle className="sr-only">Navigation</SheetTitle>
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+/** Plain text items, live counts, the signed-in admin at the foot. */
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, signOut } = useAuth()
   // The queue hooks report "99+" past one page; null or 0 hides the count.
   const counts: Record<NavCount, string | number | null | undefined> = {
@@ -35,7 +62,7 @@ export function Sidebar() {
   const initials = name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')
 
   return (
-    <aside className="flex h-full w-[232px] shrink-0 flex-col border-r border-line bg-sidebar px-3.5 pt-[22px] pb-0 text-sidebar-foreground">
+    <>
       <Logo size="md" suffix="admin" className="px-2" />
       <nav aria-label="Primary" className="mt-6 flex flex-col gap-0.5 overflow-y-auto overscroll-contain text-[13.5px] [scrollbar-color:transparent_transparent] hover:[scrollbar-color:var(--line)_transparent] focus-within:[scrollbar-color:var(--line)_transparent]">
         {NAV_ITEMS.map(({ to, label, count: key, pill }) => {
@@ -46,6 +73,7 @@ export function Sidebar() {
               to={to}
               onPointerEnter={() => preloadPage(to)}
               onFocus={() => preloadPage(to)}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   // The active item's rose tick grows in; colours ease and a press dips the item slightly.
@@ -76,6 +104,6 @@ export function Sidebar() {
         </div>
         <Button variant="ghost" size="icon-sm" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut /></Button>
       </div>
-    </aside>
+    </>
   )
 }

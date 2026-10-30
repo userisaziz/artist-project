@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./.cache/web-pkg/dist/types",
+    "rootDir": "..",
+    "tsBuildInfoFile": "./.cache/tsbuildinfo-dts"
+  },
+  "include": ["./web-entry.ts"]
+}

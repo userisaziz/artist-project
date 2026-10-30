@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router'
 import { Accent } from '@/components/accent'
 import { FilterChips } from '@/components/FilterChips'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -85,9 +86,9 @@ function QueueRow({ artist: a }: { artist: ArtistSummary }) {
           </Badge>
         ))}
       </div>
-      <span className="text-muted-foreground">{dateTime(a.submitted_at)}</span>
+      <span className="text-muted-foreground"><CellLabel>Submitted</CellLabel>{dateTime(a.submitted_at)}</span>
       <span><Badge variant={status.tone}>{status.label}</Badge></span>
-      <span className="text-right text-[12.5px] font-bold text-primary">Review</span>
+      <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">Review</span>
     </GridRow>
   )
 }

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { Download, Search } from 'lucide-react'
 import { FilterChips, type Chip } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
+import { CellLabel } from '@/components/console/cell-label'
 import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
@@ -130,11 +131,11 @@ function CustomerGridRow({ customer: c }: { customer: CustomerRow }) {
         </div>
       </div>
       <span className="truncate">{c.city ?? '—'}</span>
-      <span className="tabular-nums">{number.format(c.bookings)}</span>
-      <span className="truncate">{dateTime(c.last_booking_at)}</span>
-      <span className="truncate">{dateTime(c.joined_at)}</span>
+      <span className="tabular-nums"><CellLabel>Bookings</CellLabel>{number.format(c.bookings)}</span>
+      <span className="truncate"><CellLabel>Last booked</CellLabel>{dateTime(c.last_booking_at)}</span>
+      <span className="truncate max-md:hidden">{dateTime(c.joined_at)}</span>
       <span><CustomerStatusPill status={c.status} /></span>
-      <span className="text-right text-[12.5px] font-bold text-primary">View</span>
+      <span className="text-right text-[12.5px] font-bold text-primary max-md:hidden">View</span>
     </GridRow>
   )
 }
