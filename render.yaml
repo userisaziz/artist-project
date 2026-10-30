@@ -20,7 +20,10 @@ services:
       - key: ENVIRONMENT
         value: staging
       - key: DATABASE_URL
-        sync: false # postgresql+asyncpg://USER:PASSWORD@HOST/DB?ssl=require (Neon direct endpoint, not the pooler)
+        sync: false # postgresql+asyncpg://USER:PASSWORD@HOST/DB[?ssl=require]
+        # The pooler host (-pooler.c-6...) is what staging runs on and boots fine, verified
+        # 2026-10-30. Strip Neon's libpq params: sslmode/channel_binding make asyncpg raise
+        # TypeError before uvicorn binds, so the service hangs with no HTTP response at all.
       - key: JWT_SECRET
         generateValue: true
       - key: AADHAAR_ENCRYPTION_KEY
