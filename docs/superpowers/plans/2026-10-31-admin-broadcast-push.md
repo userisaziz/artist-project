@@ -529,7 +529,7 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
     if counts["recipients"] == 0:
         return None
     title, text, link = body.title[:TITLE_MAX], body.body[:BODY_MAX], body.link
-    audience = recipient_query(body.segment, body.filters).scalar_subquery()
+    audience = recipient_query(body.segment, body.filters).subquery()
     broadcast = NotificationBroadcast(
         title=title,
         body=text,
@@ -546,7 +546,7 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
         insert(Notification).from_select(
             columns,
             select(
-                audience,
+                audience.c.id,
                 literal(ANNOUNCEMENT, String),
                 literal(title, String),
                 literal(text, String),
@@ -554,7 +554,9 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
             ),
         )
     )
-    tokens = (await session.scalars(select(PushDevice.token).where(PushDevice.user_id.in_(audience)))).all()
+    tokens = (
+        await session.scalars(select(PushDevice.token).where(PushDevice.user_id.in_(select(audience.c.id))))
+    ).all()
     if tokens:
         pending = session.sync_session.info.setdefault(PENDING_PUSH, [])
         pending.extend(
@@ -630,13 +632,12 @@ async def test_preview_matches_send_and_records_history(client, engine):
 async def test_customers_cannot_touch_broadcasts(client, engine):
     customer = await sign_in(client, "+919845080001", role="customer")
 
-    for method, path, payload in (
-        ("post", f"{ADMIN}/preview", {"segment": "all_users"}),
-        ("post", ADMIN, {"segment": "all_users", "title": "Hi", "body": "There"}),
-        ("get", ADMIN, None),
-    ):
-        response = await getattr(client, method)(path, headers=customer, json=payload)
-        assert response.status_code == 403, path
+    preview = await client.post(f"{ADMIN}/preview", headers=customer, json={"segment": "all_users"})
+    sent = await client.post(ADMIN, headers=customer, json={"segment": "all_users", "title": "Hi", "body": "There"})
+    history = await client.get(ADMIN, headers=customer)
+
+    for response in (preview, sent, history):
+        assert response.status_code == 403
         assert response.json()["code"] == "forbidden"
 
 
@@ -719,7 +720,6 @@ from app.core.exceptions import ValidationError
 from app.notification import broadcast
 from app.notification.schemas import (
     BroadcastIn,
-    BroadcastOut,
     BroadcastPage,
     BroadcastPreviewIn,
     BroadcastPreviewOut,

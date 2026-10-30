@@ -22,6 +22,7 @@ from app.feed import admin_router as feed_admin
 from app.feed import artist_router as artist_feed
 from app.feed import follower_router as feed_followers
 from app.feed import router as feed
+from app.notification import admin_router as notification_admin
 from app.notification import router as notifications
 from app.platform import admin_router as platform_admin
 from app.quote import artist_router as artist_quotes
@@ -73,6 +74,7 @@ api_router.include_router(support.router)
 api_router.include_router(support_admin.router)
 api_router.include_router(report_admin.router)
 api_router.include_router(platform_admin.router)
+api_router.include_router(notification_admin.router)
 api_router.include_router(feed_admin.router)
 api_router.include_router(chat_admin.router)
 api_router.include_router(subcategory_request_admin.router)

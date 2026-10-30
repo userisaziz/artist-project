@@ -101,3 +101,78 @@ async def test_artist_only_filters_narrow_the_segment_to_artists(client, engine)
         # city silently narrows all_users to the artist holding it
         assert await audience_size(session, "all_users", city="Bangalore") == 1
         assert await audience_size(session, "all_customers", city="Bangalore") == 0
+
+
+ADMIN = "/api/v1/admin/broadcasts"
+
+
+async def test_preview_matches_send_and_records_history(client, engine):
+    admin = await admin_headers(client, engine)
+    await sign_in(client, "+919845070001")  # artist
+    customer = await sign_in(client, "+919845080001", role="customer")
+    await client.post(
+        "/api/v1/notifications/devices", headers=customer, json={"token": "ExponentPushToken[cust]", "platform": "ios"}
+    )
+
+    preview = await client.post(f"{ADMIN}/preview", headers=admin, json={"segment": "all_users", "filters": {}})
+    sent = await client.post(
+        ADMIN, headers=admin, json={"segment": "all_users", "filters": {}, "title": "Hello", "body": "We are live."}
+    )
+
+    assert preview.status_code == 200, preview.text
+    assert preview.json() == {"recipients": 2, "with_push": 1}
+    assert sent.status_code == 201, sent.text
+    assert (sent.json()["recipients"], sent.json()["with_push"]) == (2, 1)
+
+    async with engine.begin() as conn:
+        inbox_rows = (await conn.execute(sa.text("SELECT kind, title, link FROM notification"))).all()
+        broadcast_row = (
+            await conn.execute(sa.text("SELECT segment, recipient_count, push_count FROM notification_broadcast"))
+        ).one()
+    assert set(inbox_rows) == {("announcement", "Hello", None)}
+    assert len(inbox_rows) == 2  # one per recipient, none for the admin
+    assert broadcast_row == ("all_users", 2, 1)
+    assert [m["to"] for m in ConsolePushProvider.sent] == ["ExponentPushToken[cust]"]
+    assert ConsolePushProvider.sent[0]["data"] == {"kind": "announcement", "link": None}
+
+
+async def test_customers_cannot_touch_broadcasts(client, engine):
+    customer = await sign_in(client, "+919845080001", role="customer")
+
+    preview = await client.post(f"{ADMIN}/preview", headers=customer, json={"segment": "all_users"})
+    sent = await client.post(ADMIN, headers=customer, json={"segment": "all_users", "title": "Hi", "body": "There"})
+    history = await client.get(ADMIN, headers=customer)
+
+    for response in (preview, sent, history):
+        assert response.status_code == 403
+        assert response.json()["code"] == "forbidden"
+
+
+async def test_sending_to_an_empty_audience_is_rejected(client, engine):
+    admin = await admin_headers(client, engine)
+
+    response = await client.post(
+        ADMIN,
+        headers=admin,
+        json={"segment": "all_customers", "filters": {"city": "Surat"}, "title": "Hello", "body": "Nobody"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "validation_error"
+
+
+async def test_history_is_newest_first_with_cursor_pages(client, engine):
+    admin = await admin_headers(client, engine)
+    await sign_in(client, "+919845070001")
+    for i in (1, 2, 3):
+        await client.post(
+            ADMIN, headers=admin, json={"segment": "all_artists", "filters": {}, "title": f"Note {i}", "body": "Body"}
+        )
+
+    first = (await client.get(f"{ADMIN}?limit=2", headers=admin)).json()
+    second = (await client.get(f"{ADMIN}?limit=2&cursor={first['next_cursor']}", headers=admin)).json()
+
+    assert [b["title"] for b in first["items"]] == ["Note 3", "Note 2"]
+    assert [b["title"] for b in second["items"]] == ["Note 1"]
+    assert second["next_cursor"] is None
+    assert (first["items"][0]["recipient_count"], first["items"][0]["push_count"]) == (1, 0)

@@ -13,6 +13,7 @@ from app.catalog.models import Category
 from app.notification.constants import ANNOUNCEMENT, BODY_MAX, PENDING_PUSH, TITLE_MAX
 from app.notification.models import Notification, NotificationBroadcast, PushDevice
 from app.shared.enums import ArtistStatus, UserRole
+from app.shared.pagination import keyset, split_page
 from app.user.models import User, UserRoleGrant
 
 if TYPE_CHECKING:
@@ -97,7 +98,7 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
     if counts["recipients"] == 0:
         return None
     title, text, link = body.title[:TITLE_MAX], body.body[:BODY_MAX], body.link
-    audience = recipient_query(body.segment, body.filters).scalar_subquery()
+    audience = recipient_query(body.segment, body.filters).subquery()
     broadcast = NotificationBroadcast(
         title=title,
         body=text,
@@ -114,7 +115,7 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
         insert(Notification).from_select(
             columns,
             select(
-                audience,
+                audience.c.id,
                 literal(ANNOUNCEMENT, String),
                 literal(title, String),
                 literal(text, String),
@@ -122,7 +123,9 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
             ),
         )
     )
-    tokens = (await session.scalars(select(PushDevice.token).where(PushDevice.user_id.in_(audience)))).all()
+    tokens = (
+        await session.scalars(select(PushDevice.token).where(PushDevice.user_id.in_(select(audience.c.id))))
+    ).all()
     if tokens:
         pending = session.sync_session.info.setdefault(PENDING_PUSH, [])
         pending.extend(
@@ -130,3 +133,30 @@ async def send(session: AsyncSession, me: User, body: "BroadcastIn") -> dict[str
         )
     await session.flush()  # eager_defaults: the generated id comes back via RETURNING
     return {"id": broadcast.id, **counts}
+
+
+def out(b: NotificationBroadcast) -> dict[str, Any]:
+    return {
+        "id": b.id,
+        "title": b.title,
+        "body": b.body,
+        "link": b.link,
+        "segment": b.segment,
+        "filters": b.filters,
+        "recipient_count": b.recipient_count,
+        "push_count": b.push_count,
+        "created_at": b.created_at,
+    }
+
+
+async def history(session: AsyncSession, limit: int, cursor: str | None) -> tuple[list[dict[str, Any]], str | None]:
+    query = keyset(
+        select(NotificationBroadcast),
+        NotificationBroadcast.created_at,
+        NotificationBroadcast.id,
+        descending=True,
+        cursor=cursor,
+    )
+    rows = list((await session.scalars(query.limit(limit + 1))).all())
+    page, next_cursor = split_page(rows, limit, lambda b: (b.created_at, b.id))
+    return [out(b) for b in page], next_cursor
