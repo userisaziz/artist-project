@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Easing, FadeIn, FadeInDown, useReducedMotion as useReanimatedReducedMotion } from 'react-native-reanimated';
 import { motionDurations, motionEasing, motionSprings, motionStagger } from '../theme/tokens/motion';
 
@@ -7,7 +7,7 @@ import { motionDurations, motionEasing, motionSprings, motionStagger } from '../
 
 export const useReducedMotion = useReanimatedReducedMotion;
 
-const bezier = (points: readonly number[]) => Easing.bezier(points[0], points[1], points[2], points[3]);
+const bezier = ([x1, y1, x2, y2]: readonly [number, number, number, number]) => Easing.bezier(x1, y1, x2, y2);
 
 /** Timed moves: entrances and on-screen changes use the signature decelerate curve, exits accelerate out. */
 export const timings = {
@@ -28,7 +28,8 @@ export function fadeRise(delayMs: number, reduced: boolean) {
   return FadeInDown.duration(motionDurations.enter).easing(bezier(motionEasing.standard)).delay(delayMs);
 }
 
-/** Micro-cascade: index × step, capped at maxItems so the total stays inside the 500ms budget. */
+/** Micro-cascade: index × step, capped at maxItems so the total stays inside the 500ms budget —
+ *  beyond the cap, rows enter immediately (delay 0) rather than clamping to the last slot. */
 export function staggerDelay(index: number): number {
   return index < motionStagger.maxItems ? index * motionStagger.stepMs : 0;
 }
@@ -36,13 +37,15 @@ export function staggerDelay(index: number): number {
 /** How long the first-batch entrance window stays open: enter + full stagger, with headroom. */
 export const ENTRANCE_WINDOW_MS = motionDurations.enter + motionStagger.maxItems * motionStagger.stepMs + 150;
 
-/** True only while the list's first batch may animate. The first render with items opens a one-shot
- *  window; once it closes, rows mounted later (pagination, scroll-back recycling) render instantly
- *  instead of replaying the entrance mid-scroll. */
+/** True only while the list's first batch may animate. The first items open a one-shot window;
+ *  once it closes it stays closed for the lifetime of the list, so rows mounted later (pagination,
+ *  scroll-back recycling, refetches) render instantly instead of replaying the entrance mid-scroll. */
 export function useEntranceWindow(hasItems: boolean): boolean {
   const [armed, setArmed] = useState(true);
+  const openedRef = useRef(false);
   useEffect(() => {
-    if (!hasItems) return;
+    if (!hasItems || openedRef.current) return;
+    openedRef.current = true;
     const timer = setTimeout(() => setArmed(false), ENTRANCE_WINDOW_MS);
     return () => clearTimeout(timer);
   }, [hasItems]);

@@ -49,11 +49,36 @@ describe('useEntranceWindow', () => {
     });
     expect(result.current).toBe(false);
   });
+
+  it('stays closed when the list empties and repopulates, so refetches never replay', async () => {
+    const { result, rerender } = await renderHook(({ hasItems }: { hasItems: boolean }) => useEntranceWindow(hasItems), {
+      initialProps: { hasItems: true },
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(ENTRANCE_WINDOW_MS);
+    });
+    expect(result.current).toBe(false);
+    await act(async () => {
+      rerender({ hasItems: false });
+    });
+    await act(async () => {
+      rerender({ hasItems: true });
+    });
+    expect(result.current).toBe(false);
+  });
 });
 
 describe('fadeRise', () => {
-  it('returns an entrance for both the full and reduced-motion variants', () => {
-    expect(fadeRise(36, false)).toBeTruthy();
-    expect(fadeRise(36, true)).toBeTruthy();
+  it('full variant: enter duration with the stagger delay applied', () => {
+    const full = fadeRise(36, false) as { durationV?: number; delayV?: number };
+    expect(full.durationV).toBe(320); // motionDurations.enter
+    expect(full.delayV).toBe(36);
+  });
+
+  it('reduced variant: quick plain fade with no travel and no delay', () => {
+    const reduced = fadeRise(36, true) as { durationV?: number; delayV?: number; constructor: { name: string } };
+    expect(reduced.durationV).toBe(120); // motionDurations.quick
+    expect(reduced.delayV).toBeUndefined();
+    expect(reduced.constructor.name).toBe('FadeIn'); // not FadeInDown → no 12px travel
   });
 });
