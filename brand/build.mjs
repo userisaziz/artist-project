@@ -44,6 +44,15 @@ ${Object.entries(t.shadow).map(([k, s]) =>
 } as const;
 `;
 const mobileBrand = `${HEADER}export const brand = { name: ${val(brand.name)}, wordmark: ${val(brand.logo.wordmark)} } as const;\n`;
+const nativeMotion = t.motion.native;
+const motion = `${HEADER}export const motionDurations = ${JSON.stringify(nativeMotion.durations)} as const;
+
+export const motionEasing = ${JSON.stringify(nativeMotion.easing)} as const;
+
+export const motionSprings = ${JSON.stringify(nativeMotion.springs)} as const;
+
+export const motionStagger = ${JSON.stringify(nativeMotion.stagger)} as const;
+`;
 
 // ---- admin ----
 const px = (v) => `${v}px`;
@@ -84,6 +93,7 @@ const outputs = {
   'mobile/src/core/theme/tokens/spacing.ts': spacing,
   'mobile/src/core/theme/tokens/radii.ts': radii,
   'mobile/src/core/theme/tokens/shadows.ts': shadows,
+  'mobile/src/core/theme/tokens/motion.ts': motion,
   'mobile/src/core/brand/brand.ts': mobileBrand,
   [appJsonPath]: JSON.stringify(appJson, null, 2) + '\n',
   'admin/src/brand.css': brandCss,
