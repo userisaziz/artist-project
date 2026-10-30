@@ -160,6 +160,11 @@ def seed_images() -> int:
     paths = sorted(p for p in ASSETS_DIR.rglob("*") if p.suffix.lower() in (".jpg", ".jpeg"))
     if not paths:
         raise RuntimeError(f"seed images: no .jpg assets under {ASSETS_DIR} — refusing to seed key-only rows")
+    for artist_row in ARTISTS:
+        avatar_key, cover_keys = _asset_keys(artist_row[3])
+        for key in [avatar_key, *cover_keys]:
+            if not (ASSETS_DIR / key).is_file():
+                raise RuntimeError(f"seed images: row key {key} has no asset under {ASSETS_DIR}")
     uploaded = skipped = 0
     for path in paths:
         key = path.relative_to(ASSETS_DIR).as_posix()
@@ -167,7 +172,7 @@ def seed_images() -> int:
             client.head_object(Bucket=s.r2_bucket, Key=key)
             skipped += 1
         except ClientError as exc:
-            if exc.response["Error"]["Code"] not in ("404", "NoSuchKey"):
+            if exc.response["Error"]["Code"] not in ("404", "NoSuchKey", "NotFound"):
                 print(f"seed images: head_object({key}) failed: {exc}")
                 raise
             client.put_object(Bucket=s.r2_bucket, Key=key, Body=path.read_bytes(), ContentType="image/jpeg")
@@ -372,9 +377,9 @@ async def seed_addresses(session, by_phone) -> None:
 
 
 def _now():
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def main() -> None:
