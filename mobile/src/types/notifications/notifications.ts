@@ -13,7 +13,9 @@ export type NotificationKind =
   | 'support_reply'
   | 'requirement_due'
   | 'requirement_on_hold'
-  | 'requirement_reminder';
+  | 'requirement_reminder'
+  // admin broadcasts (push announcements from the console)
+  | 'announcement';
 
 export interface AppNotification {
   id: string;
