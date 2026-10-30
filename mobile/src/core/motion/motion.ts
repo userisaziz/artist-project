@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Easing, FadeIn, FadeInDown, useReducedMotion as useReanimatedReducedMotion } from 'react-native-reanimated';
 import { motionDurations, motionEasing, motionSprings, motionStagger } from '../theme/tokens/motion';
 
@@ -42,10 +42,8 @@ export const ENTRANCE_WINDOW_MS = motionDurations.enter + motionStagger.maxItems
  *  scroll-back recycling, refetches) render instantly instead of replaying the entrance mid-scroll. */
 export function useEntranceWindow(hasItems: boolean): boolean {
   const [armed, setArmed] = useState(true);
-  const openedRef = useRef(false);
   useEffect(() => {
-    if (!hasItems || openedRef.current) return;
-    openedRef.current = true;
+    if (!hasItems) return;
     const timer = setTimeout(() => setArmed(false), ENTRANCE_WINDOW_MS);
     return () => clearTimeout(timer);
   }, [hasItems]);

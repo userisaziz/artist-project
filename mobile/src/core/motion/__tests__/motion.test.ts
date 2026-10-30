@@ -66,6 +66,22 @@ describe('useEntranceWindow', () => {
     });
     expect(result.current).toBe(false);
   });
+
+  it('still closes when the list empties and repopulates mid-window', async () => {
+    const { result, rerender } = await renderHook(({ hasItems }: { hasItems: boolean }) => useEntranceWindow(hasItems), {
+      initialProps: { hasItems: true },
+    });
+    await act(async () => {
+      rerender({ hasItems: false });
+    });
+    await act(async () => {
+      rerender({ hasItems: true });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(ENTRANCE_WINDOW_MS);
+    });
+    expect(result.current).toBe(false);
+  });
 });
 
 describe('fadeRise', () => {
