@@ -14,7 +14,9 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('expo-image', () => ({ Image: require('react-native').View }));
 
 const wrap = () => render(<ThemeProvider><IntroScreen /></ThemeProvider>);
-const browseButton = () => screen.getByRole('button', { name: 'Browse as a customer' });
+// The escape's accessible name, not its visible copy ("Browse as customer"): the label is what assistive
+// tech and this test both read, and it stays stable when the wording is tuned.
+const browseButton = () => screen.getByRole('button', { name: 'Switch to customer view' });
 
 beforeEach(() => {
   mockPush.mockReset();

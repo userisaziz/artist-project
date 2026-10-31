@@ -9,6 +9,7 @@ import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
 import { Icon } from '../../../src/components/common/Icon';
 import { useState } from 'react';
+import { errorMessage } from '../../../src/core/api/error-message';
 
 const ARTIST_PHOTO = require('../../../assets/hero/role-artist.webp');
 const WELCOME_PHOTO = require('../../../assets/hero/welcome.webp');
@@ -22,15 +23,19 @@ export default function IntroScreen() {
   const insets = useSafeAreaInsets();
   const { signOut, chooseRole } = useAuth();
   const [switching, setSwitching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const tile = { borderRadius: 22, backgroundColor: theme.colors.imageFallback } as const;
 
   const switchToCustomer = async () => {
     if (switching) return;
     setSwitching(true);
+    setError(null);
     try {
       await chooseRole('customer');
     } catch (e) {
+      // The escape is the only way out of the flow, so a silent failure would strand the artist here.
       setSwitching(false);
+      setError(errorMessage(e));
     }
   };
   return (
@@ -76,6 +81,7 @@ export default function IntroScreen() {
           {switching ? 'Switching…' : 'Browse as customer'}
         </AppText>
       </PressableFeedback>
+      {error ? <AppText variant="caption" style={{ textAlign: 'center', color: theme.colors.error, marginTop: theme.spacing.sm }}>{error}</AppText> : null}
     </View>
   );
 }
