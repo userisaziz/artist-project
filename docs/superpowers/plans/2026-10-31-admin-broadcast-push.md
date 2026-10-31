@@ -1403,5 +1403,11 @@ Expected: clean.
 
 Run: `./dev.sh`, sign in as an admin in the console, open **Broadcasts**, send "Hello" to **Everyone**, then check the mobile inbox (or `ConsolePushProvider` logs with `PUSH_PROVIDER=console`) shows the announcement.
 
+**As built:** the full backend suite failed three push assertions because `backend/.env` sets
+`PUSH_PROVIDER=expo`, so `get_push_provider()` built `ExpoPushProvider` and never recorded into
+`ConsolePushProvider.sent`. The test harness pins every other provider but push; it now also sets
+`os.environ["PUSH_PROVIDER"] = "console"` in `backend/tests/conftest.py`. Result: 973 passed,
+admin 103 passed, ruff and the frontend gates clean.
+
 
 

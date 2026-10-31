@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Accent } from '@/components/accent'
 import { GridMessage } from '@/components/console/grid-message'
 import { Panel } from '@/components/console/panel'
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useCategories } from '@/features/categories/queries'
 import { dateTime } from '@/lib/format'
+import { toastError } from '@/lib/notify'
 import { useBroadcastPreview, useBroadcasts, useCities, useSendBroadcast } from './queries'
 import type { AdminBroadcast, BroadcastFilters, BroadcastSegment } from './types'
 
@@ -216,7 +218,19 @@ export function BroadcastsPage() {
               size="sm"
               disabled={send.isPending}
               onClick={() => {
-                send.mutate({ segment, filters, title: title.trim(), body: message.trim(), link: link.trim() || null })
+                // Send the audience the admin actually saw counted, never a filter edit the preview hasn't caught up with.
+                send.mutate(
+                  { segment: settled.segment, filters: settled.filters, title: title.trim(), body: message.trim(), link: link.trim() || null },
+                  {
+                    onSuccess: (sent) => {
+                      toast.success(`Sent to ${sent.recipients} ${sent.recipients === 1 ? 'person' : 'people'}`)
+                      setTitle('')
+                      setMessage('')
+                      setLink('')
+                    },
+                    onError: (error) => toastError(error, 'Could not send the broadcast'),
+                  },
+                )
                 setConfirming(false)
               }}
             >

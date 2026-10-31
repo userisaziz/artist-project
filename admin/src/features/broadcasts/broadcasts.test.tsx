@@ -42,6 +42,10 @@ it('previews the audience, confirms, and sends', async () => {
       body: expect.objectContaining({ segment: 'all_users', title: 'Festive slots open', body: 'Book early for November.' }),
     }),
   )
+  // The admin hears what happened, and the composer is empty for the next announcement.
+  expect(await screen.findByText('Sent to 2 people')).toBeInTheDocument()
+  expect(screen.getByLabelText('Title')).toHaveValue('')
+  expect(screen.getByLabelText('Message')).toHaveValue('')
 })
 
 it('refuses to send to an empty audience', async () => {
