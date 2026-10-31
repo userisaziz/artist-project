@@ -14,8 +14,8 @@ One capability, one kit. Statuses:
 | Native screen stack | `react-native-screens`, `react-native-safe-area-context` | installed | Back expo-router; single copy each |
 | Server cache | `@tanstack/react-query` v5 | installed | Only server-state layer; declarations in `src/api/<feature>` |
 | HTTP client | `fetch` in `src/core/api/real-transport.ts` | wrapper | One preconfigured client; no axios / apisauce |
-| Transport types | `zod` | **candidate** | Rules §11 already names zod as the single validation layer — absent today |
-| Forms | `react-hook-form` + `@hookform/resolvers` | **candidate** | Rules §7 mandates it; screens hand-roll validation now |
+| Transport types | `zod` v4 | installed | Single validation layer (rules §11): every form's rules are a schema in `src/utils/<feature>/*-draft.ts`, money parsed to paise inside it |
+| Forms | `react-hook-form` v7 + `@hookform/resolvers` v6 | installed | Submit-driven forms: `useForm` + `zodResolver`, fields bound through `common/FormField.tsx`. Live-gated forms read the same schema with `firstIssue()` (rules §7). No per-form second set of checks |
 | Client state | `Context` (`src/context/<feature>`) | wrapper | Session, theme, wizard only |
 | Extra client state | `zustand` | candidate | Only if a store is genuinely needed; never for server data |
 | Secrets storage | `expo-secure-store` | installed | Tokens, never AsyncStorage |
@@ -30,15 +30,16 @@ One capability, one kit. Statuses:
 | Lists | `FlatList` | built-in | Current default everywhere |
 | Long/virtualised lists | `@shopify/flash-list` | installed | 2.0.2 on the 15 paginated catalogs; short/static lists + `ChatThread` (no `inverted` in v2) stay on `FlatList`; broken shipped `jestSetup` — mock lives in `jest-setup.ts` |
 | Sheets | `BottomSheet.tsx` (`Modal` + Reanimated) | wrapper | `@gorhom/bottom-sheet` and `@expo/ui` are rivals — evaluate as a migration, never beside the wrapper |
+| Keyboard | `KeyboardAvoider.tsx` | wrapper | One wrapper owns the platform-branched `behavior` for all form screens; ESLint bans raw `KeyboardAvoidingView` outside it. `react-native-keyboard-controller` stays the equaliser if we outgrow it |
 | Toasts | `react-native-flash-message` | candidate | Pure JS, OTA-safe; `burnt` is the native alternative |
 | Menus | `MenuRow.tsx`, `ChoiceSheet.tsx` | wrapper | No `zeego` / `popup-menu` |
 | OTP input | `OtpInput.tsx` | wrapper | Keeps autofill + token styling; `confirmation-code-field` not needed |
 | Date/time picker | `react-native-date-picker` | candidate | Native controls on both platforms; needed for schedules and DOB |
 | Carousel | `react-native-reanimated-carousel` | candidate | Needs Reanimated 4 pairing (present) |
-| Animation | `react-native-reanimated` 4 + `react-native-worklets` | installed | UI-thread motion via `src/core/motion` + shared primitives only; see `expo-animation` skill |
-| Legacy animation | `Animated` API | built-in | 7 files still use it (incl. `BottomSheet.tsx`); new motion goes through `src/core/motion`, no big-bang rewrite |
+| Animation | `react-native-reanimated` 4 + `react-native-worklets` | installed | UI-thread motion via `src/core/motion` + shared primitives only (`MotionEntrance`, `Crossfade`, `PressableFeedback`, `Skeleton`, `AppButton`, `BottomSheet`, `OtpInput`); see `expo-animation` skill |
+| Legacy animation | `Animated` API | retired | No file imports it — the last three (`BottomSheet`, `OtpInput`, `HomeHero`) moved to Reanimated 4. Do not reintroduce: a new animation starts from `src/core/motion` |
 | Gestures | `react-native-gesture-handler` | candidate | Prerequisite for drag sheets and most gesture work; single copy |
-| Haptics | `expo-haptics` | candidate | Cheap, pairs with press feedback |
+| Haptics | `expo-haptics` | installed | Only through `src/core/motion/haptics.ts` — `haptic('tap' \| 'select' \| 'success' \| 'warning' \| 'error')`, fire-and-forget, silent on web and on a device that cannot buzz. Opt in per control with `PressableFeedback haptic=`. Native: changes the fingerprint, so it ships with a build, not an OTA |
 | Lottie | `lottie-react-native` | candidate | Only if designed `.lottie` assets exist |
 | SVG | `react-native-svg` | installed | Via `Icon.tsx` / `lucide-react-native` |
 | Gradients | `expo-linear-gradient` | installed | |
