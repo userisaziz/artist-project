@@ -36,9 +36,9 @@ it('dims under the finger on iOS and keeps its own style', async () => {
   expect(StyleSheet.flatten(control().props.style).padding).toBe(8);
 });
 
-it('ripples in the theme colour on Android', async () => {
+it('ripples in the theme colour on Android, across the surface it owns', async () => {
   Platform.OS = 'android';
-  await render(<PressableFeedback testID="control" onPress={jest.fn()}><Text>Row</Text></PressableFeedback>);
+  await render(<PressableFeedback testID="control" onPress={jest.fn()} style={{ backgroundColor: '#FFFFFF' }}><Text>Row</Text></PressableFeedback>);
 
   expect(control().props.nativeForegroundAndroid).toMatchObject({ type: 'RippleAndroid', color: expect.any(Number) });
   expect(lightTheme.colors.pressedOverlay).toMatch(/^#[0-9A-F]{8}$/i);
