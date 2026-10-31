@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { BackHeader } from '../common/BackHeader';
 import { ErrorView, LoadingView } from '../common/StateViews';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useMyProduct, useUpdateProduct } from '../../hooks/shop/shop';
-import { paiseToRupeesText, productFieldsProblem, rupeesToPaise } from '../../utils/shop/cart';
+import { paiseToRupeesText, rupeesToPaise } from '../../utils/shop/cart';
+import { productDraftSchema } from '../../utils/shop/product-draft';
+import { firstIssue } from '../../utils/common/validation';
 import type { Product } from '../../types/shop/shop';
 
 interface EditProductFormProps { productId: string; onDone: () => void }
@@ -43,7 +46,7 @@ function ProductFields({ product, onDone }: { product: Product; onDone: () => vo
   const [stock, setStock] = useState(String(product.stock));
   const [description, setDescription] = useState(product.description ?? '');
   const [saveError, setSaveError] = useState<string | null>(null);
-  const problem = productFieldsProblem({ name, price, mrp, stock });
+  const problem = firstIssue(productDraftSchema, { name, price, mrp, stock });
 
   /** Only what changed, so saving a price never overwrites a stock change an order made meanwhile. */
   const changes = (): Partial<Editable> => {
@@ -68,7 +71,7 @@ function ProductFields({ product, onDone }: { product: Product; onDone: () => vo
 
   const blocked = !!problem || update.isPending;
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
         <PressableFeedback accessibilityRole="button" onPress={onDone} disabled={update.isPending} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
@@ -89,6 +92,6 @@ function ProductFields({ product, onDone }: { product: Product; onDone: () => vo
         {saveError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{saveError}</AppText> : null}
         {!saveError && problem ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{problem}</AppText> : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

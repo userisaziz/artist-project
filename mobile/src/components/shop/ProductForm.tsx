@@ -1,16 +1,19 @@
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { Photo } from '../common/Photo';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { pickImages, uploadImage, type PickedImage } from '../../api/artist-onboarding/upload';
 import { useCreateProduct } from '../../hooks/shop/shop';
-import { METHOD_LABEL, productFieldsProblem, rupeesToPaise } from '../../utils/shop/cart';
+import { METHOD_LABEL, rupeesToPaise } from '../../utils/shop/cart';
+import { productDraftSchema } from '../../utils/shop/product-draft';
+import { firstIssue } from '../../utils/common/validation';
 import type { PaymentMethod, ShopCategory } from '../../types/shop/shop';
 
 const MAX_PHOTOS = 8;
@@ -45,7 +48,7 @@ export function ProductForm({ onCancel, onSaved }: { onCancel: () => void; onSav
   const stockCount = Number(stock);
   const missing =
     (!photos.length && 'Add at least one photo') ||
-    productFieldsProblem({ name, price, mrp, stock }) ||
+    firstIssue(productDraftSchema, { name, price, mrp, stock }) ||
     (methods !== null && !methods.length && 'Pick at least one way to pay');
 
   const toggleMethod = (m: PaymentMethod) =>
@@ -85,7 +88,7 @@ export function ProductForm({ onCancel, onSaved }: { onCancel: () => void; onSav
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
         <PressableFeedback accessibilityRole="button" onPress={onCancel} disabled={!!progress} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
@@ -133,6 +136,6 @@ export function ProductForm({ onCancel, onSaved }: { onCancel: () => void; onSav
         {error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{error}</AppText> : null}
         {!error && missing ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{missing}</AppText> : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

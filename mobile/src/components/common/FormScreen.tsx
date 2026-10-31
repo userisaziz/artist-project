@@ -1,8 +1,9 @@
-import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { PressableFeedback } from './PressableFeedback';
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
+import { KeyboardAvoider } from './KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 import { Icon } from './Icon';
 
@@ -17,7 +18,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
   const insets = useSafeAreaInsets();
   const gutter = theme.spacing.md + theme.spacing.xs;
   return (
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: theme.colors.canvas }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.canvas }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: gutter, paddingBottom: theme.spacing.md }}
@@ -48,7 +49,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
       {footer ? (
         <View style={{ paddingHorizontal: gutter, paddingTop: theme.spacing[2.5], paddingBottom: insets.bottom + theme.spacing[2.5], backgroundColor: theme.colors.canvas }}>{footer}</View>
       ) : null}
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }
 

@@ -63,15 +63,3 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'pending' 
   delivered: { label: 'Delivered', tone: 'confirmed' },
   cancelled: { label: 'Cancelled', tone: 'neutral' },
 };
-
-/** The first thing stopping a product's name, price, MRP and stock from being saved, or null when they are fine. */
-export function productFieldsProblem(f: { name: string; price: string; mrp: string; stock: string }): string | null {
-  const pricePaise = rupeesToPaise(f.price);
-  const mrpPaise = f.mrp.trim() ? rupeesToPaise(f.mrp) : null;
-  const stock = Number(f.stock);
-  if (f.name.trim().length < 2) return 'Add a name';
-  if (!pricePaise) return 'Add a price';
-  if (f.mrp.trim() && (!mrpPaise || mrpPaise < pricePaise)) return 'The MRP can’t be below the price';
-  if (!f.stock.trim() || !Number.isInteger(stock) || stock < 0) return 'Stock is a whole number';
-  return null;
-}

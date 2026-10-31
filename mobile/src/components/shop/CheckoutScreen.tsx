@@ -1,6 +1,6 @@
 import { AddressPicker, type AddressBook } from '../common/AddressPicker';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
@@ -8,6 +8,7 @@ import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { BackHeader } from '../common/BackHeader';
 import { EmptyView } from '../common/StateViews';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useCart } from '../../context/shop/cart-context';
@@ -59,7 +60,7 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingBottom: insets.bottom + 120, gap: 16 }}>
         <BackHeader title="Checkout" />
         {addressBook ? (
@@ -106,6 +107,6 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>
         <AppButton label={groups.length > 1 ? `Place ${groups.length} orders` : 'Place order'} loading={place.isPending} disabled={!ready} onPress={submit} />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

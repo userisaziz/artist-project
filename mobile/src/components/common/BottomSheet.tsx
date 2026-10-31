@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Modal, ScrollView, View, useWindowDimensions } from 'react-native';
 import { PressableFeedback } from './PressableFeedback';
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
+import { KeyboardAvoider } from './KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 
 const SLIDE_IN_MS = 240;
@@ -35,7 +36,7 @@ export function BottomSheet({ visible, title, onClose, children, footer }: Botto
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: theme.colors.overlay }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoider>
           <PressableFeedback feedback={false} accessibilityLabel="Close" style={{ flex: 1 }} onPress={onClose} />
           <Animated.View style={{ maxHeight: '85%', backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radii.sheet, borderTopRightRadius: theme.radii.sheet, paddingBottom: insets.bottom + theme.spacing[4], transform: [{ translateY }] }}>
             <ScrollView contentContainerStyle={{ padding: theme.spacing[6], paddingBottom: theme.spacing[2], gap: theme.spacing[3.5] }} keyboardShouldPersistTaps="handled">
@@ -44,7 +45,7 @@ export function BottomSheet({ visible, title, onClose, children, footer }: Botto
             </ScrollView>
             {footer ? <View style={{ paddingHorizontal: theme.spacing[6] }}>{footer}</View> : null}
           </Animated.View>
-        </KeyboardAvoidingView>
+        </KeyboardAvoider>
       </View>
     </Modal>
   );
