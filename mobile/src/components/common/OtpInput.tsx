@@ -1,7 +1,13 @@
-import { Animated, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { haptic } from '../../core/motion/haptics';
+import { useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
 import { FieldHalo, fieldBorder } from './FieldHalo';
+
+/** One leg of the refusal shake. Half the quick timing: at 120ms a leg the buzz reads as a slow sway. */
+const SHAKE_STEP_MS = 60;
 
 interface Props {
   length?: number;
@@ -16,7 +22,9 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
   const theme = useTheme();
   const [digits, setDigits] = useState<string[]>(Array(length).fill(''));
   const inputs = useRef<(TextInput | null)[]>([]);
-  const [shake] = useState(() => new Animated.Value(0));
+  const reduced = useReducedMotion();
+  const shake = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
   const completedFor = useRef<string | null>(null); // onComplete fires once per code, not per keystroke
   const onChangeRef = useRef(onChange);
   useEffect(() => {
@@ -31,14 +39,20 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
     onChangeRef.current?.('');
     completedFor.current = null;
     inputs.current[0]?.focus();
-    shake.setValue(0);
-    Animated.sequence([
-      Animated.timing(shake, { toValue: 10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: -10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 8, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
-    ]).start();
-  }, [error, length, shake]);
+    // The buzz is the half of the refusal that survives reduced motion: it carries the "wrong code"
+    // message even when the shake is suppressed.
+    haptic('error');
+    if (reduced) {
+      shake.set(0); // a field that shudders is exactly what reduced motion asks us not to do
+      return;
+    }
+    shake.set(withSequence(
+      withTiming(10, { duration: SHAKE_STEP_MS }),
+      withTiming(-10, { duration: SHAKE_STEP_MS }),
+      withTiming(8, { duration: SHAKE_STEP_MS }),
+      withTiming(0, { duration: SHAKE_STEP_MS }),
+    ));
+  }, [error, length, reduced, shake]);
 
   const update = (next: string[]) => {
     if (next.some((d) => d === '')) completedFor.current = null; // incomplete -> re-arm onComplete
@@ -89,7 +103,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
 
   return (
     <Animated.View
-      style={{ transform: [{ translateX: shake }], gap: theme.spacing[1.75], flexDirection: 'row' }}
+      style={[{ gap: theme.spacing[1.75], flexDirection: 'row' }, shakeStyle]}
     >
       {digits.map((d, i) => (
         <FieldHalo key={i} focused={focusedIndex === i && !error} radius={theme.radii.md} style={{ flex: 1, minWidth: 0 }}>

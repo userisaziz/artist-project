@@ -11,3 +11,16 @@ for (const file of ['.env.test', '.env']) {
 // Reanimated's jest mock keeps worklet APIs (withTiming/withSpring/useAnimatedStyle/entry animations)
 // synchronous in tests. Must stay in sync with the installed major version — expo install pins it.
 require('react-native-reanimated').setUpTests();
+
+// Haptics have no JS implementation to run: the buzz is a device call. Mocked here so every component
+// that buzzes on press stays importable, and `core/motion/haptics` can be asserted on directly.
+jest.mock('expo-haptics', () => {
+  const noop = () => Promise.resolve();
+  return {
+    impactAsync: jest.fn(noop),
+    selectionAsync: jest.fn(noop),
+    notificationAsync: jest.fn(noop),
+    ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+    NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+  };
+});

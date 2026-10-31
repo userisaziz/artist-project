@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Platform, Pressable, type PressableProps, type PressableStateCallbackType } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { haptic, type HapticKind } from '../../core/motion/haptics';
 import { springs, useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -14,16 +15,21 @@ export interface PressableFeedbackProps extends PressableProps {
   feedback?: boolean;
   /** Adds the Premium press dip (scale 0.97, spring) on top of the dim/ripple. Off by default. */
   scale?: boolean;
+  /** Buzzes on touch-down, for controls where the press itself is the answer (a primary action, a
+   *  selection). Off by default: buzzing every tappable in the app makes the phone feel like it rattles. */
+  haptic?: HapticKind;
 }
 
 /** Every tappable thing in the app: it answers the finger at once (a ripple on Android, a dim on iOS, an
  *  optional spring dip), so a tap never feels missed while the work behind it runs. Plain Pressable shows
  *  nothing on press. */
-export function PressableFeedback({ feedback = true, scale = false, style, android_ripple, ...rest }: PressableFeedbackProps) {
+export function PressableFeedback({ feedback = true, scale = false, haptic: hapticKind, style, android_ripple, ...rest }: PressableFeedbackProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const responds = !rest.disabled && !!(rest.onPress || rest.onLongPress);
   const dims = feedback && responds;
+  const kind = hapticKind; // a const, so the handler below keeps the narrowed (defined) type
+  const buzz = kind !== undefined && responds ? () => haptic(kind) : undefined;
   // The rendered element must not change type for a control's lifetime (dropping onPress is how callers
   // disable one): swapping Pressable for AnimatedPressable remounts the subtree, which detaches refs and
   // drops press state. So the path follows `scale` alone — reduced motion is honoured by `dips`, which
@@ -42,7 +48,14 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
   };
   if (!animates) {
     // Plain Pressable for the common case: identical feedback, no animated machinery.
-    return <Pressable {...rest} android_ripple={ripple} style={pressedStyle} />;
+    return (
+      <Pressable
+        {...rest}
+        android_ripple={ripple}
+        onPressIn={buzz ? (e) => { buzz(); rest.onPressIn?.(e); } : rest.onPressIn}
+        style={pressedStyle}
+      />
+    );
   }
   // Reanimated only discovers animated styles that are direct elements of the style array — a
   // function-form style is never called during its scan, so the dip is resolved in JS instead.
@@ -54,6 +67,7 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
       style={[userStyle, pressed && dims && Platform.OS !== 'android' ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
       onPressIn={(e) => {
         setPressed(true);
+        buzz?.();
         if (dips) dip.set(withSpring(PRESSED_SCALE, springs.press));
         rest.onPressIn?.(e);
       }}

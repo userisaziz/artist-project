@@ -21,6 +21,7 @@ export function Segmented<K extends string>({ options, value, onChange }: Segmen
             key={o.key}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
+            haptic="select"
             onPress={() => onChange(o.key)}
             style={[{ flex: 1, height: 34, borderRadius: theme.radii.control, alignItems: 'center', justifyContent: 'center' }, selected && { backgroundColor: theme.colors.surface }, selected && theme.shadows.sm]}
           >

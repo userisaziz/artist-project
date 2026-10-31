@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect } from 'react';
+import { Modal, ScrollView, View, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { PressableFeedback } from './PressableFeedback';
 import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
 import { KeyboardAvoider } from './KeyboardAvoider';
+import { timings, useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
-
-const SLIDE_IN_MS = 240;
 
 interface BottomSheetProps {
   visible: boolean;
@@ -24,21 +24,24 @@ export function BottomSheet({ visible, title, onClose, children, footer }: Botto
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [offscreen] = useState(() => new Animated.Value(1)); // 1 = below the screen, 0 = in place
+  const reduced = useReducedMotion();
+  const offscreen = useSharedValue(1); // 1 = below the screen, 0 = in place
   useEffect(() => {
+    // Hiding snaps rather than sliding out: the Modal's own fade is the exit, and a slide-down
+    // underneath it reads as the panel fighting the scrim.
     if (!visible) {
-      offscreen.setValue(1);
+      offscreen.set(1);
       return;
     }
-    Animated.timing(offscreen, { toValue: 0, duration: SLIDE_IN_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, [visible, offscreen]);
-  const translateY = offscreen.interpolate({ inputRange: [0, 1], outputRange: [0, height] });
+    offscreen.set(withTiming(0, { ...timings.sheet, duration: reduced ? 0 : timings.sheet.duration }));
+  }, [offscreen, reduced, visible]);
+  const panel = useAnimatedStyle(() => ({ transform: [{ translateY: offscreen.value * height }] }));
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: theme.colors.overlay }}>
         <KeyboardAvoider>
           <PressableFeedback feedback={false} accessibilityLabel="Close" style={{ flex: 1 }} onPress={onClose} />
-          <Animated.View style={{ maxHeight: '85%', backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radii.sheet, borderTopRightRadius: theme.radii.sheet, paddingBottom: insets.bottom + theme.spacing[4], transform: [{ translateY }] }}>
+          <Animated.View style={[{ maxHeight: '85%', backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radii.sheet, borderTopRightRadius: theme.radii.sheet, paddingBottom: insets.bottom + theme.spacing[4] }, panel]}>
             <ScrollView contentContainerStyle={{ padding: theme.spacing[6], paddingBottom: theme.spacing[2], gap: theme.spacing[3.5] }} keyboardShouldPersistTaps="handled">
               <AppText variant="title" style={{ color: theme.colors.heading }}>{title}</AppText>
               {children}

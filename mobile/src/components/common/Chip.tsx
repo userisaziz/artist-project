@@ -10,6 +10,7 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
     <PressableFeedback
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
+      haptic="select"
       onPress={onPress}
       style={{
         height: 36, paddingHorizontal: theme.spacing[3.5], borderRadius: theme.radii.pill, justifyContent: 'center',

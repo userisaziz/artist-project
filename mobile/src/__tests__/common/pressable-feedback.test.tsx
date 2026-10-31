@@ -1,10 +1,14 @@
 import { Platform, StyleSheet, Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 import { PressableFeedback } from '../../components/common/PressableFeedback';
 import { lightTheme } from '../../core/theme/themes/light';
 
 const originalOS = Platform.OS;
 afterEach(() => { Platform.OS = originalOS; });
+
+const impact = Haptics.impactAsync as jest.Mock;
+beforeEach(() => { impact.mockClear(); });
 
 const control = () => screen.getByTestId('control');
 const touch = { nativeEvent: { touches: [], changedTouches: [], identifier: 0, pageX: 0, pageY: 0, locationX: 0, locationY: 0, timestamp: 0 }, persist: () => {} };
@@ -51,4 +55,24 @@ it('shows nothing when disabled, without a handler, or with feedback off', async
     await render(ui);
     expect(await opacityWhilePressed()).toBeUndefined();
   }
+});
+
+it('buzzes on touch-down only when asked to', async () => {
+  Platform.OS = 'ios';
+  await render(<PressableFeedback testID="control" haptic="tap" onPress={jest.fn()}><Text>Save</Text></PressableFeedback>);
+  await act(async () => { fireEvent(control(), 'responderGrant', touch); });
+  expect(impact).toHaveBeenCalledWith('light');
+
+  impact.mockClear();
+  await render(<PressableFeedback testID="control" onPress={jest.fn()}><Text>Quiet</Text></PressableFeedback>);
+  await act(async () => { fireEvent(control(), 'responderGrant', touch); });
+  expect(impact).not.toHaveBeenCalled();
+});
+
+it('does not buzz for a control that cannot be pressed', async () => {
+  Platform.OS = 'ios';
+  // A disabled control is a dropped onPress, not a `disabled` prop — the buzz follows the same rule.
+  await render(<PressableFeedback testID="control" haptic="tap"><Text>Off</Text></PressableFeedback>);
+  await act(async () => { fireEvent(control(), 'responderGrant', touch); });
+  expect(impact).not.toHaveBeenCalled();
 });

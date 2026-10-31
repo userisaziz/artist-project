@@ -36,6 +36,7 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
     <PressableFeedback
       feedback={false}
       scale
+      haptic="tap"
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: inactive, busy: loading }}

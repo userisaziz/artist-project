@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Easing, FadeIn, FadeInDown, useReducedMotion as useReanimatedReducedMotion } from 'react-native-reanimated';
+import {
+  Easing, FadeIn, FadeInDown, FadeOut, FadeOutUp, useReducedMotion as useReanimatedReducedMotion,
+} from 'react-native-reanimated';
 import { motionDurations, motionEasing, motionSprings, motionStagger } from '../theme/tokens/motion';
 
 /** The Premium motion vocabulary. Every duration, easing and spring derives from the generated tokens —
@@ -15,8 +17,21 @@ export const timings = {
   base: { duration: motionDurations.base, easing: bezier(motionEasing.standard) },
   enter: { duration: motionDurations.enter, easing: bezier(motionEasing.standard) },
   reveal: { duration: motionDurations.reveal, easing: bezier(motionEasing.standard) },
+  sheet: { duration: motionDurations.slow, easing: bezier(motionEasing.standard) },
   exit: { duration: motionDurations.slow, easing: bezier(motionEasing.exit) },
 } as const;
+
+/** The toast lane: it drops in from above its resting place and lifts back out, the mirror of
+ *  `fadeRise`, so a message never reads as a card inserted into the page. Layout animations own the
+ *  exit — the host unmounts the card and Reanimated finishes the motion, so no component has to hold
+ *  the last words just to fade them. Reduced motion cuts both ends to nothing. */
+export function toastMotion(reduced: boolean) {
+  if (reduced) return { entering: FadeIn.duration(0), exiting: FadeOut.duration(0) };
+  return {
+    entering: FadeInDown.duration(motionDurations.enter).easing(bezier(motionEasing.standard)),
+    exiting: FadeOutUp.duration(motionDurations.quick).easing(bezier(motionEasing.exit)),
+  };
+}
 
 /** Springs are for interactions only — entrances use `timings`. */
 export const springs = motionSprings;
