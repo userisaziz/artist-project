@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GetReady — How Users Join · Sign-In & Onboarding Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  .mermaid svg { font-family: 'Plus Jakarta Sans', sans-serif !important; }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+
+<body style="font-family:'Plus Jakarta Sans',sans-serif; background-color:#FFF8FB;" class="text-[#49313B] antialiased">
+
+<!-- ===================== NAV ===================== -->
+<header class="sticky top-0 z-40 border-b" style="border-color:#F0DCE5; background-color:#FFF8FBE6; backdrop-filter:blur(8px);">
+  <div class="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+    <div class="flex items-baseline gap-2">
+      <span class="text-[20px] font-semibold tracking-tight" style="color:#4A1B33;">GetReady</span>
+      <span class="hidden sm:inline text-[11px] font-bold tracking-[0.2em]" style="color:#B64D75;">ART CIRCLE</span>
+    </div>
+    <nav class="flex items-center gap-1 text-[13px] font-semibold">
+      <a href="#signin" class="px-3 py-1.5 rounded-full hover:bg-[#FCEEF3]" style="color:#6E5262;">Sign-in</a>
+      <a href="#paths" class="px-3 py-1.5 rounded-full hover:bg-[#FCEEF3]" style="color:#6E5262;">Onboarding</a>
+      <a href="#trust" class="px-3 py-1.5 rounded-full hover:bg-[#FCEEF3]" style="color:#6E5262;">Safety</a>
+      <a href="#tech" class="px-3 py-1.5 rounded-full border hover:bg-[#FCEEF3]" style="border-color:#F0CFDD; color:#B64D75;">Technical flow</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="max-w-6xl mx-auto px-5 pt-16 pb-12">
+  <div class="text-[11px] font-bold tracking-[0.2em] mb-4" style="color:#B64D75;">MILESTONE SHOWCASE · DOCUMENTED &amp; LIVE-VERIFIED · 31 OCT 2026</div>
+  <h1 class="text-[34px] sm:text-[44px] font-semibold tracking-tight leading-[1.1]" style="color:#4A1B33;">
+    How a stranger becomes<br>
+    <span style="font-style:italic; color:#B64D75;">a verified artist</span> on your platform
+  </h1>
+  <p class="mt-5 max-w-2xl text-[15px] leading-relaxed" style="color:#6E5262;">
+    This is the complete first-impression journey of the GetReady app: signing in with just a phone
+    number, choosing a side of the marketplace, and — for artists — building a profile that your
+    admin team approves before it goes live. Written in plain language first; the full technical
+    flow is at the bottom for your engineers.
+  </p>
+  <div class="mt-8 flex flex-wrap gap-3">
+    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border bg-white" style="border-color:#F0CFDD; color:#6E5262;"><i data-lucide="smartphone" class="w-4 h-4" style="stroke-width:1.5; color:#B64D75;"></i> No passwords, ever</span>
+    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border bg-white" style="border-color:#F0CFDD; color:#6E5262;"><i data-lucide="user-plus" class="w-4 h-4" style="stroke-width:1.5; color:#B64D75;"></i> Sign-up = sign-in</span>
+    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border bg-white" style="border-color:#F0CFDD; color:#6E5262;"><i data-lucide="shield-check" class="w-4 h-4" style="stroke-width:1.5; color:#2F6B47;"></i> Every artist is reviewed</span>
+    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border bg-white" style="border-color:#F0CFDD; color:#6E5262;"><i data-lucide="rotate-ccw" class="w-4 h-4" style="stroke-width:1.5; color:#B64D75;"></i> Progress is never lost</span>
+  </div>
+</section>
+
+<!-- ===================== 1. SIGN-IN (plain) ===================== -->
+<section id="signin" class="max-w-6xl mx-auto px-5 py-12 border-t" style="border-color:#F0DCE5;">
+  <div class="text-[11px] font-bold tracking-[0.2em] mb-2" style="color:#B64D75;">PART 1 · SIGN-IN</div>
+  <h2 class="text-[26px] font-semibold tracking-tight mb-2" style="color:#4A1B33;">Four taps to get in. There is no account to create.</h2>
+  <p class="text-[14px] max-w-2xl mb-10" style="color:#6E5262;">The user types their phone number, receives a 6-digit code by SMS, and they're in. If the number is new, the account is created silently at that very moment — nobody ever fills a registration form.</p>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white rounded-[20px] p-6 border hover:shadow-lg transition-shadow" style="border-color:#F0DCE5;">
+      <div class="flex items-center justify-between mb-5">
+        <i data-lucide="phone-call" class="w-6 h-6" style="stroke-width:1.5; color:#B64D75;"></i>
+        <span class="text-[11px] font-bold tracking-widest" style="color:#C2B0B9;">STEP 1</span>
+      </div>
+      <h3 class="text-[16px] font-semibold mb-1.5" style="color:#4A1B33;">Enter phone number</h3>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">The country code is pre-filled for India. The button stays disabled until the number is valid — bad input never reaches the server.</p>
+    </div>
+    <div class="bg-white rounded-[20px] p-6 border hover:shadow-lg transition-shadow" style="border-color:#F0DCE5;">
+      <div class="flex items-center justify-between mb-5">
+        <i data-lucide="message-square-text" class="w-6 h-6" style="stroke-width:1.5; color:#B64D75;"></i>
+        <span class="text-[11px] font-bold tracking-widest" style="color:#C2B0B9;">STEP 2</span>
+      </div>
+      <h3 class="text-[16px] font-semibold mb-1.5" style="color:#4A1B33;">A code arrives by SMS</h3>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Six digits, valid for 5 minutes. The phone's autofill suggests it instantly under Android &amp; iOS.</p>
+    </div>
+    <div class="bg-white rounded-[20px] p-6 border hover:shadow-lg transition-shadow" style="border-color:#F0DCE5;">
+      <div class="flex items-center justify-between mb-5">
+        <i data-lucide="square-dashed-mouse-pointer" class="w-6 h-6" style="stroke-width:1.5; color:#B64D75;"></i>
+        <span class="text-[11px] font-bold tracking-widest" style="color:#C2B0B9;">STEP 3</span>
+      </div>
+      <h3 class="text-[16px] font-semibold mb-1.5" style="color:#4A1B33;">Six boxes, one glance</h3>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">The app submits the moment the sixth digit lands. A wrong code shakes the boxes gently — the user retries in place.</p>
+    </div>
+    <div class="rounded-[20px] p-6 border" style="background-color:#4A1B33; border-color:#4A1B33;">
+      <div class="flex items-center justify-between mb-5">
+        <i data-lucide="log-in" class="w-6 h-6" style="stroke-width:1.5; color:#F4B6CB;"></i>
+        <span class="text-[11px] font-bold tracking-widest" style="color:#B293A3;">STEP 4</span>
+      </div>
+      <h3 class="text-[16px] font-semibold mb-1.5 text-white">They're in. Stay in.</h3>
+      <p class="text-[13px] leading-relaxed" style="color:#EBC3D5;">The app remembers the session for a week — closing and reopening never asks for the code again, and the session repairs itself invisibly.</p>
+    </div>
+  </div>
+
+  <div class="mt-6 flex items-start gap-3 bg-white border rounded-[16px] p-5" style="border-color:#F0DCE5;">
+    <i data-lucide="sparkles" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#D9A04A;"></i>
+    <p class="text-[13.5px] leading-relaxed" style="color:#6E5262;"><b style="color:#4A1B33;">The clever part:</b> to a stranger and a returning user the screens look exactly the same. Nobody can tell which numbers have accounts — and nobody needs to "register" first.</p>
+  </div>
+</section>
+
+<!-- ===================== 2. ONBOARDING (plain) ===================== -->
+<section id="paths" class="max-w-6xl mx-auto px-5 py-12 border-t" style="border-color:#F0DCE5;">
+  <div class="text-[11px] font-bold tracking-[0.2em] mb-2" style="color:#B64D75;">PART 2 · ONBOARDING</div>
+  <h2 class="text-[26px] font-semibold tracking-tight mb-2" style="color:#4A1B33;">One question splits the marketplace in two</h2>
+  <p class="text-[14px] max-w-2xl mb-10" style="color:#6E5262;">Right after the first sign-in the app asks for a name, then "What brings you here?" — clients book artists, creators offer services. The answer is remembered; roles can be switched anytime from the profile.</p>
+
+  <div class="grid lg:grid-cols-2 gap-5">
+    <!-- Client path -->
+    <div class="bg-white rounded-[24px] border p-7" style="border-color:#F0DCE5;">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="w-10 h-10 rounded-full flex items-center justify-center" style="background-color:#FCEEF3;"><i data-lucide="search" class="w-5 h-5" style="stroke-width:1.5; color:#B64D75;"></i></span>
+        <div>
+          <h3 class="text-[17px] font-semibold" style="color:#4A1B33;">The client's path</h3>
+          <p class="text-[12px]" style="color:#896F7D;">Two taps, then browsing</p>
+        </div>
+        <span class="ml-auto px-3 py-1 rounded-full text-[11px] font-bold" style="background-color:#E3F1E7; color:#2F6B47;">≈ 30 SECONDS</span>
+      </div>
+      <div class="space-y-0">
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style="background-color:#B64D75;"></span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-5" style="color:#6E5262;">Enters their <b style="color:#4A1B33;">name</b> (email optional)</p></div>
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style="background-color:#B64D75;"></span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-5" style="color:#6E5262;">Taps <b style="color:#4A1B33;">"Book an artist"</b></p></div>
+        <div class="flex gap-4"><span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style="background-color:#2F6B47;"></span><p class="text-[13.5px] leading-6" style="color:#6E5262;">Immediately browsing artists near them — <b style="color:#4A1B33;">no further gates</b></p></div>
+      </div>
+    </div>
+    <!-- Artist path -->
+    <div class="bg-white rounded-[24px] border p-7" style="border-color:#F0DCE5;">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="w-10 h-10 rounded-full flex items-center justify-center" style="background-color:#FCEEF3;"><i data-lucide="palette" class="w-5 h-5" style="stroke-width:1.5; color:#B64D75;"></i></span>
+        <div>
+          <h3 class="text-[17px] font-semibold" style="color:#4A1B33;">The artist's path</h3>
+          <p class="text-[12px]" style="color:#896F7D;">Five short steps, then your review</p>
+        </div>
+        <span class="ml-auto px-3 py-1 rounded-full text-[11px] font-bold" style="background-color:#FDF0DC; color:#9A6514;">5 STEPS</span>
+      </div>
+      <div class="space-y-0">
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="text-[10px] font-bold w-5 text-center" style="color:#C2B0B9;">1</span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-4" style="color:#6E5262;"><b style="color:#4A1B33;">Profile</b> — business name, city, up to 6 categories, avatar photo</p></div>
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="text-[10px] font-bold w-5 text-center" style="color:#C2B0B9;">2</span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-4" style="color:#6E5262;"><b style="color:#4A1B33;">Location</b> — a real neighbourhood chosen from our list + PIN code</p></div>
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="text-[10px] font-bold w-5 text-center" style="color:#C2B0B9;">3</span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-4" style="color:#6E5262;"><b style="color:#4A1B33;">Services</b> — picks from your catalog and sets their own prices &amp; durations</p></div>
+        <div class="flex gap-4"><div class="flex flex-col items-center"><span class="text-[10px] font-bold w-5 text-center" style="color:#C2B0B9;">4</span><span class="w-px flex-1 mt-1" style="background-color:#F0DCE5;"></span></div><p class="text-[13.5px] leading-6 pb-4" style="color:#6E5262;"><b style="color:#4A1B33;">Portfolio</b> — at least 6 photos of real work; the first becomes the cover</p></div>
+        <div class="flex gap-4"><span class="text-[10px] font-bold w-5 text-center" style="color:#C2B0B9;">5</span><p class="text-[13.5px] leading-6" style="color:#6E5262;"><b style="color:#4A1B33;">Identity</b> — Aadhaar number + both sides of the card, then <b style="color:#4A1B33;">Submit for review</b></p></div>
+      </div>
+      <div class="mt-5 pt-5 border-t flex items-center gap-3" style="border-color:#F0DCE5;">
+        <i data-lucide="badge-check" class="w-5 h-5 shrink-0" style="stroke-width:1.5; color:#2F6B47;"></i>
+        <p class="text-[13px]" style="color:#6E5262;">An admin approves (or rejects with a reason) before the artist appears in the directory. <b style="color:#4A1B33;">Quality control stays in your hands.</b></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 grid sm:grid-cols-3 gap-4">
+    <div class="bg-white border rounded-[16px] p-5" style="border-color:#F0DCE5;">
+      <i data-lucide="save" class="w-5 h-5 mb-3" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Every step <b style="color:#4A1B33;">saves instantly to the server</b> — quit halfway, reopen next week, the app resumes at exactly the right step.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5" style="border-color:#F0DCE5;">
+      <i data-lucide="images" class="w-5 h-5 mb-3" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Photos go <b style="color:#4A1B33;">straight to secure cloud storage</b>, never through the app server — uploads stay fast and cheap at any scale.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5" style="border-color:#F0DCE5;">
+      <i data-lucide="eye-off" class="w-5 h-5 mb-3" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">The ID document is stored in a <b style="color:#4A1B33;">private vault</b>. The artist's own screen later shows only the last 4 digits of the number. Nothing else is ever displayed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3. SAFETY (plain) ===================== -->
+<section id="trust" class="max-w-6xl mx-auto px-5 py-12 border-t" style="border-color:#F0DCE5;">
+  <div class="text-[11px] font-bold tracking-[0.2em] mb-2" style="color:#B64D75;">PART 3 · WHY IT'S SAFE</div>
+  <h2 class="text-[26px] font-semibold tracking-tight mb-8" style="color:#4A1B33;">Quiet protection at every step</h2>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="timer" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Codes <b style="color:#4A1B33;">expire in 5 minutes</b> and each one works only <b style="color:#4A1B33;">once</b> — a stolen screenshot is worthless.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="lock" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;"><b style="color:#4A1B33;">5 wrong guesses lock the code.</b> Brute-forcing a 6-digit code by trial is mathematically shut down.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="wallet" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">SMS spending is capped per number and per device, so <b style="color:#4A1B33;">nobody can burn your SMS budget</b> by spamming requests.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="user-x" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">The server answers identically whether the number exists or not — <b style="color:#4A1B33;">your user list can't be probed</b> from outside.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="key-round" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Sessions rotate their keys constantly; a replayed key <b style="color:#4A1B33;">kills the whole stolen session</b> and logs the thief out.</p>
+    </div>
+    <div class="bg-white border rounded-[16px] p-5 flex gap-4" style="border-color:#F0DCE5;">
+      <i data-lucide="file-warning" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+      <p class="text-[13px] leading-relaxed" style="color:#6E5262;">Code guesses, sign-ins, delivery failures and ID reveals are all <b style="color:#4A1B33;">written to an audit trail</b> you can inspect.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 4. TECHNICAL FLOW ===================== -->
+<section id="tech" class="max-w-6xl mx-auto px-5 py-12 border-t" style="border-color:#F0DCE5;">
+  <div class="text-[11px] font-bold tracking-[0.2em] mb-2" style="color:#B64D75;">PART 4 · FOR ENGINEERS</div>
+  <h2 class="text-[26px] font-semibold tracking-tight mb-2" style="color:#4A1B33;">The complete technical flow</h2>
+  <p class="text-[14px] max-w-2xl mb-8" style="color:#6E5262;">Base URL <code style="background-color:#FCEEF3; color:#9A3D62; padding:2px 8px; border-radius:6px; font-size:13px;">/api/v1</code> · FastAPI + PostgreSQL backend · Expo React Native client. All diagrams and sample payloads below were captured against the running dev server — full annotated versions live in <i>docs/superpowers/specs/2026-10-31-otp-flow-walkthrough.md</i> and <i>…-onboarding-flow-walkthrough.md</i>.</p>
+
+  <div class="grid lg:grid-cols-2 gap-5 mb-5">
+    <!-- sign-in sequence -->
+    <div class="bg-white border rounded-[20px] p-6" style="border-color:#F0DCE5;">
+      <h3 class="text-[15px] font-semibold mb-4" style="color:#4A1B33;">Sign-in &amp; session</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant A as App
+    participant B as Backend
+    participant S as SMS
+    U->>A: phone number
+    A->>B: POST /auth/otp/request
+    B->>B: rate limits and 60s cooldown
+    B->>S: send 6 digit code
+    B-->>A: 204 always - same for new and known numbers
+    U->>A: types the code
+    A->>B: POST /auth/otp/verify
+    B->>B: check hash - consume code - JIT create user if new
+    B-->>A: 200 access token 15 min and refresh token 7 days
+    A->>B: GET /users/me with bearer token
+    B-->>A: 401 when access token expires
+    A->>B: POST /auth/refresh
+    B-->>A: 200 fresh pair - old token rotated
+      </pre>
+    </div>
+    <!-- onboarding sequence -->
+    <div class="bg-white border rounded-[20px] p-6" style="border-color:#F0DCE5;">
+      <h3 class="text-[15px] font-semibold mb-4" style="color:#4A1B33;">Onboarding &amp; artist review</h3>
+      <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant A as App
+    participant B as Backend
+    participant C as Cloud storage
+    B-->>A: first sign-in user has is_onboarded false
+    A->>B: PATCH /users/me - name and email
+    A->>B: PUT /users/me/role - customer or artist
+    B-->>A: 200 is_onboarded true - gate flips to the app
+    A->>B: GET /artists/me on entering artist area
+    B-->>A: 404 means start fresh - 200 draft means resume
+    A->>B: PUT /artists/me/profile step 1
+    A->>B: PUT /artists/me/location step 2
+    A->>B: POST /artists/me/services step 3
+    A->>B: POST /uploads/signature step 4
+    B-->>A: presigned ticket and storage key
+    A->>C: PUT image directly to the bucket
+    A->>B: POST /artists/me/photos with the key
+    A->>B: PUT /artists/me/kyc step 5 - private bucket
+    A->>B: POST /artists/me/submit
+    B-->>A: 422 with missing list or 200 pending plus admin ping
+      </pre>
+    </div>
+  </div>
+
+  <!-- state machine -->
+  <div class="bg-white border rounded-[20px] p-6 mb-5" style="border-color:#F0DCE5;">
+    <h3 class="text-[15px] font-semibold mb-4" style="color:#4A1B33;">Artist profile lifecycle — the admin's control panel drives this</h3>
+    <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Draft: profile row created at step 1
+    Draft --> Pending: submit passes the completeness gate
+    Pending --> Approved: admin approves
+    Pending --> Rejected: admin rejects with a reason
+    Rejected --> Draft: artist edits and resubmits
+    Approved --> Draft: artist reopens to edit
+    Approved --> Suspended: admin suspends
+    Suspended --> Approved: admin reinstates
+    Approved --> [*]: visible and bookable in the directory
+    </pre>
+  </div>
+
+  <!-- endpoint table -->
+  <div class="bg-white border rounded-[20px] overflow-hidden mb-5" style="border-color:#F0DCE5;">
+    <div class="px-6 pt-6 pb-4"><h3 class="text-[15px] font-semibold" style="color:#4A1B33;">Every call in the journey</h3></div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-[13px]" style="border-collapse:collapse;">
+        <thead>
+          <tr class="text-left" style="background-color:#FAF8F9; color:#896F7D;">
+            <th class="px-6 py-3 font-bold text-[11px] tracking-wider uppercase">Endpoint</th>
+            <th class="px-4 py-3 font-bold text-[11px] tracking-wider uppercase">What happens</th>
+            <th class="px-4 py-3 font-bold text-[11px] tracking-wider uppercase">Success</th>
+            <th class="px-4 py-3 font-bold text-[11px] tracking-wider uppercase">Failure</th>
+          </tr>
+        </thead>
+        <tbody style="color:#6E5262;">
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">POST</span><code style="color:#4A1B33;">/auth/otp/request</code></td><td class="px-4 py-3">Texts a 6-digit code</td><td class="px-4 py-3" style="color:#2F6B47;">204 (always)</td><td class="px-4 py-3">429 too many · 503 SMS down</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">POST</span><code style="color:#4A1B33;">/auth/otp/verify</code></td><td class="px-4 py-3">Code → tokens, creates account if new</td><td class="px-4 py-3" style="color:#2F6B47;">200 token pair + user</td><td class="px-4 py-3">401 wrong / expired / reused</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">PATCH</span><code style="color:#4A1B33;">/users/me</code></td><td class="px-4 py-3">Save name and optional email</td><td class="px-4 py-3" style="color:#2F6B47;">200 updated user</td><td class="px-4 py-3">409 email taken</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">PUT</span><code style="color:#4A1B33;">/users/me/role</code></td><td class="px-4 py-3">Choose or switch the active side</td><td class="px-4 py-3" style="color:#2F6B47;">200 is_onboarded true</td><td class="px-4 py-3">—</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">GET</span><code style="color:#4A1B33;">/artists/me</code></td><td class="px-4 py-3">Resume signal: which step, which area</td><td class="px-4 py-3" style="color:#2F6B47;">200 whole profile</td><td class="px-4 py-3">404 no profile yet</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">PUT</span><code style="color:#4A1B33;">/artists/me/profile</code></td><td class="px-4 py-3">Step 1 — creates the draft row</td><td class="px-4 py-3" style="color:#2F6B47;">200 status draft</td><td class="px-4 py-3">422 invalid fields</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">PUT</span><code style="color:#4A1B33;">/artists/me/location</code></td><td class="px-4 py-3">Step 2 — catalog area + PIN code</td><td class="px-4 py-3" style="color:#2F6B47;">200</td><td class="px-4 py-3">422 bad pincode / area</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">POST</span><code style="color:#4A1B33;">/artists/me/services</code></td><td class="px-4 py-3">Step 3 — one call per service, own price</td><td class="px-4 py-3" style="color:#2F6B47;">201</td><td class="px-4 py-3">422 price or duration invalid</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">POST</span><code style="color:#4A1B33;">/uploads/signature</code></td><td class="px-4 py-3">Step 4/5 — presigned direct-upload ticket</td><td class="px-4 py-3" style="color:#2F6B47;">200 url + key</td><td class="px-4 py-3">429 300/user/hour</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">PUT</span><code style="color:#4A1B33;">/artists/me/kyc</code></td><td class="px-4 py-3">Step 5 — Aadhaar number + private card images</td><td class="px-4 py-3" style="color:#2F6B47;">200 (only last4 visible later)</td><td class="px-4 py-3">422 checksum fails</td></tr>
+          <tr class="border-t" style="border-color:#F7E3EC;"><td class="px-6 py-3"><span class="font-bold text-[11px] px-2 py-0.5 rounded mr-2" style="background-color:#FCEEF3; color:#9A3D62;">POST</span><code style="color:#4A1B33;">/artists/me/submit</code></td><td class="px-4 py-3">The completeness gate → pending + admins notified</td><td class="px-4 py-3" style="color:#2F6B47;">200 pending</td><td class="px-4 py-3">422 lists what is missing</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- live-captured payloads -->
+  <div class="grid lg:grid-cols-2 gap-5">
+    <div class="rounded-[20px] p-6" style="background-color:#4A1B33;">
+      <h3 class="text-[15px] font-semibold mb-1 text-white">Captured live — the submit gate</h3>
+      <p class="text-[12.5px] mb-4" style="color:#B293A3;">A half-finished profile cannot slip through; the answer names every missing part.</p>
+      <pre class="text-[12px] leading-relaxed overflow-x-auto" style="color:#F5B6D0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">POST /api/v1/artists/me/submit      → 422
+
+{
+  "code": "validation_error",
+  "message": "Profile is incomplete",
+  "missing": ["photo", "services",
+              "portfolio", "kyc"],
+  "min_photos": 6
+}</pre>
+    </div>
+    <div class="rounded-[20px] p-6" style="background-color:#4A1B33;">
+      <h3 class="text-[15px] font-semibold mb-1 text-white">Captured live — a draft is born</h3>
+      <p class="text-[12.5px] mb-4" style="color:#B293A3;">Step 1's response is the whole profile — the app re-renders from one call.</p>
+      <pre class="text-[12px] leading-relaxed overflow-x-auto" style="color:#F5B6D0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">PUT /api/v1/artists/me/profile      → 200
+
+{
+  "status": "draft",
+  "business_name": "Demo Demo Studio",
+  "city": "Bangalore",
+  "categories": [{ "name": "Mehendi" }],
+  "services": [], "photos": [],
+  "submitted_at": null
+}</pre>
+    </div>
+  </div>
+
+  <div class="mt-5 bg-white border rounded-[16px] p-5 flex items-start gap-3" style="border-color:#F0DCE5;">
+    <i data-lucide="terminal" class="w-5 h-5 shrink-0 mt-0.5" style="stroke-width:1.5; color:#B64D75;"></i>
+    <p class="text-[13px] leading-relaxed" style="color:#6E5262;"><b style="color:#4A1B33;">Reproduce any of this in 60 seconds:</b> the runbooks in the two markdown docs contain copy-paste curl scripts (and the exact mobile click-path) that were used to capture every figure above. Errors always share one shape — <code style="background-color:#FCEEF3; color:#9A3D62; padding:1px 6px; border-radius:5px;">{ "code", "message" }</code> — so clients branch on stable codes, never on prose.</p>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="border-t mt-4" style="border-color:#F0DCE5;">
+  <div class="max-w-6xl mx-auto px-5 py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <span class="text-[17px] font-semibold tracking-tight" style="color:#4A1B33;">GetReady</span>
+      <p class="text-[12px] mt-1" style="color:#896F7D;">Sign-in &amp; onboarding showcase · everything on this page is live-verified on the dev backend, 31 Oct 2026.</p>
+    </div>
+    <div class="text-[12px]" style="color:#896F7D;">
+      Prepared by Abdurrahman &amp; Adnan — Technology Development &amp; Maintenance Partners
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#FCEEF3', primaryTextColor: '#4A1B33', primaryBorderColor: '#EBC3D5',
+      lineColor: '#B64D75', secondaryColor: '#FAF8F9', tertiaryColor: '#FFFFFF',
+      noteBkgColor: '#FDF0DC', noteTextColor: '#49313B', noteBorderColor: '#D9A04A',
+      actorTextColor: '#4A1B33', actorBorder: '#EBC3D5', actorBkg: '#FCEEF3',
+      signalColor: '#6E5262', signalTextColor: '#49313B',
+      labelBoxBorderColor: '#EBC3D5', labelTextColor: '#9A3D62', labelBkgColor: '#FCEEF3',
+      fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '13px'
+    }
+  });
+  lucide.createIcons();
+</script>
+</body>
+</html>
