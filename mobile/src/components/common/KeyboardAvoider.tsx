@@ -4,12 +4,15 @@ import { KeyboardAvoidingView, Platform } from 'react-native';
 /**
  * The app's only keyboard-reservation frame.
  *
- * Android builds with `windowSoftInputMode="adjustResize"` (Expo's default `softwareKeyboardLayoutMode:
- * "resize"`, and no edge-to-edge override), so the OS already takes the keyboard's height away from the
- * window before React Native lays out. A `behavior` on top of that subtracts it a second time: 'height'
- * collapses the frame to `initial - keyboard` with `flex: 0`, and 'padding' lifts the content by another
- * keyboard height — the form jumps off-screen and the scroll area shrinks twice. iOS resizes nothing, so
- * it is the only platform that has to pad.
+ * Android builds edge-to-edge here (Expo SDK 57 enables it by default, and every prebuild writes
+ * `edgeToEdgeEnabled=true`), so `windowSoftInputMode="adjustResize"` no longer shrinks the window for the
+ * IME — the keyboard just covers the bottom of a full-height frame, which is where the Send code / Verify
+ * footer lives. iOS never resized for the keyboard either. Both therefore pad by one keyboard height.
+ *
+ * Padding cannot double-count: KeyboardAvoidingView measures its own frame and reserves only the overlap
+ * (`frame.height - keyboard.screenY`, clamped at 0), so a window the OS *did* shrink yields zero.
+ *
+ * Web has no soft keyboard, so it stays behaviourless.
  *
  * Screens and `Modal`-hosted sheets need the same rule, so there is exactly one place to decide it.
  */
@@ -17,7 +20,7 @@ export function KeyboardAvoider({ style, ...rest }: ComponentProps<typeof Keyboa
   return (
     <KeyboardAvoidingView
       {...rest}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'web' ? undefined : 'padding'}
       style={[{ flex: 1 }, style]}
     />
   );

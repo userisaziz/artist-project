@@ -54,17 +54,15 @@ it('keeps the child in the tree and fills the screen', async () => {
   expect(frameOf(view).flex).toBe(1);
 });
 
-it('leaves Android to adjustResize instead of shrinking the frame a second time', async () => {
+it('pads on Android too, because edge-to-edge no longer resizes the window for the IME', async () => {
   Platform.OS = 'android';
   const handlers = captureKeyboard();
   const view = await render(<KeyboardAvoider testID="frame"><Text>Checkout</Text></KeyboardAvoider>);
 
   await raiseKeyboard(view, handlers);
 
-  // The window already lost the keyboard height; subtracting it again is what pushed forms off-screen.
-  expect(frameOf(view).flex).toBe(1);
-  expect(frameOf(view).height).toBeUndefined();
-  expect(frameOf(view).paddingBottom).toBeUndefined();
+  // adjustResize is a no-op under edge-to-edge: without this the footer button sits behind the keyboard.
+  expect(frameOf(view).paddingBottom).toBe(260);
 });
 
 it('pads the frame on iOS, where nothing resizes the window', async () => {
@@ -75,4 +73,14 @@ it('pads the frame on iOS, where nothing resizes the window', async () => {
   await raiseKeyboard(view, handlers);
 
   expect(frameOf(view).paddingBottom).toBe(260);
+});
+
+it('leaves web behaviourless, since there is no soft keyboard to reserve for', async () => {
+  Platform.OS = 'web';
+  const handlers = captureKeyboard();
+  const view = await render(<KeyboardAvoider testID="frame"><Text>Checkout</Text></KeyboardAvoider>);
+
+  await raiseKeyboard(view, handlers);
+
+  expect(frameOf(view).paddingBottom).toBeUndefined();
 });
