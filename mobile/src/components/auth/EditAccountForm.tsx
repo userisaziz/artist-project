@@ -9,15 +9,18 @@ import { useAuth } from '../../context/auth/auth-provider';
 import { ApiError } from '../../core/api/types';
 import { errorMessage } from '../../core/api/error-message';
 import { BAD_EMAIL, isValidOptionalEmail } from '../../utils/auth/email';
+import { dateOfBirthInput, formatDateOfBirth, readDateOfBirth } from '../../utils/auth/date-of-birth';
 
 interface EditAccountFormProps { onDone: () => void }
 
-/** Profile → Edit profile: name, optional email and WhatsApp booking updates (PATCH /users/me). The phone is the login, so it stays. */
+/** Profile → Edit profile: name, date of birth, optional email and WhatsApp booking updates (PATCH /users/me). The phone is the login, so it stays. */
 export function EditAccountForm({ onDone }: EditAccountFormProps) {
   const theme = useTheme();
   const { user, completeSignup } = useAuth();
   const [first, setFirst] = useState(user?.first_name ?? '');
   const [last, setLast] = useState(user?.last_name ?? '');
+  const [dob, setDob] = useState(dateOfBirthInput(user?.date_of_birth));
+  const [dobError, setDobError] = useState<string | null>(null);
   const [email, setEmail] = useState(user?.email ?? '');
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp_booking_updates ?? true);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -25,12 +28,14 @@ export function EditAccountForm({ onDone }: EditAccountFormProps) {
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
+    const dateOfBirth = readDateOfBirth(dob);
+    if (dateOfBirth.iso === null) { setDobError(dateOfBirth.error); return; }
     if (!isValidOptionalEmail(email)) { setEmailError(BAD_EMAIL); return; }
     setSaving(true);
     setError(null);
     try {
       // Same PATCH /users/me as sign-up; it swaps in the returned user, so Profile shows the new name at once.
-      await completeSignup({ first_name: first.trim(), last_name: last.trim() || null, email: email.trim() || null, whatsapp_booking_updates: whatsapp });
+      await completeSignup({ first_name: first.trim(), last_name: last.trim() || null, date_of_birth: dateOfBirth.iso, email: email.trim() || null, whatsapp_booking_updates: whatsapp });
       onDone();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'conflict') setEmailError('That email is already used by another account.');
@@ -50,6 +55,19 @@ export function EditAccountForm({ onDone }: EditAccountFormProps) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <AppTextField label="Last name" value={last} onChangeText={setLast} autoCapitalize="words" autoComplete="family-name" textContentType="familyName" />
         </View>
+      </View>
+      <View style={{ marginTop: 10 }}>
+        <AppTextField
+          label="Date of birth"
+          placeholder="DD/MM/YYYY"
+          value={dob}
+          onChangeText={(t) => { setDob(formatDateOfBirth(t)); setDobError(null); }}
+          onBlur={() => setDobError(readDateOfBirth(dob).error)}
+          error={dobError}
+          keyboardType="number-pad"
+          maxLength={10}
+          autoComplete="birthdate-full" // RN 0.86 types have no `bday`; see Your details
+        />
       </View>
       <View style={{ marginTop: 10 }}>
         <AppTextField

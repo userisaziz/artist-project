@@ -10,6 +10,8 @@ export interface User {
   is_phone_verified: boolean;
   first_name?: string | null;
   last_name?: string | null;
+  /** ISO date (YYYY-MM-DD). Asked at sign-up, required on every details save, and 18+ server-side. */
+  date_of_birth?: string | null;
   email?: string | null;
   avatar_url?: string | null;
   whatsapp_booking_updates: boolean;

@@ -1,7 +1,6 @@
 import { View } from 'react-native';
-import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
-import { Chip } from '../common/Chip';
+import { LanguageField } from './LanguageField';
 import { useTheme } from '../../core/theme/theme-provider';
 import { LANGUAGES } from '../../utils/artist-onboarding/profile-details';
 
@@ -17,8 +16,6 @@ interface ProfileDetailsFieldsProps {
 /** Profile step: years of experience and the languages the artist speaks, both shown on their storefront. */
 export function ProfileDetailsFields({ experience, onExperienceChange, languages, onLanguagesChange }: ProfileDetailsFieldsProps) {
   const theme = useTheme();
-  const toggle = (language: string) =>
-    onLanguagesChange(languages.includes(language) ? languages.filter((l) => l !== language) : [...languages, language]);
   return (
     <View style={{ gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
       <AppTextField
@@ -29,12 +26,12 @@ export function ProfileDetailsFields({ experience, onExperienceChange, languages
         maxLength={2}
         placeholder="e.g. 8 (optional)"
       />
-      <AppText variant="label" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>Languages you speak (optional)</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-        {LANGUAGES.map((language) => (
-          <Chip key={language} label={language} selected={languages.includes(language)} onPress={() => toggle(language)} />
-        ))}
-      </View>
+      <LanguageField
+        label="Languages you speak (optional)"
+        languages={languages}
+        options={LANGUAGES}
+        onChange={onLanguagesChange}
+      />
     </View>
   );
 }

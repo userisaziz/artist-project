@@ -24,7 +24,7 @@ export default function ChooseRoleScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { chooseRole } = useAuth();
+  const { chooseRole, signOut } = useAuth();
   const [pending, setPending] = useState<Choice | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +40,12 @@ export default function ChooseRoleScreen() {
     }
   };
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/signup'));
+  // The gate arrives here with a redirect, so `/signup` is unmounted behind its guard and a replace to it would
+  // be a silent no-op. With no history to pop, the only real way out is to leave the account, as on Your details.
+  const back = () => {
+    if (router.canGoBack()) router.back();
+    else void signOut();
+  };
 
   return (
     <ScrollView

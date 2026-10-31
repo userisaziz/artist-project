@@ -9,26 +9,34 @@ import { useAuth } from '../../src/context/auth/auth-provider';
 import { ApiError } from '../../src/core/api/types';
 import { errorMessage } from '../../src/core/api/error-message';
 import { BAD_EMAIL, isValidOptionalEmail } from '../../src/utils/auth/email';
+import { formatDateOfBirth, readDateOfBirth } from '../../src/utils/auth/date-of-birth';
 
-// Atelier hi-fi "Your details" (v4): step 3 of 3, first/last name side by side, optional email, Continue pinned.
+// Atelier hi-fi "Your details" (v4): step 3 of 3, first/last name side by side, date of birth, optional email, Continue pinned.
 export default function SignupScreen() {
   const theme = useTheme();
-  const { completeSignup, signOut } = useAuth();
+  const { completeSignup, chooseRole, signOut } = useAuth();
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
+  const [dob, setDob] = useState('');
+  const [dobError, setDobError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [escaping, setEscaping] = useState(false);
+
+  // The same rule the server applies (app/user/service.py): a real date, and 18 years of it.
+  const dateOfBirth = readDateOfBirth(dob);
 
   const submit = async () => {
+    if (dateOfBirth.iso === null) { setDobError(dateOfBirth.error); return; }
     const trimmedEmail = email.trim();
     if (!isValidOptionalEmail(trimmedEmail)) { setEmailError(BAD_EMAIL); return; }
     setSaving(true);
     setError(null);
     try {
       // The design drops the WhatsApp toggle; booking updates stay on (the backend default).
-      await completeSignup({ first_name: first.trim(), last_name: last.trim() || null, email: trimmedEmail || null, whatsapp_booking_updates: true });
+      await completeSignup({ first_name: first.trim(), last_name: last.trim() || null, date_of_birth: dateOfBirth.iso, email: trimmedEmail || null, whatsapp_booking_updates: true });
       // success → the gate moves on to Choose role
     } catch (e) {
       if (e instanceof ApiError && e.code === 'conflict') setEmailError('That email is already used by another account.');
@@ -39,12 +47,31 @@ export default function SignupScreen() {
     }
   };
 
-  // The number is already verified, so there is no OTP to go back to: Back signs out ("not you?").
+  // An escape that keeps the verified session: choosing customer lets the root gate route into the app.
+  const browseAsCustomer = async () => {
+    if (saving || escaping) return;
+    setEscaping(true);
+    setError(null);
+    try {
+      await chooseRole('customer');
+    } catch (e) {
+      setError(errorMessage(e));
+      setEscaping(false);
+    }
+  };
+
+  // The number is already verified, so there is no OTP to go back to: the chevron signs out ("not you?"),
+  // and the two ways forward are Continue and Browse as a customer.
   return (
     <FormScreen
       onBack={() => { void signOut(); }}
       step={3}
-      footer={<AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />}
+      footer={(
+        <View style={{ gap: 8 }}>
+          <AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />
+          <AppButton label="Browse as a customer" variant="ghost" loading={escaping} disabled={saving} onPress={() => { void browseAsCustomer(); }} />
+        </View>
+      )}
     >
       <FormHeading eyebrow="YOUR DETAILS" title="What’s your" accent="name?" />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
@@ -54,6 +81,22 @@ export default function SignupScreen() {
         <View style={{ flex: 1, minWidth: 0 }}>
           <AppTextField label="Last name" hideLabel placeholder="Last name" value={last} onChangeText={setLast} autoCapitalize="words" autoComplete="family-name" textContentType="familyName" />
         </View>
+      </View>
+      <View style={{ marginTop: 10 }}>
+        <AppTextField
+          label="Date of birth"
+          hideLabel
+          placeholder="Date of birth (DD/MM/YYYY)"
+          value={dob}
+          onChangeText={(t) => { setDob(formatDateOfBirth(t)); setDobError(null); }}
+          onBlur={() => setDobError(readDateOfBirth(dob).error)}
+          error={dobError}
+          keyboardType="number-pad"
+          maxLength={10}
+          // The HTML standard spells this "bday"; RN 0.86 hands Android the value as-is unless it is a known
+          // web name, and "birthdate-full" is exactly what "bday" would have become.
+          autoComplete="birthdate-full"
+        />
       </View>
       <View style={{ marginTop: 10 }}>
         <AppTextField

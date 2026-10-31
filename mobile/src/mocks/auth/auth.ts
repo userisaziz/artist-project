@@ -11,6 +11,7 @@ export const userFixture: User = {
   is_onboarded: true,
   first_name: 'Asha',
   last_name: 'Rao',
+  date_of_birth: '1995-04-12',
   email: null,
   avatar_url: null,
   whatsapp_booking_updates: true,

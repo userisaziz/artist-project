@@ -40,7 +40,9 @@ it('an approved artist adds experience and languages, saved without a new review
   expect(send).not.toHaveBeenCalled();
 
   await fireEvent.changeText(screen.getByLabelText('Years of experience'), '8');
+  await fireEvent.press(screen.getByRole('button', { name: /^Languages you speak/ }));
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Hindi' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Done' })); // the sheet covers Save until it is shut
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() => expect(mockBack).toHaveBeenCalled());

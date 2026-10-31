@@ -4,6 +4,8 @@ import { ThemeProvider } from '../../core/theme/theme-provider';
 import { ProfileDetailsFields } from '../../components/artist-onboarding/ProfileDetailsFields';
 import { LANGUAGES, parseExperience } from '../../utils/artist-onboarding/profile-details';
 
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
+
 it('reads years of experience: blank is none, whole years up to 60, anything else is a mistake', () => {
   expect(parseExperience('')).toEqual({ ok: true, value: null });
   expect(parseExperience(' 8 ')).toEqual({ ok: true, value: 8 });
@@ -35,6 +37,7 @@ it('the artist types their experience and toggles languages in the order they pi
   await render(<ThemeProvider><Harness onChange={onChange} /></ThemeProvider>);
 
   await fireEvent.changeText(screen.getByLabelText('Years of experience'), '8');
+  await fireEvent.press(screen.getByRole('button', { name: /^Languages you speak/ })); // opens the sheet
   await fireEvent.press(screen.getByRole('checkbox', { name: 'English' }));
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Hindi' }));
 
