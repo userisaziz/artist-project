@@ -34,6 +34,7 @@ export const lightTheme: Theme = {
     washBottom: palette.blush100,
     photoScrim: palette.plum950,
     canvas: palette.blush60,
+    skeletonBand: palette.blush280, // deeper than canvas: a lighter band has no headroom over near-white
     heading: palette.plum900,
     progressTrack: palette.blush280,
     indicatorInactive: palette.blush300,

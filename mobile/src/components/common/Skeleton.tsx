@@ -13,8 +13,9 @@ interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** A first-load placeholder block: a highlight band sweeping through a soft surface (the one sanctioned
- *  linear loop — loading). Reduced motion keeps the band still. Compose blocks into rows; no spinner. */
+/** A first-load placeholder block: a tint band sweeping through a soft canvas block (the one sanctioned
+ *  linear loop — loading). Reduced motion parks the band, so the block stays flat. Compose blocks into
+ *  rows; no spinner. */
 export function Skeleton({ height = 96, width, radius, style }: SkeletonProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
@@ -35,7 +36,7 @@ export function Skeleton({ height = 96, width, radius, style }: SkeletonProps) {
     };
   }, [reduced, sweep]);
   // The band is 40% wide and travels -100% -> 250%, i.e. entirely off-frame on both ends. The moving
-  // edge is what reads as loading: a full-width band only shifted the whole block's tone by ~1.03:1.
+  // edge is what reads as loading; a full-width band only shifted the block's tone as a whole.
   const band = useAnimatedStyle(() => ({ transform: [{ translateX: `${sweep.value * 350 - 100}%` }] }));
   return (
     <View
@@ -44,7 +45,9 @@ export function Skeleton({ height = 96, width, radius, style }: SkeletonProps) {
     >
       <Animated.View
         style={[
-          { position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%', backgroundColor: theme.colors.surface, opacity: 0.7 },
+          // The band is a *tint* on the block, not a highlight: white over the blush canvas is already
+          // the luminance ceiling here (~1.09:1), so the sweep has to be darker to be seen at all.
+          { position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%', backgroundColor: theme.colors.skeletonBand },
           band,
         ]}
       />
