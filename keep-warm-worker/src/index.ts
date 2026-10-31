@@ -1,6 +1,8 @@
-// Pings the staging API's dependency-free liveness endpoint so the Render free instance never sleeps.
-// The scheduled handler runs on the cron in wrangler.jsonc; the fetch handler lets you test on demand by
-// opening the worker URL. Types are declared locally so the repo needs no @cloudflare/workers-types install.
+// Pings the staging API's readiness endpoint so the Render free instance never sleeps AND the hosted
+// Postgres project sees daily traffic (a /health/live-only pinger keeps Render awake but lets the database
+// itself idle-suspend). The scheduled handler runs on the cron in wrangler.jsonc; the fetch handler lets you
+// test on demand by opening the worker URL. Types are declared locally so the repo needs no
+// @cloudflare/workers-types install.
 
 interface Env {
   TARGET_URL: string;
@@ -17,7 +19,7 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
-const target = (env: Env) => `${(env.TARGET_URL || 'https://artist-project.onrender.com').replace(/\/$/, '')}/health/live`;
+const target = (env: Env) => `${(env.TARGET_URL || 'https://artist-project.onrender.com').replace(/\/$/, '')}/health/ready`;
 
 async function ping(env: Env): Promise<{ ok: boolean; status: number; ms: number }> {
   const started = Date.now();
