@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../../core/theme/theme-provider';
 import { transport } from '../../core/api/client';
+import { currentToast, dismissToast } from '../../core/toast/toast';
 import { DeleteAccountButton } from '../../components/auth/DeleteAccountButton';
 
 const mockSignOut = jest.fn(async () => undefined);
@@ -24,8 +25,9 @@ beforeEach(() => {
   send.mockReset();
   alert.mockReset();
   mockSignOut.mockClear();
+  dismissToast();
 });
-afterEach(() => client.clear());
+afterEach(() => { client.clear(); dismissToast(); }); // dismissToast also clears the 4s auto-dismiss timer
 afterAll(() => { send.mockRestore(); alert.mockRestore(); });
 
 it('asks first, deletes the account on the server, then signs out', async () => {
@@ -54,6 +56,6 @@ it('stays signed in and says why when deletion fails', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Delete account' }));
   choose('Delete account');
 
-  await waitFor(() => expect(alert).toHaveBeenLastCalledWith('Couldn’t delete your account', 'Try again in a minute'));
+  await waitFor(() => expect(currentToast()).toMatchObject({ tone: 'error', title: 'Couldn’t delete your account', body: 'Try again in a minute' }));
   expect(mockSignOut).not.toHaveBeenCalled();
 });

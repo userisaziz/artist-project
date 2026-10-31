@@ -10,6 +10,7 @@ import { Card } from '../common/Card';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 import { useAddAddress, useAddresses, useDeleteAddress, useUpdateAddress } from '../../hooks/addresses/addresses';
 import { ADDRESS_LABEL_MAX, SAVED_ADDRESS_MAX, savedAddressDraftSchema } from '../../utils/addresses/address-draft';
 import type { SavedAddress } from '../../types/addresses/addresses';
@@ -49,7 +50,7 @@ function AddressRow({ address }: { address: SavedAddress }) {
   const confirmDelete = () =>
     Alert.alert(`Delete “${address.label}”?`, address.address, [
       { text: 'Keep', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(address.id, { onError: (e) => Alert.alert('Couldn’t delete', errorMessage(e)) }) },
+      { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(address.id, { onError: (e) => toast('error', 'Couldn’t delete', errorMessage(e)) }) },
     ]);
 
   return (

@@ -10,6 +10,7 @@ import { destination } from '../src/utils/auth/routing';
 import { AppText } from '../src/components/common/AppText';
 import { AppButton } from '../src/components/common/AppButton';
 import { SessionUnavailable } from '../src/components/auth/SessionUnavailable';
+import { ToastHost } from '../src/components/common/Toast';
 import { usePushNotifications } from '../src/hooks/notifications/use-push';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../src/core/api/query-client';
@@ -21,11 +22,14 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null; // a font failure falls back to system fonts rather than a stuck splash
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Gate />
-        </AuthProvider>
-      </QueryClientProvider>
+      <View style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Gate />
+          </AuthProvider>
+        </QueryClientProvider>
+        <ToastHost />
+      </View>
     </ThemeProvider>
   );
 }

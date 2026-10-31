@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../../core/theme/theme-provider';
 import { transport } from '../../core/api/client';
+import { currentToast, dismissToast } from '../../core/toast/toast';
 import { ArtistFlowContext } from '../../context/artist-onboarding/flow-context';
 import { EditProfileRow } from '../../components/artist-onboarding/EditProfileRow';
 import { artistProfileFixture } from '../../mocks/artist-onboarding/artist-onboarding';
@@ -37,8 +38,9 @@ beforeEach(() => {
   send.mockReset();
   alert.mockReset();
   startEditing.mockReset();
+  dismissToast();
 });
-afterEach(() => client.clear());
+afterEach(() => { client.clear(); dismissToast(); }); // dismissToast also clears the 4s auto-dismiss timer
 afterAll(() => { send.mockRestore(); alert.mockRestore(); });
 
 it('asks first, then reopens the profile and starts editing at Profile', async () => {
@@ -70,5 +72,5 @@ it('says why when the profile cannot be reopened', async () => {
   await fireEvent.press(screen.getByRole('button'));
   choose('Edit profile');
 
-  await waitFor(() => expect(alert).toHaveBeenLastCalledWith('Couldn’t open your profile', 'Profile is pending; only an approved profile can be reopened'));
+  await waitFor(() => expect(currentToast()).toMatchObject({ tone: 'error', title: 'Couldn’t open your profile', body: 'Profile is pending; only an approved profile can be reopened' }));
 });

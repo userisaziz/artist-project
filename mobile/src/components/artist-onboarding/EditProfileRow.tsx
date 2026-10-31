@@ -3,6 +3,7 @@ import { MenuRow } from '../common/MenuRow';
 import { useArtistFlow } from '../../context/artist-onboarding/flow-context';
 import { useReopenProfile } from '../../hooks/artist-onboarding/artist-onboarding';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 
 /**
  * Me → Edit profile for an approved artist. Editing sends the profile back to review, so it asks first; on success the
@@ -22,7 +23,7 @@ export function EditProfileRow() {
           text: 'Edit profile',
           onPress: () => {
             startEditing(); // before the status flips, so the layout opens Profile rather than the last step
-            reopen.mutate(undefined, { onError: (e) => Alert.alert('Couldn’t open your profile', errorMessage(e)) });
+            reopen.mutate(undefined, { onError: (e) => toast('error', 'Couldn’t open your profile', errorMessage(e)) });
           },
         },
       ],

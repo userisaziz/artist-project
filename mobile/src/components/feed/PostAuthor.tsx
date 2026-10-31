@@ -1,10 +1,11 @@
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useToggleFollow } from '../../hooks/feed/feed';
+import { toast } from '../../core/toast/toast';
 import { shortAgo } from '../../utils/common/time';
 import type { Post } from '../../types/feed/feed';
 import { Icon } from '../common/Icon';
@@ -23,7 +24,7 @@ export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
   const toggle = () =>
     follow.mutate(
       { artistId: artist.id, following: !following },
-      { onError: (e) => Alert.alert('Couldn’t update', errorMessage(e)) },
+      { onError: (e) => toast('error', 'Couldn’t update', errorMessage(e)) },
     );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

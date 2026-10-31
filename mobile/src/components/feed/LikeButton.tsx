@@ -1,9 +1,9 @@
-import { Alert } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useToggleLike } from '../../hooks/feed/feed';
+import { toast } from '../../core/toast/toast';
 import { compactCount } from '../../utils/feed/article';
 import type { Post } from '../../types/feed/feed';
 import { Icon } from '../common/Icon';
@@ -19,7 +19,7 @@ export function LikeButton({ post }: { post: Post }) {
       accessibilityLabel={post.liked ? `Unlike, ${count}` : `Like, ${count}`}
       accessibilityState={{ selected: post.liked, busy: like.isPending }}
       hitSlop={8}
-      onPress={() => like.mutate(post, { onError: (e) => Alert.alert('Couldn’t update', errorMessage(e)) })}
+      onPress={() => like.mutate(post, { onError: (e) => toast('error', 'Couldn’t update', errorMessage(e)) })}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
     >
       <Icon name="heart" size={20} color={post.liked ? theme.colors.brand : theme.colors.textSecondary} filled={post.liked} />

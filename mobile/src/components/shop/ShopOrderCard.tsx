@@ -10,6 +10,7 @@ import { useOrderStep } from '../../hooks/shop/shop';
 import { METHOD_LABEL, ORDER_STATUS } from '../../utils/shop/cart';
 import { formatPrice } from '../../utils/common/format';
 import type { Order } from '../../types/shop/shop';
+import { toast } from '../../core/toast/toast';
 
 const TRACKING_MAX = 120;
 
@@ -19,7 +20,7 @@ export function ShopOrderCard({ order: o }: { order: Order }) {
   const step = useOrderStep();
   const [tracking, setTracking] = useState('');
   const run = (s: Parameters<typeof step.mutate>[0]['step'], body?: { tracking?: string | null; reason?: string | null }) =>
-    step.mutate({ order: o, step: s, body }, { onError: (e) => Alert.alert('Couldn’t update the order', errorMessage(e)) });
+    step.mutate({ order: o, step: s, body }, { onError: (e) => toast('error', 'Couldn’t update the order', errorMessage(e)) });
   const needsPayment = o.payment_method === 'pay_before_shipping' && !o.paid_at;
   const open = o.status === 'placed' || o.status === 'confirmed';
 

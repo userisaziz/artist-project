@@ -1,10 +1,10 @@
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query';
 import * as chatApi from '../../api/chat/chat';
 import { useAuth } from '../../context/auth/auth-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 import type { Page } from '../../core/api/types';
 import type { ChatMessage, ChatSide, Conversation } from '../../types/chat/chat';
 
@@ -162,7 +162,7 @@ export function useChatOpener(side: ChatSide) {
       const conversation = await openChat.mutateAsync(targetId);
       router.push({ pathname: CHAT_ROUTE[side], params: { id: conversation.id } });
     } catch (e) {
-      Alert.alert('Couldn’t open the chat', errorMessage(e));
+      toast('error', 'Couldn’t open the chat', errorMessage(e));
     } finally {
       opening.current = false;
     }

@@ -4,6 +4,7 @@ import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { useDeleteAccount } from '../../hooks/auth/auth';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 
 /** Profile / Me → Delete account: one destructive confirm, then the server anonymises the account and the app signs out. */
 export function DeleteAccountButton() {
@@ -19,7 +20,7 @@ export function DeleteAccountButton() {
         {
           text: 'Delete account',
           style: 'destructive',
-          onPress: () => remove.mutate(undefined, { onError: (e) => Alert.alert('Couldn’t delete your account', errorMessage(e)) }),
+          onPress: () => remove.mutate(undefined, { onError: (e) => toast('error', 'Couldn’t delete your account', errorMessage(e)) }),
         },
       ],
     );

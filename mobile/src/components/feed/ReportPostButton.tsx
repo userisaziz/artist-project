@@ -3,6 +3,7 @@ import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 import { useReportPost } from '../../hooks/feed/feed';
 import type { ReportReason } from '../../types/feed/feed';
 
@@ -14,8 +15,8 @@ export function ReportPostButton({ postId }: { postId: string }) {
     report.mutate(
       { id: postId, reason },
       {
-        onSuccess: () => Alert.alert('Thanks for telling us', 'Our team will take a look.'),
-        onError: (e) => Alert.alert('Couldn’t send the report', errorMessage(e)),
+        onSuccess: () => toast('success', 'Thanks for telling us', 'Our team will take a look.'),
+        onError: (e) => toast('error', 'Couldn’t send the report', errorMessage(e)),
       },
     );
   const ask = () =>

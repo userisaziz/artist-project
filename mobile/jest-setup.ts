@@ -24,3 +24,8 @@ jest.mock('expo-haptics', () => {
     NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
   };
 });
+
+// A toast raised by a test arms a 4s dismissal timer; left alone it outlives the test (and the suite).
+afterEach(() => {
+  require('./src/core/toast/toast').dismissToast();
+});

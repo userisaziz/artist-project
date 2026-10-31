@@ -10,6 +10,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useDeletePost, useMyPosts } from '../../hooks/feed/feed';
 import { useNow } from '../../hooks/common/use-now';
+import { toast } from '../../core/toast/toast';
 import { shortAgo } from '../../utils/common/time';
 import { compactCount, topicLabel } from '../../utils/feed/article';
 import type { Post } from '../../types/feed/feed';
@@ -28,7 +29,7 @@ export function MyPosts({ onNewPost }: { onNewPost: () => void }) {
   const confirmDelete = (post: Post) =>
     Alert.alert('Delete this post?', 'It disappears from the feed for everyone.', [
       { text: 'Keep', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(post.id, { onError: (e) => Alert.alert('Couldn’t delete', errorMessage(e)) }) },
+      { text: 'Delete', style: 'destructive', onPress: () => remove.mutate(post.id, { onError: (e) => toast('error', 'Couldn’t delete', errorMessage(e)) }) },
     ]);
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, FlatList, Switch, View } from 'react-native';
+import { FlatList, Switch, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
@@ -11,6 +11,7 @@ import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
 import { ShopOrderCard } from './ShopOrderCard';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
+import { toast } from '../../core/toast/toast';
 import { useMyProducts, useShopOrders, useShopSummary, useUpdateProduct } from '../../hooks/shop/shop';
 import { formatPrice } from '../../utils/common/format';
 import { Icon } from '../common/Icon';
@@ -84,7 +85,7 @@ export function MyShop({ onAddProduct, onEditProduct, onOpenSettings }: MyShopPr
                 accessibilityLabel={`${p.name} on sale`}
                 value={p.is_active}
                 disabled={p.status === 'removed' || update.isPending}
-                onValueChange={(on) => update.mutate({ id: p.id, patch: { is_active: on } }, { onError: (e) => Alert.alert('Couldn’t update', errorMessage(e)) })}
+                onValueChange={(on) => update.mutate({ id: p.id, patch: { is_active: on } }, { onError: (e) => toast('error', 'Couldn’t update', errorMessage(e)) })}
                 trackColor={{ true: theme.colors.brand, false: theme.colors.separator }}
               />
             </View>
