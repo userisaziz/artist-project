@@ -10,6 +10,7 @@ Two families live here per surface — vendored upstream skills, plus skills aut
 | Vendored official Expo skills | `expo-*`, `eas-*` | No — upstream-owned, re-sync instead |
 | Vendored official FastAPI skill | `fastapi` | No — comes from the installed wheel, re-sync after a FastAPI upgrade |
 | Authored for this repo | `react-native-stack`, `fastapi-stack`, `react-web-stack`, `data-layer-stack` | Yes |
+| Authored method skill (surface-agnostic) | `awesome-list-curation` | Yes |
 
 ## Rule precedence
 
@@ -81,10 +82,11 @@ not the linked projects.
 | `react-web-stack` | [enaqx/awesome-react](https://github.com/enaqx/awesome-react) | `e6fd973` | no LICENSE file; README footer carries a CC0/BY badge |
 | `data-layer-stack` | [dhamaniasad/awesome-postgres](https://github.com/dhamaniasad/awesome-postgres) + [lyqht/awesome-supabase](https://github.com/lyqht/awesome-supabase) + [docker/awesome-compose](https://github.com/docker/awesome-compose) | `954766a` / `11d47fd` / `30f4b7f` | CC0 (all three) |
 
-The method those four follow is itself a global skill:
-`~/.qoder/skills/awesome-list-curation/SKILL.md` — inventory the surface first, pin the list by
-commit, classify each candidate as installed / own-rival / candidate / rejected, then write the
-decision ladder and the list-vs-repo disagreement table. Copy that shape when adding a fifth.
+The method those four follow is itself a skill in this directory:
+[awesome-list-curation/SKILL.md](./awesome-list-curation/SKILL.md) — inventory the surface first,
+pin the list by commit, classify each candidate as installed / own-rival / candidate / rejected,
+then write the decision ladder and the list-vs-repo disagreement table. Copy that shape when adding
+a fifth.
 
 Re-sync recipe (all four are authored, so this only re-pins the provenance; nothing is copied):
 
