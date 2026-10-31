@@ -98,6 +98,11 @@ export default function ProfileStep() {
         accessibilityRole="button"
         accessibilityLabel={photoKey ? 'Change profile photo' : 'Add profile photo'}
         onPress={() => { void choosePhoto(); }}
+        // The row is a photo and a label with no surface of its own: the default wash painted a grey
+        // bar across the whole rectangle, and dimming the row made the avatar look washed out. It
+        // answers with the Premium dip instead, like every other photo surface.
+        feedback={false}
+        scale
         style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 20 }}
       >
         <View style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.colors.border, padding: 3 }}>
