@@ -8,8 +8,7 @@ import * as artistApi from './artist-onboarding';
 const MAX_EDGE = 2048; // spec §2: longest side
 const QUALITY = 0.8;   // spec §2: JPEG quality
 const UPLOAD_TIMEOUT_MS = 60_000; // uploads carry a whole photo, so they get longer than an API call
-// Backend STORAGE_PROVIDER=fake hands out this URL; there is nothing to post to, so dev skips the upload.
-const FAKE_STORAGE = 'https://fake.storage/';
+const JPEG = 'image/jpeg'; // the type the presigned PUT is signed for — storage refuses anything else
 
 export interface PickedImage { uri: string; width: number; height: number }
 
@@ -24,10 +23,7 @@ export async function pickImages(limit: number): Promise<PickedImage[]> {
 export async function uploadImage(image: PickedImage, purpose: UploadPurpose): Promise<PhotoInput> {
   const small = await shrink(image);
   const ticket = await artistApi.uploadTicket(purpose);
-  // Dev-only: STORAGE_PROVIDER=fake has nothing to post to. A release build always posts, so a misconfigured
-  // backend fails loudly instead of "uploading" photos that never exist.
-  const skipUpload = __DEV__ && ticket.upload_url.startsWith(FAKE_STORAGE);
-  if (!skipUpload) await postToStorage(ticket, small.uri);
+  await postToStorage(ticket, small.uri);
   return { key: ticket.key, width: Math.round(small.width), height: Math.round(small.height) };
 }
 
@@ -48,10 +44,13 @@ async function shrink({ uri, width, height }: PickedImage): Promise<PickedImage>
   }
 }
 
-/** Reads a local file (file:// on native, blob: on web) into a Blob; a failure here is the file, not the network. */
+/** Reads a local file (file:// on native, blob: on web) into a JPEG Blob; a failure here is the file, not the network.
+ * React Native sends a Blob body under the type the Blob itself carries, and a local file read comes back untyped —
+ * typed as application/octet-stream then, storage refuses the presigned PUT, so the JPEG type is applied here. */
 async function localBlob(uri: string): Promise<Blob> {
   try {
-    return await (await fetch(uri)).blob();
+    const raw = await (await fetch(uri)).blob();
+    return raw.type === JPEG ? raw : new Blob([raw], { type: JPEG });
   } catch (e) {
     throw fileReadError(e);
   }

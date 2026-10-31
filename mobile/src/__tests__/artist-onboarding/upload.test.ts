@@ -13,18 +13,16 @@ jest.mock('../../api/artist-onboarding/artist-onboarding', () => ({ uploadTicket
 const ticket: UploadTicket = { upload_url: 'https://storage.example.com/bucket', method: 'POST', fields: { key: 'artists/a/photo.jpg', policy: 'p' }, headers: {}, key: 'artists/a/photo.jpg' };
 // R2: a presigned PUT; the signature pins Content-Type, so the headers must be sent as given.
 const putTicket: UploadTicket = { upload_url: 'https://acct.r2.cloudflarestorage.com/pics/artists/a/x?X-Amz-Signature=s', method: 'PUT', fields: {}, headers: { 'Content-Type': 'image/jpeg' }, key: 'artists/a/x' };
-const fakeTicket: UploadTicket = { ...ticket, upload_url: 'https://fake.storage/bucket' };
 const image = { uri: 'file:///photo.jpg', width: 4000, height: 3000 };
 
 const realFetch = global.fetch;
 const realFormData = global.FormData;
 /** React Native's FormData accepts a {uri, name, type} file part; Node's (jest) does not, so record parts instead. */
 class RecordingFormData {
-  parts: [string, unknown][] = [];
-  append(name: string, value: unknown): void { this.parts.push([name, value]); }
+  parts: unknown[][] = [];
+  append(...args: unknown[]): void { this.parts.push(args); }
 }
 const fetchMock = jest.fn();
-const dev = (global as { __DEV__?: boolean }).__DEV__;
 const os = Platform.OS;
 
 function manipulatorSaves(result: Promise<{ uri: string; width: number; height: number }>): void {
@@ -42,7 +40,6 @@ beforeEach(() => {
 afterEach(() => {
   global.fetch = realFetch;
   global.FormData = realFormData;
-  (global as { __DEV__?: boolean }).__DEV__ = dev;
   Platform.OS = os;
 });
 
@@ -72,6 +69,19 @@ describe('postToStorage', () => {
     await expect(postToStorage(ticket, 'file:///small.jpg')).rejects.toBeInstanceOf(RangeError);
   });
 
+  it('POSTs the signed fields and the file part as a form', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204 });
+    await postToStorage(ticket, 'file:///small.jpg');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(ticket.upload_url);
+    expect(init.method).toBe('POST');
+    expect((init.body as unknown as RecordingFormData).parts).toEqual([
+      ['key', 'artists/a/photo.jpg'],
+      ['policy', 'p'],
+      ['file', { uri: 'file:///small.jpg', name: 'photo.jpg', type: 'image/jpeg' }, 'photo.jpg'],
+    ]);
+  });
+
   it('reports a local blob read failure on web as file_read_error, not network', async () => {
     Platform.OS = 'web';
     const cause = new TypeError('Failed to fetch blob:');
@@ -84,13 +94,17 @@ describe('postToStorage', () => {
 
 describe('postToStorage with a presigned PUT', () => {
   it('PUTs the raw image with the signed headers, not a form', async () => {
-    const blob = { size: 3 };
-    fetchMock.mockResolvedValueOnce({ blob: async () => blob }).mockResolvedValueOnce({ ok: true, status: 200 });
+    fetchMock.mockResolvedValueOnce({ blob: async () => new Blob(['abc']) }).mockResolvedValueOnce({ ok: true, status: 200 });
     await postToStorage(putTicket, 'file:///small.jpg');
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'file:///small.jpg');
-    expect(fetchMock).toHaveBeenNthCalledWith(2, putTicket.upload_url, expect.objectContaining({
-      method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob,
-    }));
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe(putTicket.upload_url);
+    expect(init.method).toBe('PUT');
+    expect(init.headers).toEqual({ 'Content-Type': 'image/jpeg' });
+    // React Native builds the request's Content-Type from the Blob body, so an untyped Blob signs 403 at R2.
+    const body = init.body as Blob;
+    expect(body.type).toBe('image/jpeg');
+    expect(body.size).toBe(3);
   });
 
   it('reports an unreadable local file as file_read_error and never reaches storage', async () => {
@@ -101,7 +115,7 @@ describe('postToStorage with a presigned PUT', () => {
   });
 
   it('maps a storage rejection (e.g. an expired signature) to upload_failed', async () => {
-    fetchMock.mockResolvedValueOnce({ blob: async () => ({}) }).mockResolvedValueOnce({ ok: false, status: 403 });
+    fetchMock.mockResolvedValueOnce({ blob: async () => new Blob(['abc']) }).mockResolvedValueOnce({ ok: false, status: 403 });
     await expect(postToStorage(putTicket, 'file:///small.jpg')).rejects.toMatchObject({ code: 'upload_failed', status: 403 });
   });
 });
@@ -118,19 +132,11 @@ describe('uploadImage', () => {
     expect(artistApi.uploadTicket).not.toHaveBeenCalled();
   });
 
-  it('skips the storage post for the fake storage provider in development', async () => {
-    manipulatorSaves(Promise.resolve({ uri: 'file:///small.jpg', width: 2048, height: 1536 }));
-    jest.mocked(artistApi.uploadTicket).mockResolvedValue(fakeTicket);
-    await expect(uploadImage(image, 'artist_photo')).resolves.toEqual({ key: fakeTicket.key, width: 2048, height: 1536 });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('never skips the storage post in a release build', async () => {
-    (global as { __DEV__?: boolean }).__DEV__ = false;
-    manipulatorSaves(Promise.resolve({ uri: 'file:///small.jpg', width: 2048, height: 1536 }));
-    jest.mocked(artistApi.uploadTicket).mockResolvedValue(fakeTicket);
-    fetchMock.mockResolvedValue({ ok: true, status: 204 });
-    await uploadImage(image, 'artist_photo');
-    expect(fetchMock).toHaveBeenCalledWith(fakeTicket.upload_url, expect.objectContaining({ method: 'POST' }));
+  it('shrinks, signs, uploads, and reports the stored photo', async () => {
+    manipulatorSaves(Promise.resolve({ uri: 'file:///small.jpg', width: 2048.4, height: 1536.6 }));
+    jest.mocked(artistApi.uploadTicket).mockResolvedValue(putTicket);
+    fetchMock.mockResolvedValueOnce({ blob: async () => new Blob(['abc']) }).mockResolvedValueOnce({ ok: true, status: 200 });
+    await expect(uploadImage(image, 'artist_photo')).resolves.toEqual({ key: putTicket.key, width: 2048, height: 1537 });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, putTicket.upload_url, expect.objectContaining({ method: 'PUT' }));
   });
 });
