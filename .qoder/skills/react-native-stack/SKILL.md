@@ -18,19 +18,23 @@ this skill disagree, the rule wins.
 ## Decision ladder — run in order, stop at the first hit
 
 1. **React Native built-in.** `FlatList`, `Modal`, `KeyboardAvoidingView`, `Alert`, `Share`,
-   `PanResponder`. Already covers most of this app. Not `Animated`: animation goes through
-   `src/core/motion` (Reanimated 4), never the legacy API.
+   `PanResponder`. Already covers most of this app. Two qualifiers: not `Animated` — animation goes
+   through `src/core/motion` (Reanimated 4), never the legacy API; and `Alert` is only for the
+   destructive confirmations that need buttons — a transient "it failed" notice goes through
+   `toast()` from `src/core/toast`.
 2. **An Expo SDK module already in `mobile/package.json`.** 16 of the 29 dependencies are Expo
    modules — `expo-image`, `expo-image-picker`, `expo-image-manipulator`, `expo-linear-gradient`,
    `expo-location`, `expo-notifications`, `expo-secure-store`, `expo-splash-screen`,
    `expo-updates`, `expo-font`, `expo-asset`, `expo-haptics`… Check there before proposing anything new.
 3. **An existing wrapper in `mobile/src/components/common/`.** Sheets, OTP input, photo,
-   skeletons, pressable feedback, screens, chips and maps are already wrapped there and
-   token-driven (`BottomSheet.tsx`, `OtpInput.tsx`, `Photo.tsx`, `PinMap.tsx`,
-   `PressableScale.tsx`, `Skeleton.tsx`, `StateViews.tsx`, `Screen.tsx`, `MotionEntrance.tsx`).
+   skeletons, pressable feedback, screens, chips, maps and the toast card are already wrapped there
+   and token-driven (`BottomSheet.tsx`, `OtpInput.tsx`, `Photo.tsx`, `PinMap.tsx`,
+   `PressableScale.tsx`, `Skeleton.tsx`, `StateViews.tsx`, `Screen.tsx`, `MotionEntrance.tsx`,
+   `Toast.tsx`).
    Extend it; do not bolt a second kit next to it. Motion has the same rule in a sharper form:
    only `src/core/motion` (`motion.ts`, `haptics.ts`) and the shared primitives (`AppButton`,
-   `PressableFeedback`, `Skeleton`, `MotionEntrance`, `Crossfade`, `BottomSheet`, `OtpInput`)
+   `PressableFeedback`, `Skeleton`, `MotionEntrance`, `CrossfadeStack`, `BottomSheet`, `OtpInput`,
+   `Toast`)
    import `react-native-reanimated` — screens and features go through those, and new motion code
    should keep that boundary. The legacy RN `Animated` API is retired (0 files).
 4. **A row in [LIBRARIES.md](./LIBRARIES.md)** marked `candidate`. That is the pre-approved pick
@@ -115,14 +119,21 @@ Ranked by user-visible payoff; details and install commands in [LIBRARIES.md](./
    opted in per control with `PressableFeedback haptic=` — today `AppButton` (tap), `Chip` and
    `Segmented` (select), `OtpInput` (error); it is mocked in `jest-setup.ts`. Motion is closed too: all
    three legacy `Animated` files (`BottomSheet`, `OtpInput`, `HomeHero`) now run on Reanimated 4, with
-   `Crossfade` as the new primitive. **Still open: `react-native-gesture-handler`**, without which
+   `CrossfadeStack` as the new primitive. **Still open: `react-native-gesture-handler`**, without which
    drag-to-dismiss on `BottomSheet.tsx` (today `Modal` + `timings.sheet`) is out of reach.
 4. **Keyboard** — closed for consistency 2026-10-31, open for the library: all 10 `KeyboardAvoidingView`
    sites now go through `components/common/KeyboardAvoider.tsx`, and ESLint refuses a raw one outside it.
-   `react-native-keyboard-controller` remains the curated equaliser if the platform-branched `behavior`
-   still isn't enough on device.
+   The wrapper pads on **both** native platforms: edge-to-edge Android (the SDK 57 default) no longer
+   shrinks the window for the IME, so `adjustResize` alone leaves the form footer behind the keyboard —
+   that regression shipped on 2026-10-31 and is fixed in `KeyboardAvoider`. `react-native-keyboard-controller`
+   remains the curated equaliser if RN's post-animation measurement still isn't enough on device.
 5. **Date/time pickers** — no picker dependency; schedules, working hours and slots are custom.
-6. **Transient feedback** — no toast layer at all (0 toast usages, `Alert` in 12 files).
+6. **Transient feedback** — closed 2026-10-31: `src/core/toast/toast.ts` (a `useSyncExternalStore`
+   store, so a plain hook in `src/hooks/**` can raise one) plus one `ToastHost` in `app/_layout.tsx`
+   replaced 11 transient `Alert.alert` calls across 10 files with `toast('error' | 'success', …)`.
+   The 6 remaining `Alert.alert` calls are destructive confirmations (reopen profile, delete account,
+   cancel order, delete address, report post, delete post) and stay dialogs — moving those to a sheet
+   is a separate change, not a toast.
 7. **Connectivity and crash visibility** — no `@react-native-community/netinfo`, no Sentry; the
    login flow already has to guess between 5xx and network-timeout failure classes.
 
