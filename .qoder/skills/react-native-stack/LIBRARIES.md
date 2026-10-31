@@ -30,7 +30,7 @@ One capability, one kit. Statuses:
 | Lists | `FlatList` | built-in | Current default everywhere |
 | Long/virtualised lists | `@shopify/flash-list` | installed | 2.0.2 on the 15 paginated catalogs; short/static lists + `ChatThread` (no `inverted` in v2) stay on `FlatList`; broken shipped `jestSetup` — mock lives in `jest-setup.ts` |
 | Sheets | `BottomSheet.tsx` (`Modal` + Reanimated) | wrapper | `@gorhom/bottom-sheet` and `@expo/ui` are rivals — evaluate as a migration, never beside the wrapper |
-| Keyboard | `KeyboardAvoider.tsx` | wrapper | One wrapper owns the platform-branched `behavior` for all form screens; ESLint bans raw `KeyboardAvoidingView` outside it. `react-native-keyboard-controller` stays the equaliser if we outgrow it |
+| Keyboard | `KeyboardAvoider.tsx` | wrapper | One wrapper reserves the keyboard for all form screens: `behavior="padding"` on iOS **and** Android (edge-to-edge ignores `adjustResize`), none on web; ESLint bans raw `KeyboardAvoidingView` outside it. `react-native-keyboard-controller` stays the equaliser if we outgrow it |
 | Toasts | `react-native-flash-message` | candidate | Pure JS, OTA-safe; `burnt` is the native alternative |
 | Menus | `MenuRow.tsx`, `ChoiceSheet.tsx` | wrapper | No `zeego` / `popup-menu` |
 | OTP input | `OtpInput.tsx` | wrapper | Keeps autofill + token styling; `confirmation-code-field` not needed |

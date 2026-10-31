@@ -119,8 +119,10 @@ Ranked by user-visible payoff; details and install commands in [LIBRARIES.md](./
    drag-to-dismiss on `BottomSheet.tsx` (today `Modal` + `timings.sheet`) is out of reach.
 4. **Keyboard** — closed for consistency 2026-10-31, open for the library: all 10 `KeyboardAvoidingView`
    sites now go through `components/common/KeyboardAvoider.tsx`, and ESLint refuses a raw one outside it.
-   `react-native-keyboard-controller` remains the curated equaliser if the platform-branched `behavior`
-   still isn't enough on device.
+   The wrapper pads on **both** native platforms: edge-to-edge Android (the SDK 57 default) no longer
+   shrinks the window for the IME, so `adjustResize` alone leaves the form footer behind the keyboard —
+   that regression shipped on 2026-10-31 and is fixed in `KeyboardAvoider`. `react-native-keyboard-controller`
+   remains the curated equaliser if RN's post-animation measurement still isn't enough on device.
 5. **Date/time pickers** — no picker dependency; schedules, working hours and slots are custom.
 6. **Transient feedback** — no toast layer at all (0 toast usages, `Alert` in 12 files).
 7. **Connectivity and crash visibility** — no `@react-native-community/netinfo`, no Sentry; the
