@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -14,15 +15,26 @@ import { Icon } from '../../src/components/common/Icon';
 export default function InReviewScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { signOut, chooseRole } = useAuth();
   const { data } = useArtistProfile();
   const { startEditing } = useArtistFlow();
+  const [switching, setSwitching] = useState(false);
   const rejected = data?.status === 'rejected';
   const suspended = data?.status === 'suspended';
   const submitted = data?.submitted_at
     ? new Date(data.submitted_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
     : '';
   const card = { marginTop: 26, borderRadius: 18, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, padding: 16 } as const;
+
+  const switchToCustomer = async () => {
+    if (switching) return;
+    setSwitching(true);
+    try {
+      await chooseRole('customer');
+    } catch (e) {
+      setSwitching(false);
+    }
+  };
 
   return (
     <LinearGradient colors={[theme.colors.washTop, theme.colors.surface]} locations={[0, 0.6]} style={{ flex: 1 }}>
@@ -63,6 +75,7 @@ export default function InReviewScreen() {
         <View style={{ flex: 1 }} />
         <View style={{ gap: 8 }}>
           {rejected ? <AppButton label="Edit and resubmit" onPress={startEditing} /> : null}
+          <AppButton label="Browse as customer" variant="secondary" loading={switching} onPress={() => { void switchToCustomer(); }} />
           <AppButton label="Sign out" variant="ghost" onPress={() => { void signOut(); }} />
         </View>
       </View>
