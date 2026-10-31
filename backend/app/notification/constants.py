@@ -27,9 +27,12 @@ Kind = Literal[
     "ticket_opened",
     "post_reported",
     "subcategory_suggested",
+    # admin broadcast
+    "announcement",
 ]
 TITLE_MAX = 120
 BODY_MAX = 300
 LINK_MAX = 200
 TOKEN_MAX = 200
 PENDING_PUSH = "pending_push"  # session.info key: pushes to send once the transaction commits
+ANNOUNCEMENT: Kind = "announcement"

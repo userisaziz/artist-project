@@ -4,8 +4,8 @@ import uuid
 from datetime import datetime
 
 import sqlalchemy as sa
-from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.notification.constants import BODY_MAX, LINK_MAX, TITLE_MAX, TOKEN_MAX
@@ -41,3 +41,27 @@ class PushDevice(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False, index=True
     )
     platform: Mapped[str] = mapped_column(String(10), nullable=False)
+
+
+class NotificationBroadcast(Base, TimestampMixin):
+    """One admin broadcast: what was sent, to whom (segment + filter snapshot), and the resulting counts.
+    Immutable: no edits or deletes — the history table plus the admin.action audit is the trail."""
+
+    __tablename__ = "notification_broadcast"
+    __mapper_args__ = {"eager_defaults": True}  # fetch server defaults (id, timestamps) via RETURNING
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+    )
+    title: Mapped[str] = mapped_column(String(TITLE_MAX), nullable=False)
+    body: Mapped[str] = mapped_column(String(BODY_MAX), nullable=False)
+    link: Mapped[str | None] = mapped_column(String(LINK_MAX))
+    segment: Mapped[str] = mapped_column(String(20), nullable=False)  # all_users | all_artists | all_customers
+    filters: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=sa.text("'{}'"))
+    recipient_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    push_count: Mapped[int] = mapped_column(Integer, nullable=False)  # recipients who had a device (people)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_account.id", ondelete="SET NULL")
+    )
+
+    __table_args__ = (sa.Index("ix_notification_broadcast_created_at", "created_at", "id"),)
