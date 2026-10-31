@@ -11,7 +11,9 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { pickImages, uploadImage, type PickedImage } from '../../api/artist-onboarding/upload';
 import { useCreateProduct } from '../../hooks/shop/shop';
-import { METHOD_LABEL, productFieldsProblem, rupeesToPaise } from '../../utils/shop/cart';
+import { METHOD_LABEL, rupeesToPaise } from '../../utils/shop/cart';
+import { productDraftSchema } from '../../utils/shop/product-draft';
+import { firstIssue } from '../../utils/common/validation';
 import type { PaymentMethod, ShopCategory } from '../../types/shop/shop';
 
 const MAX_PHOTOS = 8;
@@ -46,7 +48,7 @@ export function ProductForm({ onCancel, onSaved }: { onCancel: () => void; onSav
   const stockCount = Number(stock);
   const missing =
     (!photos.length && 'Add at least one photo') ||
-    productFieldsProblem({ name, price, mrp, stock }) ||
+    firstIssue(productDraftSchema, { name, price, mrp, stock }) ||
     (methods !== null && !methods.length && 'Pick at least one way to pay');
 
   const toggleMethod = (m: PaymentMethod) =>

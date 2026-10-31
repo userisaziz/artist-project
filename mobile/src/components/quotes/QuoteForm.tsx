@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { View } from 'react-native';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
-import { AppTextField } from '../common/AppTextField';
 import { Card } from '../common/Card';
 import { DayStrip } from '../common/DayStrip';
+import { FormField } from '../common/FormField';
 import { Stepper } from '../common/Stepper';
 import { useTheme } from '../../core/theme/theme-provider';
 import { useSendQuote } from '../../hooks/quotes/quotes';
 import { useNow } from '../../hooks/common/use-now';
 import { errorMessage } from '../../core/api/error-message';
 import { addDays, formatLongDay, istDateKey } from '../../utils/common/time';
-import { formatDuration, paiseToRupeesText, rupeesToPaise } from '../../utils/common/format';
-import { DEFAULT_DURATION, DURATION_STEP, MAX_DURATION, MAX_NOTE, MIN_DURATION, MIN_QUOTE_PAISE } from '../../utils/quotes/status';
-import type { Enquiry } from '../../types/quotes/quotes';
+import { formatDuration, paiseToRupeesText } from '../../utils/common/format';
+import { DEFAULT_DURATION, DURATION_STEP, MAX_DURATION, MAX_NOTE, MIN_DURATION } from '../../utils/quotes/status';
+import { quoteDraftSchema, type QuoteDraft, type QuoteRequest } from '../../utils/quotes/quote-draft';
+import type { Enquiry, QuoteInput } from '../../types/quotes/quotes';
 
 /** Every IST day from `from` through `to` (empty when `to` is earlier). */
 function daysBetween(from: string, to: string): string[] {
@@ -28,46 +30,68 @@ export function QuoteForm({ enquiry }: { enquiry: Enquiry }) {
   const today = istDateKey(useNow());
   const send = useSendQuote();
   const prior = enquiry.quote;
-  const [price, setPrice] = useState(prior ? paiseToRupeesText(prior.price_paise) : '');
-  const [duration, setDuration] = useState(prior?.duration_minutes ?? DEFAULT_DURATION);
-  const [note, setNote] = useState(prior?.note ?? '');
-  const [validUntil, setValidUntil] = useState(prior?.valid_until ?? enquiry.event_date);
-  const [problem, setProblem] = useState<string | null>(null);
+  const { control, handleSubmit } = useForm<QuoteDraft, unknown, QuoteRequest>({
+    resolver: zodResolver(quoteDraftSchema),
+    defaultValues: {
+      price: prior ? paiseToRupeesText(prior.price_paise) : '',
+      duration: prior?.duration_minutes ?? DEFAULT_DURATION,
+      note: prior?.note ?? '',
+      validUntil: prior?.valid_until ?? enquiry.event_date,
+    },
+  });
   const days = daysBetween(today, enquiry.event_date);
 
-  const submit = () => {
+  const submit = handleSubmit((priced) => {
     if (send.isPending) return;
-    const pricePaise = rupeesToPaise(price);
-    if (!pricePaise || pricePaise < MIN_QUOTE_PAISE) { setProblem('Enter your price in rupees.'); return; }
-    setProblem(null);
-    send.mutate({ id: enquiry.id, body: { price_paise: pricePaise, duration_minutes: duration, note: note.trim() || null, valid_until: validUntil } });
-  };
-  const error = problem ?? (send.error ? errorMessage(send.error) : null);
+    send.mutate({ id: enquiry.id, body: payloadOf(priced) });
+  });
 
   return (
     <Card style={{ gap: 12 }}>
       <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{prior ? 'Update your quote' : 'Your quote'}</AppText>
-      <AppTextField label="Price in ₹" placeholder="e.g. 12500" keyboardType="numeric" value={price} onChangeText={(v) => { setPrice(v); setProblem(null); }} />
+      <FormField control={control} name="price" label="Price in ₹" placeholder="e.g. 12500" keyboardType="numeric" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Duration</AppText>
-        <Stepper
-          label="Duration"
-          value={formatDuration(duration)}
-          canDecrease={duration > MIN_DURATION}
-          canIncrease={duration < MAX_DURATION}
-          onDecrease={() => setDuration((d) => Math.max(MIN_DURATION, d - DURATION_STEP))}
-          onIncrease={() => setDuration((d) => Math.min(MAX_DURATION, d + DURATION_STEP))}
+        <Controller
+          control={control}
+          name="duration"
+          render={({ field }) => (
+            <Stepper
+              label="Duration"
+              value={formatDuration(field.value)}
+              canDecrease={field.value > MIN_DURATION}
+              canIncrease={field.value < MAX_DURATION}
+              onDecrease={() => field.onChange(Math.max(MIN_DURATION, field.value - DURATION_STEP))}
+              onIncrease={() => field.onChange(Math.min(MAX_DURATION, field.value + DURATION_STEP))}
+            />
+          )}
         />
       </View>
-      <AppTextField label="Note (optional)" placeholder="What’s included, travel, trial" value={note} onChangeText={setNote} maxLength={MAX_NOTE} />
-      <View>
-        <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Valid until</AppText>
-        <DayStrip days={days} value={validUntil} onChange={setValidUntil} />
-        <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(validUntil)}</AppText>
-      </View>
-      {error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{error}</AppText> : null}
+      <FormField control={control} name="note" label="Note (optional)" placeholder="What’s included, travel, trial" maxLength={MAX_NOTE} />
+      <Controller
+        control={control}
+        name="validUntil"
+        render={({ field }) => (
+          <View>
+            <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Valid until</AppText>
+            <DayStrip days={days} value={field.value} onChange={field.onChange} />
+            <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{formatLongDay(field.value)}</AppText>
+          </View>
+        )}
+      />
+      {send.isError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(send.error)}</AppText> : null}
       {send.isSuccess && !send.isPending ? <AppText variant="caption" style={{ color: theme.colors.confirmedInk }}>Quote sent. The customer has been told.</AppText> : null}
-      <AppButton label={prior ? 'Update quote' : 'Send quote'} loading={send.isPending} onPress={submit} />
+      <AppButton label={prior ? 'Update quote' : 'Send quote'} loading={send.isPending} onPress={() => { void submit(); }} />
     </Card>
   );
+}
+
+/** The API body, from the fields once the schema has turned the price text into paise. */
+function payloadOf(priced: QuoteRequest): QuoteInput {
+  return {
+    price_paise: priced.price,
+    duration_minutes: priced.duration,
+    note: priced.note.trim() || null,
+    valid_until: priced.validUntil,
+  };
 }

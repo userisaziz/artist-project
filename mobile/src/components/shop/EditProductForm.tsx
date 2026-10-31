@@ -10,7 +10,9 @@ import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useMyProduct, useUpdateProduct } from '../../hooks/shop/shop';
-import { paiseToRupeesText, productFieldsProblem, rupeesToPaise } from '../../utils/shop/cart';
+import { paiseToRupeesText, rupeesToPaise } from '../../utils/shop/cart';
+import { productDraftSchema } from '../../utils/shop/product-draft';
+import { firstIssue } from '../../utils/common/validation';
 import type { Product } from '../../types/shop/shop';
 
 interface EditProductFormProps { productId: string; onDone: () => void }
@@ -44,7 +46,7 @@ function ProductFields({ product, onDone }: { product: Product; onDone: () => vo
   const [stock, setStock] = useState(String(product.stock));
   const [description, setDescription] = useState(product.description ?? '');
   const [saveError, setSaveError] = useState<string | null>(null);
-  const problem = productFieldsProblem({ name, price, mrp, stock });
+  const problem = firstIssue(productDraftSchema, { name, price, mrp, stock });
 
   /** Only what changed, so saving a price never overwrites a stock change an order made meanwhile. */
   const changes = (): Partial<Editable> => {
