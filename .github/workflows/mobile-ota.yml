@@ -33,10 +33,10 @@ jobs:
       - run: npm ci # .npmrc sets legacy-peer-deps; a pristine tree keeps the fingerprint stable
       - name: Publish to the preview channel
         run: |
-          # --branch is required non-interactively; --channel re-points the
-          # preview channel at this branch on every run (idempotent).
+          # --channel only: eas-cli manages the branch behind the channel
+          # itself (docs "ignore branches" flow). --branch and --channel
+          # together is an error on eas-cli v27.
           npx eas-cli update \
-            --branch dev \
             --channel preview \
             --environment preview \
             --platform android \
