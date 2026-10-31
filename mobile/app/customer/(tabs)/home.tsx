@@ -22,6 +22,7 @@ import { CategoryIconRow } from '../../../src/components/directory/CategoryIconR
 import { ArtistTile } from '../../../src/components/directory/ArtistTile';
 import { ArtistCompactRow } from '../../../src/components/directory/ArtistCompactRow';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
+import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { ShopBanner } from '../../../src/components/shop/ShopBanner';
 import { greeting } from '../../../src/utils/common/time';
@@ -63,6 +64,7 @@ export default function CustomerHome() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { scrollY, onScroll, scrollEventThrottle } = useScrollLinked();
   const { user } = useAuth();
   // Plain values, not optional chains inside `||`: the React Compiler can't memoize this screen around those.
   const firstName = user ? user.first_name : null;
@@ -95,9 +97,9 @@ export default function CustomerHome() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
+    <ScrollView onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
       <LinearGradient colors={[theme.colors.brandSoft, theme.colors.washTop, theme.colors.background]} locations={[0, 0.58, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: GRADIENT_HEIGHT }} />
-      <View style={{ paddingHorizontal: theme.spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <CollapseOnScroll scrollY={scrollY} style={{ paddingHorizontal: theme.spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ flex: 1 }}>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${greeting(now)}, ${firstName || 'there'}`}</AppText>
           <PressableFeedback
@@ -123,7 +125,7 @@ export default function CustomerHome() {
         <PressableFeedback accessibilityRole="button" accessibilityLabel="Your profile" onPress={() => router.navigate('/customer/profile')}>
           <Avatar uri={user?.avatar_url ?? null} name={fullName || 'You'} size={44} />
         </PressableFeedback>
-      </View>
+      </CollapseOnScroll>
 
       {place ? null : (
         <View style={{ marginTop: 14, paddingHorizontal: theme.spacing.md }}>
@@ -132,7 +134,7 @@ export default function CustomerHome() {
       )}
 
       <View style={{ marginTop: 14 }}>
-        <HomeHero slides={withFromPrice(HERO_SLIDES, items)} onOpen={openSlide} />
+        <HomeHero slides={withFromPrice(HERO_SLIDES, items)} onOpen={openSlide} scrollY={scrollY} />
       </View>
 
       <PressableFeedback
