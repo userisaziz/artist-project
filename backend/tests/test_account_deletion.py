@@ -6,7 +6,7 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.upload.service import FakeStorage
-from tests.support.auth import CUSTOMER_PHONE, sign_in
+from tests.support.auth import ADULT_DOB, CUSTOMER_PHONE, sign_in
 from tests.support.booking import at, book, setup
 from tests.support.catalog import seed_categories
 from tests.support.directory import slot
@@ -63,7 +63,7 @@ async def place_order(client, customer: dict, artist: dict, product: dict) -> di
 
 async def test_customer_deletes_their_account(client, engine, travel):
     _, artist, customer = await setup(client, engine)
-    await client.patch(ME, headers=customer, json={"first_name": "Priya", "last_name": "S"})
+    await client.patch(ME, headers=customer, json={"first_name": "Priya", "last_name": "S", "date_of_birth": ADULT_DOB})
     old_id = (await client.get(ME, headers=customer)).json()["id"]
     done = (await book(client, customer, artist, start=slot(days=5))).json()
     upcoming = (await book(client, customer, artist, start=slot(days=10))).json()
@@ -100,7 +100,9 @@ async def test_customer_deletes_their_account(client, engine, travel):
 
 async def test_deleted_account_is_anonymised_in_place_and_signed_out(client, engine):
     customer = await sign_in(client, CUSTOMER_PHONE, role="customer")
-    await client.patch(ME, headers=customer, json={"first_name": "Priya", "email": "priya@example.com"})
+    await client.patch(
+        ME, headers=customer, json={"first_name": "Priya", "email": "priya@example.com", "date_of_birth": ADULT_DOB}
+    )
     user_id = (await client.get(ME, headers=customer)).json()["id"]
     await client.post(f"{INBOX}/devices", headers=customer, json={"token": "ExponentPushToken[abc]", "platform": "ios"})
 
@@ -110,8 +112,8 @@ async def test_deleted_account_is_anonymised_in_place_and_signed_out(client, eng
         row = (
             await conn.execute(
                 text(
-                    "SELECT phone, email, first_name, last_name, avatar_url, password_hash, is_active, active_role "
-                    "FROM user_account WHERE id = :id"
+                    "SELECT phone, email, first_name, last_name, date_of_birth, avatar_url, password_hash, "
+                    "is_active, active_role FROM user_account WHERE id = :id"
                 ),
                 {"id": user_id},
             )
@@ -126,7 +128,8 @@ async def test_deleted_account_is_anonymised_in_place_and_signed_out(client, eng
             )
         ]
     assert row.phone.startswith("del-") and len(row.phone) <= 20
-    assert (row.email, row.first_name, row.last_name, row.avatar_url, row.password_hash) == (None,) * 5
+    blanks = (row.email, row.first_name, row.last_name, row.date_of_birth, row.avatar_url, row.password_hash)
+    assert blanks == (None,) * 6
     assert (row.is_active, row.active_role) == (False, None)
     assert counts == [0, 0, 0, 0]
 

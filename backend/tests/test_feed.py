@@ -8,7 +8,7 @@ from app.core.rate_limit import Limit
 from app.feed.dependencies import posts_per_user
 from app.feed.utils import excerpt, read_minutes
 from tests.support.artist import approved_artist
-from tests.support.auth import sign_in
+from tests.support.auth import ADULT_DOB, sign_in
 from tests.support.booking import setup
 from tests.support.catalog import seed_categories
 from tests.support.upload import upload_key
@@ -192,7 +192,11 @@ async def test_following_is_idempotent_and_needs_an_approved_artist(client, engi
 async def test_artists_see_who_follows_them_newest_first(client, engine):
     _, artist, customer = await setup(client, engine)
     second = await sign_in(client, "+919845077701", role="customer")
-    await client.patch("/api/v1/users/me", headers=second, json={"first_name": "Meera", "last_name": "Nair"})
+    await client.patch(
+        "/api/v1/users/me",
+        headers=second,
+        json={"first_name": "Meera", "last_name": "Nair", "date_of_birth": ADULT_DOB},
+    )
     await client.put(f"{FEED}/artists/{artist['id']}/follow", headers=customer)
     await client.put(f"{FEED}/artists/{artist['id']}/follow", headers=second)
 

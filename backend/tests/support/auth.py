@@ -7,6 +7,7 @@ from app.auth.sms import ConsoleSMSProvider
 PHONE = "+15550001111"  # the generic number for auth/users tests
 CUSTOMER_PHONE = "+919845080001"
 ADMIN_PHONE = "+919845000001"
+ADULT_DOB = "1995-04-12"  # PATCH /users/me asks for a date of birth and refuses anyone under 18
 
 
 async def sign_in(client, phone: str, role: str | None = "artist", engine=None) -> dict:

@@ -138,7 +138,7 @@ async def test_writes_commit_before_the_response_is_sent(engine, override):
     from sqlalchemy import event
     from sqlalchemy.orm import Session
 
-    from tests.support.auth import PHONE, sign_in
+    from tests.support.auth import ADULT_DOB, PHONE, sign_in
 
     app = create_app()
     order: list[str] = []
@@ -172,7 +172,9 @@ async def test_writes_commit_before_the_response_is_sent(engine, override):
         event.listen(Session, "after_commit", on_commit)
         try:
             order.clear()
-            response = await ac.patch("/api/v1/users/me", headers=headers, json={"first_name": "Meera"})
+            response = await ac.patch(
+                "/api/v1/users/me", headers=headers, json={"first_name": "Meera", "date_of_birth": ADULT_DOB}
+            )
         finally:
             event.remove(Session, "after_commit", on_commit)
     assert response.status_code == 200

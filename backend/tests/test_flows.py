@@ -14,7 +14,7 @@ import pytest_asyncio
 
 from app.auth.sms import ConsoleSMSProvider
 from tests.support.artist import complete_profile
-from tests.support.auth import admin_headers, sign_in
+from tests.support.auth import ADULT_DOB, admin_headers, sign_in
 from tests.support.booking import at, book, setup
 from tests.support.catalog import seed_categories
 from tests.support.directory import ist_day, slot
@@ -37,7 +37,11 @@ async def test_stranger_to_approved_artist_journey(client, engine):
     assert (tokens["user"]["is_onboarded"], tokens["user"]["active_role"]) == (False, None)
 
     me = (
-        await client.patch("/api/v1/users/me", headers=headers, json={"first_name": "Meera", "last_name": "Kulkarni"})
+        await client.patch(
+            "/api/v1/users/me",
+            headers=headers,
+            json={"first_name": "Meera", "last_name": "Kulkarni", "date_of_birth": ADULT_DOB},
+        )
     ).json()
     assert (me["first_name"], me["is_onboarded"]) == ("Meera", False)  # a name alone does not onboard
     me = (await client.put("/api/v1/users/me/role", headers=headers, json={"role": "artist"})).json()
@@ -64,7 +68,11 @@ async def test_first_booking_to_public_review_journey(client, engine, travel):
     """The flagship story: browse → availability → deposit → accept → complete → rate → reply → public."""
     _, artist, customer = await setup(client, engine)
     # The sign-up screen's name step: without it the review would read "Atelier customer".
-    await client.patch("/api/v1/users/me", headers=customer, json={"first_name": "Ananya", "last_name": "Rao"})
+    await client.patch(
+        "/api/v1/users/me",
+        headers=customer,
+        json={"first_name": "Ananya", "last_name": "Rao", "date_of_birth": ADULT_DOB},
+    )
 
     storefront = (await client.get(f"/api/v1/artists/{artist['id']}")).json()
     assert storefront["business_name"] == "Ayesha Mehendi Art"

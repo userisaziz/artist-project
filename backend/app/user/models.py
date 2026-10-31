@@ -2,10 +2,10 @@
 addresses."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,8 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str | None] = mapped_column(Text)
     first_name: Mapped[str | None] = mapped_column(String(100))
     last_name: Mapped[str | None] = mapped_column(String(100))
+    # Asked once at sign-up and re-sent on every details save; the service requires MIN_AGE_YEARS.
+    date_of_birth: Mapped[date | None] = mapped_column(Date)
     avatar_url: Mapped[str | None] = mapped_column(Text)
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

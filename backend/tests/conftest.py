@@ -21,10 +21,11 @@ settings = DatabaseSettingsForTests()
 
 # The app's own engine points at the test database too, so nothing a test does can reach the dev data.
 os.environ["DATABASE_URL"] = settings.test_database_url
-# Tests never touch a real SMS gateway, image host or payment, whatever .env says.
+# Tests never touch a real SMS gateway, image host, payment or push service, whatever .env says.
 # Must precede the cached settings getters.
 os.environ["ENVIRONMENT"] = "test"
 os.environ["SMS_PROVIDER"] = "console"
+os.environ["PUSH_PROVIDER"] = "console"
 os.environ["FAST2SMS_API_KEY"] = ""
 os.environ["DEV_OTP_CODE"] = ""
 os.environ["STORAGE_PROVIDER"] = "fake"

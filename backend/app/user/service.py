@@ -1,6 +1,8 @@
 """Account rules for the signed-in user: sign-up details, picking (or switching) the app role, and deleting
 the account."""
 
+from datetime import date
+
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +10,7 @@ from app.artist import service as artist_service
 from app.auth import repository as auth_repository
 from app.booking import service as booking_service
 from app.core.audit import audit
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, ValidationError
 from app.feed import service as feed_service
 from app.notification import service as notification_service
 from app.quote import service as quote_service
@@ -18,6 +20,7 @@ from app.shared.enums import UserRole
 from app.shop import order_service, product_service
 from app.upload.service import ImageStorage
 from app.user import address_service
+from app.user.constants import MIN_AGE_YEARS
 from app.user.models import User
 from app.user.repository import UserRepository
 from app.user.schemas import AccountDetails, RoleChoice
@@ -31,6 +34,11 @@ def deleted_phone(user: User) -> str:
     return DELETED_PHONE_PREFIX + user.id.hex[:DELETED_PHONE_ID_CHARS]
 
 
+def age_years(born: date, today: date) -> int:
+    """Full years lived on `today`. Compares month/day, so a 29 Feb birthday counts on 1 Mar in a leap-year gap."""
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
 class UserService:
     def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
@@ -39,12 +47,16 @@ class UserService:
         self.clock = clock
 
     async def update_details(self, user: User, details: AccountDetails) -> User:
+        # The clock is injected, so a test can put a birthday exactly on the 18-year line.
+        if age_years(details.date_of_birth, self.clock.now().date()) < MIN_AGE_YEARS:
+            raise ValidationError(f"You must be at least {MIN_AGE_YEARS} years old to continue")
         if details.email and details.email != user.email:
             taken = await self.users.id_by_email(details.email)
             if taken:
                 raise ConflictError("Email already in use")
         user.first_name = details.first_name
         user.last_name = details.last_name
+        user.date_of_birth = details.date_of_birth
         user.email = details.email
         user.whatsapp_booking_updates = details.whatsapp_booking_updates
         try:
@@ -98,6 +110,7 @@ class UserService:
         user.email = None
         user.first_name = None
         user.last_name = None
+        user.date_of_birth = None
         user.avatar_url = None
         user.password_hash = None
         user.is_active = False
