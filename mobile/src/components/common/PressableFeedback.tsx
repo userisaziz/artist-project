@@ -24,7 +24,12 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
   const reduced = useReducedMotion();
   const responds = !rest.disabled && !!(rest.onPress || rest.onLongPress);
   const dims = feedback && responds;
-  const dips = scale && responds && !reduced; // reduced motion keeps the dim/ripple, drops the dip
+  // The rendered element must not change type for a control's lifetime (dropping onPress is how callers
+  // disable one): swapping Pressable for AnimatedPressable remounts the subtree, which detaches refs and
+  // drops press state. So the path follows `scale` alone — reduced motion is honoured by `dips`, which
+  // also requires a tappable control.
+  const animates = scale;
+  const dips = animates && responds && !reduced;
   const [pressed, setPressed] = useState(false);
   const dip = useSharedValue(1);
   const dipStyle = useAnimatedStyle(() => ({ transform: [{ scale: dip.value }] }));
@@ -35,7 +40,7 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
     const base = typeof style === 'function' ? style(state) : style;
     return dims && state.pressed && Platform.OS !== 'android' ? [base, { opacity: PRESSED_OPACITY }] : base;
   };
-  if (!dips) {
+  if (!animates) {
     // Plain Pressable for the common case: identical feedback, no animated machinery.
     return <Pressable {...rest} android_ripple={ripple} style={pressedStyle} />;
   }
@@ -49,12 +54,15 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
       style={[userStyle, pressed && dims && Platform.OS !== 'android' ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
       onPressIn={(e) => {
         setPressed(true);
-        dip.set(withSpring(PRESSED_SCALE, springs.press));
+        if (dips) dip.set(withSpring(PRESSED_SCALE, springs.press));
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
         setPressed(false);
-        dip.set(withSpring(1, springs.press)); // unconditional reset: the dip can never stick
+        // Unconditional: a control can stop responding while it is held (its parent flips it to
+        // loading/disabled), and then the dip would stick at PRESSED_SCALE forever. Resetting 1 -> 1
+        // is a no-op, so this is always safe.
+        dip.set(withSpring(1, springs.press));
         rest.onPressOut?.(e);
       }}
     />
