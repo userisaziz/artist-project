@@ -18,19 +18,21 @@ this skill disagree, the rule wins.
 ## Decision ladder — run in order, stop at the first hit
 
 1. **React Native built-in.** `FlatList`, `Modal`, `KeyboardAvoidingView`, `Alert`, `Share`,
-   `PanResponder`, `Animated`. Already covers most of this app.
+   `PanResponder`. Already covers most of this app. Not `Animated`: animation goes through
+   `src/core/motion` (Reanimated 4), never the legacy API.
 2. **An Expo SDK module already in `mobile/package.json`.** 16 of the 29 dependencies are Expo
    modules — `expo-image`, `expo-image-picker`, `expo-image-manipulator`, `expo-linear-gradient`,
    `expo-location`, `expo-notifications`, `expo-secure-store`, `expo-splash-screen`,
-   `expo-updates`, `expo-font`, `expo-asset`… Check there before proposing anything new.
+   `expo-updates`, `expo-font`, `expo-asset`, `expo-haptics`… Check there before proposing anything new.
 3. **An existing wrapper in `mobile/src/components/common/`.** Sheets, OTP input, photo,
    skeletons, pressable feedback, screens, chips and maps are already wrapped there and
    token-driven (`BottomSheet.tsx`, `OtpInput.tsx`, `Photo.tsx`, `PinMap.tsx`,
    `PressableScale.tsx`, `Skeleton.tsx`, `StateViews.tsx`, `Screen.tsx`, `MotionEntrance.tsx`).
    Extend it; do not bolt a second kit next to it. Motion has the same rule in a sharper form:
-   only `src/core/motion/motion.ts` and the shared primitives (`AppButton`, `PressableFeedback`,
-   `Skeleton`, `MotionEntrance`, `CrossfadeStack`) import `react-native-reanimated` today — screens and features go
-   through those, and new motion code should keep that boundary.
+   only `src/core/motion` (`motion.ts`, `haptics.ts`) and the shared primitives (`AppButton`,
+   `PressableFeedback`, `Skeleton`, `MotionEntrance`, `Crossfade`, `BottomSheet`, `OtpInput`)
+   import `react-native-reanimated` — screens and features go through those, and new motion code
+   should keep that boundary. The legacy RN `Animated` API is retired (0 files).
 4. **A row in [LIBRARIES.md](./LIBRARIES.md)** marked `candidate`. That is the pre-approved pick
    for the capability — install it, do not re-survey the ecosystem.
 5. **Only then** propose a new dependency, and record it in LIBRARIES.md **and** in
@@ -97,19 +99,28 @@ assembled, never imported).
 
 Ranked by user-visible payoff; details and install commands in [LIBRARIES.md](./LIBRARIES.md).
 
-1. **Forms** — rules §7/§11 mandate `react-hook-form` + `zod`, and neither is in
-   `mobile/package.json`; ~10 form components (`LocationForm`, `AddServiceSheet`, `ProductForm`,
-   `CustomServiceSheet`, `EditAccountForm`, …) keep their own `setError` validation instead.
-   Either install the pair or amend the rule; the drift itself is the bug.
+1. **Forms** — closed 2026-10-31: `react-hook-form` 7 + `@hookform/resolvers` 6 + `zod` 4 are installed,
+   and every screen's rules are now a schema in `src/utils/<feature>/*-draft.ts` (quotes, service price
+   and extras, shop product and delivery, saved addresses, checkout, new post, travel radius). Two ways
+   to consume one schema, per rules §7: submit-driven (`useForm` + `zodResolver`) and live-gated
+   (`firstIssue`). What is left is not drift, it is parsing: `EditAccountForm` composes the shared
+   `readDateOfBirth` and one server-conflict message, and the checkout's payment picker is a cross-object
+   choice, not a field rule.
 2. **Long lists** — closed 2026-10-31: the 15 paginated catalogs (feed / explore / shop / bookings /
    inbox …) run on `@shopify/flash-list` 2.0.2; short static lists and `ChatThread.tsx` (v2 has no
    `inverted`) stay on `FlatList`. Jest needs the hand-rolled mock in `jest-setup.ts` — the official
    `jestSetup` shipped broken in 2.0.2.
-3. **Gestures + haptics** — Reanimated 4 is installed (shared modules use it) but
-   `react-native-gesture-handler` + `expo-haptics` are absent, so drag/dismiss sheets and press
-   haptics are out of reach; today's `BottomSheet.tsx` is `Modal` + Reanimated `timings.enter`.
-4. **Keyboard** — `KeyboardAvoidingView` in 10 files with platform-branched `behavior`; the curated
-   equaliser is `react-native-keyboard-controller`.
+3. **Gestures + haptics** — haptics closed 2026-10-31: `expo-haptics` is installed and reached only
+   through `src/core/motion/haptics.ts` (`haptic('tap' | 'select' | 'success' | 'warning' | 'error')`),
+   opted in per control with `PressableFeedback haptic=` — today `AppButton` (tap), `Chip` and
+   `Segmented` (select), `OtpInput` (error); it is mocked in `jest-setup.ts`. Motion is closed too: all
+   three legacy `Animated` files (`BottomSheet`, `OtpInput`, `HomeHero`) now run on Reanimated 4, with
+   `Crossfade` as the new primitive. **Still open: `react-native-gesture-handler`**, without which
+   drag-to-dismiss on `BottomSheet.tsx` (today `Modal` + `timings.sheet`) is out of reach.
+4. **Keyboard** — closed for consistency 2026-10-31, open for the library: all 10 `KeyboardAvoidingView`
+   sites now go through `components/common/KeyboardAvoider.tsx`, and ESLint refuses a raw one outside it.
+   `react-native-keyboard-controller` remains the curated equaliser if the platform-branched `behavior`
+   still isn't enough on device.
 5. **Date/time pickers** — no picker dependency; schedules, working hours and slots are custom.
 6. **Transient feedback** — no toast layer at all (0 toast usages, `Alert` in 12 files).
 7. **Connectivity and crash visibility** — no `@react-native-community/netinfo`, no Sentry; the
