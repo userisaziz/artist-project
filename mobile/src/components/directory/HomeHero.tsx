@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, type ImageSourcePropType } from 'react-native';
 import { Image } from 'expo-image';
 import { CrossfadeStack } from '../common/CrossfadeStack';
+import { Parallax, type ScrollY } from '../common/ScrollMotion';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -19,9 +20,12 @@ export interface HeroSlide {
 interface HomeHeroProps {
   slides: HeroSlide[];
   onOpen: (slide: HeroSlide) => void;
+  /** Home's scroll offset — drives the photo layer's parallax inside the fixed crop. */
+  scrollY: ScrollY;
 }
 
 const PHOTO_HEIGHT = 250;
+const PARALLAX_DISTANCE = 40; // parallax travel budget
 const CARD_OVERLAP = 36;
 const CARD_RADIUS = 18;
 const SLIDE_MS = 5000;
@@ -31,7 +35,7 @@ const DOT_ACTIVE = 18;
 const CHEVRON = 40;
 
 /** The design's Home hero: full-width photos that cross-fade, under a white card with the slide's title and dots. */
-export function HomeHero({ slides, onOpen }: HomeHeroProps) {
+export function HomeHero({ slides, onOpen, scrollY }: HomeHeroProps) {
   const theme = useTheme();
   const [index, setIndex] = useState(0);
   const reduceMotion = useReducedMotion();
@@ -46,11 +50,13 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
 
   return (
     <View>
-      <CrossfadeStack active={index} durationMs={FADE_MS} style={{ height: PHOTO_HEIGHT, backgroundColor: theme.colors.washBottom }}>
+      <Parallax scrollY={scrollY} height={PHOTO_HEIGHT} distance={PARALLAX_DISTANCE}>
+      <CrossfadeStack active={index} durationMs={FADE_MS} style={{ height: '100%', backgroundColor: theme.colors.washBottom }}>
         {slides.map((s) => (
           <Image key={s.eyebrow} source={s.image} contentFit="cover" style={{ width: '100%', height: '100%' }} />
         ))}
       </CrossfadeStack>
+      </Parallax>
       {/* A row of separate controls, not one button around the dots: buttons can't nest. */}
       <View
         style={{

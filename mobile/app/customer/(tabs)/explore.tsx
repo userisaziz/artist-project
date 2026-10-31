@@ -9,6 +9,7 @@ import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
+import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
 import { Icon } from '../../../src/components/common/Icon';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
@@ -58,6 +59,7 @@ export default function Explore() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { scrollY, onScroll, scrollEventThrottle } = useScrollLinked();
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), SEARCH_DEBOUNCE_MS);
   const params = useExploreParams();
@@ -110,7 +112,9 @@ export default function Explore() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
       <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
-        <AppText variant="display" style={{ fontSize: 36, lineHeight: 38, color: theme.colors.heading }}>Explore</AppText>
+        <CollapseOnScroll scrollY={scrollY} range={48}>
+          <AppText variant="display" style={{ fontSize: 36, lineHeight: 38, color: theme.colors.heading }}>Explore</AppText>
+        </CollapseOnScroll>
         <View style={{ marginTop: 14, height: 46, borderRadius: 12, backgroundColor: theme.colors.brandSoft, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
           <Icon name="search" size={17} color={theme.colors.brand} />
           <TextInput
@@ -133,6 +137,8 @@ export default function Explore() {
       <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         data={items}
         keyExtractor={(a) => a.id}
         style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1 }} // the previous search, until the new one answers
