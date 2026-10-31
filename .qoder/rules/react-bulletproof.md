@@ -45,9 +45,21 @@ Doctrine adapted from https://github.com/alan2207/bulletproof-react for `admin/`
 3. Client app/feature state → Context (mobile `src/context/<feature>`) or minimal store — session, theme, wizard state only.
 4. URL state → route/search params for tabs, filters, pagination.
 - Forms → React Hook Form + zod resolver; schema-based validation, not imperative checks.
+- Every form's rules live in one zod schema, in `src/utils/<feature>/<thing>-draft.ts`, written with the
+  words the person will read. Two ways to consume that same schema — pick by what gates the button:
+  - **submit-driven** (a Send/Save press, async server errors): `useForm` + `zodResolver` + `handleSubmit`,
+    fields bound through `src/components/common/FormField.tsx`, and the request body built from the
+    resolver's parsed **output** (`useForm<In, unknown, Out>`, money transforms to paise in the schema).
+  - **live-gated** (a header Publish/Save that stays shut until the form is complete): read the schema
+    synchronously with `safeParse` or `firstIssue(schema, values)` from `src/utils/common/validation.ts`,
+    and show its first issue as the hint under the fields.
+- Never a second set of imperative checks beside the schema, and never a rule in a component that the
+  schema could own. Constants a rule needs (`MAX_PRICE_RUPEES`, address limits) are exported from the
+  schema's module, not copied into screens.
 
 ## 8. Error handling
 - Central interceptor on the API client: toasts for 4xx/5xx, 401 → logout. No swallowing in components.
+- Transient feedback goes through `toast()` from `src/core/toast` and the single `ToastHost`; `Alert` is only for destructive confirmations that need buttons ("Cancel this order?").
 - No silent catch — recover visibly or rethrow; empty catch blocks block review.
 - Error boundaries per route/region with real retry fallbacks (not one app-wide boundary).
 - Every query screen renders loading / error / empty states; missing states = incomplete.
@@ -67,7 +79,7 @@ Doctrine adapted from https://github.com/alan2207/bulletproof-react for `admin/`
 Use only these; no competing kits. New core libs get added here first.
 - admin data: TanStack Query v5 (client `src/lib/query-client.ts`) — no axios/bare fetch
 - admin UI: shadcn/ui on `@base-ui/react` + CVA + `cn`, `lucide-react` icons, `sonner` toasts, `next-themes`; styling Tailwind v4 + `tw-animate-css`; routing `react-router` v8; forms `react-hook-form` + `@hookform/resolvers` + `zod` v4 (+ `input-otp`). Wrap TanStack Table/Virtual, `react-day-picker` in `ui/` before use.
-- mobile data: TanStack Query v5 (declarations in `src/api/<feature>`); routing `expo-router`; UI = own three-layer-token design-system components (shadcn is web-only — apply the wrapper principle to `expo-image`/`expo-linear-gradient`/`react-native-svg` instead); tokens `expo-secure-store`.
+- mobile data: TanStack Query v5 (declarations in `src/api/<feature>`); routing `expo-router`; UI = own three-layer-token design-system components (shadcn is web-only — apply the wrapper principle to `expo-image`/`expo-linear-gradient`/`react-native-svg` instead); forms `react-hook-form` + `@hookform/resolvers` + `zod` v4 (see §7); keyboard `KeyboardAvoider.tsx`; motion `react-native-reanimated` 4 + `react-native-worklets` — only `src/core/motion` and the shared primitives import it, and the legacy RN `Animated` API is retired; haptics `expo-haptics`, reached only through `src/core/motion/haptics.ts`; toasts `src/core/toast` + `components/common/Toast.tsx` (no second toast kit); tokens `expo-secure-store`.
 - cross-cutting: zod = single validation layer; TanStack Query = single server-cache layer.
 
 ## 12. Gates
