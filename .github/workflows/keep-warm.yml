@@ -22,4 +22,6 @@ jobs:
     steps:
       - name: Ping the staging API
         # Long timeout: a ping that lands on a sleeping instance is the one that wakes it.
-        run: curl --fail --silent --show-error --max-time 90 --retry 2 --retry-delay 5 https://artist-project.onrender.com/health/live
+        # /health/ready opens a DB connection, so this also keeps the hosted Postgres project from idling;
+        # Render's own healthCheckPath stays on /health/live because readiness can outlast its 5 s budget.
+        run: curl --fail --silent --show-error --max-time 90 --retry 2 --retry-delay 5 https://artist-project.onrender.com/health/ready
