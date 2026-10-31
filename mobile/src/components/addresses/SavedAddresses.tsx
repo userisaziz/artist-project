@@ -11,12 +11,10 @@ import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { useAddAddress, useAddresses, useDeleteAddress, useUpdateAddress } from '../../hooks/addresses/addresses';
+import { ADDRESS_LABEL_MAX, SAVED_ADDRESS_MAX, savedAddressDraftSchema } from '../../utils/addresses/address-draft';
 import type { SavedAddress } from '../../types/addresses/addresses';
 
-const LABEL_MAX = 40;    // backend user_address.label
-const ADDRESS_MIN = 5;   // backend AddressIn
-const ADDRESS_MAX = 300;
-const MAX_SAVED = 10;
+const MAX_SAVED = 10; // backend MAX_SAVED_ADDRESSES
 
 /** Profile → Saved addresses: rename or delete saved addresses and add new ones; booking and checkout offer them. */
 export function SavedAddresses() {
@@ -56,7 +54,7 @@ function AddressRow({ address }: { address: SavedAddress }) {
 
   return (
     <Card style={{ gap: 8 }}>
-      <AppTextField label="Label" value={label} onChangeText={setLabel} maxLength={LABEL_MAX} />
+      <AppTextField label="Label" value={label} onChangeText={setLabel} maxLength={ADDRESS_LABEL_MAX} />
       <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{address.address}</AppText>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <PressableFeedback accessibilityRole="button" accessibilityLabel={`Delete ${address.label}`} onPress={confirmDelete} hitSlop={8}>
@@ -76,19 +74,21 @@ function NewAddress({ first }: { first: boolean }) {
   const add = useAddAddress();
   const [label, setLabel] = useState(first ? 'Home' : '');
   const [text, setText] = useState('');
-  const ready = !!label.trim() && text.trim().length >= ADDRESS_MIN && !add.isPending;
+  const draft = savedAddressDraftSchema.safeParse({ label, address: text });
+  const missing = draft.success ? null : draft.error.issues[0].message;
 
   const save = () => {
-    if (!ready) return;
-    add.mutate({ label: label.trim(), address: text.trim() }, { onSuccess: () => { setLabel(''); setText(''); } });
+    if (!draft.success || add.isPending) return;
+    add.mutate(draft.data, { onSuccess: () => { setLabel(''); setText(''); } });
   };
 
   return (
     <View style={{ gap: 10, marginTop: 8 }}>
       <AppText variant="title" style={{ color: theme.colors.heading }}>Add an address</AppText>
-      <AppTextField label="Label (e.g. Home, Work)" value={label} onChangeText={setLabel} maxLength={LABEL_MAX} />
-      <AppTextField label="Address" placeholder="Flat, building, street, area, city, PIN" value={text} onChangeText={setText} maxLength={ADDRESS_MAX} multiline />
-      <AppButton label="Save address" loading={add.isPending} disabled={!ready} onPress={save} />
+      <AppTextField label="Label (e.g. Home, Work)" value={label} onChangeText={setLabel} maxLength={ADDRESS_LABEL_MAX} />
+      <AppTextField label="Address" placeholder="Flat, building, street, area, city, PIN" value={text} onChangeText={setText} maxLength={SAVED_ADDRESS_MAX} multiline />
+      <AppButton label="Save address" loading={add.isPending} disabled={!draft.success} onPress={save} />
+      {missing ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{missing}</AppText> : null}
       {add.isError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(add.error)}</AppText> : null}
     </View>
   );

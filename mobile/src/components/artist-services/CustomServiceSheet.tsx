@@ -9,14 +9,13 @@ import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
 import { ServicePhotoField, type ServicePhotoDraft } from '../artist-onboarding/ServicePhotoField';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
-import { EMPTY_EXTRAS, draftFromService, extrasInput } from '../../utils/common/service-extras';
+import { EMPTY_EXTRAS, draftFromService, extrasDraftSchema } from '../../utils/common/service-extras';
+import { pricingDraftSchema } from '../../utils/artist-services/service-pricing';
 import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
 import type { CustomServiceInput } from '../../types/artist-services/artist-services';
 import type { CatalogCategory } from '../../types/catalog/catalog';
 
 const MAX_NAME = 120; // backend CustomServiceIn
-const MAX_RUPEES = 1_000_000; // price_paise ≤ 100 000 000
-const MAX_MINUTES = 1440;
 const MAX_DESCRIPTION = 1000;
 const MAX_SUGGESTION = 100; // backend SuggestedSubcategoryIn.name
 /** The subcategory picker's "Suggest a new one" choice. */
@@ -64,18 +63,16 @@ export function CustomServiceSheet({ categories, service, onClose, onSubmit }: C
 
   /** The input, or a message for the first problem. */
   const validate = (): CustomServiceInput | string => {
-    const rupees = Number(price);
-    const mins = Number(minutes);
     if (subId === null || categoryId === null) return 'Pick a category and a subcategory.';
     if (subId === SUGGEST && !suggestion.trim()) return 'Name the subcategory you’d like us to add.';
     if (!name.trim()) return 'Enter a name for the service.';
-    if (!Number.isInteger(rupees) || rupees <= 0 || rupees > MAX_RUPEES) return 'Enter a price above ₹0.';
-    if (!Number.isInteger(mins) || mins <= 0 || mins > MAX_MINUTES) return 'Enter a duration between 1 and 1440 minutes.';
-    const extra = extrasInput(extras);
-    if (!extra.ok) return extra.error;
+    const priced = pricingDraftSchema.safeParse({ price, minutes });
+    if (!priced.success) return priced.error.issues[0].message;
+    const extra = extrasDraftSchema.safeParse(extras);
+    if (!extra.success) return extra.error.issues[0].message;
     const place = subId === SUGGEST ? { suggested_subcategory: { parent_id: categoryId, name: suggestion.trim() } } : { subcategory_id: subId };
     const photoChange = photo.key === undefined ? {} : { photo_key: photo.key };
-    return { ...place, name: name.trim(), price_paise: rupees * 100, duration_minutes: mins, description: description.trim() || null, ...extra.value, ...photoChange };
+    return { ...place, name: name.trim(), ...priced.data, description: description.trim() || null, ...extra.data, ...photoChange };
   };
 
   const save = async () => {

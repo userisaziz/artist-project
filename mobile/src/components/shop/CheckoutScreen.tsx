@@ -14,11 +14,9 @@ import { errorMessage } from '../../core/api/error-message';
 import { useCart } from '../../context/shop/cart-context';
 import { usePlaceOrder } from '../../hooks/shop/shop';
 import { METHOD_LABEL, groupBySeller } from '../../utils/shop/cart';
+import { ORDER_ADDRESS_MAX, checkoutDraftSchema } from '../../utils/shop/checkout-draft';
 import { formatPrice } from '../../utils/common/format';
 import type { Order, PaymentMethod } from '../../types/shop/shop';
-
-const ADDRESS_MIN = 10;
-const ADDRESS_MAX = 300;
 
 /** Design "Checkout", phase 1: the address, then for each artist how you'll pay them (from what they accept).
  *  Nothing is paid in the app; delivery charges are added per artist on the order. */
@@ -36,14 +34,15 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
   const [chosen, setChosen] = useState<Record<string, PaymentMethod>>({});
   const methodFor = (sellerId: string, methods: PaymentMethod[]) => chosen[sellerId] ?? (methods.length === 1 ? methods[0] : undefined);
   const unpayable = groups.find((g) => g.methods.length === 0);
-  const ready = address.trim().length >= ADDRESS_MIN && !unpayable && groups.every((g) => methodFor(g.seller.id, g.methods)) && groups.length > 0;
+  const draft = checkoutDraftSchema.safeParse({ address });
+  const ready = draft.success && !unpayable && groups.length > 0 && groups.every((g) => methodFor(g.seller.id, g.methods));
 
   const submit = () => {
-    if (!ready || place.isPending) return;
+    if (!ready || !draft.success || place.isPending) return;
     place.mutate(
       {
         items: cart.lines.map((l) => ({ product_id: l.product.id, quantity: l.quantity })),
-        address: address.trim(),
+        address: draft.data.address,
         payment_methods: Object.fromEntries(groups.map((g) => [g.seller.id, methodFor(g.seller.id, g.methods) as PaymentMethod])),
       },
       { onSuccess: (orders) => { addressBook?.afterUse(address, pickedId, remember); cart.clear(); onPlaced(orders); } },
@@ -72,7 +71,8 @@ export function CheckoutScreen({ onPlaced, addressBook }: CheckoutScreenProps) {
             onRememberChange={setRemember}
           />
         ) : null}
-        <AppTextField label="Deliver to" placeholder="Flat, building, street, area, city, PIN" value={address} onChangeText={(v) => { setAddress(v); setPickedId(null); }} maxLength={ADDRESS_MAX} multiline />
+        <AppTextField label="Deliver to" placeholder="Flat, building, street, area, city, PIN" value={address} onChangeText={(v) => { setAddress(v); setPickedId(null); }} maxLength={ORDER_ADDRESS_MAX} multiline />
+        {draft.success ? null : <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: -8 }}>{draft.error.issues[0].message}</AppText>}
         {groups.map((g) => (
           <View key={g.seller.id} style={{ gap: 8, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
             <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{g.seller.business_name}</AppText>

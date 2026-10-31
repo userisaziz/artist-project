@@ -15,10 +15,10 @@ import { errorMessage } from '../../core/api/error-message';
 import { useSaveSchedule, useSchedule, useSetDayOff } from '../../hooks/artist-schedule/artist-schedule';
 import { formatDay } from '../../utils/common/time';
 import { WEEKDAY_SHORT, formatHour, type WeeklyHour } from '../../utils/common/weekly-hours';
+import { scheduleDraftSchema } from '../../utils/artist-schedule/schedule-draft';
 import type { Schedule } from '../../types/artist-schedule/artist-schedule';
 
 const WEEKDAY_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const RADIUS_MAX = 100; // backend travel_radius_km 1..100
 
 /** Me → Working hours: which days and hours clients can book, days off, and how far the artist travels. */
 export function WorkingHoursForm() {
@@ -46,17 +46,16 @@ function ScheduleFields({ schedule }: { schedule: Schedule }) {
   const [hours, setHours] = useState<WeeklyHour[]>(() => [...schedule.hours].sort((a, b) => a.weekday - b.weekday));
   const [radius, setRadius] = useState(schedule.travel_radius_km === null ? '' : String(schedule.travel_radius_km));
   const [saved, setSaved] = useState(false);
-  const radiusKm = radius.trim() ? Number(radius) : null;
-  const radiusProblem = radiusKm !== null && (!Number.isInteger(radiusKm) || radiusKm < 1 || radiusKm > RADIUS_MAX)
-    ? `Travel radius is a whole number from 1 to ${RADIUS_MAX} km` : null;
+  const draft = scheduleDraftSchema.safeParse({ radius });
+  const radiusProblem = draft.success ? null : draft.error.issues[0].message;
 
   const change = (weekday: number, patch: Partial<WeeklyHour>) => {
     setSaved(false);
     setHours((all) => all.map((h) => (h.weekday === weekday ? { ...h, ...patch } : h)));
   };
   const submit = () => {
-    if (radiusProblem) return;
-    save.mutate({ hours, travel_radius_km: radiusKm }, { onSuccess: () => setSaved(true) });
+    if (!draft.success) return; // Save is shut in this case; this only narrows the parse.
+    save.mutate({ hours, travel_radius_km: draft.data.travel_radius_km }, { onSuccess: () => setSaved(true) });
   };
 
   return (

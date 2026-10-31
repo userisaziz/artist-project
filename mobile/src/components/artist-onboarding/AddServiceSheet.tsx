@@ -11,12 +11,10 @@ import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
 import { ServicePhotoField, type ServicePhotoDraft } from './ServicePhotoField';
 import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
-import { EMPTY_EXTRAS, extrasInput } from '../../utils/common/service-extras';
+import { EMPTY_EXTRAS, extrasDraftSchema } from '../../utils/common/service-extras';
+import { pricingDraftSchema } from '../../utils/artist-services/service-pricing';
 import type { ServiceInput } from '../../types/artist-onboarding/artist-onboarding';
 import type { CatalogCategory } from '../../types/catalog/catalog';
-
-const MAX_RUPEES = 1_000_000; // backend ServiceIn: price_paise ≤ 100 000 000
-const MAX_MINUTES = 1440;
 
 /**
  * Bottom sheet for one service, in three steps (spec §3.1): category and subcategory, a service from
@@ -66,20 +64,18 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
   const pickSub = (id: number) => { setSubId(id); setTemplateId(null); };
 
   const save = async () => {
-    const rupees = Number(price);
-    const mins = Number(minutes);
     if (templateId === null) { setError('Pick a service.'); return; }
-    if (!Number.isInteger(rupees) || rupees <= 0 || rupees > MAX_RUPEES) { setError('Enter a price above ₹0.'); return; }
-    if (!Number.isInteger(mins) || mins <= 0 || mins > MAX_MINUTES) { setError('Enter a duration between 1 and 1440 minutes.'); return; }
-    const extra = extrasInput(extras);
-    if (!extra.ok) { setError(extra.error); return; }
+    const priced = pricingDraftSchema.safeParse({ price, minutes });
+    if (!priced.success) { setError(priced.error.issues[0].message); return; }
+    const extra = extrasDraftSchema.safeParse(extras);
+    if (!extra.success) { setError(extra.error.issues[0].message); return; }
     setSaving(true);
     setError(null);
     try {
       await onSubmit({
-        template_id: templateId, price_paise: rupees * 100, duration_minutes: mins,
+        template_id: templateId, ...priced.data,
         ...(note.trim() ? { description: note.trim() } : {}),
-        ...extra.value,
+        ...extra.data,
         ...(photo.key ? { photo_key: photo.key } : {}),
       });
       onClose();

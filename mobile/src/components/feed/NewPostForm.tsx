@@ -12,6 +12,8 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { pickImages, uploadImage, type PickedImage } from '../../api/artist-onboarding/upload';
 import { useCreatePost } from '../../hooks/feed/feed';
+import { firstIssue } from '../../utils/common/validation';
+import { postDraftSchema } from '../../utils/feed/post-draft';
 import type { PhotoInput, PostKind, PostTopic } from '../../types/feed/feed';
 import { Icon } from '../common/Icon';
 
@@ -57,9 +59,7 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
   useEffect(() => () => { mounted.current = false; }, []);
   const article = kind === 'article';
   const busy = progress !== null || create.isPending;
-  const missing = article
-    ? (title.trim().length < 3 && 'Add a title') || (!text.trim() && 'Write your article')
-    : (!photos.length && 'Add at least one photo') || (!text.trim() && 'Write a caption');
+  const missing = firstIssue(postDraftSchema, { kind, photoCount: photos.length, title, text });
 
   const switchKind = (next: PostKind) => {
     setKind(next);

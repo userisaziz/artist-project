@@ -1,4 +1,4 @@
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,12 +31,14 @@ export function EnquiryForm({ artistId, artistName, onSent }: EnquiryFormProps) 
   const insets = useSafeAreaInsets();
   const today = istDateKey(useNow());
   const create = useCreateEnquiry();
-  const { control, watch, handleSubmit } = useForm<EnquiryDraft>({
+  const { control, handleSubmit } = useForm<EnquiryDraft>({
     resolver: zodResolver(enquiryDraftSchema),
     defaultValues: { eventDate: '', details: '', budget: '' },
   });
   const days = Array.from({ length: EVENT_WINDOW_DAYS }, (_, i) => addDays(today, i));
-  const details = watch('details');
+  // Only the counter subscribes, and only to the details field: watch() would re-render on every keystroke
+  // in the budget too.
+  const details = useWatch({ control, name: 'details' }) ?? '';
 
   // Only what the schema can't know is assembled here: which artist, and the budget as paise (null when
   // the field is empty). Everything it does know — the messages, the trim, the send-gate — is the schema's.

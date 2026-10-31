@@ -1,29 +1,27 @@
-import { draftFromService, extrasInput } from '../../utils/common/service-extras';
+import { firstIssue } from '../../utils/common/validation';
+import { draftFromService, extrasDraftSchema } from '../../utils/common/service-extras';
 
 it('turns the editor draft into the API input, trimming and skipping blank items', () => {
-  const result = extrasInput({
+  const parsed = extrasDraftSchema.parse({
     included: ['  Bridal hands ', '', 'Custom design'],
     addons: [
       { name: ' Guest mehendi ', price: '500', perPerson: true },
       { name: 'Organic henna', price: '400', perPerson: false },
     ],
   });
-  expect(result).toEqual({
-    ok: true,
-    value: {
-      included_items: ['Bridal hands', 'Custom design'],
-      addons: [
-        { name: 'Guest mehendi', price_paise: 50000, per_person: true },
-        { name: 'Organic henna', price_paise: 40000, per_person: false },
-      ],
-    },
+  expect(parsed).toEqual({
+    included_items: ['Bridal hands', 'Custom design'],
+    addons: [
+      { name: 'Guest mehendi', price_paise: 50000, per_person: true },
+      { name: 'Organic henna', price_paise: 40000, per_person: false },
+    ],
   });
 });
 
 it('refuses an add-on without a name or a whole-rupee price', () => {
-  expect(extrasInput({ included: [], addons: [{ name: '', price: '500', perPerson: false }] })).toEqual({ ok: false, error: 'Give every add-on a name.' });
-  expect(extrasInput({ included: [], addons: [{ name: 'Guests', price: '0', perPerson: true }] })).toEqual({ ok: false, error: 'Enter a price above ₹0 for “Guests”.' });
-  expect(extrasInput({ included: [], addons: [{ name: 'Guests', price: '12.5', perPerson: true }] }).ok).toBe(false);
+  expect(firstIssue(extrasDraftSchema, { included: [], addons: [{ name: '', price: '500', perPerson: false }] })).toBe('Give every add-on a name.');
+  expect(firstIssue(extrasDraftSchema, { included: [], addons: [{ name: 'Guests', price: '0', perPerson: true }] })).toBe('Enter a price above ₹0 for “Guests”.');
+  expect(firstIssue(extrasDraftSchema, { included: [], addons: [{ name: 'Guests', price: '12.5', perPerson: true }] })).not.toBeNull();
 });
 
 it('starts the editor from a saved service', () => {

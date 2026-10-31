@@ -15,6 +15,9 @@ export function formatMaybePrice(paise: number | null): string {
   return paise === null ? '—' : formatPrice(paise);
 }
 
+/** The backend's ceiling for anything on the catalogue — a service price or an add-on: app/artist/constants.py MAX_PRICE_PAISE (₹10 lakh). */
+export const MAX_PRICE_RUPEES = 1_000_000;
+
 /** '480' or '1,200.50' (rupees, as typed) → paise; null when it isn't a positive amount. */
 export function rupeesToPaise(text: string): number | null {
   const value = Number(text.replace(/[,\s₹]/g, ''));
