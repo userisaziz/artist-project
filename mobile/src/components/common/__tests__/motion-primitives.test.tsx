@@ -2,7 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { ThemeProvider } from '../../../core/theme/theme-provider';
 import { AppText } from '../AppText';
+import { MotionEntrance } from '../MotionEntrance';
 import { PressableScale } from '../PressableScale';
+import { Skeleton } from '../Skeleton';
 
 const wrap = (ui: ReactElement) => render(<ThemeProvider>{ui}</ThemeProvider>);
 
@@ -53,4 +55,17 @@ it('forwards user press handlers alongside the dip', async () => {
   await fireEvent(screen.getByLabelText('Fwd'), 'pressOut');
   expect(onPressIn).toHaveBeenCalledTimes(1);
   expect(onPressOut).toHaveBeenCalledTimes(1);
+});
+it('MotionEntrance renders its children', async () => {
+  await wrap(
+    <MotionEntrance index={2} armed>
+      <AppText>Card</AppText>
+    </MotionEntrance>,
+  );
+  expect(screen.getByText('Card')).toBeTruthy();
+});
+
+it('Skeleton renders a loading placeholder instead of a spinner', async () => {
+  await wrap(<Skeleton height={112} width={96} />);
+  expect(screen.getByLabelText('Loading')).toBeTruthy();
 });
