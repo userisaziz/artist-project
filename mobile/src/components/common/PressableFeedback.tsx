@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, type PressableProps, type PressableStateCallbackType } from 'react-native';
+import { Platform, Pressable, StyleSheet, type PressableProps, type PressableStateCallbackType } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { springs, useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -33,12 +33,18 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
   const [pressed, setPressed] = useState(false);
   const dip = useSharedValue(1);
   const dipStyle = useAnimatedStyle(() => ({ transform: [{ scale: dip.value }] }));
-  const ripple = dims && Platform.OS === 'android'
-    ? android_ripple ?? { color: theme.colors.pressedOverlay, foreground: true }
-    : android_ripple;
+  // A wash is bounded by this box, so it only reads as feedback when the element paints a surface of
+  // its own; across a transparent row or link the same wash is a grey rectangle appearing over empty
+  // space. Android ripples surfaced elements and dims surface-less ones; iOS dims either way.
+  const flatStyle = StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
+  const ownsSurface = flatStyle?.backgroundColor != null && flatStyle.backgroundColor !== 'transparent';
+  const ripple = android_ripple ?? (dims && Platform.OS === 'android' && ownsSurface
+    ? { color: theme.colors.pressedOverlay, foreground: true }
+    : undefined);
+  const dimsContent = dims && (Platform.OS !== 'android' || !ownsSurface);
   const pressedStyle = (state: PressableStateCallbackType) => {
     const base = typeof style === 'function' ? style(state) : style;
-    return dims && state.pressed && Platform.OS !== 'android' ? [base, { opacity: PRESSED_OPACITY }] : base;
+    return dimsContent && state.pressed ? [base, { opacity: PRESSED_OPACITY }] : base;
   };
   if (!animates) {
     // Plain Pressable for the common case: identical feedback, no animated machinery.
@@ -51,7 +57,7 @@ export function PressableFeedback({ feedback = true, scale = false, style, andro
     <AnimatedPressable
       {...rest}
       android_ripple={ripple}
-      style={[userStyle, pressed && dims && Platform.OS !== 'android' ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
+      style={[userStyle, pressed && dimsContent ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
       onPressIn={(e) => {
         setPressed(true);
         if (dips) dip.set(withSpring(PRESSED_SCALE, springs.press));
