@@ -21,6 +21,20 @@ module.exports = defineConfig([
       ],
     },
     rules: {
+      // The keyboard rule (Android already resizes the window; only iOS may pad) lives in one place.
+      // Importing the primitive anywhere else is how the old three-different-recipes drift came back.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['KeyboardAvoidingView'],
+              message: 'Use src/components/common/KeyboardAvoider — it owns the platform keyboard rule.',
+            },
+          ],
+        },
+      ],
       'boundaries/dependencies': [
         'warn',
         {
@@ -49,5 +63,9 @@ module.exports = defineConfig([
         },
       ],
     },
+  },
+  {
+    files: ['**/components/common/KeyboardAvoider.tsx'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 ]);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,7 +37,7 @@ export default function CustomerBookings() {
         <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Bookings</AppText>
         <Segmented options={SCOPES} value={scope} onChange={setScope} />
       </View>
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, View } from 'react-native';
+import { Modal, ScrollView, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { ServiceExtrasEditor } from '../common/ServiceExtrasEditor';
 import { ServicePhotoField, type ServicePhotoDraft } from './ServicePhotoField';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -91,7 +92,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoider>
         <PressableFeedback feedback={false} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: theme.colors.overlay }} onPress={onClose} />
         <View style={{ maxHeight: '85%', backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom + 16 }}>
           <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 8, gap: 14 }} keyboardShouldPersistTaps="handled">
@@ -163,7 +164,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
             <AppButton label="Save service" onPress={() => { void save(); }} loading={saving} disabled={templateId === null} />
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Modal>
   );
 }

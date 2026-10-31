@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { PressableFeedback } from '../../src/components/common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../src/components/common/AppText';
@@ -39,7 +40,7 @@ export default function ArtistReviews() {
       <View style={{ paddingHorizontal: theme.spacing.md }}>
         <BackHeader title="Reviews" />
       </View>
-      <FlatList
+      <FlashList
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.xl, gap: 12 }}
@@ -54,7 +55,7 @@ export default function ArtistReviews() {
             : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
               : <EmptyView message="No reviews yet. Customers can review a booking once it’s completed." />
         }
-        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" /> : null}
+        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" shape="spinner" /> : null}
       />
 
       {sheet?.kind === 'reply' ? (

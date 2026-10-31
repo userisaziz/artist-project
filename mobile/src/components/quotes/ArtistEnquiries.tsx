@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../common/BackHeader';
 import { Segmented } from '../common/Segmented';
@@ -42,7 +43,7 @@ export function ArtistEnquiries({ onOpen }: { onOpen: (id: string) => void }) {
       {enquiries.isPending ? <LoadingView label="Loading enquiries" /> : null}
       {enquiries.isError && !enquiries.data ? <ErrorView error={enquiries.error} onRetry={() => { void enquiries.refetch(); }} /> : null}
       {enquiries.isSuccess && !items.length ? <View style={{ marginTop: 12 }}><EmptyView message={EMPTY[scope]} /></View> : null}
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}

@@ -1,4 +1,5 @@
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../common/BackHeader';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
@@ -21,7 +22,7 @@ export function CustomerEnquiries({ onOpen }: { onOpen: (id: string) => void }) 
       {enquiries.isPending ? <LoadingView label="Loading your quotes" /> : null}
       {enquiries.isError && !enquiries.data ? <ErrorView error={enquiries.error} onRetry={() => { void enquiries.refetch(); }} /> : null}
       {enquiries.isSuccess && !items.length ? <EmptyView message="No quote requests yet. Ask an artist for one from their page." /> : null}
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}

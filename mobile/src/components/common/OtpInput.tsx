@@ -1,4 +1,5 @@
-import { Animated, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../core/theme/theme-provider';
 import { FieldHalo, fieldBorder } from './FieldHalo';
@@ -16,7 +17,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
   const theme = useTheme();
   const [digits, setDigits] = useState<string[]>(Array(length).fill(''));
   const inputs = useRef<(TextInput | null)[]>([]);
-  const [shake] = useState(() => new Animated.Value(0));
+  const shake = useSharedValue(0);
   const completedFor = useRef<string | null>(null); // onComplete fires once per code, not per keystroke
   const onChangeRef = useRef(onChange);
   useEffect(() => {
@@ -31,13 +32,13 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
     onChangeRef.current?.('');
     completedFor.current = null;
     inputs.current[0]?.focus();
-    shake.setValue(0);
-    Animated.sequence([
-      Animated.timing(shake, { toValue: 10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: -10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 8, duration: 60, useNativeDriver: true }),
-      Animated.timing(shake, { toValue: 0, duration: 60, useNativeDriver: true }),
-    ]).start();
+    shake.set(0);
+    shake.set(withSequence(
+      withTiming(10, { duration: 60 }),
+      withTiming(-10, { duration: 60 }),
+      withTiming(8, { duration: 60 }),
+      withTiming(0, { duration: 60 }),
+    ));
   }, [error, length, shake]);
 
   const update = (next: string[]) => {
@@ -87,9 +88,11 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
     update(next);
   };
 
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
+
   return (
     <Animated.View
-      style={{ transform: [{ translateX: shake }], gap: theme.spacing[1.75], flexDirection: 'row' }}
+      style={[{ gap: theme.spacing[1.75], flexDirection: 'row' }, shakeStyle]}
     >
       {digits.map((d, i) => (
         <FieldHalo key={i} focused={focusedIndex === i && !error} radius={theme.radii.md} style={{ flex: 1, minWidth: 0 }}>

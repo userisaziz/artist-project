@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
@@ -7,6 +8,7 @@ import { AppText, Accent } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
+import { errorMessage } from '../../../src/core/api/error-message';
 import { Icon } from '../../../src/components/common/Icon';
 
 const ARTIST_PHOTO = require('../../../assets/hero/role-artist.webp');
@@ -19,11 +21,29 @@ export default function IntroScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { chooseRole, signOut } = useAuth();
+  const [escaping, setEscaping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const tile = { borderRadius: 22, backgroundColor: theme.colors.imageFallback } as const;
+
+  // The way out for someone who tapped "Offer my services" and means to browse instead: choosing customer
+  // keeps the verified session and flips the root gate, so no navigation here can be a silent no-op.
+  const browseAsCustomer = async () => {
+    if (escaping) return;
+    setEscaping(true);
+    setError(null);
+    try {
+      await chooseRole('customer');
+    } catch (e) {
+      setError(errorMessage(e));
+      setEscaping(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.washTop, paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
-      {/* The role is already chosen, so there is nothing to go back to: the close button signs out, like Back on sign-up. */}
+      {/* The role is already chosen, so there is nothing to go back to: the close button leaves the account,
+          while "Browse as a customer" below stays signed in and switches the app side. */}
       <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel="Sign out"
@@ -52,7 +72,11 @@ export default function IntroScreen() {
       </View>
       <View style={{ flex: 1 }} />
       <AppText variant="caption" style={{ textAlign: 'center', color: theme.colors.textSecondary, marginBottom: 10 }}>5 short steps</AppText>
-      <AppButton label="Let’s get started" onPress={() => router.push('/artist/onboarding/profile')} />
+      <View style={{ gap: 8 }}>
+        <AppButton label="Let’s get started" onPress={() => router.push('/artist/onboarding/profile')} disabled={escaping} />
+        <AppButton label="Browse as a customer" variant="ghost" loading={escaping} onPress={() => { void browseAsCustomer(); }} />
+      </View>
+      {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.sm, textAlign: 'center' }}>{error}</AppText> : null}
     </View>
   );
 }

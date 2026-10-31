@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { Photo } from '../common/Photo';
 import { Segmented } from '../common/Segmented';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -114,7 +115,7 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.spacing.md, paddingBottom: 10 }}>
         <PressableFeedback accessibilityRole="button" onPress={onCancel} disabled={busy} hitSlop={8}>
           <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Cancel</AppText>
@@ -191,6 +192,6 @@ export function NewPostForm({ services, onCancel, onPosted }: NewPostFormProps) 
         {error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{error}</AppText> : null}
         {!error && missing ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{missing}</AppText> : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

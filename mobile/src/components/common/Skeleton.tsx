@@ -10,13 +10,16 @@ interface SkeletonProps {
   height?: number;
   width?: number | `${number}%`;
   radius?: number;
+  /** 'image' blocks stand where a photo is coming and take the cover fallback tone; 'block' is text and
+   *  card chrome. Both sweep the same band. */
+  tone?: 'block' | 'image';
   style?: StyleProp<ViewStyle>;
 }
 
 /** A first-load placeholder block: a tint band sweeping through a soft canvas block (the one sanctioned
  *  linear loop — loading). Reduced motion parks the band, so the block stays flat. Compose blocks into
  *  rows; no spinner. */
-export function Skeleton({ height = 96, width, radius, style }: SkeletonProps) {
+export function Skeleton({ height = 96, width, radius, tone = 'block', style }: SkeletonProps) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const sweep = useSharedValue(0);
@@ -41,12 +44,15 @@ export function Skeleton({ height = 96, width, radius, style }: SkeletonProps) {
   return (
     <View
       accessibilityLabel="Loading"
-      style={[{ height, width, borderRadius: radius ?? theme.radii.card, backgroundColor: theme.colors.canvas, overflow: 'hidden' }, style]}
+      style={[
+        { height, width, borderRadius: radius ?? theme.radii.card, backgroundColor: tone === 'image' ? theme.colors.imageFallback : theme.colors.skeletonBlock, overflow: 'hidden' },
+        style,
+      ]}
     >
       <Animated.View
         style={[
-          // The band is a *tint* on the block, not a highlight: white over the blush canvas is already
-          // the luminance ceiling here (~1.09:1), so the sweep has to be darker to be seen at all.
+          // The band is a *tint* on the block, not a highlight: white over the blush palette has no
+          // headroom, so the sweep has to be darker to be seen at all.
           { position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%', backgroundColor: theme.colors.skeletonBand },
           band,
         ]}

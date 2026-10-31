@@ -14,7 +14,7 @@ import { formatDateOfBirth, readDateOfBirth } from '../../src/utils/auth/date-of
 // Atelier hi-fi "Your details" (v4): step 3 of 3, first/last name side by side, date of birth, optional email, Continue pinned.
 export default function SignupScreen() {
   const theme = useTheme();
-  const { completeSignup, chooseRole, signOut } = useAuth();
+  const { completeSignup, signOut } = useAuth();
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   const [dob, setDob] = useState('');
@@ -23,7 +23,6 @@ export default function SignupScreen() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [escaping, setEscaping] = useState(false);
 
   // The same rule the server applies (app/user/service.py): a real date, and 18 years of it.
   const dateOfBirth = readDateOfBirth(dob);
@@ -47,31 +46,13 @@ export default function SignupScreen() {
     }
   };
 
-  // An escape that keeps the verified session: choosing customer lets the root gate route into the app.
-  const browseAsCustomer = async () => {
-    if (saving || escaping) return;
-    setEscaping(true);
-    setError(null);
-    try {
-      await chooseRole('customer');
-    } catch (e) {
-      setError(errorMessage(e));
-      setEscaping(false);
-    }
-  };
-
-  // The number is already verified, so there is no OTP to go back to: the chevron signs out ("not you?"),
-  // and the two ways forward are Continue and Browse as a customer.
+  // The number is already verified, so there is no OTP to go back to: the chevron signs out ("not you?") and
+  // Continue moves on to Choose role, where browsing as a customer is the left-hand card.
   return (
     <FormScreen
       onBack={() => { void signOut(); }}
       step={3}
-      footer={(
-        <View style={{ gap: 8 }}>
-          <AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />
-          <AppButton label="Browse as a customer" variant="ghost" loading={escaping} disabled={saving} onPress={() => { void browseAsCustomer(); }} />
-        </View>
-      )}
+      footer={<AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />}
     >
       <FormHeading eyebrow="YOUR DETAILS" title="What’s your" accent="name?" />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>

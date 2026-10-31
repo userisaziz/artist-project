@@ -44,7 +44,7 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
     return (
       <View style={shell}>
         <BackHeader />
-        {artist.isError ? <ErrorView error={artist.error} onRetry={() => { void artist.refetch(); }} /> : <LoadingView label="Loading the service" />}
+        {artist.isError ? <ErrorView error={artist.error} onRetry={() => { void artist.refetch(); }} /> : <LoadingView label="Loading the service" shape="detail" />}
       </View>
     );
   }

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, View, type ImageSourcePropType } from 'react-native';
+import { View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
+import { CrossfadeStack } from '../common/CrossfadeStack';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
+import { useReducedMotion } from '../../core/motion/motion';
 
 export interface HeroSlide {
   eyebrow: string;
@@ -31,16 +34,8 @@ const CHEVRON = 40;
 export function HomeHero({ slides, onOpen }: HomeHeroProps) {
   const theme = useTheme();
   const [index, setIndex] = useState(0);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [fades] = useState(() => slides.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
+  const reduceMotion = useReducedMotion();
   const slide = slides[index];
-
-  useEffect(() => {
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((on) => { if (live) setReduceMotion(on); });
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => { live = false; sub.remove(); };
-  }, []);
 
   // Auto-advance; a tapped dot restarts the clock. Reduced motion keeps the slide until a dot is tapped.
   useEffect(() => {
@@ -49,18 +44,13 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
     return () => clearTimeout(id);
   }, [index, reduceMotion, slides.length]);
 
-  useEffect(() => {
-    const animations = fades.map((v, i) => Animated.timing(v, { toValue: i === index ? 1 : 0, duration: reduceMotion ? 0 : FADE_MS, useNativeDriver: true }));
-    Animated.parallel(animations).start();
-  }, [fades, index, reduceMotion]);
-
   return (
     <View>
-      <View style={{ height: PHOTO_HEIGHT, overflow: 'hidden', backgroundColor: theme.colors.washBottom }}>
-        {slides.map((s, i) => (
-          <Animated.Image key={s.eyebrow} source={s.image} resizeMode="cover" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', opacity: fades[i] }} />
+      <CrossfadeStack active={index} durationMs={FADE_MS} style={{ height: PHOTO_HEIGHT, backgroundColor: theme.colors.washBottom }}>
+        {slides.map((s) => (
+          <Image key={s.eyebrow} source={s.image} contentFit="cover" style={{ width: '100%', height: '100%' }} />
         ))}
-      </View>
+      </CrossfadeStack>
       {/* A row of separate controls, not one button around the dots: buttons can't nest. */}
       <View
         style={{

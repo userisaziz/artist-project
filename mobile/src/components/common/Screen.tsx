@@ -1,6 +1,7 @@
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
+import { KeyboardAvoider } from './KeyboardAvoider';
 import { useTheme } from '../../core/theme/theme-provider';
 
 export function Screen({ children, scroll = false, keyboardOffset = true }: { children: ReactNode; scroll?: boolean; keyboardOffset?: boolean }) {
@@ -16,9 +17,9 @@ export function Screen({ children, scroll = false, keyboardOffset = true }: { ch
   return (
     <View style={[{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top }, Platform.OS === 'web' && { paddingTop: theme.spacing[10] }]}>
       {keyboardOffset ? (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoider>
           {body}
-        </KeyboardAvoidingView>
+        </KeyboardAvoider>
       ) : body}
     </View>
   );

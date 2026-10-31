@@ -34,7 +34,8 @@ export const lightTheme: Theme = {
     washBottom: palette.blush100,
     photoScrim: palette.plum950,
     canvas: palette.blush60,
-    skeletonBand: palette.blush280, // deeper than canvas: a lighter band has no headroom over near-white
+    skeletonBlock: palette.blush250, // not canvas: a placeholder has to survive on a white page, where 3% off white is invisible
+    skeletonBand: palette.blush300, // deeper than the block, so the sweep reads as motion rather than a flicker
     heading: palette.plum900,
     progressTrack: palette.blush280,
     indicatorInactive: palette.blush300,

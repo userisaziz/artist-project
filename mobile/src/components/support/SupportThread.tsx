@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
 import { BackHeader } from '../common/BackHeader';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { StatusPill } from '../common/StatusPill';
 import { ErrorView, LoadingView } from '../common/StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -31,7 +32,7 @@ export function SupportThread({ ticketId }: { ticketId: string }) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.lg, gap: 12 }}>
         <BackHeader title={t ? `#${t.code}` : 'Ticket'} />
         {ticket.isPending ? <LoadingView label="Loading the ticket" /> : null}
@@ -74,6 +75,6 @@ export function SupportThread({ ticketId }: { ticketId: string }) {
           <AppButton label="Send" loading={write.isPending} disabled={!text.trim()} onPress={send} />
         </View>
       ) : null}
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

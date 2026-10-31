@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
@@ -69,7 +70,7 @@ export default function ArtistBookings() {
           onChange={setScope}
         />
       </View>
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}

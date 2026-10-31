@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { FlatList, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
 import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
+import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
+import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { Icon } from '../../../src/components/common/Icon';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
@@ -72,6 +75,7 @@ export default function Explore() {
   const todayKey = istDateKey(useNow());
 
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const rowsArmed = useEntranceWindow(items.length > 0); // only the first batch cascades; a new search keeps `armed` closed
   const total = list.data?.pages[0]?.total ?? null;
   const shown = total ?? items.length;
   const count = `${shown}${total === null && list.hasNextPage ? '+' : ''} ${shown === 1 && !list.hasNextPage ? 'artist' : 'artists'}`;
@@ -94,7 +98,7 @@ export default function Explore() {
     { key: 'home', label: 'Home visit', active: filters.homeVisit, onPress: () => set({ homeVisit: !filters.homeVisit }) },
   ];
 
-  const empty = list.isPending ? <LoadingView />
+  const empty = list.isPending ? <LoadingView label="Loading artists" count={5} />
     : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
       : (
         <View style={{ gap: theme.spacing.md }}>
@@ -126,7 +130,7 @@ export default function Explore() {
       {explore.locationError ? (
         <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, paddingHorizontal: theme.spacing.md, marginTop: 8 }}>{explore.locationError}</AppText>
       ) : null}
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}
@@ -134,15 +138,19 @@ export default function Explore() {
         style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1 }} // the previous search, until the new one answers
         contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: 12 }}
         renderItem={({ item, index }) => (index === 0 ? (
-          <ExploreFeaturedCard
-            artist={item}
-            availability={availabilityLabel(item.free_on, todayKey)}
-            saved={saveArtist.isSaved(item.id)}
-            onToggleSave={() => saveArtist.toggle(item.id)}
-            onPress={() => openArtist(item.id)}
-          />
+          <MotionEntrance index={index} armed={rowsArmed}>
+            <ExploreFeaturedCard
+              artist={item}
+              availability={availabilityLabel(item.free_on, todayKey)}
+              saved={saveArtist.isSaved(item.id)}
+              onToggleSave={() => saveArtist.toggle(item.id)}
+              onPress={() => openArtist(item.id)}
+            />
+          </MotionEntrance>
         ) : (
-          <ExploreResultRow artist={item} availability={availabilityLabel(item.free_on, todayKey)} onPress={() => openArtist(item.id)} />
+          <MotionEntrance index={index} armed={rowsArmed}>
+            <ExploreResultRow artist={item} availability={availabilityLabel(item.free_on, todayKey)} onPress={() => openArtist(item.id)} />
+          </MotionEntrance>
         ))}
         onEndReachedThreshold={0.5}
         onEndReached={() => { if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage(); }}
@@ -156,7 +164,7 @@ export default function Explore() {
           />
         }
         ListEmptyComponent={empty}
-        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" /> : null}
+        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" shape="spinner" /> : null}
       />
       <PlaceSheet visible={sheet === 'city'} current={place} phone={explore.phone} onPick={(next) => { setPlace(next); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'date'} title="Free on" choices={dateChoices(todayKey)} selected={filters.availableOn} onPick={(availableOn) => { set({ availableOn }); close(); }} onClose={close} />

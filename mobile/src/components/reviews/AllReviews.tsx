@@ -1,4 +1,5 @@
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackHeader } from '../common/BackHeader';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
@@ -23,7 +24,7 @@ export function AllReviews({ artistId }: { artistId: string }) {
       <View style={{ paddingHorizontal: theme.spacing.md }}>
         <BackHeader title="All reviews" />
       </View>
-      <FlatList
+      <FlashList
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.xl, gap: 12 }}
@@ -36,7 +37,7 @@ export function AllReviews({ artistId }: { artistId: string }) {
             : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
               : <EmptyView message="No reviews yet." />
         }
-        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" /> : null}
+        ListFooterComponent={list.isFetchingNextPage ? <LoadingView label="Loading more" shape="spinner" /> : null}
       />
     </View>
   );

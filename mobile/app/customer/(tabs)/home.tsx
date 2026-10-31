@@ -21,6 +21,8 @@ import { HomeHero, type HeroSlide } from '../../../src/components/directory/Home
 import { CategoryIconRow } from '../../../src/components/directory/CategoryIconRow';
 import { ArtistTile } from '../../../src/components/directory/ArtistTile';
 import { ArtistCompactRow } from '../../../src/components/directory/ArtistCompactRow';
+import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
+import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { ShopBanner } from '../../../src/components/shop/ShopBanner';
 import { greeting } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
@@ -76,6 +78,10 @@ export default function CustomerHome() {
   const saveArtist = useSaveToggle('artist');
   const items = artists.data?.pages.flatMap((p) => p.items) ?? [];
   const best = topRated(items);
+  // One entrance per first batch, and only while useEntranceWindow says the window is open: a refetch on
+  // resume or a row recycled back into view must not replay the cascade.
+  const tilesArmed = useEntranceWindow(items.length > 0);
+  const bestArmed = useEntranceWindow(best.length > 0);
   const prefetchArtist = usePrefetchArtist();
   const openArtist = (id: string) => {
     prefetchArtist(id);
@@ -139,7 +145,12 @@ export default function CustomerHome() {
         <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
       </PressableFeedback>
 
-      {categories.data?.length ? (
+      {categories.isPending ? (
+        <>
+          <SectionHeader title="Services" />
+          <LoadingView label="Loading services" shape="icons" />
+        </>
+      ) : categories.data?.length ? (
         <>
           <SectionHeader title="Services" />
           <CategoryIconRow categories={categories.data} onPick={(c) => router.navigate({ pathname: '/customer/explore', params: { categoryId: String(c.id) } })} />
@@ -150,7 +161,7 @@ export default function CustomerHome() {
       {place && artists.isSuccess ? (
         <AppText variant="caption" style={{ paddingHorizontal: theme.spacing.md, marginTop: -6, marginBottom: 10, color: theme.colors.textMuted }}>{`Artists ${placeLine(place, radiusKm)}`}</AppText>
       ) : null}
-      {artists.isPending ? <LoadingView /> : null}
+      {artists.isPending ? <LoadingView label="Loading artists near you" shape="tiles" /> : null}
       {artists.isError ? <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={artists.error} onRetry={() => { void artists.refetch(); }} /></View> : null}
       {artists.isSuccess && !items.length ? <View style={{ paddingHorizontal: theme.spacing.md }}><EmptyView message="No artists yet. Check back soon." /></View> : null}
       {items.length ? (
@@ -160,8 +171,10 @@ export default function CustomerHome() {
           keyExtractor={(a) => a.id}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: theme.spacing.md, gap: 12 }}
-          renderItem={({ item }) => (
-            <ArtistTile artist={item} saved={saveArtist.isSaved(item.id)} onPress={() => openArtist(item.id)} onToggleSave={() => saveArtist.toggle(item.id)} />
+          renderItem={({ item, index }) => (
+            <MotionEntrance index={index} armed={tilesArmed}>
+              <ArtistTile artist={item} saved={saveArtist.isSaved(item.id)} onPress={() => openArtist(item.id)} onToggleSave={() => saveArtist.toggle(item.id)} />
+            </MotionEntrance>
           )}
         />
       ) : null}
@@ -174,7 +187,11 @@ export default function CustomerHome() {
         <>
           <SectionHeader title="Top rated" onSeeAll={explore} seeAllLabel="See all top rated artists" />
           <View accessibilityLabel="Top rated artists" style={{ paddingHorizontal: theme.spacing.md, gap: 10 }}>
-            {best.map((a) => <ArtistCompactRow key={a.id} artist={a} onPress={() => openArtist(a.id)} />)}
+            {best.map((a, i) => (
+              <MotionEntrance key={a.id} index={i} armed={bestArmed}>
+                <ArtistCompactRow artist={a} onPress={() => openArtist(a.id)} />
+              </MotionEntrance>
+            ))}
           </View>
         </>
       ) : null}

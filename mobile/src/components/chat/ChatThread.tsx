@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
+import { KeyboardAvoider } from '../common/KeyboardAvoider';
 import { ChatComposer } from './ChatComposer';
 import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
@@ -50,7 +51,7 @@ export function ChatThread({ side, conversationId }: ChatThreadProps) {
   }, [newestIncoming, focused, markAsRead]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background }}>
       <View style={{ paddingTop: insets.top + theme.spacing.sm, backgroundColor: theme.colors.surface }}>
         <ChatHeader conversation={conversation.data} />
       </View>
@@ -80,6 +81,6 @@ export function ChatThread({ side, conversationId }: ChatThreadProps) {
       <View style={{ paddingBottom: keyboardUp ? 0 : insets.bottom, backgroundColor: theme.colors.surface }}>
         <ChatComposer sending={send.isPending} error={send.isError ? errorMessage(send.error) : null} onSend={(text) => send.mutateAsync(text)} />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

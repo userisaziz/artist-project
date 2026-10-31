@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query';
 import type { Page } from '../../core/api/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,7 +67,7 @@ function SavedList<T extends { id: string }>({ list, empty, renderItem, padded =
   if (list.isError && !list.data) return <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />;
   if (!items.length) return <EmptyView message={empty} />;
   return (
-    <FlatList
+    <FlashList
       data={items}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => renderItem(item)}
