@@ -11,6 +11,7 @@ import { AppText } from '../src/components/common/AppText';
 import { AppButton } from '../src/components/common/AppButton';
 import { SessionUnavailable } from '../src/components/auth/SessionUnavailable';
 import { ToastHost } from '../src/components/common/Toast';
+import { RefetchBar } from '../src/components/common/RefetchBar';
 import { usePushNotifications } from '../src/hooks/notifications/use-push';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../src/core/api/query-client';
@@ -52,21 +53,26 @@ function Gate() {
   // target; it forwards into exactly one guarded area below. Flipping a guard drops the old
   // area from history, so there is no back-navigation across a boundary.
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
-      <Stack.Screen name="index" />
-      <Stack.Protected guard={where === 'auth'}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      <Stack.Protected guard={where === 'onboarding'}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
-      <Stack.Protected guard={where === 'customer'}>
-        <Stack.Screen name="customer" />
-      </Stack.Protected>
-      <Stack.Protected guard={where === 'artist'}>
-        <Stack.Screen name="artist" />
-      </Stack.Protected>
-    </Stack>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
+        <Stack.Screen name="index" />
+        <Stack.Protected guard={where === 'auth'}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={where === 'onboarding'}>
+          <Stack.Screen name="(onboarding)" />
+        </Stack.Protected>
+        <Stack.Protected guard={where === 'customer'}>
+          <Stack.Screen name="customer" />
+        </Stack.Protected>
+        <Stack.Protected guard={where === 'artist'}>
+          <Stack.Screen name="artist" />
+        </Stack.Protected>
+      </Stack>
+      {/* Above every route, and a leaf with its own query subscription: a background refetch on resume
+          re-renders this bar, never the navigator under it. */}
+      <RefetchBar />
+    </View>
   );
 }
 

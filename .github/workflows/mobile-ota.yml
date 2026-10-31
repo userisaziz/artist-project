@@ -1,0 +1,44 @@
+name: mobile-ota
+
+# Pushes to dev that touch the app publish an OTA bundle to the preview channel.
+# Testers on the preview APK pick it up within two cold launches (download on
+# launch, apply on the next). JS/asset changes only: a native change moves the
+# fingerprint, so the published update simply won't match installed builds and
+# a new `--profile preview` APK is required instead.
+on:
+  push:
+    branches: [dev]
+    paths: ["mobile/**", ".github/workflows/mobile-ota.yml"]
+
+concurrency:
+  group: mobile-ota
+  cancel-in-progress: false # never kill a publish mid-flight; queue behind it
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci # .npmrc sets legacy-peer-deps; a pristine tree keeps the fingerprint stable
+      - name: Publish to the preview channel
+        run: |
+          # --channel only: eas-cli manages the branch behind the channel
+          # itself (docs "ignore branches" flow). --branch and --channel
+          # together is an error on eas-cli v27.
+          npx eas-cli update \
+            --channel preview \
+            --environment preview \
+            --platform android \
+            --message "dev $GITHUB_SHA" \
+            --non-interactive

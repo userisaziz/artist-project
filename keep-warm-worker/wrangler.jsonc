@@ -1,0 +1,17 @@
+// Keep-warm pinger for the Render staging API, deployed as a free Cloudflare Worker.
+// Render's free plan sleeps staging after 15 idle minutes and a cold boot takes 30-90 s — longer than the
+// mobile app's 15 s request timeout — so the API must be pinged continuously. The GitHub Actions schedule
+// (.github/workflows/keep-warm.yml) proved unreliable (runs fired hours apart), so this Worker's cron trigger
+// hits the DB-reaching /health/ready endpoint every 5 minutes instead: it keeps the Render instance awake and
+// generates enough database traffic that the hosted Postgres project never idles into suspension.
+// (render.yaml's own healthCheckPath must stay on the dependency-free /health/live — Render budgets 5 s per
+// health check and a cold readiness call can exceed that.)
+// Deploy: npx -y wrangler deploy   (login once first: npx -y wrangler login)
+{
+  "name": "artist-keep-warm",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "observability": { "enabled": true },
+  "vars": { "TARGET_URL": "https://artist-project.onrender.com" }
+}

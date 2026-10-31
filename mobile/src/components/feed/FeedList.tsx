@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
@@ -56,9 +57,10 @@ export function FeedList({ nav }: { nav: FeedNavigation }) {
       {feed.isError && !feed.data ? <ErrorView error={feed.error} onRetry={() => { void feed.refetch(); }} /> : null}
       {feed.isSuccess && !items.length ? <EmptyView message={empty} /> : null}
       {items.length ? (
-        <FlatList
+        <FlashList
           data={items}
           keyExtractor={(p) => p.id}
+          getItemType={(p) => p.kind}
           renderItem={({ item }) =>
             item.kind === 'article'
               ? <ArticleCard post={item} now={now} onOpen={() => nav.openPost(item.id)} save={nav.savePost} />

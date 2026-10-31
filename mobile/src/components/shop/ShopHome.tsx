@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
@@ -58,15 +59,19 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
       {products.isError && !products.data ? <ErrorView error={products.error} onRetry={() => { void products.refetch(); }} /> : null}
       {products.isSuccess && !items.length ? <EmptyView message={q ? `Nothing matches “${q}”.` : 'No products here yet.'} /> : null}
       {items.length ? (
-        <FlatList
+        <FlashList
           refreshing={pull.refreshing}
           onRefresh={pull.onRefresh}
           data={items}
           numColumns={2}
           keyExtractor={(p) => p.id}
-          columnWrapperStyle={{ gap: 12 }}
           contentContainerStyle={{ gap: 18, paddingHorizontal: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.xl }}
-          renderItem={({ item }) => <ProductCard product={item} onOpen={() => onOpenProduct(item.id)} onAdd={() => cart.add(item)} />}
+          // FlashList lays out columns itself; the 12px between-column gap lives on the cells (6 + 6).
+          renderItem={({ item, index }) => (
+            <View style={{ marginLeft: index % 2 === 1 ? 6 : 0, marginRight: index % 2 === 0 ? 6 : 0 }}>
+              <ProductCard product={item} onOpen={() => onOpenProduct(item.id)} onAdd={() => cart.add(item)} />
+            </View>
+          )}
           onEndReached={() => { if (products.hasNextPage && !products.isFetchingNextPage) void products.fetchNextPage(); }}
         />
       ) : null}

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
@@ -51,7 +52,7 @@ export function ChatInbox({ side, searchable = false, onOpen, header }: ChatInbo
       {inbox.isError && inbox.data ? <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.textMuted, marginTop: 8 }}>Couldn’t refresh. Retrying…</AppText> : null}
       {inbox.isSuccess && !items.length ? <EmptyView message={q ? `No clients match “${q}”.` : EMPTY[side]} /> : null}
       {items.length ? (
-        <FlatList
+        <FlashList
           refreshing={pull.refreshing}
           onRefresh={pull.onRefresh}
           data={items}

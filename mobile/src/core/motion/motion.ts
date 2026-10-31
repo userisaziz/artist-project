@@ -49,6 +49,11 @@ export function staggerDelay(index: number): number {
   return index < motionStagger.maxItems ? index * motionStagger.stepMs : 0;
 }
 
+/** The placeholder → content swap. The skeleton fades out in `quick` and whatever arrives fades in behind
+ *  it, so a load never hard-cuts. Opacity only, which stays sanctioned under reduced motion. */
+export const placeholderExit = FadeOut.duration(motionDurations.quick);
+export const fadeIn = FadeIn.duration(motionDurations.base).easing(bezier(motionEasing.standard));
+
 /** How long the first-batch entrance window stays open: enter + full stagger, with headroom. */
 export const ENTRANCE_WINDOW_MS = motionDurations.enter + motionStagger.maxItems * motionStagger.stepMs + 150;
 

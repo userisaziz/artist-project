@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { ThemeProvider } from '../../../core/theme/theme-provider';
 import { AppText } from '../AppText';
-import { Crossfade } from '../Crossfade';
+import { CrossfadeStack } from '../CrossfadeStack';
 import { MotionEntrance } from '../MotionEntrance';
 import { PressableScale } from '../PressableScale';
 import { Skeleton } from '../Skeleton';
@@ -66,21 +66,17 @@ it('MotionEntrance renders its children', async () => {
   expect(screen.getByText('Card')).toBeTruthy();
 });
 
-it('Crossfade keeps a hidden layer mounted, so swapping never pops', async () => {
+it('CrossfadeStack keeps every layer mounted, so swapping never pops', async () => {
   await wrap(
-    <>
-      <Crossfade visible>
-        <AppText>On</AppText>
-      </Crossfade>
-      <Crossfade visible={false}>
-        <AppText>Off</AppText>
-      </Crossfade>
-    </>,
+    <CrossfadeStack active={1} durationMs={240}>
+      <AppText>First</AppText>
+      <AppText>Second</AppText>
+    </CrossfadeStack>,
   );
   // Both layers stay in the tree at all times; only their opacity differs. Unmounting the outgoing one
   // is what makes a cross-fade flash.
-  expect(screen.getByText('On')).toBeTruthy();
-  expect(screen.getByText('Off')).toBeTruthy();
+  expect(screen.getByText('First')).toBeTruthy();
+  expect(screen.getByText('Second')).toBeTruthy();
 });
 
 it('Skeleton renders a loading placeholder instead of a spinner', async () => {

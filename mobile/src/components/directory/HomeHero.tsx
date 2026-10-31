@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Image, View, type ImageSourcePropType } from 'react-native';
+import { View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
+import { CrossfadeStack } from '../common/CrossfadeStack';
 import { PressableFeedback } from '../common/PressableFeedback';
-import { Crossfade } from '../common/Crossfade';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
-import { useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
+import { useReducedMotion } from '../../core/motion/motion';
 
 export interface HeroSlide {
   eyebrow: string;
@@ -33,8 +34,6 @@ const CHEVRON = 40;
 export function HomeHero({ slides, onOpen }: HomeHeroProps) {
   const theme = useTheme();
   const [index, setIndex] = useState(0);
-  // The hero owns the clock, not a listener: one motion source for the fade and the auto-advance,
-  // so they can never disagree about whether motion is welcome.
   const reduceMotion = useReducedMotion();
   const slide = slides[index];
 
@@ -47,13 +46,11 @@ export function HomeHero({ slides, onOpen }: HomeHeroProps) {
 
   return (
     <View>
-      <View style={{ height: PHOTO_HEIGHT, overflow: 'hidden', backgroundColor: theme.colors.washBottom }}>
-        {slides.map((s, i) => (
-          <Crossfade key={s.eyebrow} visible={i === index} durationMs={FADE_MS}>
-            <Image source={s.image} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
-          </Crossfade>
+      <CrossfadeStack active={index} durationMs={FADE_MS} style={{ height: PHOTO_HEIGHT, backgroundColor: theme.colors.washBottom }}>
+        {slides.map((s) => (
+          <Image key={s.eyebrow} source={s.image} contentFit="cover" style={{ width: '100%', height: '100%' }} />
         ))}
-      </View>
+      </CrossfadeStack>
       {/* A row of separate controls, not one button around the dots: buttons can't nest. */}
       <View
         style={{

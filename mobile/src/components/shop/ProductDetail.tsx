@@ -33,7 +33,7 @@ export function ProductDetail({ productId, onOpenCart, onCheckout, save }: Produ
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md }}>
         <BackHeader />
-        {product.isError ? <ErrorView error={product.error} onRetry={() => { void product.refetch(); }} /> : <LoadingView label="Loading the product" />}
+        {product.isError ? <ErrorView error={product.error} onRetry={() => { void product.refetch(); }} /> : <LoadingView label="Loading the product" shape="detail" />}
       </View>
     );
   }

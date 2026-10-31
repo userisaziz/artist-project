@@ -1,4 +1,5 @@
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
@@ -25,7 +26,7 @@ export function FollowersList() {
       {followers.isError && !followers.data ? <ErrorView error={followers.error} onRetry={() => { void followers.refetch(); }} /> : null}
       {followers.isSuccess && !items.length ? <EmptyView message="No followers yet. Posts and guides bring them in." /> : null}
       {items.length ? (
-        <FlatList
+        <FlashList
           data={items}
           keyExtractor={(f, i) => `${f.followed_at}:${i}`}
           ListHeaderComponent={<AppText variant="caption" style={{ color: theme.colors.textMuted, marginVertical: 8 }}>{total === 1 ? '1 follower' : `${total} followers`}</AppText>}

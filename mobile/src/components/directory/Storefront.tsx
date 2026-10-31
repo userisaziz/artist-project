@@ -84,7 +84,7 @@ export function Storefront({ artistId, customer }: StorefrontProps) {
     return (
       <View style={{ flex: 1, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md }}>
         <BackHeader />
-        {isError ? <ErrorView error={error} onRetry={() => { void refetch(); }} /> : <LoadingView />}
+        {isError ? <ErrorView error={error} onRetry={() => { void refetch(); }} /> : <LoadingView label="Loading the artist" shape="detail" />}
       </View>
     );
   }

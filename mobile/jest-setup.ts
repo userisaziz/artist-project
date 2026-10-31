@@ -29,3 +29,19 @@ jest.mock('expo-haptics', () => {
 afterEach(() => {
   require('./src/core/toast/toast').dismissToast();
 });
+
+// FlashList headless setup — hand-rolled because the official `@shopify/flash-list/jestSetup`
+// shipped in 2.0.2 mocks `FlashList` to `requireActual(...).RecyclerView`, an export that
+// version's index omits (undefined element type). We point at the RecyclerView implementation
+// directly and stub its native layout measurement, matching the official setup's intent.
+// Remove this block once the SDK-pinned flash-list ships jestSetup that works.
+jest.mock('@shopify/flash-list', () => ({
+  ...jest.requireActual('@shopify/flash-list'),
+  FlashList: jest.requireActual('@shopify/flash-list/dist/recyclerview/RecyclerView').RecyclerView,
+}));
+jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
+  ...jest.requireActual('@shopify/flash-list/dist/recyclerview/utils/measureLayout'),
+  measureParentSize: jest.fn().mockImplementation(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureFirstChildLayout: jest.fn().mockImplementation(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureItemLayout: jest.fn().mockImplementation(() => ({ x: 0, y: 0, width: 100, height: 100 })),
+}));

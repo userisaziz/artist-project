@@ -1,4 +1,5 @@
-import { Alert, FlatList, View } from 'react-native';
+import { Alert, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
@@ -40,7 +41,7 @@ export function MyPosts({ onNewPost }: { onNewPost: () => void }) {
       {posts.isError && !posts.data ? <ErrorView error={posts.error} onRetry={() => { void posts.refetch(); }} /> : null}
       {posts.isSuccess && !items.length ? <EmptyView message="Share your work: a photo set of a finished look, or a guide for clients." /> : null}
       {items.length ? (
-        <FlatList
+        <FlashList
           data={items}
           keyExtractor={(p) => p.id}
           onEndReached={() => { if (posts.hasNextPage && !posts.isFetchingNextPage) void posts.fetchNextPage(); }}

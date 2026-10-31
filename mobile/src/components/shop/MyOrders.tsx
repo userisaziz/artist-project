@@ -1,4 +1,5 @@
-import { FlatList, View } from 'react-native';
+import { View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../common/AppText';
@@ -25,7 +26,7 @@ export function MyOrders({ onOpen }: { onOpen: (id: string) => void }) {
       {orders.isPending ? <LoadingView label="Loading your orders" /> : null}
       {orders.isError && !orders.data ? <ErrorView error={orders.error} onRetry={() => { void orders.refetch(); }} /> : null}
       {orders.isSuccess && !items.length ? <EmptyView message="No orders yet." /> : null}
-      <FlatList
+      <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
         data={items}

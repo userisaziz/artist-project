@@ -19,6 +19,7 @@ export interface ThemeColors {
   washTop: string; washBottom: string; // full-screen blush gradient (Choose role)
   photoScrim: string; // deep plum laid over photos so white text reads
   canvas: string; heading: string; // blush page + plum headline ink of the auth/onboarding screens
+  skeletonBlock: string; // the loading placeholder itself — deep enough to see against a white page
   skeletonBand: string; // tint the placeholder band sweeps across a loading block
   progressTrack: string; // unfilled segment of the step bar
   indicatorInactive: string; // carousel dots that aren't the current slide
