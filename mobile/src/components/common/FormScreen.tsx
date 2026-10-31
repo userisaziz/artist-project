@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Accent } from './AppText';
 import { KeyboardAvoider } from './KeyboardAvoider';
+import { useKeyboardVisible } from '../../hooks/common/use-keyboard-visible';
 import { useTheme } from '../../core/theme/theme-provider';
 import { Icon } from './Icon';
 
@@ -16,6 +17,7 @@ const AUTH_STEPS = 3; // Log in → Verify → Your details (artist onboarding p
 export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children }: { onBack?: () => void; step?: number; steps?: number; footer?: ReactNode; children: ReactNode }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboardUp = useKeyboardVisible();
   const gutter = theme.spacing.md + theme.spacing.xs;
   return (
     <KeyboardAvoider style={{ backgroundColor: theme.colors.canvas }}>
@@ -47,7 +49,7 @@ export function FormScreen({ onBack, step, steps = AUTH_STEPS, footer, children 
         {children}
       </ScrollView>
       {footer ? (
-        <View style={{ paddingHorizontal: gutter, paddingTop: theme.spacing[2.5], paddingBottom: insets.bottom + theme.spacing[2.5], backgroundColor: theme.colors.canvas }}>{footer}</View>
+        <View style={{ paddingHorizontal: gutter, paddingTop: theme.spacing[2.5], paddingBottom: (keyboardUp ? 0 : insets.bottom) + theme.spacing[2.5], backgroundColor: theme.colors.canvas }}>{footer}</View>
       ) : null}
     </KeyboardAvoider>
   );
