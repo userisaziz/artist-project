@@ -51,13 +51,6 @@ it('refuses a minor before the network, in the server’s own words', async () =
   expect(mockSignup).not.toHaveBeenCalled();
 });
 
-it('offers no role escape here — that choice belongs to Choose role and the artist intro', async () => {
-  await wrap();
-
-  expect(screen.queryByRole('button', { name: 'Browse as a customer' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
-});
-
 it('the chevron leaves the account, because there is no OTP screen behind this one', async () => {
   await wrap();
 

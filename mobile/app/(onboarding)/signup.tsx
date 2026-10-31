@@ -46,13 +46,17 @@ export default function SignupScreen() {
     }
   };
 
-  // The number is already verified, so there is no OTP to go back to: the chevron signs out ("not you?") and
-  // Continue moves on to Choose role, where browsing as a customer is the left-hand card.
+  // The number is already verified, so there is no OTP to go back to: the chevron signs out ("not you?"),
+  // and the one way forward is Continue.
   return (
     <FormScreen
       onBack={() => { void signOut(); }}
       step={3}
-      footer={<AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />}
+      footer={(
+        <View>
+          <AppButton label="Continue" onPress={() => { void submit(); }} loading={saving} disabled={!first.trim()} />
+        </View>
+      )}
     >
       <FormHeading eyebrow="YOUR DETAILS" title="What’s your" accent="name?" />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
