@@ -23,10 +23,12 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
   const isSecondary = variant === 'secondary'; // white pill with a hairline border, e.g. "I already have an account"
   const pressed = useSharedValue(0);
   // The pressed surface eases in over `quick`; reduced motion flips it instantly. It paints on an
-  // absolute layer inside the button so the ease animates on every path (dip active or not).
+  // absolute layer inside the button so the ease animates on every path (dip active or not). A button
+  // that turns inactive while it is held drops the pressed colour too, not only on the next press.
   const surface = useAnimatedStyle(() => {
+    const down = pressed.value && !inactive;
     const target = isPrimary
-      ? pressed.value ? theme.colors.brandPressed : theme.colors.brand
+      ? down ? theme.colors.brandPressed : theme.colors.brand
       : isSecondary ? theme.colors.surface : 'transparent';
     return { backgroundColor: withTiming(target, { duration: reduced ? 0 : timings.quick.duration, easing: timings.base.easing }) };
   });
