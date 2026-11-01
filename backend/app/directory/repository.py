@@ -49,8 +49,8 @@ class DirectoryRepository:
         self.session = session
 
     def _search(self, filters: SearchFilters, *, load_services: bool = False) -> tuple[Select, SearchColumns]:
-        """Approved artists matching `filters` as (profile, listed-at, distance km or NULL, cheapest service) rows,
-        unordered, plus the columns the sorts need. KYC is never loaded.
+        """Approved artists matching `filters` as (profile, listed-at, distance km or NULL, cheapest service,
+        rating, review count) rows, unordered, plus the columns the sorts need. KYC is never loaded.
 
         The services are left out unless asked for: the card's price comes from the `prices` subquery, and loading
         the services would drag their templates and addons along for three more round trips."""
@@ -72,11 +72,13 @@ class DirectoryRepository:
             .subquery()
         )
         distance = distance_km(ARTIST_LAT, ARTIST_LNG, *filters.near) if filters.near else null()
+        rating = func.round(ratings.c.avg, 1)
+        reviews = func.coalesce(ratings.c.n, 0)
         options = [raiseload(ArtistProfile.kyc)]
         if not load_services:
             options.append(raiseload(ArtistProfile.services))
         query = (
-            select(ArtistProfile, LISTED_AT, distance, prices.c.from_price)
+            select(ArtistProfile, LISTED_AT, distance, prices.c.from_price, rating, reviews)
             .outerjoin(ratings, ratings.c.artist_id == ArtistProfile.id)
             .outerjoin(prices, prices.c.artist_id == ArtistProfile.id)
             .where(publicly_visible())
@@ -111,9 +113,7 @@ class DirectoryRepository:
             query = query.where(
                 or_(ArtistProfile.business_name.ilike(pattern, escape="\\"), ArtistProfile.id.in_(offers_it))
             )
-        columns = SearchColumns(
-            func.round(ratings.c.avg, 1), ratings.c.stars, ratings.c.n, prices.c.from_price, distance
-        )
+        columns = SearchColumns(rating, ratings.c.stars, reviews, prices.c.from_price, distance)
         if filters.min_rating is not None:
             query = query.where(columns.rating >= filters.min_rating)
         if filters.max_price_paise is not None:
@@ -122,10 +122,17 @@ class DirectoryRepository:
             query = query.where(ArtistProfile.travel_radius_km.is_not(None))
         return query, columns
 
+    def _matched(self, filters: SearchFilters) -> ColumnElement:
+        """How many artists match `filters`, as a column a page query can carry: the count rides the page's own
+        round trip (Postgres runs the uncorrelated subquery once), so the client never pays a statement for it."""
+        query, _ = self._search(filters)
+        return select(func.count()).select_from(query.subquery()).scalar_subquery()
+
     async def approved_page(self, filters: SearchFilters, limit: int, cursor: str | None) -> list[Row]:
         """Most recently approved first, keyset-paged; `limit + 1` rows so the caller can tell if there's more."""
         query, _ = self._search(filters)
         query = keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
+        query = query.add_columns(self._matched(filters))
         return list((await self.session.execute(query)).all())
 
     async def sorted_page(
@@ -135,11 +142,12 @@ class DirectoryRepository:
         query, c = self._search(filters, load_services=load_services)
         order = {
             DirectorySort.recommended: [_recommended_score(c).desc()],
-            DirectorySort.rating: [c.rating.desc().nulls_last(), func.coalesce(c.reviews, 0).desc()],
+            DirectorySort.rating: [c.rating.desc().nulls_last(), c.reviews.desc()],
             DirectorySort.price: [c.from_price.asc().nulls_last()],
             DirectorySort.nearest: [c.distance.asc().nulls_last()],
         }.get(filters.sort, [])
         query = query.order_by(*order, LISTED_AT.desc(), ArtistProfile.id.desc()).offset(offset).limit(limit)
+        query = query.add_columns(self._matched(filters))
         return list((await self.session.execute(query)).all())
 
     async def count(self, filters: SearchFilters) -> int:

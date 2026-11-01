@@ -4,6 +4,7 @@ import uuid
 from dataclasses import replace
 from datetime import date, timedelta
 
+from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist import schedule_service as artist_schedule
@@ -41,11 +42,6 @@ def _from_price(services: list[ArtistServiceItem]) -> int | None:
     return min(prices) if prices else None
 
 
-# One matched artist: the profile, its distance from the searched point (None when the search isn't near one),
-# the day it was free on (None unless the search asked for a specific day), and its cheapest approved price.
-Hit = tuple[ArtistProfile, float | None, date | None, int | None]
-
-
 class DirectoryService:
     def __init__(self, session: AsyncSession, storage: ImageStorage, clock: Clock):
         self.session = session
@@ -56,13 +52,13 @@ class DirectoryService:
     def _card_fields(
         self,
         profile: ArtistProfile,
-        ratings: dict[uuid.UUID, tuple[float, int]],
+        rating: float | None,
+        review_count: int,
         from_price_paise: int | None,
         distance_km: float | None = None,
         free_on: date | None = None,
     ) -> dict:
         cover = profile.photos[0].storage_key if profile.photos else None
-        rating, review_count = ratings.get(profile.id, (None, 0))
         return {
             "rating": rating,
             "review_count": review_count,
@@ -85,15 +81,19 @@ class DirectoryService:
             return []
         profiles = await self.artists.approved_many(artist_ids)
         ratings = await ratings_for(self.session, [p.id for p in profiles])
-        return [self._card_fields(p, ratings, _from_price(p.services)) for p in profiles]
+        cards = []
+        for p in profiles:
+            rating, review_count = ratings.get(p.id, (None, 0))
+            cards.append(self._card_fields(p, rating, review_count, _from_price(p.services)))
+        return cards
 
     async def search(self, filters: SearchFilters, limit: int, cursor: str | None) -> dict:
         """One page of Explore results with its total and, near a point, the radius applied. The first page of a
         search near a point picks the radius (the client's, else the auto-widened one); its cursor carries that
         radius so every later page keeps it."""
         if filters.near is None:
-            items, next_cursor = await self.browse(filters, limit, cursor)
-            return {"items": items, "next_cursor": next_cursor, "total": await self.total(filters), "radius_km": None}
+            items, next_cursor, total = await self.browse(filters, limit, cursor)
+            return {"items": items, "next_cursor": next_cursor, "total": total, "radius_km": None}
         carried = decode_near_cursor(cursor) if cursor else None
         if carried is not None:
             radius, cursor = carried
@@ -102,11 +102,11 @@ class DirectoryService:
         else:
             radius = await self._widened_radius(filters)
         filters = replace(filters, radius_km=radius)
-        items, next_cursor = await self.browse(filters, limit, cursor)
+        items, next_cursor, total = await self.browse(filters, limit, cursor)
         return {
             "items": items,
             "next_cursor": encode_near_cursor(radius, next_cursor) if next_cursor else None,
-            "total": await self.total(filters),
+            "total": total,
             "radius_km": radius,
         }
 
@@ -115,47 +115,55 @@ class DirectoryService:
         counts = await self.artists.count_within(filters, NEARBY_RADII_KM)
         return next((r for r, n in zip(NEARBY_RADII_KM, counts, strict=True) if n >= NEARBY_MIN_RESULTS), None)
 
-    async def browse(self, filters: SearchFilters, limit: int, cursor: str | None) -> tuple[list[dict], str | None]:
-        """Explore results. The default order (most recently approved) pages by (approved-at, id); every other
-        order, and a free-date search, pages by position."""
-        found: list[Hit]
+    async def browse(
+        self, filters: SearchFilters, limit: int, cursor: str | None
+    ) -> tuple[list[dict], str | None, int | None]:
+        """Explore results with the page's cursor and total. The default order (most recently approved) pages by
+        (approved-at, id); every other order, and a free-date search, pages by position. The total rides the page
+        query as a column; a free-date search doesn't count, and an empty page past a cursor is counted directly."""
+        free_on: date | None = None
         if filters.uses_keyset:
             rows = await self.artists.approved_page(filters, limit, cursor)
-            page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
-            found = [(profile, distance, None, price) for profile, _, distance, price in page]
+            found, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
         elif filters.available_on is None:
             offset = decode_offset_cursor(cursor) if cursor else 0
             rows = await self.artists.sorted_page(filters, offset, limit + 1)
-            found = [(profile, distance, None, price) for profile, _, distance, price in rows[:limit]]
-            next_cursor = encode_offset_cursor(offset + limit) if len(rows) > limit else None
+            found, next_cursor = rows[:limit], encode_offset_cursor(offset + limit) if len(rows) > limit else None
         else:
-            found, next_cursor = await self._free_on(filters, filters.available_on, limit, cursor)
-        ratings = await ratings_for(self.session, [profile.id for profile, _, _, _ in found])
-        return [
-            self._card_fields(p, ratings, price, distance, free_on) for p, distance, free_on, price in found
-        ], next_cursor
+            found, next_cursor, free_on = await self._free_on(filters, filters.available_on, limit, cursor)
+        items = [
+            self._card_fields(profile, rating, reviews, price, distance, free_on)
+            for profile, _, distance, price, rating, reviews, _matched in found
+        ]
+        if filters.available_on is not None:
+            return items, next_cursor, None
+        if found:
+            total: int = found[0][-1]
+        else:  # a page past the end carries no row to read the count from: ask for it directly
+            total = await self.total(filters)
+        return items, next_cursor, total
 
-    async def total(self, filters: SearchFilters) -> int | None:
-        """How many artists match; None for a free-date search, which would mean checking every artist's slots."""
-        return None if filters.available_on else await self.artists.count(filters)
+    async def total(self, filters: SearchFilters) -> int:
+        """How many artists match — only for the rare cursor-past-the-end page; normally the count rides the page."""
+        return await self.artists.count(filters)
 
     async def _free_on(
         self, filters: SearchFilters, day: date, limit: int, cursor: str | None
-    ) -> tuple[list[Hit], str | None]:
+    ) -> tuple[list[Row], str | None, date]:
         """Walks the sorted matches, keeping artists with an open slot on `day` for their shortest service.
         Scans at most AVAILABLE_ON_SCAN_LIMIT artists per page; the cursor is the next position to check."""
         offset = decode_offset_cursor(cursor) if cursor else 0
         rows = await self.artists.sorted_page(filters, offset, AVAILABLE_ON_SCAN_LIMIT, load_services=True)
-        found: list[Hit] = []
+        found: list[Row] = []
         scanned = 0
-        for profile, _, distance, price in rows:
+        for row in rows:
             if len(found) == limit:
                 break
             scanned += 1
-            if await self._has_open_slot(profile, day):
-                found.append((profile, distance, day, price))
+            if await self._has_open_slot(row[0], day):
+                found.append(row)
         more = scanned < len(rows) or len(rows) == AVAILABLE_ON_SCAN_LIMIT
-        return found, encode_offset_cursor(offset + scanned) if more else None
+        return found, encode_offset_cursor(offset + scanned) if more else None, day
 
     async def _has_open_slot(self, profile: ArtistProfile, day: date) -> bool:
         services = _bookable(profile.services)
@@ -183,8 +191,9 @@ class DirectoryService:
 
         completed = await self.artists.completed_bookings(profile.id)
         per_service = await self.artists.completed_by_service(profile.id)
+        rating, review_count = (await ratings_for(self.session, [profile.id])).get(profile.id, (None, 0))
         return {
-            **self._card_fields(profile, await ratings_for(self.session, [profile.id]), _from_price(profile.services)),
+            **self._card_fields(profile, rating, review_count, _from_price(profile.services)),
             "bio": profile.bio,
             "photos": [
                 {
