@@ -29,8 +29,11 @@ class AppSettings(BaseSettings):
 
 class Settings(AppSettings):
     database_url: str
-    db_pool_size: int = Field(10, ge=1)
-    db_max_overflow: int = Field(10, ge=0)
+    # Pool arithmetic, against the project's connection limit rather than the db_* defaults: a worker
+    # may hold pool_size + max_overflow connections, and the Dockerfile runs WEB_CONCURRENCY=2 (20 in
+    # total, or 10 on Render's single worker). Ten each would be 40 — past what the pooler grants.
+    db_pool_size: int = Field(5, ge=1)
+    db_max_overflow: int = Field(5, ge=0)
     db_pool_recycle_seconds: int = Field(1800, ge=60)
     db_statement_timeout_ms: int = Field(15_000, ge=100)
 

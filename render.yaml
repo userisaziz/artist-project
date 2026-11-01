@@ -10,7 +10,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
-    region: ohio # next to the Neon database (us-east-2)
+    region: frankfurt # closest Render region to the Supabase database (eu-west-1)
     healthCheckPath: /health/live
     # The free plan has no pre-deploy step, so migrations run before the server starts (they are idempotent).
     dockerCommand: >-
@@ -21,9 +21,10 @@ services:
         value: staging
       - key: DATABASE_URL
         sync: false # postgresql+asyncpg://USER:PASSWORD@HOST/DB[?ssl=require]
-        # The pooler host (-pooler.c-6...) is what staging runs on and boots fine, verified
-        # 2026-10-30. Strip Neon's libpq params: sslmode/channel_binding make asyncpg raise
-        # TypeError before uvicorn binds, so the service hangs with no HTTP response at all.
+        # Paste the Supabase session pooler string (the one in backend/.env, port 5432) into the
+        # dashboard: postgresql+asyncpg://postgres.<ref>:<password>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+        # Session mode only — the transaction pooler on 6543 breaks asyncpg's prepared statements.
+        # The direct host db.<ref>.supabase.co is IPv6-only and hangs from Render's IPv4 network.
       - key: JWT_SECRET
         generateValue: true
       - key: AADHAAR_ENCRYPTION_KEY
@@ -52,6 +53,8 @@ services:
         sync: false # identity documents (getready-dev-private); must differ from R2_BUCKET
       - key: R2_PUBLIC_URL
         sync: false # the public bucket's r2.dev address
+      - key: IMAGE_WORKER_URL
+        value: https://artist-image-worker.azizadnan370.workers.dev # the WebP worker (image-worker/); without it every variant is the full original
       - key: PUSH_PROVIDER
         value: expo
       - key: PAYMENT_PROVIDER
