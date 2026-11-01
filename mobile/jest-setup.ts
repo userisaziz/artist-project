@@ -45,3 +45,8 @@ jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
   measureFirstChildLayout: jest.fn().mockImplementation(() => ({ x: 0, y: 0, width: 400, height: 900 })),
   measureItemLayout: jest.fn().mockImplementation(() => ({ x: 0, y: 0, width: 100, height: 100 })),
 }));
+
+// AsyncStorage is where the query cache is kept between runs (src/core/api/persister.ts). The
+// package ships an in-memory mock for jest; without it the native module is missing under test.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'));

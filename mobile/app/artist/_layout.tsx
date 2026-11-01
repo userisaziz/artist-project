@@ -5,6 +5,7 @@ import { useTheme } from '../../src/core/theme/theme-provider';
 import { AppText } from '../../src/components/common/AppText';
 import { AppButton } from '../../src/components/common/AppButton';
 import { useArtistProfile } from '../../src/hooks/artist-onboarding/artist-onboarding';
+import { usePrefetchAreas } from '../../src/hooks/catalog/catalog';
 import { artistStage } from '../../src/utils/artist-onboarding/routing';
 import { ArtistFlowContext } from '../../src/context/artist-onboarding/flow-context';
 import { errorMessage } from '../../src/core/api/error-message';
@@ -16,6 +17,9 @@ import { errorMessage } from '../../src/core/api/error-message';
 export default function ArtistLayout() {
   const theme = useTheme();
   const profile = useArtistProfile();
+  // The location form lists the areas of the artist's city. The city is only known once the profile
+  // is in, so the list is fetched here rather than when the form opens.
+  usePrefetchAreas(profile.data?.city ?? null);
   const [editing, setEditing] = useState(false);
   const status = profile.data?.status;
   // Reset during render (no effect): editing lasts while rejected, or while a reopened profile is a draft.

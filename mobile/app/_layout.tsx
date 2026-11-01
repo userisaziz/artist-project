@@ -13,8 +13,10 @@ import { SessionUnavailable } from '../src/components/auth/SessionUnavailable';
 import { ToastHost } from '../src/components/common/Toast';
 import { RefetchBar } from '../src/components/common/RefetchBar';
 import { usePushNotifications } from '../src/hooks/notifications/use-push';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { usePrefetchCatalog } from '../src/hooks/catalog/catalog';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient } from '../src/core/api/query-client';
+import { CACHE_BUSTER, queryPersister } from '../src/core/api/persister';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,11 +26,14 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <View style={{ flex: 1 }}>
-        <QueryClientProvider client={queryClient}>
+        {/* The cache is kept on the device between runs, so a cold start paints the last run's answers
+            instead of a skeleton. The persisted copy is thrown away whenever the API's shapes change
+            (CACHE_BUSTER) and whenever it cannot be read. */}
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, buster: CACHE_BUSTER }}>
           <AuthProvider>
             <Gate />
           </AuthProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
         <ToastHost />
       </View>
     </ThemeProvider>
@@ -41,6 +46,9 @@ function Gate() {
   const router = useRouter();
   const openLink = useCallback((link: string) => router.push(link as Href), [router]);
   usePushNotifications(openLink);
+  // The catalog is on nearly every screen: warming it here means the first one opens on data
+  // instead of a spinner, and the requests overlap with the session restore above.
+  usePrefetchCatalog();
   // Gate only mounts once fonts are settled, so this hides the native splash when both fonts and restore are done.
   useEffect(() => { if (status !== 'restoring') SplashScreen.hideAsync(); }, [status]);
   if (status === 'restoring') {
