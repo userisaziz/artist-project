@@ -35,9 +35,15 @@ def _bookable(services: list[ArtistServiceItem]) -> list[ArtistServiceItem]:
     return [s for s in services if s.status == ArtistServiceStatus.approved]
 
 
+def _from_price(services: list[ArtistServiceItem]) -> int | None:
+    """The cheapest approved service, in paise; None when the artist offers none."""
+    prices = [s.price_paise for s in _bookable(services)]
+    return min(prices) if prices else None
+
+
 # One matched artist: the profile, its distance from the searched point (None when the search isn't near one),
-# and the day it was free on (None unless the search asked for a specific day).
-Hit = tuple[ArtistProfile, float | None, date | None]
+# the day it was free on (None unless the search asked for a specific day), and its cheapest approved price.
+Hit = tuple[ArtistProfile, float | None, date | None, int | None]
 
 
 class DirectoryService:
@@ -51,10 +57,10 @@ class DirectoryService:
         self,
         profile: ArtistProfile,
         ratings: dict[uuid.UUID, tuple[float, int]],
+        from_price_paise: int | None,
         distance_km: float | None = None,
         free_on: date | None = None,
     ) -> dict:
-        prices = [s.price_paise for s in _bookable(profile.services)]
         cover = profile.photos[0].storage_key if profile.photos else None
         rating, review_count = ratings.get(profile.id, (None, 0))
         return {
@@ -67,7 +73,7 @@ class DirectoryService:
             "photo_url": self.storage.url(profile.photo_key, "card") if profile.photo_key else None,
             "cover_url": self.storage.url(cover, "card") if cover else None,
             "categories": [{"id": c.id, "name": c.name} for c in profile.categories],
-            "from_price_paise": min(prices) if prices else None,
+            "from_price_paise": from_price_paise,
             "photo_urls": [self.storage.url(p.storage_key, "card") for p in profile.photos[:CARD_PHOTOS]],
             "distance_km": round(distance_km, 1) if distance_km is not None else None,
             "free_on": free_on,
@@ -79,7 +85,7 @@ class DirectoryService:
             return []
         profiles = await self.artists.approved_many(artist_ids)
         ratings = await ratings_for(self.session, [p.id for p in profiles])
-        return [self._card_fields(p, ratings) for p in profiles]
+        return [self._card_fields(p, ratings, _from_price(p.services)) for p in profiles]
 
     async def search(self, filters: SearchFilters, limit: int, cursor: str | None) -> dict:
         """One page of Explore results with its total and, near a point, the radius applied. The first page of a
@@ -116,16 +122,18 @@ class DirectoryService:
         if filters.uses_keyset:
             rows = await self.artists.approved_page(filters, limit, cursor)
             page, next_cursor = split_page(rows, limit, lambda r: (r[1], r[0].id))
-            found = [(profile, distance, None) for profile, _, distance in page]
+            found = [(profile, distance, None, price) for profile, _, distance, price in page]
         elif filters.available_on is None:
             offset = decode_offset_cursor(cursor) if cursor else 0
             rows = await self.artists.sorted_page(filters, offset, limit + 1)
-            found = [(profile, distance, None) for profile, _, distance in rows[:limit]]
+            found = [(profile, distance, None, price) for profile, _, distance, price in rows[:limit]]
             next_cursor = encode_offset_cursor(offset + limit) if len(rows) > limit else None
         else:
             found, next_cursor = await self._free_on(filters, filters.available_on, limit, cursor)
-        ratings = await ratings_for(self.session, [profile.id for profile, _, _ in found])
-        return [self._card_fields(p, ratings, distance, free_on) for p, distance, free_on in found], next_cursor
+        ratings = await ratings_for(self.session, [profile.id for profile, _, _, _ in found])
+        return [
+            self._card_fields(p, ratings, price, distance, free_on) for p, distance, free_on, price in found
+        ], next_cursor
 
     async def total(self, filters: SearchFilters) -> int | None:
         """How many artists match; None for a free-date search, which would mean checking every artist's slots."""
@@ -137,15 +145,15 @@ class DirectoryService:
         """Walks the sorted matches, keeping artists with an open slot on `day` for their shortest service.
         Scans at most AVAILABLE_ON_SCAN_LIMIT artists per page; the cursor is the next position to check."""
         offset = decode_offset_cursor(cursor) if cursor else 0
-        rows = await self.artists.sorted_page(filters, offset, AVAILABLE_ON_SCAN_LIMIT)
+        rows = await self.artists.sorted_page(filters, offset, AVAILABLE_ON_SCAN_LIMIT, load_services=True)
         found: list[Hit] = []
         scanned = 0
-        for profile, _, distance in rows:
+        for profile, _, distance, price in rows:
             if len(found) == limit:
                 break
             scanned += 1
             if await self._has_open_slot(profile, day):
-                found.append((profile, distance, day))
+                found.append((profile, distance, day, price))
         more = scanned < len(rows) or len(rows) == AVAILABLE_ON_SCAN_LIMIT
         return found, encode_offset_cursor(offset + scanned) if more else None
 
@@ -176,7 +184,7 @@ class DirectoryService:
         completed = await self.artists.completed_bookings(profile.id)
         per_service = await self.artists.completed_by_service(profile.id)
         return {
-            **self._card_fields(profile, await ratings_for(self.session, [profile.id])),
+            **self._card_fields(profile, await ratings_for(self.session, [profile.id]), _from_price(profile.services)),
             "bio": profile.bio,
             "photos": [
                 {

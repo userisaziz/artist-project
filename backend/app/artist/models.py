@@ -89,6 +89,14 @@ class ArtistProfile(Base, TimestampMixin):
 
     __table_args__ = (
         sa.Index("ix_artist_profile_status_submitted", "status", "submitted_at", "id"),
+        # The directory lists approved artists by when they were approved, falling back to when they joined.
+        # A plain btree cannot serve that ORDER BY, so the expression is indexed as the keyset pages it.
+        sa.Index(
+            "ix_artist_profile_listed",
+            "status",
+            sa.text("coalesce(reviewed_at, created_at)"),
+            "id",
+        ),
         # Directory search is ILIKE '%q%': trigram indexes keep it off sequential scans.
         sa.Index(
             "ix_artist_profile_business_name_trgm",

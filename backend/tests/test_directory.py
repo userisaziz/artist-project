@@ -11,6 +11,7 @@ from tests.support.auth import CUSTOMER_PHONE, admin_headers, sign_in
 from tests.support.booking import book
 from tests.support.catalog import categories, seed_categories
 from tests.support.directory import IST, ist_day, slot
+from tests.support.queries import count_statements
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -167,6 +168,21 @@ async def test_public_reads_are_limited_per_ip(client, override):
 
     override(public_reads_per_ip, lambda: Limit(hits=2, window_seconds=60))
     assert [(await client.get("/api/v1/artists")).status_code for _ in range(3)] == [200, 200, 429]
+
+
+async def test_listing_artists_costs_five_database_round_trips(client, engine):
+    """The listing is the screen the app opens on, and every round trip is ~300 ms away.
+
+    Five statements: the page, its photos, its categories, the ratings and the total. The services — and with
+    them the templates and addons — are not loaded: the card's price comes from the search query instead.
+    """
+    admin = await admin_headers(client, engine)
+    await approved_artist(client, engine, "+919845081001", admin)
+
+    async with count_statements(engine) as statements:
+        assert (await client.get("/api/v1/artists")).json()["items"]
+
+    assert len(statements) == 5, [statement.split("\n")[0] for statement in statements]
 
 
 async def test_storefront_counts_completed_bookings_per_service(client, engine):

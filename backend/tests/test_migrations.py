@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
 
-from tests.conftest import settings, test_engine
+from tests.conftest import TEST_DATABASE_URL, test_engine
 from tests.support.auth import sign_in
 from tests.support.catalog import categories, seed_categories
 
@@ -88,7 +88,7 @@ async def test_existing_services_become_approved_custom_rows(client, engine):
 def test_catalog_migration_round_trips():
     """Sync on purpose: alembic's env.py calls asyncio.run."""
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", settings.test_database_url)
+    cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
     downgrade(cfg, "d8e2a6b4c1f9")
     upgrade(cfg, "head")
     # The enum type was dropped and recreated with a new OID; pooled asyncpg connections cache the old one.
@@ -136,3 +136,17 @@ async def test_every_constraint_and_index_follows_the_naming_convention(engine):
     bad = [name for table, name, kind in constraints if not name.startswith(f"{prefix[kind]}{table}")]
     bad += [name for table, name in indexes if not name.startswith((f"ix_{table}_", f"uq_{table}_"))]
     assert bad == []
+
+
+async def test_the_directory_keyset_order_is_indexed(engine):
+    """The directory pages by (approved-at, id), where an unapproved artist stands in with their join date.
+
+    That is an expression, so it needs an index of its own: without it the page query sorts every
+    match in memory instead of walking the index.
+    """
+    async with engine.connect() as conn:
+        indexdef = (
+            await conn.execute(sa.text("SELECT indexdef FROM pg_indexes WHERE indexname = 'ix_artist_profile_listed'"))
+        ).scalar_one()
+    assert indexdef is not None, "the directory's keyset order has no index"
+    assert "coalesce(reviewed_at, created_at)" in indexdef.lower()

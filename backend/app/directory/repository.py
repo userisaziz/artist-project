@@ -48,9 +48,12 @@ class DirectoryRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    def _search(self, filters: SearchFilters) -> tuple[Select, SearchColumns]:
-        """Approved artists matching `filters` as (profile, listed-at, distance km or NULL) rows, unordered,
-        plus the columns the sorts need. KYC is never loaded."""
+    def _search(self, filters: SearchFilters, *, load_services: bool = False) -> tuple[Select, SearchColumns]:
+        """Approved artists matching `filters` as (profile, listed-at, distance km or NULL, cheapest service) rows,
+        unordered, plus the columns the sorts need. KYC is never loaded.
+
+        The services are left out unless asked for: the card's price comes from the `prices` subquery, and loading
+        the services would drag their templates and addons along for three more round trips."""
         ratings = (
             select(
                 Review.artist_id,
@@ -69,12 +72,15 @@ class DirectoryRepository:
             .subquery()
         )
         distance = distance_km(ARTIST_LAT, ARTIST_LNG, *filters.near) if filters.near else null()
+        options = [raiseload(ArtistProfile.kyc)]
+        if not load_services:
+            options.append(raiseload(ArtistProfile.services))
         query = (
-            select(ArtistProfile, LISTED_AT, distance)
+            select(ArtistProfile, LISTED_AT, distance, prices.c.from_price)
             .outerjoin(ratings, ratings.c.artist_id == ArtistProfile.id)
             .outerjoin(prices, prices.c.artist_id == ArtistProfile.id)
             .where(publicly_visible())
-            .options(raiseload(ArtistProfile.kyc))
+            .options(*options)
         )
         if filters.near:
             # A point replaces the city: "near me" crosses city lines.
@@ -122,9 +128,11 @@ class DirectoryRepository:
         query = keyset(query, LISTED_AT, ArtistProfile.id, descending=True, cursor=cursor).limit(limit + 1)
         return list((await self.session.execute(query)).all())
 
-    async def sorted_page(self, filters: SearchFilters, offset: int, limit: int) -> list[Row]:
+    async def sorted_page(
+        self, filters: SearchFilters, offset: int, limit: int, *, load_services: bool = False
+    ) -> list[Row]:
         """`limit` rows from `offset` in `filters.sort` order; ties fall back to most recently approved."""
-        query, c = self._search(filters)
+        query, c = self._search(filters, load_services=load_services)
         order = {
             DirectorySort.recommended: [_recommended_score(c).desc()],
             DirectorySort.rating: [c.rating.desc().nulls_last(), func.coalesce(c.reviews, 0).desc()],
