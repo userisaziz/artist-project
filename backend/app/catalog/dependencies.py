@@ -8,7 +8,7 @@ from app.catalog.service import AreaService, CategoryService
 from app.catalog.template import ServiceTemplateService
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError, ValidationError
-from app.core.rate_limit import Limit, limit_by_ip
+from app.core.rate_limit import Limit, limit_by_ip_in_memory
 from app.geocoder.dependencies import get_geocoder
 from app.geocoder.service import Geocoder
 
@@ -56,4 +56,5 @@ def public_reads_per_ip() -> Limit:
     return constants.PUBLIC_READS_PER_IP
 
 
-limit_public_reads = limit_by_ip("catalog_read", public_reads_per_ip)
+# Public reads are counted in-process: a catalog read should not pay for the database twice.
+limit_public_reads = limit_by_ip_in_memory("catalog_read", public_reads_per_ip)

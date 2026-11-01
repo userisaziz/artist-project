@@ -6,21 +6,12 @@ engine — everything else (routing, services, SQL) runs for real.
 
 import os
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class DatabaseSettingsForTests(BaseSettings):
-    """Test-only configuration: the app's own settings never know about the test database."""
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    test_database_url: str
-
-
-settings = DatabaseSettingsForTests()
-
+# The harness owns its database: a fixed local URL, never an env var. Local Postgres
+# (trust auth ignores the password) and CI's service container both answer to this.
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/art_circle_test"
 
 # The app's own engine points at the test database too, so nothing a test does can reach the dev data.
-os.environ["DATABASE_URL"] = settings.test_database_url
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 # Tests never touch a real SMS gateway, image host, payment or push service, whatever .env says.
 # Must precede the cached settings getters.
 os.environ["ENVIRONMENT"] = "test"
@@ -59,10 +50,10 @@ def apply_migrations(url: str) -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def migrated():
-    apply_migrations(settings.test_database_url)
+    apply_migrations(TEST_DATABASE_URL)
 
 
-test_engine = create_async_engine(settings.test_database_url)
+test_engine = create_async_engine(TEST_DATABASE_URL)
 TestSessionFactory = async_sessionmaker(test_engine, expire_on_commit=False)
 
 
@@ -140,7 +131,13 @@ TABLES = ", ".join(sorted(Base.metadata.tables))
 async def clean_db(engine):
     yield
     from app.auth.sms import ConsoleSMSProvider
+    from app.catalog.cache import invalidate_catalog
+    from app.core.rate_limit import reset_in_process_buckets
 
     ConsoleSMSProvider.sent.clear()
+    # The in-process stores outlive a TRUNCATE, and tests seed tables directly — no commit goes
+    # through the session watcher to drop them. So the harness resets them here, every test.
+    invalidate_catalog()
+    reset_in_process_buckets()
     async with engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {TABLES} RESTART IDENTITY CASCADE"))

@@ -128,9 +128,9 @@ async def test_last_resort_500_still_carries_request_id_and_security_headers(eng
 
 def test_the_app_engine_points_at_the_test_database():
     from app.core.database import engine
-    from tests.conftest import settings
+    from tests.conftest import TEST_DATABASE_URL
 
-    assert engine.url.render_as_string(hide_password=False) == settings.test_database_url
+    assert engine.url.render_as_string(hide_password=False) == TEST_DATABASE_URL
 
 
 async def test_writes_commit_before_the_response_is_sent(engine, override):

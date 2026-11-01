@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.artist.models import ArtistProfile
 from app.core.database import get_db
 from app.core.exceptions import NotFoundError, ValidationError
-from app.core.rate_limit import Limit, limit_by_ip
+from app.core.rate_limit import Limit, limit_by_ip_in_memory
 from app.directory import constants
 from app.directory.constants import DirectorySort
 from app.directory.repository import DirectoryRepository
@@ -76,4 +76,5 @@ def public_reads_per_ip() -> Limit:
     return constants.PUBLIC_READS_PER_IP
 
 
-limit_public_reads = limit_by_ip("directory_read", public_reads_per_ip)
+# Public reads are counted in-process: the listing's own queries already pay for the round trips.
+limit_public_reads = limit_by_ip_in_memory("directory_read", public_reads_per_ip)
