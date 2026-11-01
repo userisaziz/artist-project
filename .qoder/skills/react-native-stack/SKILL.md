@@ -33,8 +33,7 @@ this skill disagree, the rule wins.
    `Toast.tsx`).
    Extend it; do not bolt a second kit next to it. Motion has the same rule in a sharper form:
    only `src/core/motion` (`motion.ts`, `haptics.ts`) and the shared primitives (`AppButton`,
-   `PressableFeedback`, `Skeleton`, `MotionEntrance`, `CrossfadeStack`, `BottomSheet`, `OtpInput`,
-   `Toast`)
+   `PressableFeedback`, `Skeleton`, `MotionEntrance`, `Crossfade`, `BottomSheet`, `OtpInput`)
    import `react-native-reanimated` — screens and features go through those, and new motion code
    should keep that boundary. The legacy RN `Animated` API is retired (0 files).
 4. **A row in [LIBRARIES.md](./LIBRARIES.md)** marked `candidate`. That is the pre-approved pick
@@ -119,7 +118,7 @@ Ranked by user-visible payoff; details and install commands in [LIBRARIES.md](./
    opted in per control with `PressableFeedback haptic=` — today `AppButton` (tap), `Chip` and
    `Segmented` (select), `OtpInput` (error); it is mocked in `jest-setup.ts`. Motion is closed too: all
    three legacy `Animated` files (`BottomSheet`, `OtpInput`, `HomeHero`) now run on Reanimated 4, with
-   `CrossfadeStack` as the new primitive. **Still open: `react-native-gesture-handler`**, without which
+   `Crossfade` as the new primitive. **Still open: `react-native-gesture-handler`**, without which
    drag-to-dismiss on `BottomSheet.tsx` (today `Modal` + `timings.sheet`) is out of reach.
 4. **Keyboard** — closed for consistency 2026-10-31, open for the library: all 10 `KeyboardAvoidingView`
    sites now go through `components/common/KeyboardAvoider.tsx`, and ESLint refuses a raw one outside it.

@@ -13,13 +13,14 @@ One capability, one kit. Statuses:
 | Routing | `expo-router` (~57) | installed | Built on React Navigation; never add `react-navigation` or `react-native-navigation` beside it |
 | Native screen stack | `react-native-screens`, `react-native-safe-area-context` | installed | Back expo-router; single copy each |
 | Server cache | `@tanstack/react-query` v5 | installed | Only server-state layer; declarations in `src/api/<feature>` |
+| Server cache persistence | `@tanstack/react-query-persist-client` + `@tanstack/query-async-storage-persister` | installed | The cache is kept on the device between runs (`src/core/api/persister.ts`), so a cold start paints the last run's answers instead of a skeleton. The provider is `PersistQueryClientProvider` in `app/_layout.tsx`; `CACHE_BUSTER` throws the old copy away when the API's shapes change. `createAsyncStoragePersister` lives in `@tanstack/query-async-storage-persister`, **not** in the persist-client package |
 | HTTP client | `fetch` in `src/core/api/real-transport.ts` | wrapper | One preconfigured client; no axios / apisauce |
 | Transport types | `zod` v4 | installed | Single validation layer (rules §11): every form's rules are a schema in `src/utils/<feature>/*-draft.ts`, money parsed to paise inside it |
 | Forms | `react-hook-form` v7 + `@hookform/resolvers` v6 | installed | Submit-driven forms: `useForm` + `zodResolver`, fields bound through `common/FormField.tsx`. Live-gated forms read the same schema with `firstIssue()` (rules §7). No per-form second set of checks |
 | Client state | `Context` (`src/context/<feature>`) | wrapper | Session, theme, wizard only |
 | Extra client state | `zustand` | candidate | Only if a store is genuinely needed; never for server data |
 | Secrets storage | `expo-secure-store` | installed | Tokens, never AsyncStorage |
-| Local key-value | `@react-native-async-storage/async-storage` | candidate | Community pick and drop-in; Expo's own guidance is converging on `expo-sqlite` + `localStorage/install` as the replacement |
+| Local key-value | `@react-native-async-storage/async-storage` | installed | Community pick and drop-in; holds the persisted query cache (`src/core/api/persister.ts`) — not secrets, which stay in `expo-secure-store`. Expo's own guidance is converging on `expo-sqlite` + `localStorage/install` as the replacement |
 | Fast key-value | `react-native-mmkv` | rival | Faster but native build + JSI pairing; adopt only with a measured need |
 | On-device DB | `expo-sqlite` (+ Drizzle) | candidate | Only for offline catalogs; not on the roadmap |
 | Images | `expo-image` | installed | Wrap via `Photo.tsx`; no `fast-image` |

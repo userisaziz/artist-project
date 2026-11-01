@@ -1,6 +1,6 @@
 ---
 name: data-layer-stack
-description: Governs the Postgres data layer of the GetReady backend (SQLAlchemy 2 async + asyncpg + Alembic, hosted on Supabase or Neon, with a local Docker Compose stack) using a capability-first decision ladder and one approved tool per capability, curated from awesome-postgres, awesome-supabase and awesome-compose. Use when designing or migrating a schema, adding an index/constraint/extension, choosing a pooler or connection string, touching backend/docker-compose.yml, deciding whether a Supabase feature (Auth, Storage, Realtime, PostgREST, Edge Functions, RLS) applies, or reviewing data-layer code for a competing tool.
+description: Governs the Postgres data layer of the GetReady backend (SQLAlchemy 2 async + asyncpg + Alembic, hosted on Supabase, with a local Docker Compose stack) using a capability-first decision ladder and one approved tool per capability, curated from awesome-postgres, awesome-supabase and awesome-compose. Use when designing or migrating a schema, adding an index/constraint/extension, choosing a pooler or connection string, touching backend/docker-compose.yml, deciding whether a Supabase feature (Auth, Storage, Realtime, PostgREST, Edge Functions, RLS) applies, or reviewing data-layer code for a competing tool.
 ---
 
 # Data Layer Stack (PostgreSQL + Alembic + Compose)
@@ -17,8 +17,8 @@ owns the storage half.
 ## The defining facts about this data layer
 
 - **One database, one engine.** `backend/app/core/database.py` builds a single async engine from
-  `settings.database_url` (`postgresql+asyncpg://`), with `pool_pre_ping`, `pool_size` 10,
-  `max_overflow` 10, `pool_recycle` 1800 s, `pool_timeout` 10 s and a hard
+  `settings.database_url` (`postgresql+asyncpg://`), with `pool_pre_ping`, `pool_size` 5,
+  `max_overflow` 5, `pool_recycle` 1800 s, `pool_timeout` 10 s and a hard
   `statement_timeout` of 15 s set through `connect_args`. `get_db` owns the transaction — commit on
   success, rollback on raise — and **must** be depended on as `Depends(get_db, scope="function")` so
   the commit lands before the response is sent (`tests/test_platform.py` asserts this).
@@ -30,10 +30,11 @@ owns the storage half.
   no PostgREST call, no Supabase Auth/Storage/Realtime/Edge Function anywhere in the repo. Auth is
   FastAPI OTP + JWT (`app/core/auth.py`), storage is R2/Cloudinary (`app/upload`), push is Expo
   (`app/notification/push.py`).
-- **Two hosts, split by environment.** `.env`, `.env.dev` and `.env.local` point at the Supabase
-  **session pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`, user `postgres.<ref>`); `.env.prod`
-  points at Neon (`us-east-2`), which is also what `render.yaml` staging is placed next to. Treat a
-  connection string as environment-specific, never as "the database".
+- **One host, one provider.** `.env`, `.env.dev`, `.env.local` and `.env.prod` all point at the
+  Supabase **session pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`, user `postgres.<ref>`), and
+  `render.yaml` staging is placed in `frankfurt`, the closest Render region to `eu-west-1`. Neon was
+  the prod/staging host until 2026-10-31; its string survives only in `backend/.env.neon-backup` for
+  the rollback. Treat a connection string as environment-specific, never as "the database".
 - **Authz is in Python, not in Postgres.** Zero RLS policies exist. Role enforcement is
   `require_role(...)` wrapped as the audited admin guard in `app/core/auth.py`, mounted per
   `app/*/admin_router.py`. Postgres therefore has no second gate — the grants are the gate.
@@ -90,12 +91,12 @@ The lists describe everything Postgres and Supabase can do; this repo uses a nar
   so a direct string works from a laptop and fails in staging. That failure looks like a hang, not
   an error.
 - **Neon strings carry libpq params** (`sslmode`, `channel_binding`) that asyncpg rejects with a
-  `TypeError` before uvicorn binds — the service then shows no HTTP response at all. Strip them;
-  `render.yaml` records this.
+  `TypeError` before uvicorn binds — the service then shows no HTTP response at all. That is why the
+  Neon string was stripped when it was in use; the Supabase string carries no such params.
 - **Pool arithmetic before raising a pool setting:** each worker may open `pool_size +
-  max_overflow` = 20 connections. `Dockerfile` sets `WEB_CONCURRENCY=2` (40), `render.yaml` sets 1
-  (20). Compare that against the project's connection limit for the pooler mode in use, not against
-  the `db_*` defaults.
+  max_overflow` = 10 connections. `Dockerfile` sets `WEB_CONCURRENCY=2` (20), `render.yaml` sets 1
+  (10). Compare that against the project's connection limit for the pooler mode in use, not against
+  the `db_*` defaults. Ten each would be 40 — past what the pooler grants.
 - **`statement_timeout` 15 s** is set per connection. A migration or a one-off backfill that needs
   longer must set it explicitly for that session rather than raising the global default.
 
@@ -181,22 +182,21 @@ Plus, when a table was created: the two grant queries above.
 
 Ranked by risk. One capability per commit.
 
-1. **Prod/staging and dev run on different providers.** Supabase (eu-west-1) serves `.env`,
-   `.env.dev`, `.env.local`; Neon (us-east-2) serves `.env.prod`. Two managed Postgres platforms
-   means two extension subsets, two pooler behaviours and two restore procedures to know. Pick one
-   deliberately — the migration itself is connection-string-only (`database.py` has no provider SDK).
-2. **The grant lockdown is not code.** It lives in a dashboard, not in `alembic/versions/`, so CI
+1. **The grant lockdown is not code.** It lives in a dashboard, not in `alembic/versions/`, so CI
    cannot prove it and a new table silently re-opens `public`. Either add it as a re-runnable
    migration/policy step or add a CI assertion against a Supabase-shaped database.
-3. **No durable queue.** Inherited from `fastapi-stack` gap 1. `pgmq` is the option that adds no new
+2. **No durable queue.** Inherited from `fastapi-stack` gap 1. `pgmq` is the option that adds no new
    service; taskiq/dramatiq bring Redis and change the deployment shape.
-4. **No scheduled housekeeping.** `scripts/maintenance.py` is documented as "run it every few
+3. **No scheduled housekeeping.** `scripts/maintenance.py` is documented as "run it every few
    minutes" and CI only smoke-runs it. `pg_cron` is the alternative owner, not an addition.
-5. **No database-level observability.** The metrics endpoint covers HTTP only; there is no
+4. **No database-level observability.** The metrics endpoint covers HTTP only; there is no
    `postgres_exporter`, no slow-query review, and nothing asserts an `EXPLAIN` on a new query.
-6. **`.env` (local) targets the shared cloud database.** Compose on 5433 is opt-in, so everyday dev
+5. **`.env` (local) targets the shared cloud database.** Compose on 5433 is opt-in, so everyday dev
    writes to Supabase and a bad local test can damage seed data that other work depends on.
-7. **`AADHAAR_ENCRYPTION_KEY` backup is manual.** Losing it makes stored KYC permanently unreadable,
+6. **`AADHAAR_ENCRYPTION_KEY` backup is manual.** Losing it makes stored KYC permanently unreadable,
    and no automated check compares the key against existing ciphertext.
-8. **No data-layer property tests.** `hypothesis` would pay off on `app/shared/cursor.py` (round-trip
+7. **No data-layer property tests.** `hypothesis` would pay off on `app/shared/cursor.py` (round-trip
    and rejection) and on booking overlap constraints, where the current coverage is example-based.
+
+Closed: prod/staging and dev ran on different providers (Neon for prod/staging, Supabase for dev).
+Supabase `eu-west-1` now serves every environment, and `render.yaml` staging sits in `frankfurt`.

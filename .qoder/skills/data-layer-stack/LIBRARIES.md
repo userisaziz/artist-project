@@ -21,7 +21,7 @@ Source lists: [awesome-postgres](https://github.com/dhamaniasad/awesome-postgres
 | Range integrity | `btree_gist` exclusion constraint | extension | Booking overlap guard, same migration |
 | Local stack | `backend/docker-compose.yml` | postgres:17 | db → migrate → api; host port 5433 |
 | CI database | `postgres:17` service in `.github/workflows/backend.yml` | — | Proves migrations up/check/down/up on vanilla Postgres |
-| Managed Postgres | Supabase (dev/local) + Neon (prod/staging) | — | Connection-string-only coupling; no provider SDK |
+| Managed Postgres | Supabase (dev/local/prod/staging), eu-west-1 | — | Connection-string-only coupling; no provider SDK. One provider everywhere since 2026-10-31 |
 
 ## Candidates (pre-approved, not installed)
 
@@ -41,7 +41,7 @@ Source lists: [awesome-postgres](https://github.com/dhamaniasad/awesome-postgres
 | --- | --- | --- |
 | Migrations | Atlas, Flyway, Sqitch, pgschema, pgroll, `supabase db push` | Alembic (40 revisions + CI replay contract) |
 | API over Postgres | PostgREST, Hasura, PostGraphile, pREST | FastAPI (`app/router.py`, error contract, audit, rate limits) |
-| Connection pooling | PgBouncer, pgpool-II | Supavisor (Supabase) / Neon pooler |
+| Connection pooling | PgBouncer, pgpool-II | Supavisor (Supabase session pooler, port 5432) |
 | Auth / storage / realtime | Supabase Auth, Storage, Realtime, Edge Functions | `app/core/auth.py`, `app/upload` (R2/Cloudinary), Expo push |
 | Authorisation | RLS policies, Permit.io, Clerk | `require_role(...)` + audited admin guard |
 | Scheduling | `pg_cron`, `pg_timetable`, APScheduler | `scripts/maintenance.py` + an external scheduler |
