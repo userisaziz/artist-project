@@ -1,13 +1,15 @@
 name: mobile-ota
 
-# Pushes to dev that touch the app publish an OTA bundle to the preview channel.
+# Pushes to main that touch the app publish an OTA bundle to the preview channel.
 # Testers on the preview APK pick it up within two cold launches (download on
 # launch, apply on the next). JS/asset changes only: a native change moves the
 # fingerprint, so the published update simply won't match installed builds and
 # a new `--profile preview` APK is required instead.
+# Trigger on main, not dev: main is the trunk every branch merges into, while
+# dev fell 27 commits behind and silently published stale JS to the channel.
 on:
   push:
-    branches: [dev]
+    branches: [main]
     paths: ["mobile/**", ".github/workflows/mobile-ota.yml"]
 
 concurrency:
