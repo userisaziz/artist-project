@@ -1,0 +1,22 @@
+// WebP image worker for the public bucket, deployed as a free Cloudflare Worker.
+//
+// The API hands out image URLs; this worker turns them into WebP at the right size for the screen.
+// It binds the PUBLIC bucket only — identity documents live in a separate private bucket that this
+// worker cannot reach — and the Images binding, which does the resize and the encode. The originals
+// stay untouched in R2: a variant is derived on demand and then kept at the edge for a year.
+//
+// It is a separate worker from keep-warm-worker/ on purpose: a different trigger (HTTP, not cron), a
+// different set of limits, and a rollback that does not touch the pinger that keeps staging awake.
+//
+// Deploy: npx -y wrangler deploy   (login once first: npx -y wrangler login)
+//
+// After deploying, point IMAGE_WORKER_URL at the worker's address (the *.workers.dev hostname, or a
+// custom domain) so the API starts emitting /{variant}/{key} URLs.
+{
+  "name": "artist-image-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "r2_buckets": [{ "binding": "IMAGES_BUCKET", "bucket_name": "getready-dev" }],
+  "images": { "binding": "IMAGES" }
+}

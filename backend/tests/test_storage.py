@@ -78,8 +78,14 @@ def test_fake_storage_private_url_and_owns_aadhaar():
     assert storage.private_url(key).startswith(f"https://fake.storage/private/{key}.jpg?expires_at=")
 
 
-def _r2(client=None) -> R2Storage:
-    return R2Storage(client or r2_client("acct", "key-id", "secret"), "pics", "pics-private", "https://pub-abc.r2.dev/")
+def _r2(client=None, worker_url: str = "") -> R2Storage:
+    return R2Storage(
+        client or r2_client("acct", "key-id", "secret"),
+        "pics",
+        "pics-private",
+        "https://pub-abc.r2.dev/",
+        worker_url,
+    )
 
 
 def test_r2_upload_is_a_presigned_put_pinned_to_the_key_and_jpeg():
@@ -108,6 +114,27 @@ def test_r2_every_variant_is_the_public_original():
     assert {storage.url("artists/x/portfolio/abc", v) for v in ("thumb", "card", "full")} == {
         "https://pub-abc.r2.dev/artists/x/portfolio/abc"
     }
+
+
+def test_r2_with_the_image_worker_asks_for_a_named_variant():
+    """The worker derives a resized WebP per variant; without it the bucket serves the original."""
+    storage = _r2(worker_url="https://img.example.workers.dev/")
+    assert (
+        storage.url("artists/x/portfolio/abc", "thumb")
+        == "https://img.example.workers.dev/thumb/artists/x/portfolio/abc"
+    )
+    assert (
+        storage.url("artists/x/portfolio/abc", "card") == "https://img.example.workers.dev/card/artists/x/portfolio/abc"
+    )
+    assert (
+        storage.url("artists/x/portfolio/abc", "full") == "https://img.example.workers.dev/full/artists/x/portfolio/abc"
+    )
+
+
+def test_the_image_worker_url_is_a_setting():
+    assert UploadSettings(
+        storage_provider="fake", image_worker_url="https://img.example.workers.dev"
+    ).image_worker_url == ("https://img.example.workers.dev")
 
 
 def test_r2_private_url_is_a_presigned_get_from_the_private_bucket():

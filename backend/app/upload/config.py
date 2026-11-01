@@ -19,6 +19,10 @@ class UploadSettings(AppSettings):
     r2_bucket: str = ""  # public images, served from r2_public_url
     r2_private_bucket: str = ""  # identity documents: never public, read through expiring signed links
     r2_public_url: str = ""  # the public bucket's r2.dev or custom-domain address
+    # The image worker's address. When it is set, image URLs point at it and the worker serves a resized
+    # WebP variant per request; when it is empty, the public bucket's own address is used and every
+    # variant is the uploaded original.
+    image_worker_url: str = ""
 
     @model_validator(mode="after")
     def _real_storage_in_production(self) -> Self:

@@ -159,17 +159,27 @@ def r2_client(account_id: str, access_key_id: str, secret_access_key: str) -> Ba
 class R2Storage(ImageStorage):
     """Cloudflare R2 over its S3 API: https://developers.cloudflare.com/r2/api/s3/presigned-urls/
 
-    R2 has no form uploads, so the app PUTs the file to a presigned URL. R2 has no resizing either, so every
-    variant is the uploaded original (the app already shrinks photos to 2048px). Identity documents go to a
-    separate bucket with no public access and are read only through short-lived presigned GETs.
+    R2 has no form uploads, so the app PUTs the file to a presigned URL. R2 has no resizing either, so
+    the image worker (image-worker/) sits in front of the bucket: it turns each variant into a resized
+    WebP on demand and keeps the result at the edge. Without that worker, every variant is the uploaded
+    original (the app already shrinks photos to 2048px). Identity documents go to a separate bucket with
+    no public access and are read only through short-lived presigned GETs.
     """
 
     CONTENT_TYPE: ClassVar[str] = "image/jpeg"  # the app always uploads JPEG; signed, so other types are refused
     UPLOAD_TTL_SECONDS: ClassVar[int] = 900
 
-    def __init__(self, client: BaseClient, bucket: str, private_bucket: str, public_url: str):
+    def __init__(
+        self,
+        client: BaseClient,
+        bucket: str,
+        private_bucket: str,
+        public_url: str,
+        worker_url: str = "",
+    ):
         self.client, self.bucket, self.private_bucket = client, bucket, private_bucket
         self.public_url = public_url.rstrip("/")
+        self.worker_url = worker_url.rstrip("/")
 
     def _bucket(self, private: bool) -> str:
         return self.private_bucket if private else self.bucket
@@ -190,6 +200,14 @@ class R2Storage(ImageStorage):
         }
 
     def url(self, key: str, variant: Variant) -> str:
+        """The address of one variant of an image.
+
+        With the image worker in front, the variant is part of the path and the worker derives the
+        resized WebP from the original. Without it, every variant is the original at the bucket's own
+        address.
+        """
+        if self.worker_url:
+            return f"{self.worker_url}/{variant}/{key}"
         return f"{self.public_url}/{key}"
 
     def private_url(self, key: str, expires_in: int = 300) -> str:
@@ -214,5 +232,5 @@ def get_storage() -> ImageStorage:
         )
     if s.storage_provider == "r2":
         client = r2_client(s.r2_account_id, s.r2_access_key_id, s.r2_secret_access_key.get_secret_value())
-        return R2Storage(client, s.r2_bucket, s.r2_private_bucket, s.r2_public_url)
+        return R2Storage(client, s.r2_bucket, s.r2_private_bucket, s.r2_public_url, s.image_worker_url)
     raise ValueError(f"Unknown STORAGE_PROVIDER: {s.storage_provider!r} (supported: fake, cloudinary, r2)")

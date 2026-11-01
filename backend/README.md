@@ -29,7 +29,6 @@ Global settings live in `app/core/config.py`; each domain keeps its own in `app/
 |---|---|---|
 | `ENVIRONMENT` | `production` | `local`, `test`, `staging` or `production`. Set `local` on a dev machine |
 | `DATABASE_URL` | required | `postgresql+asyncpg://...` |
-| `TEST_DATABASE_URL` | tests only | Separate database. Tests truncate its tables. The app itself never reads it. |
 | `JWT_SECRET` | required | At least 32 characters, or the app won't start. The algorithm is pinned to HS256 |
 | `ACCESS_TOKEN_TTL_MINUTES` | `15` | |
 | `REFRESH_TOKEN_TTL_DAYS` | `7` | |
@@ -41,10 +40,11 @@ Global settings live in `app/core/config.py`; each domain keeps its own in `app/
 | `FORWARDED_ALLOW_IPS` | empty | Proxy/load-balancer addresses trusted for `X-Forwarded-For`. Required in production, or every client shares one rate-limit bucket |
 | `METRICS_TOKEN` | unset | Bearer token for `GET /metrics` (16+ chars). Required in production |
 | `LOG_LEVEL`, `LOG_JSON` | `INFO`, auto | Logs are JSON everywhere except `local` unless `LOG_JSON` says otherwise |
-| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_RECYCLE_SECONDS`, `DB_STATEMENT_TIMEOUT_MS` | `10`, `10`, `1800`, `15000` | Connection pool and per-statement timeout |
+| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_RECYCLE_SECONDS`, `DB_STATEMENT_TIMEOUT_MS` | `5`, `5`, `1800`, `15000` | Connection pool and per-statement timeout. A worker may hold `pool_size + max_overflow` (10) connections; the Dockerfile runs two workers, so 20 in total |
 | `SMS_PROVIDER` | `console` | `console` logs OTPs to the server output (not allowed in production); `fast2sms` sends real SMS |
 | `FAST2SMS_API_KEY` | empty | Required when `SMS_PROVIDER=fast2sms` |
 | `STORAGE_PROVIDER` | `fake` | `fake` (no network, not allowed in production) or `cloudinary`, which needs the three `CLOUDINARY_*` values |
+| `IMAGE_WORKER_URL` | unset | Address of the image worker (`image-worker/`), deployed at `https://artist-image-worker.azizadnan370.workers.dev`. When it is set, image URLs point at it and it serves a resized WebP per variant (`thumb` 240×240, `card` 720×900, `full` 1600 px wide); when unset, every variant is the stored original at `R2_PUBLIC_URL` |
 | `PAYMENT_PROVIDER` | `direct` | `direct`: the customer pays the artist's UPI and the platform holds no money. `mock` marks deposits paid and is not allowed in production |
 | `PLATFORM_FEE_PAISE`, `PLATFORM_FEE_WAIVED_FROM_PAISE`, `DEPOSIT_PERCENT`, `COMMISSION_PERCENT` | `9900`, `2500000`, `30`, `10` | Booking money; changes apply to new bookings only |
 | `BOOKING_ACCEPT_HOURS`, `FREE_CANCEL_HOURS`, `MAX_OPEN_REQUESTS_PER_CUSTOMER` | `3`, `72`, `3` | Booking rules |
