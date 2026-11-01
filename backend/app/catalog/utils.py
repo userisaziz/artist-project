@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 
+from app.catalog.models import Area
 from app.catalog.service import Catalog, CategoryUsage
 from app.catalog.template import TemplateUsage
 
@@ -49,3 +50,13 @@ def catalog_tree(catalog: Catalog) -> list[dict]:
         for c in catalog.categories
         if c.parent_id is None
     ]
+
+
+def area_out(area: Area) -> dict:
+    return dict(
+        id=area.id,
+        city=area.city,
+        name=area.name,
+        latitude=area.latitude,
+        longitude=area.longitude,
+    )

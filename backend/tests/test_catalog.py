@@ -7,6 +7,7 @@ from app.geocoder.schemas import Place
 from tests.support.artist import complete_profile
 from tests.support.auth import admin_headers, sign_in
 from tests.support.catalog import create_category, seed_areas, seed_categories
+from tests.support.queries import count_statements
 
 TEMPLATES = "/api/v1/admin/service-templates"
 
@@ -114,6 +115,45 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
             ],
         }
     ]
+
+
+async def test_public_catalog_is_cached_until_an_admin_edits_it(client, engine):
+    headers = await admin_headers(client, engine)
+    makeup = await create_category(client, headers, name="Makeup", status="active")
+
+    async with count_statements(engine) as statements:
+        await client.get("/api/v1/categories")
+    assert statements, "the first read loads the catalog"
+
+    async with count_statements(engine) as statements:
+        assert (await client.get("/api/v1/categories")).json() == [
+            {"id": makeup["id"], "slug": "makeup", "name": "Makeup", "subcategories": []}
+        ]
+    assert statements == [], "a cached catalog costs no database round trip"
+
+    await client.patch(f"/api/v1/admin/categories/{makeup['id']}", headers=headers, json={"status": "inactive"})
+    assert (await client.get("/api/v1/categories")).json() == [], "an admin's edit is seen at once"
+
+
+async def test_areas_of_a_city_are_cached_until_an_admin_edits_the_catalog(client, engine):
+    await seed_areas(engine)
+
+    async with count_statements(engine) as statements:
+        assert [a["name"] for a in (await client.get(AREAS, params={"city": "Bangalore"})).json()] == [
+            "BTM Layout",
+            "Koramangala",
+        ]
+    assert statements, "the first read loads the areas"
+
+    async with count_statements(engine) as statements:
+        await client.get(AREAS, params={"city": "Bangalore"})
+    assert statements == [], "cached areas cost no database round trip"
+
+
+async def test_counting_a_public_read_costs_no_database_round_trip(client, engine):
+    async with count_statements(engine) as statements:
+        assert (await client.get("/api/v1/cities")).json()
+    assert statements == [], "the rate limiter counts public reads in memory, not in the database"
 
 
 async def test_template_in_use_counts_artists_and_cannot_be_deleted(client, engine):

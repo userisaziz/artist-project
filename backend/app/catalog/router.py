@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query
 
+from app.catalog.cache import catalog_tree_cached, city_areas_cached
 from app.catalog.config import get_catalog_settings
 from app.catalog.dependencies import get_area_service, get_category_service, limit_public_reads, search_point
 from app.catalog.schemas import AreaOut, AreaSearchResult, CatalogCategoryOut
 from app.catalog.service import AreaService, CategoryService
-from app.catalog.utils import catalog_tree
 from app.shared.responses import errors
 
 router = APIRouter(tags=["catalog"], responses=errors(422, 429), dependencies=[Depends(limit_public_reads)])
@@ -18,7 +18,7 @@ router = APIRouter(tags=["catalog"], responses=errors(422, 429), dependencies=[D
 )
 async def list_categories(service: CategoryService = Depends(get_category_service)) -> list[dict]:
     """Active categories → active subcategories → active services. Hiding a level hides everything under it."""
-    return catalog_tree(await service.catalog())
+    return await catalog_tree_cached(service)
 
 
 @router.get("/cities", response_model=list[str], summary="Cities artists can work in", status_code=200)
@@ -32,7 +32,7 @@ async def list_areas(
     areas: AreaService = Depends(get_area_service),
 ) -> list:
     """What an artist picks their studio's area from, e.g. "BTM Layout" in Bangalore. Unknown cities have none."""
-    return list(await areas.in_city(city))
+    return await city_areas_cached(areas, city)
 
 
 @router.get(
