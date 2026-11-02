@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import type { ImageContentPosition } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -12,6 +12,7 @@ import { useAuth } from '../../src/context/auth/auth-provider';
 import { errorMessage } from '../../src/core/api/error-message';
 import { Icon } from '../../src/components/common/Icon';
 import { Logo } from '../../src/components/common/Logo';
+import { PressableFeedback } from '../../src/components/common/PressableFeedback';
 
 const CUSTOMER_PHOTO = require('../../assets/hero/role-customer.webp'); // design's role-client.jpg
 const ARTIST_PHOTO = require('../../assets/hero/role-artist.webp');     // design's role-creator.jpg
@@ -55,14 +56,14 @@ export default function ChooseRoleScreen() {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, paddingHorizontal: theme.spacing.xs }}>
         <Logo />
-        <Pressable
+        <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel="Back"
           onPress={back}
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
         >
           <Icon name="chevron-left" size={22} />
-        </Pressable>
+        </PressableFeedback>
       </View>
       <View style={{ paddingTop: 22, paddingHorizontal: theme.spacing.xs }}>
         <AppText variant="eyebrow" style={{ fontSize: 10.5, letterSpacing: 2.5, color: theme.colors.brand }}>ARTISTS / BEAUTY / YOU</AppText>
@@ -123,16 +124,16 @@ function RoleCard({ tone, image, imagePosition, tag, title, cta, busy, disabled,
   const ink = dark ? white : theme.colors.heading;
   const base = dark ? theme.colors.brandInk : theme.colors.roleCard;
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${title.replace('\n', ' ')}. ${cta}`}
       accessibilityState={{ disabled, busy }}
       onPress={disabled ? undefined : onPress}
-      style={({ pressed }) => ({
+      style={{
         height: 236, borderRadius: 24, backgroundColor: base,
         ...theme.shadows.lg, shadowOpacity: dark ? 0.22 : 0.12, shadowRadius: 28, shadowOffset: { width: 0, height: 10 },
-        opacity: pressed || (disabled && !busy) ? 0.9 : 1,
-      })}
+        opacity: disabled && !busy ? 0.9 : 1,
+      }}
     >
       <View style={{ flex: 1, borderRadius: 24, overflow: 'hidden' }}>
         <Image source={image} contentFit="cover" contentPosition={imagePosition} style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: '62%', backgroundColor: theme.colors.imageFallback }} />
@@ -169,6 +170,6 @@ function RoleCard({ tone, image, imagePosition, tag, title, cta, busy, disabled,
           </View>
         </View>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

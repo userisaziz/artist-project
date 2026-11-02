@@ -1,8 +1,7 @@
 import { Platform, StyleSheet, Text } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { PressableFeedback } from '../../components/common/PressableFeedback';
-import { lightTheme } from '../../core/theme/themes/light';
+import { PressableFeedback, pressedScaleFor } from '../../components/common/PressableFeedback';
 
 const originalOS = Platform.OS;
 afterEach(() => { Platform.OS = originalOS; });
@@ -27,21 +26,38 @@ it('runs onPress like a plain Pressable', async () => {
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
-it('dims under the finger on iOS and keeps its own style', async () => {
-  Platform.OS = 'ios';
-  await render(<PressableFeedback testID="control" onPress={jest.fn()} style={{ padding: 8 }}><Text>Row</Text></PressableFeedback>);
-  expect(StyleSheet.flatten(control().props.style)).toEqual({ padding: 8 });
+it.each(['ios', 'android'] as const)('fades under the finger on %s and keeps its own style', async (os) => {
+  Platform.OS = os;
+  await render(<PressableFeedback testID="control" onPress={jest.fn()} style={{ padding: 8, backgroundColor: '#FFFFFF' }}><Text>Row</Text></PressableFeedback>);
+  expect(StyleSheet.flatten(control().props.style)).toMatchObject({ padding: 8, backgroundColor: '#FFFFFF' });
 
-  expect(await opacityWhilePressed()).toBe(0.6);
+  expect(await opacityWhilePressed()).toBe(0.85);
   expect(StyleSheet.flatten(control().props.style).padding).toBe(8);
 });
 
-it('ripples in the theme colour on Android, across the surface it owns', async () => {
+it('never paints a grey wash over the surface on Android', async () => {
   Platform.OS = 'android';
   await render(<PressableFeedback testID="control" onPress={jest.fn()} style={{ backgroundColor: '#FFFFFF' }}><Text>Row</Text></PressableFeedback>);
 
-  expect(control().props.nativeForegroundAndroid).toMatchObject({ type: 'RippleAndroid', color: expect.any(Number) });
-  expect(lightTheme.colors.pressedOverlay).toMatch(/^#[0-9A-F]{8}$/i);
+  await opacityWhilePressed();
+
+  expect(control().props.nativeForegroundAndroid).toBeUndefined();
+  expect(control().props.nativeBackgroundAndroid).toBeUndefined();
+});
+
+it('fades without the dip when scale is off', async () => {
+  Platform.OS = 'android';
+  await render(<PressableFeedback testID="control" scale={false} onPress={jest.fn()}><Text>Row</Text></PressableFeedback>);
+
+  expect(await opacityWhilePressed()).toBe(0.85);
+  expect(StyleSheet.flatten(control().props.style)?.transform).toBeUndefined();
+});
+
+it('sizes the dip so a chip and a full-width card move their edges by about the same amount', () => {
+  expect(pressedScaleFor(0)).toBe(0.96);
+  expect(pressedScaleFor(80)).toBe(0.96);
+  expect(pressedScaleFor(360)).toBeCloseTo(1 - 8 / 360);
+  expect(pressedScaleFor(2000)).toBe(0.985);
 });
 
 it('shows nothing when disabled, without a handler, or with feedback off', async () => {

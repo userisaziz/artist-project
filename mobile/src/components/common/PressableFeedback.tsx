@@ -1,30 +1,42 @@
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, type PressableProps, type PressableStateCallbackType } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, type LayoutChangeEvent, type PressableProps, type PressableStateCallbackType } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { haptic, type HapticKind } from '../../core/motion/haptics';
 import { springs, useReducedMotion } from '../../core/motion/motion';
-import { useTheme } from '../../core/theme/theme-provider';
 
-const PRESSED_OPACITY = 0.6;
-const PRESSED_SCALE = 0.97;
+const PRESSED_OPACITY = 0.85;
+/** How far, in points, an edge travels inward while held. A fixed travel keeps the dip reading the same
+ *  on a chip and on a full-width card: a flat percentage barely moves a chip and lurches a card. */
+const PRESSED_TRAVEL = 4;
+/** Bounds on the derived scale: the deepest a small control dips, and the least a huge surface does. */
+const PRESSED_SCALE_MIN = 0.96;
+const PRESSED_SCALE_MAX = 0.985;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** Scale that moves the element's longer edge inward by PRESSED_TRAVEL on each side. Before the first
+ *  layout the size is unknown, so it falls back to the small-control dip. */
+export function pressedScaleFor(extent: number): number {
+  if (extent <= 0) return PRESSED_SCALE_MIN;
+  const derived = 1 - (PRESSED_TRAVEL * 2) / extent;
+  return Math.min(PRESSED_SCALE_MAX, Math.max(PRESSED_SCALE_MIN, derived));
+}
 
 export interface PressableFeedbackProps extends PressableProps {
   /** Off for surfaces that aren't controls, e.g. a sheet's backdrop, so tapping it doesn't flash the screen. */
   feedback?: boolean;
-  /** Adds the Premium press dip (scale 0.97, spring) on top of the dim/ripple. Off by default. */
-  scale?: boolean;
+  /** The spring dip while held. On by default (follows `feedback`), sized to the element; pass a number to
+   *  pin the pressed scale, or `false` for the fade alone. */
+  scale?: boolean | number;
   /** Buzzes on touch-down, for controls where the press itself is the answer (a primary action, a
    *  selection). Off by default: buzzing every tappable in the app makes the phone feel like it rattles. */
   haptic?: HapticKind;
 }
 
-/** Every tappable thing in the app: it answers the finger at once (a ripple on Android, a dim on iOS, an
- *  optional spring dip), so a tap never feels missed while the work behind it runs. Plain Pressable shows
- *  nothing on press. */
-export function PressableFeedback({ feedback = true, scale = false, haptic: hapticKind, style, android_ripple, ...rest }: PressableFeedbackProps) {
-  const theme = useTheme();
+/** Every tappable thing in the app: it answers the finger at once with a light fade and a spring dip, the
+ *  same on iOS and Android, so a tap never feels missed while the work behind it runs. No colour wash:
+ *  an overlay reads as a grey box on light surfaces. Reduced motion keeps the fade and drops the dip. */
+export function PressableFeedback({ feedback = true, scale = feedback, haptic: hapticKind, style, ...rest }: PressableFeedbackProps) {
   const reduced = useReducedMotion();
   const responds = !rest.disabled && !!(rest.onPress || rest.onLongPress);
   const dims = feedback && responds;
@@ -34,54 +46,50 @@ export function PressableFeedback({ feedback = true, scale = false, haptic: hapt
   // disable one): swapping Pressable for AnimatedPressable remounts the subtree, which detaches refs and
   // drops press state. So the path follows `scale` alone — reduced motion is honoured by `dips`, which
   // also requires a tappable control.
-  const animates = scale;
+  const animates = scale !== false;
   const dips = animates && responds && !reduced;
   const [pressed, setPressed] = useState(false);
+  const extent = useRef(0);
   const dip = useSharedValue(1);
   const dipStyle = useAnimatedStyle(() => ({ transform: [{ scale: dip.value }] }));
-  // A wash is bounded by this box, so it only reads as feedback when the element paints a surface of
-  // its own; across a transparent row or link the same wash is a grey rectangle appearing over empty
-  // space. Android ripples surfaced elements and dims surface-less ones; iOS dims either way.
-  const flatStyle = StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
-  const ownsSurface = flatStyle?.backgroundColor != null && flatStyle.backgroundColor !== 'transparent';
-  const ripple = android_ripple ?? (dims && Platform.OS === 'android' && ownsSurface
-    ? { color: theme.colors.pressedOverlay, foreground: true }
-    : undefined);
-  const dimsContent = dims && (Platform.OS !== 'android' || !ownsSurface);
-  const pressedStyle = (state: PressableStateCallbackType) => {
-    const base = typeof style === 'function' ? style(state) : style;
-    return dimsContent && state.pressed ? [base, { opacity: PRESSED_OPACITY }] : base;
-  };
   if (!animates) {
-    // Plain Pressable for the common case: identical feedback, no animated machinery.
+    // Plain Pressable when the caller opts out of the dip: same fade, no animated machinery.
+    const pressedStyle = (state: PressableStateCallbackType) => {
+      const base = typeof style === 'function' ? style(state) : style;
+      return dims && state.pressed ? [base, { opacity: PRESSED_OPACITY }] : base;
+    };
     return (
       <Pressable
         {...rest}
-        android_ripple={ripple}
         onPressIn={buzz ? (e) => { buzz(); rest.onPressIn?.(e); } : rest.onPressIn}
         style={pressedStyle}
       />
     );
   }
+  const target = typeof scale === 'number' ? scale : null;
   // Reanimated only discovers animated styles that are direct elements of the style array — a
-  // function-form style is never called during its scan, so the dip is resolved in JS instead.
+  // function-form style is never called during its scan, so the pressed state is resolved in JS instead.
   const userStyle = typeof style === 'function' ? style({ pressed }) : style;
   return (
     <AnimatedPressable
       {...rest}
-      android_ripple={ripple}
-      style={[userStyle, pressed && dimsContent ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
+      style={[userStyle, pressed && dims ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
+      onLayout={(e: LayoutChangeEvent) => {
+        const { width, height } = e.nativeEvent.layout;
+        extent.current = Math.max(width, height);
+        rest.onLayout?.(e);
+      }}
       onPressIn={(e) => {
         setPressed(true);
         buzz?.();
-        if (dips) dip.set(withSpring(PRESSED_SCALE, springs.press));
+        if (dips) dip.set(withSpring(target ?? pressedScaleFor(extent.current), springs.press));
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
         setPressed(false);
         // Unconditional: a control can stop responding while it is held (its parent flips it to
-        // loading/disabled), and then the dip would stick at PRESSED_SCALE forever. Resetting 1 -> 1
-        // is a no-op, so this is always safe.
+        // loading/disabled), and then the dip would stick forever. Resetting 1 -> 1 is a no-op, so this
+        // is always safe.
         dip.set(withSpring(1, springs.press));
         rest.onPressOut?.(e);
       }}
