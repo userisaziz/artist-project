@@ -14,6 +14,7 @@ from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.feed.constants import Moderation
 from app.feed.models import ArtistFollow, Post, PostLike, PostPhoto, PostReport
 from app.requirement.utils import publicly_visible
+from app.review.models import PUBLIC_REVIEW, Review
 from app.shared.enums import ArtistServiceStatus
 from app.shared.pagination import keyset
 from app.shared.search import like_pattern
@@ -24,6 +25,19 @@ VISIBLE = and_(ARTIST_VISIBLE, Post.moderation == Moderation.live)  # what custo
 NOT_FEATURED = Post.featured_at.is_(None)
 OPEN_REPORTS = (
     select(func.count()).where(PostReport.post_id == Post.id, PostReport.resolved_at.is_(None)).scalar_subquery()
+)
+# The artist's public rating rides the card query as two columns, so a feed page never asks for it separately.
+RATING_AVG = (
+    select(func.round(func.avg(Review.rating), 1))
+    .where(Review.artist_id == Post.artist_id, Review.status.in_(PUBLIC_REVIEW))
+    .correlate(Post)
+    .scalar_subquery()
+)
+RATING_COUNT = (
+    select(func.count())
+    .where(Review.artist_id == Post.artist_id, Review.status.in_(PUBLIC_REVIEW))
+    .correlate(Post)
+    .scalar_subquery()
 )
 
 
@@ -36,10 +50,13 @@ class PostRow(NamedTuple):
     liked: bool
     following: bool
     report_count: int
+    rating: float | None
+    review_count: int
 
 
 def rows_query(reader_id: uuid.UUID | None) -> Select:
-    """A post with its artist card, like count, and whether `reader_id` likes it and follows the artist."""
+    """A post with its artist card, like count, artist rating, and whether `reader_id` likes it and follows
+    the artist."""
     liked = exists().where(PostLike.post_id == Post.id, PostLike.user_id == reader_id) if reader_id else literal(False)
     following = (
         exists().where(ArtistFollow.artist_id == Post.artist_id, ArtistFollow.user_id == reader_id)
@@ -55,6 +72,8 @@ def rows_query(reader_id: uuid.UUID | None) -> Select:
         liked,
         following,
         OPEN_REPORTS,
+        RATING_AVG,
+        RATING_COUNT,
     ).join(ArtistProfile, ArtistProfile.id == Post.artist_id)
 
 

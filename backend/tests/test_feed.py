@@ -11,6 +11,7 @@ from tests.support.artist import approved_artist
 from tests.support.auth import ADULT_DOB, sign_in
 from tests.support.booking import setup
 from tests.support.catalog import seed_categories
+from tests.support.queries import count_statements
 from tests.support.upload import upload_key
 
 MINE = "/api/v1/artists/me/posts"
@@ -319,3 +320,14 @@ async def test_feed_lists_one_artists_posts_for_their_storefront(client, engine)
     items = (await client.get(FEED, headers=customer, params={"artist_id": artist["id"]})).json()["items"]
 
     assert [i["id"] for i in items] == [guide["id"], own["id"]]
+
+
+async def test_the_feed_tab_costs_four_database_round_trips(client, engine):
+    """The reader, the page (each artist's rating riding it as columns), the posts' photos, the featured strip."""
+    _, artist, customer = await setup(client, engine)
+    await photo_post(client, artist)
+
+    async with count_statements(engine) as statements:
+        assert (await client.get(FEED, headers=customer)).json()["items"]
+
+    assert len(statements) == 4, [statement.split("\n")[0] for statement in statements]

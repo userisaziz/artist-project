@@ -53,16 +53,14 @@ class FeedService:
     # --- shaping --------------------------------------------------------------------------------
 
     async def _out(self, rows: list[PostRow], *, full: bool) -> list[dict[str, Any]]:
-        """Cards (or full posts) for `rows`, with linked services and artist ratings fetched in one go each."""
+        """Cards (or full posts) for `rows`; the artist rating rides the row, services come in one go."""
         services = await self.posts.services([r.post.service_id for r in rows if r.post.service_id])
-        ratings = await review_service.ratings_for(self.session, list({r.post.artist_id for r in rows}))
-        return [self._shape(r, services, ratings, full=full) for r in rows]
+        return [self._shape(r, services, full=full) for r in rows]
 
-    def _shape(self, row: PostRow, services: dict, ratings: dict, *, full: bool) -> dict[str, Any]:
+    def _shape(self, row: PostRow, services: dict, *, full: bool) -> dict[str, Any]:
         p = row.post
         article = p.kind == PostKind.article
         service = services.get(p.service_id) if p.service_id else None
-        average, count = ratings.get(p.artist_id, (None, 0))
         return {
             "id": p.id,
             "kind": p.kind,
@@ -82,8 +80,8 @@ class FeedService:
                 "business_name": row.business_name,
                 "photo_url": self.storage.url(row.photo_key, "thumb") if row.photo_key else None,
                 "city": row.city,
-                "rating_average": average,
-                "rating_count": count,
+                "rating_average": row.rating,
+                "rating_count": row.review_count,
             },
             "service": {"id": service.id, "name": service.display_name, "price_paise": service.price_paise}
             if service
