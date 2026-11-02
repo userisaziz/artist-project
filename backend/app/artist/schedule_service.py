@@ -33,6 +33,12 @@ async def week(session: AsyncSession, artist_id: uuid.UUID) -> list[dict[str, An
     return [saved.get(weekday, _default_day(weekday)) for weekday in range(WEEKDAYS)]
 
 
+def week_from(hour_rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """The same week, read from a preloaded JSON list of hour rows instead of a second query."""
+    saved = {row["weekday"]: row for row in hour_rows or []}
+    return [saved.get(weekday, _default_day(weekday)) for weekday in range(WEEKDAYS)]
+
+
 async def open_hours(session: AsyncSession, artist_id: uuid.UUID, day: date) -> rules.OpenHours:
     """The artist's (open, close) hours on one IST date, or None on a closed weekday or a day off."""
     schedule = ScheduleRepository(session)

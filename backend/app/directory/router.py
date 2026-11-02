@@ -41,10 +41,8 @@ async def list_artists(
 
 
 @router.get("/{artist_id}", response_model=ArtistPublic, summary="An approved artist's public profile", status_code=200)
-async def get_artist(
-    artist: ArtistProfile = Depends(valid_artist_id), directory: DirectoryService = Depends(get_directory_service)
-) -> dict:
-    return await directory.get(artist)
+async def get_artist(artist_id: uuid.UUID, directory: DirectoryService = Depends(get_directory_service)) -> dict:
+    return await directory.detail(artist_id)
 
 
 @router.get(

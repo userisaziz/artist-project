@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import Row
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from app.artist.utils import addons_out
 from app.booking import availability as booking_availability
 from app.booking import rules as booking_rules
 from app.booking.config import get_booking_settings
-from app.chat import service as chat_service
+from app.chat.constants import REPLY_TIME_MIN_REPLIES
 from app.core.exceptions import NotFoundError
 from app.directory.constants import (
     AVAILABLE_ON_SCAN_LIMIT,
@@ -173,27 +173,33 @@ class DirectoryService:
         grid = await booking_availability.day_slots(self.session, profile.id, day, shortest, self.clock.now())
         return any(slot["available"] for slot in grid["slots"])
 
-    async def get(self, profile: ArtistProfile) -> dict:
-        """`profile` is an approved artist (resolved by the route's `valid_artist_id`)."""
+    async def detail(self, artist_id: uuid.UUID) -> dict:
+        """The whole artist detail page in one round trip: detail_row carries the profile with every stat and
+        the calendar as columns, and the next-free search below is pure Python over them."""
+        now = self.clock.now()
+        today = booking_rules.ist_today(now)
+        days = min(NEXT_FREE_LOOKAHEAD_DAYS, get_booking_settings().booking_horizon_days + 1)
+        row = await self.artists.detail_row(artist_id, today=today, until=today + timedelta(days=days - 1), now=now)
+        if row is None:
+            raise NotFoundError("Artist not found")
+        profile = row.profile
         services = _bookable(profile.services)
-        # Each service points at a subcategory (or, for older rows, straight at a top-level category).
-        own = await self.artists.categories(s.category_id for s in services)
-        parents = await self.artists.categories(c.parent_id for c in own.values() if c.parent_id)
+        # Each service points at a subcategory (or, for older rows, straight at a top-level category);
+        # the refs column holds those categories and their parents, keyed by id.
+        refs = {int(key): value for key, value in (row.category_refs or {}).items()}
+        per_service = {uuid.UUID(key): value for key, value in (row.per_service or {}).items()}
 
-        def refs(category_id: int) -> tuple[dict | None, dict | None]:
-            cat = own.get(category_id)
+        def pair(category_id: int) -> tuple[dict | None, dict | None]:
+            cat = refs.get(category_id)
             if cat is None:
                 return None, None
-            if cat.parent_id is None:
-                return {"id": cat.id, "name": cat.name}, None
-            parent = parents[cat.parent_id]
-            return ({"id": parent.id, "name": parent.name}, {"id": cat.id, "name": cat.name})
+            if cat["parent_id"] is None:
+                return {"id": category_id, "name": cat["name"]}, None
+            parent = refs[cat["parent_id"]]
+            return {"id": cat["parent_id"], "name": parent["name"]}, {"id": category_id, "name": cat["name"]}
 
-        completed = await self.artists.completed_bookings(profile.id)
-        per_service = await self.artists.completed_by_service(profile.id)
-        rating, review_count = (await ratings_for(self.session, [profile.id])).get(profile.id, (None, 0))
         return {
-            **self._card_fields(profile, rating, review_count, _from_price(profile.services)),
+            **self._card_fields(profile, row.rating, row.review_count, _from_price(profile.services)),
             "bio": profile.bio,
             "photos": [
                 {
@@ -210,8 +216,8 @@ class DirectoryService:
                     "description": s.description,
                     "price_paise": s.price_paise,
                     "duration_minutes": s.duration_minutes,
-                    "category": refs(s.category_id)[0],
-                    "subcategory": refs(s.category_id)[1],
+                    "category": pair(s.category_id)[0],
+                    "subcategory": pair(s.category_id)[1],
                     "booking_count": per_service.get(s.id, 0),
                     "photo_url": self.storage.url(s.photo_key, "card") if s.photo_key else None,
                     "included_items": list(s.included_items),
@@ -220,29 +226,49 @@ class DirectoryService:
                 for s in services
             ],
             "member_since": profile.reviewed_at,
-            "completed_bookings": completed,
+            "completed_bookings": row.completed,
             "travel_radius_km": profile.travel_radius_km,
             "experience_years": profile.experience_years,
             "languages": list(profile.languages),
-            "hours": await artist_schedule.week(self.session, profile.id),
-            "next_free_date": await self._next_free_date(profile.id, services),
-            "reply_minutes": await chat_service.reply_minutes(self.session, profile.id),
+            "hours": artist_schedule.week_from(row.hours),
+            "next_free_date": self._next_free_date(services, row.hours, row.days_off, row.busy, today, days, now),
+            "reply_minutes": self._reply_minutes(row.reply),
         }
 
-    async def _next_free_date(self, artist_id: uuid.UUID, services: list[ArtistServiceItem]) -> date | None:
-        """The first IST day, from today, with an open slot for the artist's shortest bookable service."""
+    @staticmethod
+    def _next_free_date(
+        services: list[ArtistServiceItem],
+        hour_rows: list[dict] | None,
+        days_off: list[str] | None,
+        busy: list[list[str]] | None,
+        today: date,
+        days: int,
+        now: datetime,
+    ) -> date | None:
+        """The first IST day, from today, with an open slot for the artist's shortest bookable service —
+        the same grid day_slots would answer with, computed from the row's calendar instead of the database."""
         if not services:
             return None
         shortest = min(s.duration_minutes for s in services)
-        now = self.clock.now()
-        today = booking_rules.ist_today(now)
-        days = min(NEXT_FREE_LOOKAHEAD_DAYS, get_booking_settings().booking_horizon_days + 1)
+        saved = {row["weekday"]: row for row in hour_rows or []}
+        off = {date.fromisoformat(day) for day in days_off or []}
+        held = [(datetime.fromisoformat(start), datetime.fromisoformat(end)) for start, end in busy or []]
         for offset in range(days):
             day = today + timedelta(days=offset)
-            grid = await booking_availability.day_slots(self.session, artist_id, day, shortest, now)
-            if any(slot["available"] for slot in grid["slots"]):
+            grid = booking_availability.slot_grid(
+                day, booking_availability.open_hours_from(day, saved, off), shortest, now, held
+            )
+            if any(slot["available"] for slot in grid):
                 return day
         return None
+
+    @staticmethod
+    def _reply_minutes(reply: list | None) -> int | None:
+        """The artist's median reply time in whole minutes; None until they've replied often enough to tell."""
+        median, replies = reply if reply else (None, 0)
+        if median is None or replies < REPLY_TIME_MIN_REPLIES:
+            return None
+        return round(median)
 
     async def availability(self, profile: ArtistProfile, day: date, service_id: uuid.UUID) -> dict:
         service = next((s for s in _bookable(profile.services) if s.id == service_id), None)

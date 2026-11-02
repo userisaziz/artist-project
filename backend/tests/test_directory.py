@@ -186,6 +186,22 @@ async def test_listing_artists_costs_three_database_round_trips(client, engine):
     assert len(statements) == 3, [statement.split("\n")[0] for statement in statements]
 
 
+async def test_opening_an_artist_costs_six_database_round_trips(client, engine):
+    """The detail screen used to pay sixteen round trips — and one per day it searched for the next free slot.
+
+    Six, whatever the artist's calendar: the profile carrying every stat the page shows (rating, completed
+    bookings, reply time, the week's hours, days off, held bookings, service categories and per-service counts)
+    as columns, then the profile's own selectins — categories, services, photos, templates, addons.
+    """
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, "+919845081002", admin)
+
+    async with count_statements(engine) as statements:
+        assert (await client.get(f"/api/v1/artists/{artist['id']}")).json()["business_name"]
+
+    assert len(statements) == 6, [statement.split("\n")[0] for statement in statements]
+
+
 async def test_storefront_counts_completed_bookings_per_service(client, engine):
     admin = await admin_headers(client, engine)
     ayesha = await approved_artist(client, engine, "+919845081001", admin)
