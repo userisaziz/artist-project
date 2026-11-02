@@ -12,6 +12,7 @@ from tests.support.artist import approved_artist, submitted_artist_id
 from tests.support.auth import sign_in
 from tests.support.booking import book, setup
 from tests.support.catalog import seed_categories
+from tests.support.queries import count_statements
 
 NOW = datetime(2026, 10, 9, 9, 0, tzinfo=UTC)
 
@@ -353,3 +354,27 @@ async def test_message_bursts_are_rate_limited(client, engine, override):
     codes = [(await send(client, customer, c["id"], f"m{i}")).status_code for i in range(3)]
 
     assert codes == [201, 201, 429]
+
+
+async def test_the_messages_tab_costs_two_database_round_trips(client, engine):
+    """The reader and the inbox — the artist card and unread counts already ride the inbox query."""
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    await send(client, customer, c["id"], "hello")
+
+    async with count_statements(engine) as statements:
+        assert (await client.get("/api/v1/conversations", headers=customer)).json()["items"]
+
+    assert len(statements) == 2, [statement.split("\n")[0] for statement in statements]
+
+
+async def test_opening_a_chat_costs_three_database_round_trips(client, engine):
+    """The reader, the conversation, its messages page."""
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    await send(client, customer, c["id"], "hello")
+
+    async with count_statements(engine) as statements:
+        assert (await client.get(f"/api/v1/conversations/{c['id']}", headers=customer)).status_code == 200
+
+    assert len(statements) == 3, [statement.split("\n")[0] for statement in statements]

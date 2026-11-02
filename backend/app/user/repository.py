@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import QueryableAttribute
+from sqlalchemy.orm import QueryableAttribute, joinedload
 
 from app.user.models import User, UserAddress
 
@@ -14,7 +14,8 @@ class UserRepository:
         self.session = session
 
     async def get(self, user_id: uuid.UUID) -> User | None:
-        return await self.session.get(User, user_id)
+        """One round trip: the grants ride the join instead of a follow-up selectin."""
+        return await self.session.scalar(select(User).where(User.id == user_id).options(joinedload(User.role_grants)))
 
     async def by_phone(self, phone: str) -> User | None:
         return await self.session.scalar(select(User).where(User.phone == phone))
