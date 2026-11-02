@@ -91,11 +91,6 @@ export async function placeAt(coords: Coordinates): Promise<PlaceGuess> {
   }
 }
 
-/** Current position plus the phone's reverse-geocoded area, PIN code and city. */
-export async function currentPlace(): Promise<PlaceGuess> {
-  return placeAt(await currentPosition());
-}
-
 /** The message a screen shows for a failed location request; `instead` is what the user can do without it. */
 export function locationErrorMessage(error: unknown, instead = 'enter your area and pincode below'): string {
   const why = error instanceof LocationError ? error.reason : 'unavailable';
