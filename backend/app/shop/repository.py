@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 from sqlalchemy import ColumnElement, Select, and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import raiseload
 
 from app.artist.models import ArtistProfile
 from app.requirement.utils import publicly_visible
@@ -40,10 +41,18 @@ class OrderRow(NamedTuple):
 
 
 def product_rows() -> Select:
+    """The seller rides the join as scalars only — their categories, services, photos and KYC are never
+    shown on a product card, so raising them keeps the selectin cascade from firing four extra trips."""
     return (
         select(Product, ArtistProfile, ShopSettings, SOLD)
         .join(ArtistProfile, ArtistProfile.id == Product.artist_id)
         .outerjoin(ShopSettings, ShopSettings.artist_id == Product.artist_id)
+        .options(
+            raiseload(ArtistProfile.categories),
+            raiseload(ArtistProfile.services),
+            raiseload(ArtistProfile.photos),
+            raiseload(ArtistProfile.kyc),
+        )
     )
 
 

@@ -9,6 +9,7 @@ from tests.support.artist import approved_artist
 from tests.support.auth import sign_in
 from tests.support.booking import setup
 from tests.support.catalog import seed_categories
+from tests.support.queries import count_statements
 from tests.support.upload import upload_key
 
 MINE = "/api/v1/artists/me/shop"
@@ -287,3 +288,15 @@ async def test_access_rules(client, engine):
     assert (await client.post(f"{MINE}/orders/{o['id']}/confirm", headers=rival["headers"])).status_code == 404
     assert (await client.get(f"{SHOP}/orders/{o['id']}", headers=stranger)).status_code == 404
     assert (await client.get(f"{ADMIN}/orders", headers=customer)).status_code == 403
+
+
+async def test_the_shop_tab_costs_three_database_round_trips(client, engine):
+    """The tab the customer lands on: the reader, the products page, their photos — and not one statement for
+    the seller beyond the row already joined: services, portfolio and KYC are never touched."""
+    _, artist, customer = await setup(client, engine)
+    await product(client, artist)
+
+    async with count_statements(engine) as statements:
+        assert (await client.get(f"{SHOP}/products", headers=customer)).json()["items"]
+
+    assert len(statements) == 3, [statement.split("\n")[0] for statement in statements]
