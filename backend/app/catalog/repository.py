@@ -53,9 +53,6 @@ class CategoryRepository:
             await self.session.scalars(select(Category).where(Category.id.in_(ids), Category.parent_id.is_(None)))
         ).all()
 
-    async def by_ids(self, ids: Iterable[int]) -> list[Category]:
-        return list((await self.session.execute(select(Category).where(Category.id.in_(ids)))).scalars())
-
     async def usage(self, category_id: int | None = None) -> dict[int, Usage]:
         """category id → how many artists, artist services, subcategories and templates point at it."""
         queries = (

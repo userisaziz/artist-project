@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.artist.models import ArtistProfile
 from app.booking.models import Booking
 from app.review.models import PUBLIC_REVIEW, Review
-from app.shared.enums import ArtistStatus, ReviewStatus
+from app.shared.enums import ReviewStatus
 from app.shared.pagination import keyset
 from app.user.models import User
 
@@ -104,12 +104,6 @@ class ReviewRepository:
 
     async def exists_for_booking(self, booking_id: uuid.UUID) -> bool:
         return await self.session.scalar(select(Review.id).where(Review.booking_id == booking_id)) is not None
-
-    async def is_approved_artist(self, artist_id: uuid.UUID) -> bool:
-        found = await self.session.scalar(
-            select(ArtistProfile.id).where(ArtistProfile.id == artist_id, ArtistProfile.status == ArtistStatus.approved)
-        )
-        return found is not None
 
     async def needs_moderation_count(self) -> int:
         return (

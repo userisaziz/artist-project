@@ -330,29 +330,6 @@ class DirectoryRepository:
         rows = (await self.session.execute(select(Category).where(Category.id.in_(set(ids))))).scalars()
         return {c.id: c for c in rows}
 
-    async def completed_bookings(self, artist_id: uuid.UUID) -> int:
-        return (
-            await self.session.execute(
-                select(func.count())
-                .select_from(Booking)
-                .where(Booking.artist_id == artist_id, Booking.status == BookingStatus.completed)
-            )
-        ).scalar_one()
-
-    async def completed_by_service(self, artist_id: uuid.UUID) -> dict[uuid.UUID, int]:
-        """service id → completed bookings; services nobody has finished a booking for are absent."""
-        rows = await self.session.execute(
-            select(Booking.service_id, func.count())
-            .where(
-                Booking.artist_id == artist_id,
-                Booking.status == BookingStatus.completed,
-                Booking.service_id.is_not(None),
-            )
-            .group_by(Booking.service_id)
-        )
-        # The WHERE already drops booking rows without a service; the check only tells the type checker that.
-        return {service_id: count for service_id, count in rows.all() if service_id is not None}
-
 
 def _recommended_score(c: SearchColumns) -> ColumnElement:
     """Bayesian average: the artist's stars plus a prior of RECOMMENDED_PRIOR_REVIEWS reviews at the prior rating."""

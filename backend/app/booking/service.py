@@ -6,7 +6,6 @@ Writes commit before returning, because `get_db` commits only after the response
 customer must never see "requested" for a booking that wasn't saved.
 """
 
-import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -21,23 +20,21 @@ from app.artist import schedule_service as artist_schedule
 from app.artist.models import ArtistServiceItem
 from app.booking import notices, rules
 from app.booking.config import BookingSettings
+from app.booking.mapper import View, booking_out
 from app.booking.models import Booking, BookingAddon
 from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, BookingRow
 from app.booking.schemas import BookingAddonIn, BookingIn
+from app.booking.utils import clean_reason, ist_month_start, new_code, reschedule_pending, shift_month
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.requirement import constants as requirement_constants
 from app.requirement import service as requirement_service
-from app.review.filters import review_window_open
-from app.review.models import PUBLIC_REVIEW
 from app.shared.clock import Clock
 from app.shared.enums import ArtistStatus, BookingStatus
 from app.shared.pagination import split_page
 from app.upload.service import ImageStorage
 from app.user.models import User
 
-CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I
 OPEN = (BookingStatus.requested, BookingStatus.confirmed)
-View = Literal["customer", "artist", "admin"]  # who a booking is shown to
 Canceller = Literal["customer", "artist", "admin"]  # Booking.cancelled_by
 ACCOUNT_DELETED = "Account deleted"
 TAKEN = "That time was just taken. Pick another."
@@ -46,10 +43,6 @@ CUSTOM_QUOTE = "Custom quote"  # service_name of a booking made from an accepted
 NOT_ASKED = "No change was asked for"
 CustomerScope = Literal["upcoming", "past"]
 ArtistScope = Literal["requests", "upcoming", "past"]
-
-
-def new_code() -> str:
-    return "BK-" + "".join(secrets.choice(CODE_ALPHABET) for _ in range(6))
 
 
 async def approved_artist_id(session: AsyncSession, user: User) -> uuid.UUID:
@@ -62,95 +55,9 @@ async def approved_artist_id(session: AsyncSession, user: User) -> uuid.UUID:
     return artist.id
 
 
-def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetime) -> dict[str, Any]:
-    """Customers never see the platform's margin or the artist's payout; only admins see the customer's phone.
-    Shape is a plain dict; the route's response_model validates and serialises it."""
-    b = row.booking
-    admin = view == "admin"
-    margin_hidden = view == "customer"
-    # The artist sees a review only once it's public; the reviewer and admins see it in any state.
-    show_review = row.review_id is not None and (view != "artist" or row.review_status in PUBLIC_REVIEW)
-    customer = {
-        "id": b.customer_id,
-        "first_name": row.first_name,
-        "last_name": row.last_name,
-        **({"phone": row.phone} if admin else {}),
-    }
-    return {
-        "id": b.id,
-        "code": b.code,
-        "status": b.status,
-        "start_at": b.start_at,
-        "end_at": b.end_at,
-        "address": b.address,
-        "note": b.note,
-        "service_id": b.service_id,
-        "service_name": b.service_name,
-        "duration_minutes": b.duration_minutes,
-        "artist": {
-            "id": b.artist_id,
-            "business_name": row.business_name,
-            "city": row.city,
-            "photo_url": storage.url(row.photo_key, "thumb") if row.photo_key else None,
-        },
-        "customer": customer,
-        "subtotal_paise": b.subtotal_paise,
-        "platform_fee_paise": b.platform_fee_paise,
-        "total_paise": b.total_paise,
-        "deposit_paise": b.deposit_paise,
-        "balance_paise": b.balance_paise,
-        "commission_paise": None if margin_hidden else b.commission_paise,
-        "artist_earning_paise": None if margin_hidden else b.artist_earning_paise,
-        "addons": [
-            {
-                "name": a.name,
-                "unit_price_paise": a.unit_price_paise,
-                "per_person": a.per_person,
-                "guests": a.guests,
-                "line_paise": a.line_paise,
-            }
-            for a in b.addons
-        ],
-        "deposit_paid_at": b.deposit_paid_at,
-        "expires_at": b.expires_at,
-        "responded_at": b.responded_at,
-        "cancelled_at": b.cancelled_at,
-        "completed_at": b.completed_at,
-        "decline_reason": b.decline_reason,
-        "cancel_reason": b.cancel_reason,
-        "cancelled_by": b.cancelled_by,
-        "refund_due": b.refund_due,
-        "created_at": b.created_at,
-        "review": {"id": row.review_id, "rating": row.review_rating, "status": row.review_status}
-        if show_review
-        else None,
-        "can_review": b.status == BookingStatus.completed
-        and row.review_id is None
-        and review_window_open(b.completed_at, now),
-        "reschedule": {
-            "start_at": b.reschedule_start_at,
-            "end_at": b.reschedule_end_at,
-            "expires_at": b.reschedule_expires_at,
-            "requested_at": b.reschedule_requested_at,
-        }
-        if reschedule_pending(b, now)
-        else None,
-        "reschedule_declined_reason": b.reschedule_declined_reason,
-    }
-
-
-def reschedule_pending(booking: Booking, now: datetime) -> bool:
-    expires = booking.reschedule_expires_at
-    return booking.status == BookingStatus.confirmed and expires is not None and expires > now
-
-
 def clear_reschedule(booking: Booking) -> None:
     for column, value in CLEARED_RESCHEDULE.items():
         setattr(booking, column, value)
-
-
-def clean_reason(reason: str | None) -> str | None:
-    return (reason or "").strip() or None
 
 
 def mark_cancelled(booking: Booking, now: datetime, by: Canceller, reason: str | None, refund_due: bool) -> None:
@@ -319,17 +226,6 @@ async def create_from_quote(
     booking.responded_at = now
     await insert(session, booking, TAKEN)
     return booking
-
-
-def shift_month(first: date, by: int) -> date:
-    """The first day of the month `by` months from `first` (a first of the month)."""
-    index = first.year * 12 + first.month - 1 + by
-    return date(index // 12, index % 12 + 1, 1)
-
-
-def ist_month_start(now: datetime) -> datetime:
-    local = now.astimezone(rules.IST)
-    return datetime.combine(date(local.year, local.month, 1), time(), tzinfo=rules.IST)
 
 
 class BookingService:

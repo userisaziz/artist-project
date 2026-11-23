@@ -516,7 +516,7 @@ async def test_admin_overview_filters_by_city_and_period(client, engine, travel)
 def test_months_roll_back_across_the_year():
     from datetime import date
 
-    from app.booking.service import shift_month
+    from app.booking.utils import shift_month
 
     assert [shift_month(date(2026, 2, 1), -i) for i in range(3)] == [
         date(2026, 2, 1),
