@@ -1,50 +1,64 @@
 import { View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
-import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
+import { GlossSheen } from '../common/GlossSheen';
 import { Icon } from '../common/Icon';
+import { Photo } from '../common/Photo';
+import { SaveButton } from '../common/SaveButton';
+import { ExploreAvailability } from './ExploreAvailability';
+import { ExploreRating } from './ExploreRating';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
-import { ratingShort } from '../../utils/reviews/format';
-import { artistPlaceLine } from '../../utils/directory/format';
+import { ratingLong, ratingShort } from '../../utils/reviews/format';
+import { artistCardLabel, artistPlaceLine } from '../../utils/directory/format';
 import type { ArtistCard } from '../../types/directory/directory';
 
 interface ExploreResultRowProps {
   artist: ArtistCard;
   availability: string | null;
+  saved: boolean;
+  onToggleSave: () => void;
   onPress: () => void;
 }
 
+// The portrait photo. LoadingView's `explore` shape draws the same block.
 const PHOTO_WIDTH = 96;
 const PHOTO_HEIGHT = 112;
 
-/** Explore's compact result: a portrait photo beside name, rating, place, price and availability. */
-export function ExploreResultRow({ artist, availability, onPress }: ExploreResultRowProps) {
+/** Explore's compact result: a portrait photo beside name, rating, place, price and availability, with a save toggle. */
+export function ExploreResultRow({ artist, availability, saved, onToggleSave, onPress }: ExploreResultRowProps) {
   const theme = useTheme();
+  const radius = theme.radii.xl;
   const photo = artist.photo_urls[0] ?? artist.cover_url ?? artist.photo_url;
+  const photoStyle = { width: PHOTO_WIDTH, height: PHOTO_HEIGHT, borderRadius: theme.radii.md };
   return (
     <PressableFeedback
       accessibilityRole="button"
-      accessibilityLabel={`${artist.business_name}, ${ratingShort(artist.rating, artist.review_count)}`}
+      accessibilityLabel={artistCardLabel(artist, ratingLong(artist.rating, artist.review_count), availability)}
       onPress={onPress}
-      style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface }}
+      style={[
+        { flexDirection: 'row', gap: theme.spacing[3], padding: theme.spacing[2.5], borderRadius: radius, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface },
+        theme.shadows.sm,
+      ]}
     >
-      <View style={{ width: PHOTO_WIDTH, height: PHOTO_HEIGHT, borderRadius: theme.radii.md, overflow: 'hidden', backgroundColor: theme.colors.imageFallback }}>
-        {photo ? <Image source={{ uri: photo }} style={{ flex: 1 }} contentFit="cover" transition={150} /> : null}
-      </View>
-      <View style={{ flex: 1, gap: 3, justifyContent: 'center' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <AppText variant="subtitle" numberOfLines={1} style={{ fontSize: 14, lineHeight: 19, fontWeight: '700', color: theme.colors.textPrimary, flexShrink: 1 }}>{artist.business_name}</AppText>
-          <Icon name="verified" size={14} color={theme.colors.brand} label="Verified" />
+      <GlossSheen radius={radius} variant="card" />
+      {photo ? <Photo uri={photo} style={photoStyle} /> : <View style={[photoStyle, { backgroundColor: theme.colors.imageFallback }]} />}
+      <View style={{ flex: 1, gap: theme.spacing[0.75], justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, flex: 1 }}>
+            <AppText variant="body" numberOfLines={1} style={{ fontWeight: '700', color: theme.colors.textPrimary, flexShrink: 1 }}>{artist.business_name}</AppText>
+            <Icon name="verified" size={theme.typography.body.fontSize} color={theme.colors.brand} label="Verified" />
+          </View>
+          <SaveButton name={artist.business_name} saved={saved} onPress={onToggleSave} />
         </View>
-        <AppText variant="caption" style={{ fontWeight: '700', color: theme.colors.brand }}>{`★ ${ratingShort(artist.rating, artist.review_count)}`}</AppText>
+        <ExploreRating text={ratingShort(artist.rating, artist.review_count)} />
         <AppText variant="caption" numberOfLines={1} style={{ color: theme.colors.textMuted }}>{artistPlaceLine(artist)}</AppText>
         {artist.from_price_paise === null ? null : (
           <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>
             {'From '}<AppText variant="caption" style={{ fontWeight: '700', color: theme.colors.textPrimary }}>{formatPrice(artist.from_price_paise)}</AppText>
           </AppText>
         )}
-        {availability ? <AppText variant="caption" style={{ fontWeight: '600', color: theme.colors.confirmedInk }}>{`● ${availability}`}</AppText> : null}
+        {availability ? <ExploreAvailability label={availability} /> : null}
       </View>
     </PressableFeedback>
   );

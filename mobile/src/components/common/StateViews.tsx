@@ -10,13 +10,13 @@ import { errorMessage } from '../../core/api/error-message';
 
 /** Which silhouette a first load shows. The placeholder draws the shape of the content that is coming,
  *  so the screen has structure while it waits instead of a spinner floating in an empty page. */
-export type LoadingShape = 'list' | 'tiles' | 'icons' | 'detail' | 'spinner';
+export type LoadingShape = 'list' | 'tiles' | 'icons' | 'detail' | 'explore' | 'spinner';
 
 interface LoadingViewProps {
   /** What the screen is waiting for. Announced once for the whole placeholder, not per block. */
   label?: string;
   shape?: LoadingShape;
-  /** Rows for the `list` shape; `tiles` and `icons` fill the viewport themselves. Ignored by `spinner`. */
+  /** Rows for the `list` and `explore` shapes; `tiles` and `icons` fill the viewport themselves. Ignored by `spinner`. */
   count?: number;
 }
 
@@ -98,6 +98,40 @@ function DetailRows() {
   );
 }
 
+// Explore's result geometry (ExploreFeaturedCard's mosaic, ExploreResultRow's portrait photo). Shared code can't
+// import a feature, so the numbers are mirrored here; change them together.
+const EXPLORE_MOSAIC = 162;
+const EXPLORE_PHOTO = { width: 96, height: 112 } as const;
+
+/** Explore's results: a featured card (a wide photo mosaic over two caption lines), then rows of a portrait photo
+ *  beside four text lines. */
+function ExploreRows({ count }: { count: number }) {
+  const theme = useTheme();
+  const card = { borderRadius: theme.radii.xl, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface };
+  return (
+    <View style={{ gap: theme.spacing[3] }}>
+      <View style={[card, { overflow: 'hidden' }]}>
+        <Skeleton height={EXPLORE_MOSAIC} width="100%" radius={0} tone="image" />
+        <View style={{ paddingHorizontal: theme.spacing[3.5], paddingVertical: theme.spacing[3], gap: theme.spacing.sm }}>
+          <Skeleton height={LINE} width="56%" radius={theme.radii.xs} />
+          <Skeleton height={LINE} width="38%" radius={theme.radii.xs} />
+        </View>
+      </View>
+      {Array.from({ length: Math.max(0, count - 1) }, (_, i) => (
+        <View key={i} style={[card, { flexDirection: 'row', gap: theme.spacing[3], padding: theme.spacing[2.5] }]}>
+          <Skeleton height={EXPLORE_PHOTO.height} width={EXPLORE_PHOTO.width} radius={theme.radii.md} tone="image" />
+          <View style={{ flex: 1, gap: theme.spacing.sm, justifyContent: 'center' }}>
+            <Skeleton height={LINE} width={PRIMARY_WIDTHS[i % PRIMARY_WIDTHS.length]} radius={theme.radii.xs} />
+            <Skeleton height={LINE} width={SECONDARY_WIDTHS[i % SECONDARY_WIDTHS.length]} radius={theme.radii.xs} />
+            <Skeleton height={LINE} width={PRIMARY_WIDTHS[(i + 2) % PRIMARY_WIDTHS.length]} radius={theme.radii.xs} />
+            <Skeleton height={LINE} width={SECONDARY_WIDTHS[(i + 1) % SECONDARY_WIDTHS.length]} radius={theme.radii.xs} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /**
  * The first-load placeholder. `spinner` is the one exception — it stays a bare brush loader for a footer that
  * is appending to content already on screen, where a second block of placeholders would read as new data.
@@ -115,7 +149,8 @@ export function LoadingView({ label = 'Loading', shape = 'list', count = DEFAULT
     shape === 'tiles' ? <TileRows />
       : shape === 'icons' ? <IconRows />
         : shape === 'detail' ? <DetailRows />
-          : <ListRows count={count} />;
+          : shape === 'explore' ? <ExploreRows count={count} />
+            : <ListRows count={count} />;
   return (
     // `accessible` folds the blocks into one announcement, so a screen reader says "Loading your orders"
     // once instead of once per skeleton. exiting fades the whole placeholder out as the content lands.

@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../../core/theme/theme-provider';
 import { transport } from '../../core/api/client';
@@ -11,13 +11,32 @@ import Explore from '../../../app/customer/(tabs)/explore';
 
 const mockPush = jest.fn();
 const mockPosition = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }), useLocalSearchParams: () => ({}) }));
+// A tiny stand-in for the route's search params: setParams merges (undefined drops a key) and re-renders readers,
+// the way expo-router does, so filters really round-trip through the URL.
+const mockUrl = { params: {} as Record<string, string>, listeners: new Set<() => void>() };
+const mockSetParams = jest.fn((next: Record<string, string | undefined>) => {
+  const merged: Record<string, string> = { ...mockUrl.params };
+  for (const [k, v] of Object.entries(next)) { if (v === undefined) delete merged[k]; else merged[k] = v; }
+  mockUrl.params = merged;
+  mockUrl.listeners.forEach((l) => l());
+});
+jest.mock('expo-router', () => {
+  const { useSyncExternalStore } = jest.requireActual('react');
+  const subscribe = (l: () => void) => { mockUrl.listeners.add(l); return () => mockUrl.listeners.delete(l); };
+  return {
+    useRouter: () => ({ push: mockPush, setParams: mockSetParams }),
+    useLocalSearchParams: () => useSyncExternalStore(subscribe, () => mockUrl.params),
+  };
+});
+jest.mock('expo-image', () => ({ Image: jest.requireActual('react-native').View }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock('../../core/location/location', () => ({
   ...jest.requireActual('../../core/location/location'),
   currentPosition: () => mockPosition(),
 }));
-jest.mock('../../context/auth/auth-provider', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('../../context/auth/auth-provider', () => ({
+  useAuth: () => ({ user: jest.requireActual('../../mocks/auth/auth').userFixture }),
+}));
 jest.setTimeout(20_000);
 
 // Mirrors backend GET /artists (app/directory/schemas.py ArtistCard).
@@ -43,6 +62,7 @@ function serve(artists: (query: Record<string, string>) => { status: number; jso
     if (path === '/cities') return { status: 200, json: ['Bangalore', 'Pune'] };
     if (path === '/saved/ids') return { status: 200, json: { posts: [], artists: [], products: [] } };
     if (path === '/artists') return artists(query);
+    if (path.startsWith('/saved/artist/')) return { status: 204, json: null };
     throw new Error(`unexpected request ${req.method} ${req.path}`);
   });
 }
@@ -53,6 +73,8 @@ beforeEach(() => {
   send.mockReset();
   mockPush.mockReset();
   mockPosition.mockReset();
+  mockSetParams.mockClear();
+  mockUrl.params = {};
 });
 afterEach(() => client.clear());
 afterAll(() => send.mockRestore());
@@ -67,7 +89,7 @@ it('shows the total, a featured first artist and compact rows, recommended first
   expect(screen.getByText('Mehendi · Jayanagar')).toBeTruthy();
   expect(searches()[0].sort).toBe('recommended');
 
-  await fireEvent.press(screen.getByRole('button', { name: /Henna by Noor/ }));
+  await fireEvent.press(screen.getByRole('button', { name: /^Henna by Noor,/ }));
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/customer/artist/[id]', params: { id: 'a2' } });
 });
 
@@ -135,4 +157,73 @@ it('no matches offers to clear the filters; a failed search offers a retry', asy
   expect(await screen.findByText('No artists match these filters.')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Clear filters' }));
   await waitFor(() => expect(searches().at(-1)?.min_rating).toBeUndefined());
+});
+
+it('filters round-trip through the URL: chips write params, and a link with params restores them', async () => {
+  serve(() => page([AYESHA]));
+  await wrap(<Explore />);
+  await screen.findByText('Ayesha Mehendi Art');
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Rated 4.8 and up' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Home visit' }));
+  expect(mockUrl.params).toEqual({ minRating: '4.8', home: '1' });
+  await waitFor(() => expect(searches().at(-1)).toMatchObject({ min_rating: '4.8', home_visit: 'true' }));
+  expect(screen.getByRole('button', { name: 'Rated 4.8 and up' }).props.accessibilityState).toMatchObject({ selected: true });
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Rated 4.8 and up' }));
+  expect(mockUrl.params).toEqual({ home: '1' });
+
+  // A shared link: valid params apply; junk ones fall back to no filter instead of breaking the search.
+  await act(async () => { mockSetParams({ sort: 'price', maxPrice: '500000', date: 'not-a-date', minRating: 'lots' }); });
+  await waitFor(() => expect(searches().at(-1)).toMatchObject({ sort: 'price', max_price_paise: '500000', home_visit: 'true' }));
+  expect(searches().at(-1)?.available_on).toBeUndefined();
+  expect(searches().at(-1)?.min_rating).toBeUndefined();
+  expect(screen.getByRole('button', { name: 'Sort: Price: low to high' })).toBeTruthy();
+});
+
+it('saves an artist from a compact row, not only the featured card', async () => {
+  serve(() => page([AYESHA, NOOR]));
+  await wrap(<Explore />);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Save Henna by Noor' }));
+
+  await waitFor(() => expect(send.mock.calls.map(([r]) => `${r.method} ${r.path}`)).toContain('PUT /saved/artist/a2'));
+  expect(await screen.findByRole('button', { name: 'Remove Henna by Noor from saved' })).toBeTruthy();
+});
+
+it('the clear button empties the search and searches everything again', async () => {
+  serve((q) => page(q.q === 'noor' ? [NOOR] : [AYESHA, NOOR]));
+  await wrap(<Explore />);
+  await screen.findByText('Ayesha Mehendi Art');
+  expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText('Search artists'), 'noor');
+  await waitFor(() => expect(searches().at(-1)?.q).toBe('noor'));
+  await waitFor(() => expect(screen.queryByText('Ayesha Mehendi Art')).toBeNull());
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Clear search' }));
+
+  expect(screen.getByLabelText('Search artists').props.value).toBe('');
+  expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+  expect(await screen.findByText('Ayesha Mehendi Art')).toBeTruthy();
+  expect(searches().at(-1)?.q).toBeUndefined();
+});
+
+it('each result is announced with its rating, place line, starting price and availability', async () => {
+  serve(() => page([AYESHA, card({ id: 'a2', business_name: 'Henna by Noor', locality: 'Jayanagar', rating: 4.7, review_count: 870, from_price_paise: 300000, free_on: '2099-01-02' })]));
+  await wrap(<Explore />);
+
+  expect(await screen.findByRole('button', { name: 'Ayesha Mehendi Art, Rated 4.9 out of 5, 128 reviews, Mehendi · Koramangala, from ₹1,500' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Henna by Noor, Rated 4\.7 out of 5, 870 reviews, Mehendi · Jayanagar, from ₹3,000, Free on / })).toBeTruthy();
+});
+
+it('a featured artist with fewer than three photos gets one full-width photo, not empty cells', async () => {
+  serve(() => page([card({ photo_urls: ['https://cdn/only.jpg'] })]));
+  await wrap(<Explore />);
+  await screen.findByText('Ayesha Mehendi Art');
+
+  const photos = screen.container.queryAll((n) => typeof n.props.source?.uri === 'string');
+  expect(photos.map((n) => n.props.source.uri)).toEqual(['https://cdn/only.jpg']);
+  // The lone photo's cell is the whole mosaic (flex 1), not the tall left cell of a three-up grid (flex 2).
+  expect(photos[0].parent?.props.style).toMatchObject({ flex: 1 });
 });

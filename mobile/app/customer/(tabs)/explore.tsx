@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,13 +10,13 @@ import { EmptyView, ErrorView, LoadingView } from '../../../src/components/commo
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
-import { Icon } from '../../../src/components/common/Icon';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
 import { ExploreFilterBar } from '../../../src/components/directory/ExploreFilterBar';
 import type { FilterChipSpec } from '../../../src/components/directory/ExploreFilterBar';
 import { ExploreResultRow } from '../../../src/components/directory/ExploreResultRow';
 import { ExploreResultsHeader } from '../../../src/components/directory/ExploreResultsHeader';
+import { ExploreSearchField } from '../../../src/components/directory/ExploreSearchField';
 import { useCity, useCustomerPlace } from '../../../src/context/directory/city-context';
 import { placeLine } from '../../../src/utils/directory/place';
 import { useTheme } from '../../../src/core/theme/theme-provider';
@@ -35,6 +35,7 @@ import { usePullToRefresh } from '../../../src/hooks/common/use-pull-to-refresh'
 const SEARCH_DEBOUNCE_MS = 300;
 const PLACEHOLDER_OPACITY = 0.55;
 type Sheet = 'city' | 'date' | 'price' | 'sort' | null;
+const MENU = { name: 'chevron-down' } as const; // a chip that opens a choice sheet
 
 /** A chip selection seeded from a search param; a new param re-selects the chip. */
 function useParamSelection<T>(fromParam: T): [T, (value: T) => void] {
@@ -92,15 +93,15 @@ export default function Explore() {
   const close = () => setSheet(null);
 
   const chips: FilterChipSpec[] = [
-    ...(category ? [{ key: 'category', label: `${category.name} ×`, accessibilityLabel: `Remove ${category.name} filter`, active: true, onPress: () => setCategoryId(null) }] : []),
-    { key: 'near', label: explore.locating ? 'Locating…' : 'Near me', accessibilityLabel: 'Near me', icon: 'map-pin', active: explore.nearMe, onPress: () => { void explore.toggleNear(); } },
-    { key: 'date', label: filters.availableOn ? formatDay(filters.availableOn) : 'Date', accessibilityLabel: 'Date', opensMenu: true, active: !!filters.availableOn, onPress: () => setSheet('date') },
-    { key: 'price', label: filters.maxPricePaise ? `Under ${formatPrice(filters.maxPricePaise)}` : 'Price', accessibilityLabel: 'Price', opensMenu: true, active: filters.maxPricePaise !== null, onPress: () => setSheet('price') },
-    { key: 'rating', label: `★ ${TOP_RATED}+`, accessibilityLabel: `Rated ${TOP_RATED} and up`, active: filters.minRating !== null, onPress: () => set({ minRating: filters.minRating === null ? TOP_RATED : null }) },
+    ...(category ? [{ key: 'category', label: category.name, accessibilityLabel: `Remove ${category.name} filter`, trailingIcon: { name: 'close' } as const, active: true, onPress: () => setCategoryId(null) }] : []),
+    { key: 'near', label: explore.locating ? 'Locating…' : 'Near me', accessibilityLabel: 'Near me', icon: { name: 'map-pin' }, active: explore.nearMe, onPress: () => { void explore.toggleNear(); } },
+    { key: 'date', label: filters.availableOn ? formatDay(filters.availableOn) : 'Date', accessibilityLabel: 'Date', trailingIcon: MENU, active: !!filters.availableOn, onPress: () => setSheet('date') },
+    { key: 'price', label: filters.maxPricePaise ? `Under ${formatPrice(filters.maxPricePaise)}` : 'Price', accessibilityLabel: 'Price', trailingIcon: MENU, active: filters.maxPricePaise !== null, onPress: () => setSheet('price') },
+    { key: 'rating', label: `${TOP_RATED}+`, accessibilityLabel: `Rated ${TOP_RATED} and up`, icon: { name: 'star', filled: true }, active: filters.minRating !== null, onPress: () => set({ minRating: filters.minRating === null ? TOP_RATED : null }) },
     { key: 'home', label: 'Home visit', active: filters.homeVisit, onPress: () => set({ homeVisit: !filters.homeVisit }) },
   ];
 
-  const empty = list.isPending ? <LoadingView label="Loading artists" count={5} />
+  const empty = list.isPending ? <LoadingView label="Loading artists" shape="explore" count={4} />
     : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
       : (
         <View style={{ gap: theme.spacing.md }}>
@@ -113,26 +114,13 @@ export default function Explore() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
       <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
         <CollapseOnScroll scrollY={scrollY} range={48}>
-          <AppText variant="display" style={{ fontSize: 36, lineHeight: 38, color: theme.colors.heading }}>Explore</AppText>
+          <AppText variant="hero" style={{ color: theme.colors.heading }}>Explore</AppText>
         </CollapseOnScroll>
-        <View style={{ marginTop: 14, height: 46, borderRadius: 12, backgroundColor: theme.colors.brandSoft, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
-          <Icon name="search" size={17} color={theme.colors.brand} />
-          <TextInput
-            accessibilityLabel="Search artists"
-            placeholder="Search artists or services"
-            placeholderTextColor={theme.colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            autoCorrect={false}
-            returnKeyType="search"
-            cursorColor={theme.colors.brand}
-            style={{ flex: 1, height: 44, color: theme.colors.textPrimary, fontFamily: theme.typography.body.fontFamily, fontSize: 14 }}
-          />
-        </View>
+        <ExploreSearchField value={query} onChangeText={setQuery} />
       </View>
       <ExploreFilterBar chips={chips} />
       {explore.locationError ? (
-        <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, paddingHorizontal: theme.spacing.md, marginTop: 8 }}>{explore.locationError}</AppText>
+        <AppText variant="caption" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, paddingHorizontal: theme.spacing.md, marginTop: theme.spacing.sm }}>{explore.locationError}</AppText>
       ) : null}
       <FlashList
         refreshing={pull.refreshing}
@@ -141,8 +129,9 @@ export default function Explore() {
         scrollEventThrottle={scrollEventThrottle}
         data={items}
         keyExtractor={(a) => a.id}
+        getItemType={(_, index) => (index === 0 ? 'featured' : 'row')} // the mosaic card and the rows recycle apart
         style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1 }} // the previous search, until the new one answers
-        contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: theme.spacing[3] }}
         renderItem={({ item, index }) => (index === 0 ? (
           <MotionEntrance index={index} armed={rowsArmed}>
             <ExploreFeaturedCard
@@ -155,7 +144,13 @@ export default function Explore() {
           </MotionEntrance>
         ) : (
           <MotionEntrance index={index} armed={rowsArmed}>
-            <ExploreResultRow artist={item} availability={availabilityLabel(item.free_on, todayKey)} onPress={() => openArtist(item.id)} />
+            <ExploreResultRow
+              artist={item}
+              availability={availabilityLabel(item.free_on, todayKey)}
+              saved={saveArtist.isSaved(item.id)}
+              onToggleSave={() => saveArtist.toggle(item.id)}
+              onPress={() => openArtist(item.id)}
+            />
           </MotionEntrance>
         ))}
         onEndReachedThreshold={0.5}

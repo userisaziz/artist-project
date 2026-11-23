@@ -1,6 +1,6 @@
 import { ScrollView } from 'react-native';
 import { FilterChip } from '../common/FilterChip';
-import type { IconName } from '../common/Icon';
+import type { ChipIcon } from '../common/FilterChip';
 import { useTheme } from '../../core/theme/theme-provider';
 
 export interface FilterChipSpec {
@@ -9,11 +9,12 @@ export interface FilterChipSpec {
   active: boolean;
   onPress: () => void;
   accessibilityLabel?: string;
-  icon?: IconName;
-  opensMenu?: boolean;
+  icon?: ChipIcon;
+  trailingIcon?: ChipIcon;
 }
 
-/** Explore's horizontally scrolling row of filter chips. */
+/** Explore's horizontally scrolling row of filter chips. The vertical padding leaves room for the chips' hitSlop,
+ *  which Android only honours inside the parent's bounds. */
 export function ExploreFilterBar({ chips }: { chips: FilterChipSpec[] }) {
   const theme = useTheme();
   return (
@@ -21,7 +22,7 @@ export function ExploreFilterBar({ chips }: { chips: FilterChipSpec[] }) {
       horizontal
       showsHorizontalScrollIndicator={false}
       style={{ flexGrow: 0 }}
-      contentContainerStyle={{ gap: 8, paddingHorizontal: theme.spacing.md, paddingTop: 12 }}
+      contentContainerStyle={{ gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing[3], paddingBottom: theme.spacing[1.5] }}
     >
       {chips.map(({ key, ...chip }) => <FilterChip key={key} {...chip} />)}
     </ScrollView>
