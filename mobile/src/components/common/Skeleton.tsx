@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
 
 const SWEEP_MS = 1200;
+// Rose shoulders around a white crest: the shoulders keep the sweep visible on blush (white alone has little
+// headroom there), the crest is what makes the block read as glossy rather than merely tinted.
+const BAND_STOPS = [0, 0.32, 0.5, 0.68, 1] as const;
 
 interface SkeletonProps {
   height?: number;
@@ -16,7 +20,7 @@ interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** A first-load placeholder block: a tint band sweeping through a soft canvas block (the one sanctioned
+/** A first-load placeholder block: a glossy, soft-edged band sweeping through a soft canvas block (the one sanctioned
  *  linear loop — loading). Reduced motion parks the band, so the block stays flat. Compose blocks into
  *  rows; no spinner. */
 export function Skeleton({ height = 96, width, radius, tone = 'block', style }: SkeletonProps) {
@@ -49,14 +53,15 @@ export function Skeleton({ height = 96, width, radius, tone = 'block', style }: 
         style,
       ]}
     >
-      <Animated.View
-        style={[
-          // The band is a *tint* on the block, not a highlight: white over the blush palette has no
-          // headroom, so the sweep has to be darker to be seen at all.
-          { position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%', backgroundColor: theme.colors.skeletonBand },
-          band,
-        ]}
-      />
+      <Animated.View style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '40%' }, band]}>
+        <LinearGradient
+          colors={[theme.colors.skeletonBandClear, theme.colors.skeletonBand, theme.colors.sheen, theme.colors.skeletonBand, theme.colors.skeletonBandClear]}
+          locations={BAND_STOPS}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
     </View>
   );
 }

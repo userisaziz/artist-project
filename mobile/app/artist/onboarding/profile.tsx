@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../../../src/components/common/BrushLoader';
 import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -108,7 +109,7 @@ export default function ProfileStep() {
         <View style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.colors.border, padding: 3 }}>
           <View style={{ flex: 1, borderRadius: 38, overflow: 'hidden', backgroundColor: theme.colors.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
             {photoUri ? <Image source={{ uri: photoUri }} contentFit="cover" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} /> : <AppText style={{ fontSize: 22, color: theme.colors.brand }}>+</AppText>}
-            {uploading ? <ActivityIndicator color={theme.colors.brand} /> : null}
+            {uploading ? <BrushLoader /> : null}
           </View>
         </View>
         <View style={{ flex: 1 }}>

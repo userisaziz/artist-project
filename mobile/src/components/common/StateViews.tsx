@@ -1,7 +1,8 @@
-import { ActivityIndicator, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { AppButton } from './AppButton';
+import { BrushLoader } from './BrushLoader';
 import { Skeleton } from './Skeleton';
 import { placeholderExit } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
@@ -98,7 +99,7 @@ function DetailRows() {
 }
 
 /**
- * The first-load placeholder. `spinner` is the one exception — it stays a bare spinner for a footer that
+ * The first-load placeholder. `spinner` is the one exception — it stays a bare brush loader for a footer that
  * is appending to content already on screen, where a second block of placeholders would read as new data.
  */
 export function LoadingView({ label = 'Loading', shape = 'list', count = DEFAULT_ROWS }: LoadingViewProps) {
@@ -106,7 +107,7 @@ export function LoadingView({ label = 'Loading', shape = 'list', count = DEFAULT
   if (shape === 'spinner') {
     return (
       <View accessibilityLabel={label} style={{ paddingVertical: theme.spacing.md, alignItems: 'center' }}>
-        <ActivityIndicator color={theme.colors.brand} />
+        <BrushLoader size="md" />
       </View>
     );
   }

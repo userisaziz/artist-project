@@ -1,4 +1,4 @@
-import type { ArtistProfile, ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
+import type { ArtistProfile, PortfolioPhoto, ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
 
 // Test fixtures mirroring backend app/artist/schemas.py ArtistProfileOut / ServiceOut.
 
@@ -53,5 +53,17 @@ export function artistProfileFixture(overrides: Partial<ArtistProfile> = {}): Ar
     submitted_at: '2026-10-01T10:00:00Z',
     reviewed_at: '2026-10-02T10:00:00Z',
     ...overrides,
+  };
+}
+
+export function portfolioPhotoFixture(n: number): PortfolioPhoto {
+  return {
+    id: `photo-${n}`,
+    key: `artists/9a8b/portfolio/${n}.jpg`,
+    width: 1200,
+    height: 1600,
+    thumb_url: `https://cdn.example.com/artists/9a8b/portfolio/${n}-thumb.jpg`,
+    card_url: `https://cdn.example.com/artists/9a8b/portfolio/${n}-card.jpg`,
+    full_url: `https://cdn.example.com/artists/9a8b/portfolio/${n}.jpg`,
   };
 }

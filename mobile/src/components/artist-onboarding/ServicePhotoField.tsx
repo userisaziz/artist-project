@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../common/BrushLoader';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -57,7 +58,7 @@ export function ServicePhotoField({ value, onChange }: ServicePhotoFieldProps) {
             onPress={() => { void pick(); }}
             style={{ width: TILE, height: TILE, borderRadius: theme.radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.canvas }}
           >
-            {uploading ? <ActivityIndicator color={theme.colors.brand} /> : <Icon name="plus" size={22} color={theme.colors.brand} />}
+            {uploading ? <BrushLoader /> : <Icon name="plus" size={22} color={theme.colors.brand} />}
           </PressableFeedback>
         )}
         {value.url ? (
