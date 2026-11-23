@@ -26,7 +26,8 @@ export function TicketPanel({ ticketId, onClose }: { ticketId: string; onClose: 
       </div>
       {ticket.isPending && <GridMessage state="loading" />}
       {ticket.isError && <GridMessage state="error">Couldn’t load this ticket. {ticket.error.message}</GridMessage>}
-      {ticket.data && <TicketBody ticket={ticket.data} />}
+      {/* Keyed by id: a reply draft belongs to one ticket and must not follow the admin to the next. */}
+      {ticket.data && <TicketBody key={ticket.data.id} ticket={ticket.data} />}
     </Panel>
   )
 }

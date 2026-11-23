@@ -54,6 +54,26 @@ it('works a ticket from the queue: reads it, replies and closes it', async () =>
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument())
 }, FLOW_TIMEOUT_MS)
 
+it('starts each ticket with an empty reply: a draft never follows you to another ticket', async () => {
+  const user = userEvent.setup()
+  const second = ticket({ id: 't-2', code: 'T-8813', requester: { id: 'u-8', name: 'Kiran Shah', phone: '+919845011122', side: 'artist' } })
+  db.overrides['/admin/support/tickets?view=open&limit=20'] = () => json(200, { items: [ticket({ messages: [] }), second], next_cursor: null })
+  db.overrides['/admin/support/tickets/t-1'] = () => json(200, ticket())
+  db.overrides['/admin/support/tickets/t-2'] = () => json(200, second)
+  renderSignedIn('/support')
+
+  // Open both once so each is cached and switching between them never passes through a loading state.
+  await user.click(await screen.findByRole('button', { name: /T-8813 · Kiran Shah/ }, { timeout: FIRST_RENDER_MS }))
+  expect(await screen.findByText(/T-8813 · artist/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /T-8812 · Ananya Rao/ }))
+  expect(await screen.findByText(/T-8812 · customer/)).toBeInTheDocument()
+  await user.type(screen.getByLabelText('Reply'), 'Draft for Ananya')
+
+  await user.click(screen.getByRole('button', { name: /T-8813 · Kiran Shah/ }))
+  expect(await screen.findByText(/T-8813 · artist/)).toBeInTheDocument()
+  expect(screen.getByLabelText('Reply')).toHaveValue('')
+}, FLOW_TIMEOUT_MS)
+
 it('logs a phone request as a new ticket', async () => {
   const user = userEvent.setup()
   db.overrides['/admin/support/tickets'] = () => json(201, ticket({ id: 't-2', code: 'T-9001', channel: 'phone', priority: 'normal' }))
