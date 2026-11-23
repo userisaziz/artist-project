@@ -20,7 +20,7 @@ const PHOTO_RADIUS = 16;
 const HEART = 32;
 
 /** "Locality · 2.1 km": the area (or city) and, after a "Near me" search, the distance. */
-export function placeLine(artist: Pick<ArtistCard, 'locality' | 'city' | 'distance_km'>): string {
+function placeLine(artist: Pick<ArtistCard, 'locality' | 'city' | 'distance_km'>): string {
   return [artist.locality ?? artist.city, artist.distance_km === null ? null : `${artist.distance_km} km`].filter(Boolean).join(' · ');
 }
 

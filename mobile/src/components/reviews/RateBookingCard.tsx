@@ -13,7 +13,7 @@ import type { Booking } from '../../types/bookings/bookings';
 import type { StarRating } from '../../types/reviews/reviews';
 
 const MAX_TEXT = 1000;
-export const BEING_CHECKED = 'Thanks! Your review is being checked before it appears.';
+const BEING_CHECKED = 'Thanks! Your review is being checked before it appears.';
 
 /**
  * Spec §2.1 booking detail: "Rate your experience" while `can_review`; once reviewed, the stars and a thank-you

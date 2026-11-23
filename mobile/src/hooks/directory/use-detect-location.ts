@@ -7,7 +7,7 @@ import type { CustomerPlace, NearbyArea } from '../../types/directory/directory'
 const SEARCH_INSTEAD = 'search your area';
 
 /** The phone's position as a place: named after the nearest of our areas when it's inside one. */
-export function gpsPlace(coords: Coordinates, area: NearbyArea | null): CustomerPlace {
+function gpsPlace(coords: Coordinates, area: NearbyArea | null): CustomerPlace {
   return {
     label: area ? `${area.name}, ${area.city}` : 'Near you',
     city: area?.city ?? null,

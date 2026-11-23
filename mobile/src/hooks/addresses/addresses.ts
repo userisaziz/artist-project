@@ -6,7 +6,7 @@ import type { AddressInput } from '../../types/addresses/addresses';
 import type { AddressBook } from '../../components/common/AddressPicker';
 
 // Keyed by user id, so another account on the device never sees cached addresses.
-export const addressKeys = { mine: (userId: string | undefined) => ['addresses', userId] as const };
+const addressKeys = { mine: (userId: string | undefined) => ['addresses', userId] as const };
 
 const FIRST_LABEL = 'Home';
 const NEXT_LABEL = 'Other';

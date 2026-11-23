@@ -6,7 +6,7 @@ import type { ReportInput } from '../../types/support/support';
 const THREAD_POLL_MS = 15_000;
 
 // Keyed by user id, so another account on the device never sees cached tickets.
-export const supportKeys = {
+const supportKeys = {
   all: ['support'] as const,
   mine: (userId: string | undefined) => ['support', userId, 'mine'] as const,
   ticket: (userId: string | undefined, id: string) => ['support', userId, 'ticket', id] as const,

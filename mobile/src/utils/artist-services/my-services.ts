@@ -13,7 +13,7 @@ export function groupTitle(tree: CatalogCategory[], subcategoryId: number): stri
 }
 
 /** "Mehendi › Couple portrait (suggested)" while the artist's own suggestion waits; it sits under the parent. */
-export function serviceGroupTitle(tree: CatalogCategory[], service: ServiceItem): string {
+function serviceGroupTitle(tree: CatalogCategory[], service: ServiceItem): string {
   const suggestion = service.suggested_subcategory;
   const title = groupTitle(tree, service.subcategory_id);
   return suggestion?.status === 'pending' ? `${title} › ${suggestion.name} (suggested)` : title;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MAX_PRICE_RUPEES } from '../common/format';
 import type { ServicePricePatch } from '../../types/artist-services/artist-services';
 
-export const MAX_MINUTES = 1440;
+const MAX_MINUTES = 1440;
 
 /** The two numbers a service sheet asks for, as the artist typed them. */
 export interface PricingDraft {

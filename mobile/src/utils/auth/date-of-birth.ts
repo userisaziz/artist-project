@@ -2,7 +2,7 @@
 // date, not in the future, at least MIN_AGE_YEARS full years old. The API speaks ISO (YYYY-MM-DD); the field
 // shows DD/MM/YYYY, the way the rest of the app writes a date. There is no date picker in this app, so the
 // input is a masked number field — the same trick as src/utils/artist-onboarding/aadhaar.ts.
-export const MIN_AGE_YEARS = 18;
+const MIN_AGE_YEARS = 18;
 
 export const BAD_DOB = 'Enter your date of birth as DD/MM/YYYY.';
 export const FUTURE_DOB = 'Date of birth cannot be in the future.';

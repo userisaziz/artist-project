@@ -4,7 +4,7 @@ import { useAuth } from '../../context/auth/auth-provider';
 import type { Order, OrderInput, ProductInput, ShopCategory, ShopSettings } from '../../types/shop/shop';
 
 // Keyed by user id, so another account on the device never sees cached orders.
-export const shopKeys = {
+const shopKeys = {
   all: ['shop'] as const,
   products: (userId: string | undefined, category: ShopCategory | null, q: string) => ['shop', userId, 'products', category, q] as const,
   product: (userId: string | undefined, id: string) => ['shop', userId, 'product', id] as const,

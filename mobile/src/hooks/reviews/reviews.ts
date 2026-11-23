@@ -8,9 +8,9 @@ import { bookingKeys } from '../bookings/bookings';
 import { directoryKeys } from '../directory/directory';
 
 const PAGE_SIZE = 20;
-export const PREVIEW_COUNT = 3; // the storefront shows the first three
+const PREVIEW_COUNT = 3; // the storefront shows the first three
 
-export const reviewKeys = {
+const reviewKeys = {
   all: ['reviews'] as const,
   preview: (artistId: string) => ['reviews', 'public', artistId, 'preview'] as const,
   public: (artistId: string) => ['reviews', 'public', artistId, 'all'] as const,

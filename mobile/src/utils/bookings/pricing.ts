@@ -2,19 +2,19 @@
 // lockstep with backend app/core/config.py: the server is the source of truth, these only preview and mirror it.
 import { istDateKey, istDayStart } from '../common/time';
 
-export const PLATFORM_FEE_PAISE = 9_900;          // ₹99
-export const FEE_WAIVER_FROM_PAISE = 2_500_000;   // fee waived at ₹25,000 and up
+const PLATFORM_FEE_PAISE = 9_900;          // ₹99
+const FEE_WAIVER_FROM_PAISE = 2_500_000;   // fee waived at ₹25,000 and up
 export const DEPOSIT_PERCENT = 30;
 /** Phase 1 takes no payments in the app (backend PAYMENT_PROVIDER=direct): no deposit, the customer pays the
  *  artist directly after the service. Phase 2 turns this on. */
 export const IN_APP_PAYMENTS = false;
-export const COMMISSION_PERCENT = 10;
+const COMMISSION_PERCENT = 10;
 export const ACCEPT_WINDOW_HOURS = 3;
-export const FREE_CANCEL_HOURS = 72;
-export const SLOT_LEAD_HOURS = 2;
-export const SLOT_FIRST_HOUR = 9;
-export const SLOT_LAST_HOUR = 17;
-export const BOOKABLE_DAYS = 60;
+const FREE_CANCEL_HOURS = 72;
+const SLOT_LEAD_HOURS = 2;
+const SLOT_FIRST_HOUR = 9;
+const SLOT_LAST_HOUR = 17;
+const BOOKABLE_DAYS = 60;
 
 const HOUR_MS = 3600_000;
 const RUPEE = 100;
@@ -57,7 +57,7 @@ export function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: num
 
 export interface Busy { start: number; end: number }
 
-export function isSlotFree(start: number, durationMinutes: number, busy: Busy[], now: number): boolean {
+function isSlotFree(start: number, durationMinutes: number, busy: Busy[], now: number): boolean {
   if (start - now < SLOT_LEAD_HOURS * HOUR_MS) return false;
   const end = start + durationMinutes * 60_000;
   return !busy.some((b) => overlaps(start, end, b.start, b.end));

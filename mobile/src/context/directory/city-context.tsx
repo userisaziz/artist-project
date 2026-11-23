@@ -43,7 +43,7 @@ export function useCustomerPlace(): PlaceChoice {
 }
 
 /** A whole city, as a `?city=` link picks it: no search point. */
-export const cityPlace = (city: string): CustomerPlace => ({ label: city, city, areaId: null, coords: null, source: 'city' });
+const cityPlace = (city: string): CustomerPlace => ({ label: city, city, areaId: null, coords: null, source: 'city' });
 
 /** The city view of the place, for screens and links that only know cities. */
 export function useCity(): { city: string | null; setCity: (city: string | null) => void } {
