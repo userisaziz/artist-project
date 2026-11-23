@@ -102,7 +102,7 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => { void confirmDelete() }}>Delete</AlertDialogAction>
+            <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={() => { void confirmDelete() }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

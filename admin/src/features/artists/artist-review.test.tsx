@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import App from '@/App'
 import { createQueryClient } from '@/lib/query-client'
-import { KYC, artist, calls, category, db, installFakeBackend } from '@/test/fake-backend'
+import { KYC, artist, calls, category, db, installFakeBackend, json } from '@/test/fake-backend'
 import { renderSignedIn } from '@/test/render-app'
 
 beforeEach(() => {
@@ -21,8 +21,38 @@ it('lists a pending artist and approves them', async () => {
   expect(await screen.findByText('Bridal Classic')).toBeInTheDocument()
   expect(screen.getByText('₹5,500')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Approve & publish' }))
+  // Publishing is confirmed first: nothing is sent until the admin says yes.
+  const confirm = await screen.findByRole('alertdialog', { name: 'Approve and publish Ayesha Mehendi Art?' })
+  expect(calls.some((c) => c.path.endsWith('/approve'))).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Approve & publish' }))
   expect(await screen.findByText('Approved')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Approve & publish' })).not.toBeInTheDocument()
+})
+
+it('cancelling the approve confirmation publishes nothing', async () => {
+  const user = userEvent.setup()
+  renderSignedIn('/artists/a-1')
+  await user.click(await screen.findByRole('button', { name: 'Approve & publish' }))
+  const confirm = await screen.findByRole('alertdialog')
+  await user.click(within(confirm).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+  expect(calls.some((c) => c.path.endsWith('/approve'))).toBe(false)
+})
+
+it('reinstating a suspended artist is confirmed first', async () => {
+  db.artist = artist({ status: 'suspended' })
+  db.overrides['/admin/artists/a-1/reinstate'] = () => {
+    db.artist = { ...db.artist, status: 'approved' }
+    return json(200, { status: 'approved' })
+  }
+  const user = userEvent.setup()
+  renderSignedIn('/artists/a-1')
+  await user.click(await screen.findByRole('button', { name: 'Reinstate' }))
+  const confirm = await screen.findByRole('alertdialog', { name: 'Reinstate Ayesha Mehendi Art?' })
+  expect(calls.some((c) => c.path.endsWith('/reinstate'))).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Reinstate' }))
+  await waitFor(() => expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/reinstate', body: undefined }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
 })
 
 it('rejecting needs a reason, then shows it', async () => {
@@ -77,6 +107,7 @@ it('says "No Aadhaar on file" when there is none, and Approve still works', asyn
   expect(await screen.findByText('No Aadhaar on file')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Reveal' })).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Approve & publish' }))
+  await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Approve & publish' }))
   expect(await screen.findByText('Approved')).toBeInTheDocument()
 })
 

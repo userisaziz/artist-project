@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import { GridHeader } from '@/components/console/grid-header'
 import { GridMessage } from '@/components/console/grid-message'
 import { GridRow } from '@/components/console/grid-row'
 import { PanelFooter } from '@/components/console/panel-footer'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ import type { ProfileRequirement } from './types'
 
 const COLUMNS = '2.4fr .9fr 1fr .8fr'
 const MAX_GRACE_DAYS = 90 // backend requirement.constants.MAX_GRACE_DAYS
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 const schema = z.object({
   mandatory: z.boolean(),
@@ -55,15 +57,22 @@ function RequirementRow({ requirement }: { requirement: ProfileRequirement }) {
     form.reset({ mandatory: requirement.mandatory, grace_days: requirement.grace_days })
   }, [requirement.mandatory, requirement.grace_days, form])
 
-  const submit = form.handleSubmit((values) =>
+  // Making a requirement mandatory can take non-compliant artists off the app, so that save waits for a yes.
+  const [confirming, setConfirming] = useState<FormValues | null>(null)
+  const save = (values: FormValues) =>
     update.mutate({ key: requirement.key, ...values }, {
-      onSuccess: (saved) => toast.success(saved.mandatory ? `${saved.title} is now mandatory` : `${saved.title} is optional`),
+      onSuccess: (saved) => {
+        toast.success(saved.mandatory ? `${saved.title} is now mandatory` : `${saved.title} is optional`)
+        setConfirming(null)
+      },
       onError: (e) => toastError(e),
-    }))
+    })
+  const submit = form.handleSubmit((values) => (values.mandatory && !requirement.mandatory ? setConfirming(values) : save(values)))
   const graceError = form.formState.errors.grace_days?.message
   const fieldId = `grace-${requirement.key}`
 
   return (
+    <>
     <form onSubmit={(e) => { void submit(e) }} noValidate>
       <GridRow columns={COLUMNS}>
         <div className="min-w-0">
@@ -98,5 +107,14 @@ function RequirementRow({ requirement }: { requirement: ProfileRequirement }) {
         </span>
       </GridRow>
     </form>
+    <ConfirmDialog
+        open={confirming !== null}
+        title={`Make “${requirement.title}” mandatory?`}
+        action={{ label: 'Make mandatory', pending: update.isPending, onConfirm: () => { if (confirming) save(confirming) } }}
+        onClose={() => setConfirming(null)}
+      >
+        {confirming && `Approved artists without it get ${plural(confirming.grace_days, 'day')} to add it. After that they are hidden from customers and take no new requests until they comply.`}
+    </ConfirmDialog>
+    </>
   )
 }

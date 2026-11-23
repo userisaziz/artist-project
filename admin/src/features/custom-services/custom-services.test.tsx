@@ -21,6 +21,11 @@ it('approves a custom service from the queue', async () => {
   expect(within(screen.getByRole('link', { name: /Custom services/ })).getByText('1')).toBeInTheDocument() // nav badge
 
   await user.click(screen.getByRole('button', { name: 'Approve Glitter mehendi' }))
+  // Approving makes it bookable, so it's confirmed first.
+  const confirm = await screen.findByRole('alertdialog', { name: 'Approve “Glitter mehendi”?' })
+  expect(confirm).toHaveTextContent('customers can book it straight away')
+  expect(calls.some((c) => c.path.endsWith('/approve'))).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Approve' }))
   expect(await screen.findByText('No custom services waiting for review.')).toBeInTheDocument()
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/custom-services/cs-1/approve', body: undefined })
 })

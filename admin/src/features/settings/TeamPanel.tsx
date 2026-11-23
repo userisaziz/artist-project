@@ -57,7 +57,7 @@ export function TeamPanel() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirm}>Remove</AlertDialogAction>
+            <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={confirm}>Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

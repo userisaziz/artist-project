@@ -92,8 +92,8 @@ export interface Db {
   logoutFails: boolean
   /** When true, every non-auth endpoint answers 401 (the access token was revoked or expired). */
   accessRevoked: boolean
-  /** Ad-hoc handlers by path (exact, else without the query string), checked before the built-in routes. */
-  overrides: Record<string, () => Response>
+  /** Ad-hoc handlers by path (exact, else without the query string), checked before the built-in routes. A promise holds the answer. */
+  overrides: Record<string, () => Response | Promise<Response>>
 }
 
 /** One request as the server saw it; `calls` keeps the {method, path, body} shape the flows assert on. */

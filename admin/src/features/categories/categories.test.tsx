@@ -129,6 +129,11 @@ it('shows catalog KPIs and archives a category from its row menu', async () => {
 
   await user.click(screen.getByRole('button', { name: 'More actions for Mehendi' }))
   await user.click(await screen.findByRole('menuitem', { name: 'Archive' }))
+  // Archiving is confirmed first, with the artists it affects.
+  const confirm = await screen.findByRole('alertdialog', { name: 'Archive “Mehendi”?' })
+  expect(confirm).toHaveTextContent('12 artists offer it today.')
+  expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Archive' }))
   await waitFor(() => expect(calls).toContainEqual({ method: 'PATCH', path: '/admin/categories/1', body: { status: 'inactive' } }))
   expect(await screen.findByText('“Mehendi” is now inactive')).toBeInTheDocument()
 })

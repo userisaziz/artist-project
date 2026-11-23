@@ -9,16 +9,7 @@ import { KpiTile } from '@/components/console/kpi-tile'
 import { Panel } from '@/components/console/panel'
 import { PanelFooter } from '@/components/console/panel-footer'
 import { PanelToolbar } from '@/components/console/panel-toolbar'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/notify'
 import { EnquiryRow } from './EnquiryRow'
@@ -50,7 +41,8 @@ export function EnquiriesPage() {
   const summaryQuery = useEnquirySummary()
   const summary = summaryQuery.data
   const decide = useDecideEnquiry()
-  const [hiding, setHiding] = useState<Enquiry | null>(null)
+  // The held message the admin is deciding on, and which way; the dialog confirms before anything is sent.
+  const [deciding, setDeciding] = useState<{ enquiry: Enquiry; decision: 'allow' | 'hide' } | null>(null)
   const rows = list.data?.pages.flatMap((p) => p.items) ?? []
   const chips = FILTERS.map((f) => ({
     value: f.value,
@@ -61,7 +53,7 @@ export function EnquiriesPage() {
     try {
       await decide.mutateAsync({ id: enquiry.id, decision })
       toast.success(decision === 'allow' ? 'Marked safe and delivered' : 'Message hidden')
-      setHiding(null)
+      setDeciding(null)
     } catch (e) {
       toastError(e)
     }
@@ -91,7 +83,7 @@ export function EnquiriesPage() {
         {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load enquiries. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{EMPTY[status]}</GridMessage>}
         {rows.map((e) => (
-          <EnquiryRow key={e.id} enquiry={e} columns={COLUMNS} busy={decide.isPending} onAllow={() => { void run(e, 'allow') }} onHide={() => setHiding(e)} />
+          <EnquiryRow key={e.id} enquiry={e} columns={COLUMNS} busy={decide.isPending} onAllow={() => setDeciding({ enquiry: e, decision: 'allow' })} onHide={() => setDeciding({ enquiry: e, decision: 'hide' })} />
         ))}
         {list.isSuccess && rows.length > 0 && (
           <PanelFooter
@@ -106,18 +98,22 @@ export function EnquiriesPage() {
         )}
       </Panel>
 
-      <AlertDialog open={hiding !== null} onOpenChange={(open) => !open && setHiding(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hide this message?</AlertDialogTitle>
-            <AlertDialogDescription>The artist won’t see it. The sender is told contact details aren’t allowed before booking.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => { if (hiding) void run(hiding, 'hide') }}>Hide</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={deciding?.decision === 'allow'}
+        title="Allow this message?"
+        action={{ label: 'Allow and deliver', pending: decide.isPending, onConfirm: () => { if (deciding) void run(deciding.enquiry, 'allow') } }}
+        onClose={() => setDeciding(null)}
+      >
+        It is delivered as written, so any phone number, email or link in it is released to the other side. This can’t be taken back.
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={deciding?.decision === 'hide'}
+        title="Hide this message?"
+        action={{ label: 'Hide', pending: decide.isPending, destructive: true, onConfirm: () => { if (deciding) void run(deciding.enquiry, 'hide') } }}
+        onClose={() => setDeciding(null)}
+      >
+        The artist won’t see it. The sender is told contact details aren’t allowed before booking.
+      </ConfirmDialog>
     </>
   )
 }

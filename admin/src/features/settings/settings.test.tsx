@@ -98,6 +98,11 @@ it('switches a profile requirement on with a grace period and validates the days
   await user.clear(days)
   await user.type(days, '14')
   await user.click(screen.getByRole('button', { name: 'Save' }))
+  // Mandatory can hide artists, so the save waits for a confirmation that spells out the grace period.
+  const confirm = await screen.findByRole('alertdialog', { name: 'Make “Add your studio location” mandatory?' })
+  expect(confirm).toHaveTextContent('get 14 days to add it')
+  expect(calls.some((c) => c.method === 'PUT')).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Make mandatory' }))
   await waitFor(() => expect(calls).toContainEqual({ method: 'PUT', path: '/admin/settings/requirements/location', body: { mandatory: true, grace_days: 14 } }))
   expect(await screen.findByText(/^Since /)).toBeInTheDocument()
 }, FLOW_TIMEOUT_MS)

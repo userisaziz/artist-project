@@ -4,6 +4,7 @@ import { RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Panel } from '@/components/console/panel'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RejectReasonDialog } from '@/components/RejectReasonDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
   const suspension = useSuspension(id)
   const [rejecting, setRejecting] = useState(false)
   const [suspending, setSuspending] = useState(false)
+  const [confirming, setConfirming] = useState<'approve' | 'reinstate' | null>(null)
   const [viewing, setViewing] = useState<Viewing | null>(null)
 
   if (artist.isPending) return <Skeleton className="h-96 w-full rounded-2xl" />
@@ -68,6 +70,7 @@ export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
       await review.mutateAsync(decision)
       toast.success(decision.action === 'approve' ? `${a.business_name} is approved and live` : `${a.business_name} was sent back with your note`)
       setRejecting(false)
+      setConfirming(null)
     } catch (e) {
       toastError(e)
     }
@@ -78,6 +81,7 @@ export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
       await suspension.mutateAsync(change)
       toast.success(change.action === 'suspend' ? `${a.business_name} is suspended` : `${a.business_name} is reinstated and live again`)
       setSuspending(false)
+      setConfirming(null)
     } catch (e) {
       toastError(e)
     }
@@ -134,13 +138,31 @@ export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
           artist={a}
           owner={owner}
           pending={review.isPending || suspension.isPending}
-          onApprove={() => { void decide({ action: 'approve' }) }}
+          onApprove={() => setConfirming('approve')}
           onReject={() => setRejecting(true)}
           onSuspend={() => setSuspending(true)}
-          onReinstate={() => { void changeSuspension({ action: 'reinstate' }) }}
+          onReinstate={() => setConfirming('reinstate')}
         />
       </div>
       {(a.status === 'approved' || a.status === 'suspended') && <RequirementsCard artistId={a.id} name={a.business_name} />}
+
+      <ConfirmDialog
+        open={confirming === 'approve'}
+        title={`Approve and publish ${a.business_name}?`}
+        action={{ label: 'Approve & publish', pending: review.isPending, onConfirm: () => { void decide({ action: 'approve' }) } }}
+        onClose={() => setConfirming(null)}
+      >
+        Their profile and services go live to every customer straight away, and they can start taking bookings.
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirming === 'reinstate'}
+        title={`Reinstate ${a.business_name}?`}
+        action={{ label: 'Reinstate', pending: suspension.isPending, onConfirm: () => { void changeSuspension({ action: 'reinstate' }) } }}
+        onClose={() => setConfirming(null)}
+      >
+        Their profile is shown to customers again and they can take new bookings.
+      </ConfirmDialog>
 
       <RejectReasonDialog
         open={rejecting}

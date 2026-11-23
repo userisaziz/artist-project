@@ -14,6 +14,7 @@ import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Panel } from '@/components/console/panel'
 import { PanelFooter } from '@/components/console/panel-footer'
 import { PanelToolbar } from '@/components/console/panel-toolbar'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RejectReasonDialog } from '@/components/RejectReasonDialog'
 import { toastError } from '@/lib/notify'
 import { dateTime, duration, rupees } from '@/lib/format'
@@ -33,6 +34,7 @@ export function CustomServicesPage() {
   const queue = useCustomServiceQueue(status)
   const decide = useDecideCustomService()
   const [rejecting, setRejecting] = useState<CustomServiceItem | null>(null)
+  const [approving, setApproving] = useState<CustomServiceItem | null>(null)
   const rows = queue.data?.pages.flatMap((p) => p.items) ?? []
   const pending = status === 'pending'
   const columns = pending ? '1.4fr 1.3fr 2fr .8fr .8fr 1fr 190px' : '1.4fr 1.3fr 2fr .8fr .8fr 1fr'
@@ -42,6 +44,7 @@ export function CustomServicesPage() {
       await decide.mutateAsync({ id: item.id, decision })
       toast.success(decision.action === 'approve' ? `“${item.name}” is approved and bookable` : `“${item.name}” was sent back with your note`)
       setRejecting(null)
+      setApproving(null)
     } catch (e) {
       toastError(e)
     }
@@ -79,7 +82,7 @@ export function CustomServicesPage() {
                 <Button variant="outline" size="sm" aria-label={`Reject ${s.name}`} onClick={() => setRejecting(s)} disabled={decide.isPending}>
                   <X /> Reject
                 </Button>
-                <Button size="sm" aria-label={`Approve ${s.name}`} onClick={() => { void run(s, { action: 'approve' }) }} disabled={decide.isPending}>
+                <Button size="sm" aria-label={`Approve ${s.name}`} onClick={() => setApproving(s)} disabled={decide.isPending}>
                   <Check /> Approve
                 </Button>
               </div>
@@ -98,6 +101,15 @@ export function CustomServicesPage() {
           </PanelFooter>
         )}
       </Panel>
+
+      <ConfirmDialog
+        open={approving !== null}
+        title={`Approve “${approving?.name ?? ''}”?`}
+        action={{ label: 'Approve', pending: decide.isPending, onConfirm: () => { if (approving) void run(approving, { action: 'approve' }) } }}
+        onClose={() => setApproving(null)}
+      >
+        {approving && `It goes live on ${approving.business_name}’s profile at ${rupees(approving.price_paise)} and customers can book it straight away.`}
+      </ConfirmDialog>
 
       <RejectReasonDialog
         open={rejecting !== null}

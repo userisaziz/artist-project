@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { FilterChips } from '@/components/FilterChips'
 import { PageHeader } from '@/components/PageHeader'
 import { GridHeader } from '@/components/console/grid-header'
@@ -36,6 +37,16 @@ const FILTERS: StatusFilter[] = ['all', 'active', 'draft', 'inactive']
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
+const STATUS_VERB: Record<CategoryStatus, string> = { active: 'Publish', draft: 'Move to draft', inactive: 'Archive' }
+
+/** What a status change does, with the artists it touches, for the confirmation. */
+function statusImpact(c: AdminCategory, status: CategoryStatus): string {
+  const reach = c.artist_count > 0 ? ` ${plural(c.artist_count, 'artist')} offer it today.` : ''
+  if (status === 'active') return `Customers can find “${c.name}” and artists can offer services in it.`
+  if (status === 'draft') return `“${c.name}” is hidden from customers and artists while you work on it.${reach}`
+  return `“${c.name}” is hidden from customers and artists can’t pick it any more.${reach} Existing bookings stay as they are.`
+}
+
 /** Two panes: categories with their subcategories on the left, the selected subcategory's services (`?sub=`) on the right. */
 export function CategoriesPage() {
   const categories = useCategories()
@@ -46,6 +57,7 @@ export function CategoriesPage() {
   // The dialog edits `category`, or creates one (under `parent` when that's set).
   const [dialog, setDialog] = useState<{ category: AdminCategory | null; parent: AdminCategory | null } | null>(null)
   const [deleting, setDeleting] = useState<AdminCategory | null>(null)
+  const [changing, setChanging] = useState<{ category: AdminCategory; status: CategoryStatus } | null>(null)
 
   const all = categories.data ?? []
   const topLevel = all.filter((c) => c.parent_id === null)
@@ -89,7 +101,7 @@ export function CategoriesPage() {
     save.mutate(
       { id: c.id, input: { status } },
       {
-        onSuccess: () => toast.success(`“${c.name}” is now ${STATUS_LABEL[status].toLowerCase()}`),
+        onSuccess: () => { toast.success(`“${c.name}” is now ${STATUS_LABEL[status].toLowerCase()}`); setChanging(null) },
         onError: (e) => toastError(e, 'Could not update the category'),
       },
     )
@@ -112,7 +124,7 @@ export function CategoriesPage() {
       onEdit={() => setDialog({ category: c, parent: byId(c.parent_id) })}
       onAddSubcategory={c.parent_id === null ? () => { setExpanded((open) => new Set(open).add(c.id)); setDialog({ category: null, parent: c }) } : undefined}
       onServices={c.parent_id === null ? undefined : () => updateParams('sub', String(c.id))}
-      onStatus={(s) => setStatus(c, s)}
+      onStatus={(s) => setChanging({ category: c, status: s })}
       onDelete={() => setDeleting(c)}
     />
   )
@@ -195,6 +207,20 @@ export function CategoriesPage() {
 
       <CategoryDialog open={dialog !== null} category={dialog?.category ?? null} parent={dialog?.parent ?? null} onClose={() => setDialog(null)} />
 
+      <ConfirmDialog
+        open={changing !== null}
+        title={changing ? `${STATUS_VERB[changing.status]} “${changing.category.name}”?` : ''}
+        action={{
+          label: changing ? STATUS_VERB[changing.status] : '',
+          pending: save.isPending,
+          destructive: changing?.status === 'inactive',
+          onConfirm: () => { if (changing) setStatus(changing.category, changing.status) },
+        }}
+        onClose={() => setChanging(null)}
+      >
+        {changing && statusImpact(changing.category, changing.status)}
+      </ConfirmDialog>
+
       <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -203,7 +229,7 @@ export function CategoriesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => { void confirmDelete() }}>Delete</AlertDialogAction>
+            <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={() => { void confirmDelete() }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -29,6 +29,11 @@ it('lists held messages with KPIs and allows one', async () => {
   expect(within(screen.getByRole('link', { name: /^Enquiries/ })).getByText('1')).toBeInTheDocument() // sidebar count
 
   await user.click(screen.getByRole('button', { name: 'Allow message from Priya Rao' }))
+  // Allowing releases the contact details, so the dialog says so and nothing is sent until confirmed.
+  const confirm = await screen.findByRole('alertdialog', { name: 'Allow this message?' })
+  expect(confirm).toHaveTextContent(/phone number, email or link in it is released/)
+  expect(calls.some((c) => c.path.endsWith('/allow'))).toBe(false)
+  await user.click(within(confirm).getByRole('button', { name: 'Allow and deliver' }))
   await waitFor(() => expect(calls).toContainEqual({ method: 'POST', path: '/admin/enquiries/m-1/allow', body: undefined }))
   expect(await screen.findByText('Marked safe and delivered')).toBeInTheDocument()
 })
@@ -43,6 +48,23 @@ it('hiding asks first', async () => {
   expect(calls.some((c) => c.path.endsWith('/hide'))).toBe(false)
   await user.click(within(dialog).getByRole('button', { name: 'Hide' }))
   await waitFor(() => expect(calls).toContainEqual({ method: 'POST', path: '/admin/enquiries/m-1/hide', body: undefined }))
+})
+
+it('keeps the confirm button disabled while the decision is in flight, so a double click sends it once', async () => {
+  let answer: (r: Response) => void = () => {}
+  db.overrides['/admin/enquiries/m-1/hide'] = () => new Promise<Response>((resolve) => { answer = resolve })
+  const user = userEvent.setup()
+  renderSignedIn('/enquiries')
+
+  await user.click(await screen.findByRole('button', { name: 'Hide message from Priya Rao' }, { timeout: 4000 }))
+  const dialog = await screen.findByRole('alertdialog')
+  await user.click(within(dialog).getByRole('button', { name: 'Hide' }))
+  const saving = await within(dialog).findByRole('button', { name: 'Saving…' })
+  expect(saving).toBeDisabled()
+  await user.click(saving)
+  expect(calls.filter((c) => c.path.endsWith('/hide'))).toHaveLength(1)
+  answer(json(200, { ...held, status: 'hidden' }))
+  await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
 })
 
 it('shows an error when enquiries can’t load', async () => {

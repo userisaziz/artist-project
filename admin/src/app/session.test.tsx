@@ -159,6 +159,7 @@ it('a session that expires mid-use goes back to sign-in without an error toast',
   db.accessRevoked = true // the access token is no longer accepted…
   db.refreshCookie = null // …and the refresh cookie is gone too
   await user.click(approve)
+  await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Approve & publish' }))
   expect(await screen.findByLabelText('Phone number')).toBeInTheDocument()
   expect(window.location.pathname).toBe('/login')
   expect(screen.queryByText(/session has expired|Not signed in|Something went wrong/i)).not.toBeInTheDocument()

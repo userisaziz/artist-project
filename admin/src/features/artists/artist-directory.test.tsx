@@ -80,6 +80,7 @@ it('suspending an approved artist needs a reason, then Reinstate brings them bac
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/suspend', body: { reason: 'No-shows' } })
 
   await user.click(screen.getByRole('button', { name: 'Reinstate' }))
+  await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Reinstate' }))
   expect(await screen.findByRole('button', { name: 'Suspend artist' })).toBeInTheDocument()
   expect(calls).toContainEqual({ method: 'POST', path: '/admin/artists/a-1/reinstate', body: undefined })
 })
