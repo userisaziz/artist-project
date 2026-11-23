@@ -7,10 +7,12 @@ interface PhotoProps {
   style: StyleProp<ImageStyle>;
   /** Read by screen readers; omit for decorative images. */
   label?: string;
+  /** `contain` shows the whole photo (a full-screen viewer); tiles and covers crop to fill. */
+  fit?: 'cover' | 'contain';
 }
 
 /** The app's image: cover-fit, cached, fading in over the theme's placeholder tint. */
-export function Photo({ uri, style, label }: PhotoProps) {
+export function Photo({ uri, style, label, fit = 'cover' }: PhotoProps) {
   const theme = useTheme();
   // The size the image is actually drawn at. Handing it to the native side lets it decode a smaller
   // bitmap: a 1024 px original is not decoded in full to paint a 44 px tile.
@@ -23,7 +25,7 @@ export function Photo({ uri, style, label }: PhotoProps) {
   return (
     <Image
       source={source}
-      contentFit="cover"
+      contentFit={fit}
       transition={150}
       cachePolicy="memory-disk"
       // A recycled list row must not keep showing the row it used to be. The key changes with the

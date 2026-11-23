@@ -3,7 +3,8 @@ import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboard
 /** Which artist area to show. Drives both the artist layout guards and the `/artist` hub. */
 export type ArtistStage = 'onboarding' | 'review' | 'live';
 export type ResumeStep = 'intro' | 'location' | 'services' | 'portfolio' | 'identity';
-const MIN_PHOTOS = 6; // backend artist_service.MIN_PHOTOS
+export const MIN_PHOTOS = 6; // backend artist_service.MIN_PHOTOS
+export const MAX_PHOTOS = 30; // backend artist_service.MAX_PHOTOS
 
 export function artistStage(profile: ArtistProfile | null, editing: boolean): ArtistStage {
   if (!profile || profile.status === 'draft') return 'onboarding';

@@ -87,3 +87,18 @@ export function useUploadPhoto(): UseMutationResult<PhotoInput, Error, { image: 
     mutationFn: ({ image, purpose }) => uploadImage(image, purpose),
   });
 }
+
+/** POST /artists/me/photos — appends one uploaded photo to the portfolio. */
+export function useAddPhoto(): UseMutationResult<ArtistProfile, Error, PhotoInput> {
+  return useProfileMutation('add-photo', artistApi.addPhoto);
+}
+
+/** DELETE /artists/me/photos/{id}. */
+export function useDeletePhoto(): UseMutationResult<ArtistProfile, Error, string> {
+  return useProfileMutation('delete-photo', artistApi.deletePhoto);
+}
+
+/** PUT /artists/me/photos/order — every photo id, cover first. */
+export function useReorderPhotos(): UseMutationResult<ArtistProfile, Error, string[]> {
+  return useProfileMutation('reorder-photos', artistApi.reorderPhotos);
+}

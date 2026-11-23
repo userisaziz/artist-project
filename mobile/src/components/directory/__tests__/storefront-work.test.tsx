@@ -6,6 +6,7 @@ import type { ArtistPublic } from '../../../types/directory/directory';
 
 // expo-image talks to native modules; the tests only need a plain host view.
 jest.mock('expo-image', () => ({ Image: require('react-native').View }));
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 
 const photos: ArtistPublic['photos'] = Array.from({ length: 8 }, (_, i) => ({
   id: `p${i}`,
@@ -26,4 +27,21 @@ it('tapping "See all" reveals the remaining photos', async () => {
   await wrap(<StorefrontWork photos={photos} />);
   await fireEvent.press(screen.getByLabelText('See all 8 photos'));
   expect(screen.queryByLabelText('See all 8 photos')).toBeNull();
+});
+
+it('opens a tapped photo full screen and closes again', async () => {
+  await wrap(<StorefrontWork photos={photos} />);
+  await fireEvent.press(screen.getByLabelText('Work photo 2, open full screen'));
+  expect(screen.getByText('2 of 8')).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText('Close photos'));
+  expect(screen.queryByText('2 of 8')).toBeNull();
+});
+
+it('folds an expanded grid back with "Show less"', async () => {
+  await wrap(<StorefrontWork photos={photos} />);
+  await fireEvent.press(screen.getByLabelText('See all 8 photos'));
+  expect(screen.getByLabelText('Work photo 8, open full screen')).toBeTruthy();
+  await fireEvent.press(screen.getByText('Show less'));
+  expect(screen.getByLabelText('See all 8 photos')).toBeTruthy();
+  expect(screen.queryByLabelText('Work photo 8, open full screen')).toBeNull();
 });
