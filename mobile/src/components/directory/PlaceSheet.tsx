@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../common/BrushLoader';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
@@ -52,7 +53,7 @@ export function PlaceSheet({ visible, current, phone, onPick, onClose }: PlaceSh
       >
         <Icon name="map-pin" size={18} color={theme.colors.brand} />
         <AppText variant="label" style={{ flex: 1, color: theme.colors.brand }}>{phone.locating ? 'Finding you…' : 'Use my current location'}</AppText>
-        {phone.locating ? <ActivityIndicator color={theme.colors.brand} /> : null}
+        {phone.locating ? <BrushLoader /> : null}
       </PressableFeedback>
       {phone.error ? (
         <View style={{ gap: 6 }}>
@@ -85,7 +86,7 @@ function PlaceResults({ q, results, onPick }: PlaceResultsProps) {
   const theme = useTheme();
   const muted = { color: theme.colors.textMuted };
   if (q.length < PLACE_SEARCH_MIN_CHARS) return <AppText variant="caption" style={muted}>Type at least {PLACE_SEARCH_MIN_CHARS} letters.</AppText>;
-  if (results.isPending) return <ActivityIndicator color={theme.colors.brand} />;
+  if (results.isPending) return <BrushLoader />;
   if (results.isError) return <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(results.error)}</AppText>;
   if (!results.data.length) return <AppText variant="caption" style={muted}>No places match “{q}”.</AppText>;
   return (

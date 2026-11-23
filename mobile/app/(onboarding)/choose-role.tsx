@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { BrushLoader } from '../../src/components/common/BrushLoader';
 import { Image } from 'expo-image';
 import type { ImageContentPosition } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -159,7 +160,7 @@ function RoleCard({ tone, image, imagePosition, tag, title, cta, busy, disabled,
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: dark ? white : theme.colors.brandInk }}>
               {busy ? (
-                <ActivityIndicator size="small" color={dark ? theme.colors.brandInk : white} />
+                <BrushLoader tone={dark ? 'brand' : 'onBrand'} />
               ) : (
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={dark ? theme.colors.brandInk : white} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <Path d="M5 12h14M13 6l6 6-6 6" />

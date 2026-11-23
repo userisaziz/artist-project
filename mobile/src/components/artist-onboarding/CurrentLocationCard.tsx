@@ -1,4 +1,5 @@
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../common/BrushLoader';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -23,7 +24,7 @@ export function CurrentLocationCard({ state, title, detail, onDetect, onChange }
   if (state === 'busy') {
     return (
       <View accessibilityLiveRegion="polite" style={{ ...box, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}>
-        <ActivityIndicator color={theme.colors.brand} />
+        <BrushLoader />
         <View style={{ flex: 1 }}>
           <AppText variant="label" style={{ color: theme.colors.textPrimary }}>Finding your location…</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>This takes a few seconds</AppText>

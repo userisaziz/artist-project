@@ -43,4 +43,7 @@ export const palette = {
   error600: '#A33A3A',
   error120: '#FBE3E3',
   mist80: '#F2EEF0',
+  sheen: '#FFFFFF8C',
+  sheenClear: '#FFFFFF00',
+  blush300Clear: '#F5B6D000',
 } as const;

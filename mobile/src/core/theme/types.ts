@@ -27,6 +27,9 @@ export interface ThemeColors {
   pendingSoft: string; pendingInk: string; pendingDot: string; // amber: awaiting the artist
   confirmedSoft: string; confirmedInk: string; // green: confirmed
   neutralSoft: string; // grey-pink pill for ended bookings
+  sheen: string; sheenClear: string; // white gloss laid over brand fills and cards; Clear is the same white at 0 so gradients never fade through grey
+  skeletonBandClear: string; // skeletonBand at 0 alpha: the soft edges of the shimmer band
+  loaderHandle: string; loaderFerrule: string; loaderBristle: string; loaderStroke: string; // the makeup-brush loader on light surfaces
 }
 
 export interface Theme {

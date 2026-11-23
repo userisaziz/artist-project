@@ -1,4 +1,5 @@
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../common/BrushLoader';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
@@ -21,7 +22,7 @@ export function LocationCard({ phone, onSearch }: LocationCardProps) {
   return (
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderRadius: 18, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, ...theme.shadows.sm }}>
       <View style={{ width: BADGE, height: BADGE, borderRadius: BADGE / 2, backgroundColor: theme.colors.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-        {phone.locating ? <ActivityIndicator color={theme.colors.brand} /> : <Icon name="map-pin" size={22} color={theme.colors.brand} />}
+        {phone.locating ? <BrushLoader /> : <Icon name="map-pin" size={22} color={theme.colors.brand} />}
       </View>
       <View style={{ flex: 1 }}>
         <AppText variant="subtitle" style={{ fontSize: 14, lineHeight: 19, color: theme.colors.textPrimary }}>See artists near you</AppText>

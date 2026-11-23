@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { BrushLoader } from '../../../src/components/common/BrushLoader';
 import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -156,7 +157,7 @@ function CardSide({ title, side, onPress }: { title: 'Front' | 'Back'; side: Sid
         ) : (
           <AppText style={{ fontSize: 22, color: theme.colors.brand }}>+</AppText>
         )}
-        {side.uploading ? <ActivityIndicator color={theme.colors.brand} /> : null}
+        {side.uploading ? <BrushLoader /> : null}
       </PressableFeedback>
       <AppText variant="label" style={{ fontSize: 13, color: theme.colors.textSecondary }}>
         {title}

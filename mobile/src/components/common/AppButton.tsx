@@ -1,9 +1,11 @@
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { timings, useReducedMotion } from '../../core/motion/motion';
 import { useTheme } from '../../core/theme/theme-provider';
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
+import { BrushLoader } from './BrushLoader';
+import { GlossSheen } from './GlossSheen';
 
 interface Props {
   label: string;
@@ -60,8 +62,10 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
       ]}
     >
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: theme.radii.pill }, surface]} />
+      {/* The glaze rides above the pressed surface, so the button stays glossy while it darkens. */}
+      {isPrimary ? <GlossSheen radius={theme.radii.pill} /> : null}
       {loading ? (
-        <ActivityIndicator testID="app-button-spinner" color={isPrimary ? theme.colors.textOnBrand : theme.colors.brand} />
+        <BrushLoader testID="app-button-spinner" tone={isPrimary ? 'onBrand' : 'brand'} />
       ) : (
         <AppText variant="button" style={{ color: isPrimary ? theme.colors.textOnBrand : isSecondary ? theme.colors.textPrimary : theme.colors.brand }}>
           {label}
