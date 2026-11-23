@@ -24,7 +24,7 @@ export default [
     },
     rules: {
       "import/no-restricted-paths": [
-        "warn",
+        "error",
         {
           zones: [
             // No cross-feature imports (except own files)

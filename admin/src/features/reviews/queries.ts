@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { overviewKeys } from '@/features/overview/queries'
 import { api } from '@/lib/api'
+import { queryRoots } from '@/lib/query-keys'
 import type { AdminReview, ReviewDecision, ReviewModerationStatus, ReviewPage } from '@/lib/types'
 
 const PAGE_SIZE = 20
@@ -57,7 +57,7 @@ export function useDecideReview() {
       api<AdminReview>(`/admin/reviews/${id}/decision`, { method: 'POST', body: note ? { decision, note } : { decision } }),
     onSettled: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: reviewKeys.all }),
-      queryClient.invalidateQueries({ queryKey: overviewKeys.all }),
+      queryClient.invalidateQueries({ queryKey: queryRoots.overview }),
     ]),
   })
 }

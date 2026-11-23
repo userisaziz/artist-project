@@ -1,9 +1,10 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { queryRoots } from '@/lib/query-keys'
 import type { ArtistDetail, ArtistRequirements, ArtistSummary, DirectoryPage, DirectoryStatus, DirectorySummary, Page, ReviewStatus, Suspension } from '@/lib/types'
 
 export const artistKeys = {
-  all: ['admin', 'artists'] as const,
+  all: queryRoots.artists,
   list: (status: ReviewStatus) => ['admin', 'artists', 'list', status] as const,
   detail: (id: string) => ['admin', 'artists', 'detail', id] as const,
   pendingCount: ['admin', 'artists', 'pending-count'] as const,

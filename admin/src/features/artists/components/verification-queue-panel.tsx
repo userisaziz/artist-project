@@ -3,9 +3,9 @@ import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Panel } from '@/components/console/panel'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useArtistQueue } from '@/features/artists/queries'
 import { dateTime } from '@/lib/format'
 import { PATHS, artistPath } from '@/lib/paths'
+import { useArtistQueue } from '../queries'
 
 const QUEUE_PREVIEW = 3
 

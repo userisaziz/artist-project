@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCategories } from '@/features/categories/queries'
 import { ApiError } from '@/lib/api'
 import { dateTime } from '@/lib/format'
 import { toastError } from '@/lib/notify'
@@ -25,10 +24,14 @@ import { useArtist, useReviewArtist, useSuspension } from './queries'
 import { ARTIST_STATUS } from './status'
 
 /** The design's KYC review: checklist, the evidence in tabs, and the decision column. */
-export function ArtistReviewPage() {
+interface ArtistReviewPageProps {
+  /** The catalog, supplied by the route from the categories feature, to name each service's place. */
+  categories: AdminCategory[] | undefined
+}
+
+export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
   const { id = '' } = useParams()
   const artist = useArtist(id)
-  const categories = useCategories()
   const review = useReviewArtist(id)
   const suspension = useSuspension(id)
   const [rejecting, setRejecting] = useState(false)
@@ -46,7 +49,7 @@ export function ArtistReviewPage() {
   }
 
   const a = artist.data
-  const byId = new Map(categories.data?.map((c) => [c.id, c]))
+  const byId = new Map(categories?.map((c) => [c.id, c]))
   // "Makeup › Bridal"; rows from before subcategories point straight at a top-level category.
   const placeOf = (subId: number) => {
     const c: AdminCategory | undefined = byId.get(subId)

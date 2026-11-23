@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Accent } from '@/components/accent'
 import { KpiTile } from '@/components/console/kpi-tile'
 import { useAuth } from '@/lib/auth-context'
@@ -9,7 +9,6 @@ import type { AdminOverview } from '@/lib/types'
 import { OverviewFilters } from './OverviewFilters'
 import { useOverview } from './queries'
 import { useOverviewFilters } from './use-overview-filters'
-import { VerificationQueuePanel } from './VerificationQueuePanel'
 import { WeeklyBookingsChart } from './WeeklyBookingsChart'
 
 const count = new Intl.NumberFormat('en-IN')
@@ -21,7 +20,12 @@ function greeting(hour: number) {
 }
 
 /** The console's landing page: the chosen period at a glance and who is waiting for review. */
-export function OverviewPage() {
+interface OverviewPageProps {
+  /** The verification queue preview, supplied by the route from the artists feature. */
+  queuePanel: ReactNode
+}
+
+export function OverviewPage({ queuePanel }: OverviewPageProps) {
   const { user } = useAuth()
   const { filters } = useOverviewFilters()
   const overview = useOverview(filters)
@@ -47,7 +51,7 @@ export function OverviewPage() {
 
       <div className="mt-3.5 grid gap-3.5 lg:grid-cols-[1.4fr_1fr]">
         <WeeklyBookingsChart weeks={o?.bookings_by_week} />
-        <VerificationQueuePanel />
+        {queuePanel}
       </div>
     </div>
   )
