@@ -48,6 +48,8 @@ export const lightTheme: Theme = {
     confirmedInk: palette.sage600,
     neutralSoft: palette.mist100,
     sheen: palette.sheen,
+    sheenMid: palette.sheenMid,
+    sheenRim: palette.sheenRim,
     sheenClear: palette.sheenClear,
     skeletonBandClear: palette.blush300Clear,
     loaderHandle: palette.plum900,

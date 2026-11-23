@@ -1,9 +1,10 @@
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { GlossSheen } from './GlossSheen';
 import { useTheme } from '../../core/theme/theme-provider';
 
-/** Atelier selectable pill (Profile "What do you offer?"): filled rose with a tick when selected. */
+/** Atelier selectable pill (Profile "What do you offer?"): glazed rose with a tick when selected. */
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
@@ -19,6 +20,7 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
         borderWidth: selected ? 0 : 1, borderColor: theme.colors.border,
       }}
     >
+      {selected ? <GlossSheen radius={theme.radii.pill} /> : null}
       {selected ? <Icon name="check" size={14} color={theme.colors.textOnBrand} /> : null}
       <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : theme.colors.textPrimary }}>{label}</AppText>
     </PressableFeedback>

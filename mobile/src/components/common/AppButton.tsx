@@ -64,7 +64,7 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
     >
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: theme.radii.pill }, surface]} />
       {/* The glaze rides above the pressed surface, so the button stays glossy while it darkens. */}
-      {isPrimary ? <GlossSheen radius={theme.radii.pill} /> : null}
+      {isPrimary ? <GlossSheen radius={theme.radii.pill} /> : isSecondary ? <GlossSheen radius={theme.radii.pill} variant="card" /> : null}
       {loading ? (
         <BrushLoader testID="app-button-spinner" tone={isPrimary ? 'onBrand' : 'brand'} />
       ) : (

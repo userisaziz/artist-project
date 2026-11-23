@@ -1,6 +1,7 @@
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { GlossSheen } from './GlossSheen';
 import type { IconName } from './Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 
@@ -45,6 +46,7 @@ export function FilterChip({ label, active, onPress, accessibilityLabel, icon, t
         borderWidth: active ? 0 : 1, borderColor: theme.colors.border,
       }}
     >
+      {active ? <GlossSheen radius={theme.radii.pill} /> : null}
       {icon ? <Icon name={icon.name} size={glyph} filled={icon.filled} color={active ? ink : theme.colors.brand} /> : null}
       <AppText variant="labelMd" style={{ color: ink }}>{label}</AppText>
       {trailingIcon ? <Icon name={trailingIcon.name} size={glyph} filled={trailingIcon.filled} color={ink} /> : null}
