@@ -8,6 +8,7 @@ from typing import NamedTuple
 
 from sqlalchemy import ColumnElement, Select, and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import raiseload
 
 from app.artist.models import ArtistProfile, artist_categories
 from app.artist_directory.models import ArtistSuspension
@@ -48,7 +49,7 @@ def rows_query(since: datetime) -> Select:
         .where(COMPLETED, Booking.completed_at >= since)
         .scalar_subquery()
     )
-    return select(ArtistProfile, first_category(), bookings_total, value).where(LISTED)
+    return select(ArtistProfile, first_category(), bookings_total, value).where(LISTED).options(raiseload("*"))
 
 
 def matches(q: str) -> ColumnElement[bool]:
@@ -128,7 +129,9 @@ class DirectoryRepository:
         return (await self.session.execute(select(func.count()).select_from(per_artist))).scalar_one()
 
     async def profile(self, artist_id: uuid.UUID) -> ArtistProfile | None:
-        return await self.session.scalar(select(ArtistProfile).where(ArtistProfile.id == artist_id).with_for_update())
+        return await self.session.scalar(
+            select(ArtistProfile).where(ArtistProfile.id == artist_id).options(raiseload("*")).with_for_update()
+        )
 
     async def suspension(self, artist_id: uuid.UUID) -> ArtistSuspension | None:
         return await self.session.get(ArtistSuspension, artist_id)
