@@ -7,6 +7,7 @@ import { transport } from '../../core/api/client';
 import type { TransportRequest } from '../../core/api/transport';
 import type { ArtistCard } from '../../types/directory/directory';
 import { CityProvider } from '../../context/directory/city-context';
+import { placeStore } from '../../utils/directory/place-store';
 import CustomerHome from '../../../app/customer/(tabs)/home';
 
 const mockPush = jest.fn();
@@ -19,7 +20,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 const mockPosition = jest.fn();
 jest.mock('../../core/location/location', () => ({
   ...jest.requireActual('../../core/location/location'),
-  currentPosition: () => mockPosition(),
+  currentPosition: (options: unknown) => mockPosition(options),
 }));
 const { LocationError } = jest.requireActual('../../core/location/location');
 
@@ -46,15 +47,19 @@ const sent: string[] = [];
 const paths: string[] = [];
 let client: QueryClient;
 const wrap = (ui: ReactElement) => render(<QueryClientProvider client={client}><ThemeProvider><CityProvider>{ui}</CityProvider></ThemeProvider></QueryClientProvider>);
-function serve(artistsStatus = 200) {
+function serve({ artistsStatus = 200, artists = ARTISTS, categoriesStatus = 200, unread = 0 } = {}) {
   send.mockImplementation(async (req: TransportRequest) => {
     const key = `${req.method} ${req.path.split('?')[0]}`;
     sent.push(key);
     paths.push(req.path);
     const routes: Record<string, { status: number; json: unknown }> = {
-      'GET /categories': { status: 200, json: CATEGORIES },
+      'GET /categories': categoriesStatus === 200 ? { status: 200, json: CATEGORIES } : { status: categoriesStatus, json: { detail: 'Server error' } },
       'GET /cities': { status: 200, json: ['Bangalore', 'Mumbai'] },
-      'GET /artists': artistsStatus === 200 ? { status: 200, json: { items: ARTISTS, next_cursor: null, radius_km: req.path.includes('near_lat') ? 5 : null } } : { status: artistsStatus, json: { detail: 'Server error' } },
+      // Like the server: sort=rating puts the best rated first, unrated last.
+      'GET /artists': artistsStatus === 200
+        ? { status: 200, json: { items: req.path.includes('sort=rating') ? [...artists].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1)) : artists, next_cursor: null, radius_km: req.path.includes('near_lat') ? 5 : null } }
+        : { status: artistsStatus, json: { detail: 'Server error' } },
+      'GET /conversations': { status: 200, json: { items: unread ? [{ id: 'c1', unread_count: unread }] : [], next_cursor: null } },
       'GET /saved/ids': { status: 200, json: { posts: [], artists: [], products: [] } },
       'GET /notifications/unread-count': { status: 200, json: { count: 0 } },
       'GET /areas/nearest': { status: 200, json: { id: 7, city: 'Bangalore', name: 'BTM Layout', latitude: 12.9166, longitude: 77.6101 } },
@@ -89,6 +94,7 @@ it('shows services, nearby artists and top rated artists, best rated first', asy
   const topRated = await screen.findByLabelText('Top rated artists');
   const names = within(topRated).getAllByText(/Kavya Hair Atelier|Ayesha Mehendi Art|Fresh Studio/).map((n) => n.props.children);
   expect(names).toEqual(['Kavya Hair Atelier', 'Ayesha Mehendi Art']); // unrated artists are left out
+  expect(paths.some((p) => p.startsWith('/artists') && p.includes('sort=rating') && p.includes('limit=3'))).toBe(true);
 });
 
 it('saves an artist from its tile', async () => {
@@ -105,37 +111,102 @@ it('links to explore, the shop and messages', async () => {
 
   await fireEvent.press(await screen.findByRole('button', { name: 'See all artists' }));
   expect(mockNavigate).toHaveBeenCalledWith('/customer/explore');
+  await fireEvent.press(screen.getByRole('search', { name: 'Search artists and services' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({ pathname: '/customer/explore', params: { focus: '1', at: expect.any(String) } });
+  await fireEvent.press(await screen.findByRole('button', { name: 'See all top rated artists' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({ pathname: '/customer/explore', params: { sort: 'rating', at: expect.any(String) } });
   await fireEvent.press(screen.getByRole('button', { name: 'Open the GetReady Shop' }));
   expect(mockNavigate).toHaveBeenCalledWith('/customer/shop');
   await fireEvent.press(screen.getByRole('button', { name: 'Messages' }));
   expect(mockPush).toHaveBeenCalledWith('/customer/messages');
 });
 
+it('badges Messages with the unread count', async () => {
+  serve({ unread: 3 });
+  await wrap(<CustomerHome />);
+
+  expect(await screen.findByRole('button', { name: 'Messages, 3 unread' })).toBeTruthy();
+});
+
+it('shows a retry when services cannot load', async () => {
+  serve({ categoriesStatus: 500 });
+  await wrap(<CustomerHome />);
+
+  expect(await screen.findByText('Services')).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+});
+
+it('with no artists around the place, offers to change it', async () => {
+  mockPosition.mockResolvedValue({ latitude: 12.917, longitude: 77.61 });
+  serve({ artists: [] });
+  await wrap(<CustomerHome />);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my location' }));
+  expect(await screen.findByText('No artists within 5 km of BTM Layout, Bangalore yet.')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Change location' }));
+  expect(await screen.findByLabelText('Search your area')).toBeTruthy();
+});
+
 it('shows the error state when artists cannot load', async () => {
-  serve(500);
+  serve({ artistsStatus: 500 });
   await wrap(<CustomerHome />);
 
   expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
   expect(screen.queryByLabelText('Top rated artists')).toBeNull();
 });
 
-it('on landing, finds the customer from the phone and lists artists within the radius around their area', async () => {
+it('never asks for location on landing; the hero waits until a place is known', async () => {
+  serve();
+  await wrap(<CustomerHome />);
+
+  expect(await screen.findByRole('button', { name: 'Use my location' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Save Ayesha Mehendi Art' })).toBeTruthy(); // artists have loaded
+  expect(mockPosition).not.toHaveBeenCalled();
+  expect(screen.queryByText('Bridal mehendi artists')).toBeNull();
+});
+
+it('"Use my location" finds the customer and lists artists within the radius around their area', async () => {
   mockPosition.mockResolvedValue({ latitude: 12.917, longitude: 77.61 });
   serve();
   await wrap(<CustomerHome />);
 
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my location' }));
   expect(await screen.findByRole('button', { name: 'Location: BTM Layout, Bangalore. Change' })).toBeTruthy();
   expect(await screen.findByText('Artists within 5 km of BTM Layout, Bangalore')).toBeTruthy();
   const nearby = paths.filter((p) => p.startsWith('/artists') && p.includes('near_lat=12.917'));
   expect(nearby.length).toBeGreaterThan(0);
   expect(nearby[0]).toContain('sort=nearest');
   expect(nearby[0]).not.toContain('city=');
+  // A place is known: the hero shows, but only for categories someone nearby offers (no makeup artist here).
+  expect(await screen.findByText('Bridal mehendi artists')).toBeTruthy();
+  expect(screen.queryByText('Glam for your big day')).toBeNull();
+});
+
+it('quietly refreshes a place found from the phone, without asking again', async () => {
+  jest.spyOn(placeStore, 'load').mockResolvedValueOnce({ label: 'Old spot', city: 'Bangalore', areaId: null, coords: { latitude: 12.9, longitude: 77.5 }, source: 'gps' });
+  mockPosition.mockResolvedValue({ latitude: 12.917, longitude: 77.61 });
+  serve();
+  await wrap(<CustomerHome />);
+
+  expect(await screen.findByRole('button', { name: 'Location: BTM Layout, Bangalore. Change' })).toBeTruthy();
+  expect(mockPosition).toHaveBeenCalledWith({ ask: false });
+});
+
+it('keeps the saved phone place when the quiet refresh fails', async () => {
+  jest.spyOn(placeStore, 'load').mockResolvedValueOnce({ label: 'Old spot', city: 'Bangalore', areaId: null, coords: { latitude: 12.9, longitude: 77.5 }, source: 'gps' });
+  serve();
+  await wrap(<CustomerHome />);
+
+  await waitFor(() => expect(mockPosition).toHaveBeenCalledWith({ ask: false }));
+  expect(await screen.findByRole('button', { name: 'Location: Old spot. Change' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Use my location' })).toBeNull();
 });
 
 it('when location is refused, says so and lets the customer search their area instead', async () => {
   serve();
   await wrap(<CustomerHome />);
 
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my location' }));
   expect(await screen.findByText(/Allow location access in Settings, or search your area/)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Search your area' }));
   await fireEvent.changeText(await screen.findByLabelText('Search your area'), 'btm');
@@ -150,5 +221,6 @@ it('a permanent refusal offers Settings', async () => {
   serve();
   await wrap(<CustomerHome />);
 
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my location' }));
   expect(await screen.findByRole('button', { name: 'Open Settings' })).toBeTruthy();
 });

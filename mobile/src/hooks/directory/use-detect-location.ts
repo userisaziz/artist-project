@@ -17,8 +17,9 @@ function gpsPlace(coords: Coordinates, area: NearbyArea | null): CustomerPlace {
   };
 }
 
-/** Finds the customer from the phone. With `auto`, it runs once when the screen opens (showing the permission popup)
- *  unless they've picked a place by search; a GPS place is refreshed, since they may have moved. */
+/** Finds the customer from the phone when they ask (`locate`, which may show the permission popup). With `auto`, a
+ *  place that came from the phone is refreshed once when the screen opens, since they may have moved — silently: only
+ *  with permission already granted, never a popup, and the old place stays if it fails. */
 export function useDetectLocation({ auto }: { auto: boolean }) {
   const { place, setPlace, loaded } = useCustomerPlace();
   const [locating, setLocating] = useState(false);
@@ -42,12 +43,20 @@ export function useDetectLocation({ auto }: { auto: boolean }) {
     }
   }, [setPlace]);
 
-  const keepsChoice = place !== null && place.source !== 'gps';
+  const fromPhone = place?.source === 'gps';
   useEffect(() => {
-    if (!auto || !loaded || tried.current || keepsChoice) return;
+    if (!auto || !loaded || tried.current || !fromPhone) return;
     tried.current = true;
-    void locate();
-  }, [auto, loaded, keepsChoice, locate]);
+    void (async () => {
+      try {
+        const coords = await currentPosition({ ask: false });
+        const area = await placesApi.nearestArea(coords.latitude, coords.longitude).catch(() => null);
+        setPlace(gpsPlace(coords, area));
+      } catch {
+        // The fallback is the last known place, still on screen; the customer can re-locate from the place sheet.
+      }
+    })();
+  }, [auto, loaded, fromPhone, setPlace]);
 
   return {
     locating,

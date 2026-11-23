@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { ErrorView, LoadingView, EmptyView } from '../../../src/components/common/StateViews';
+import { AppButton } from '../../../src/components/common/AppButton';
 import { SectionHeader } from '../../../src/components/common/SectionHeader';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useAuth } from '../../../src/context/auth/auth-provider';
@@ -15,12 +16,15 @@ import { useDetectLocation } from '../../../src/hooks/directory/use-detect-locat
 import { placeLine } from '../../../src/utils/directory/place';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { LocationCard } from '../../../src/components/directory/LocationCard';
-import { useArtistList, usePrefetchArtist } from '../../../src/hooks/directory/directory';
+import { useArtistList, usePrefetchArtist, useTopRatedArtists } from '../../../src/hooks/directory/directory';
 import { useSaveToggle } from '../../../src/hooks/saved/saved';
 import { HomeHero, type HeroSlide } from '../../../src/components/directory/HomeHero';
 import { CategoryIconRow } from '../../../src/components/directory/CategoryIconRow';
 import { ArtistTile } from '../../../src/components/directory/ArtistTile';
-import { ArtistCompactRow } from '../../../src/components/directory/ArtistCompactRow';
+import { HomeTopRated } from '../../../src/components/directory/HomeTopRated';
+import { MessagesButton } from '../../../src/components/chat/MessagesButton';
+import { useUnreadChatCount } from '../../../src/hooks/chat/chat';
+import { liveSlides } from '../../../src/utils/directory/home-hero';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
 import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
@@ -28,9 +32,7 @@ import { ShopBanner } from '../../../src/components/shop/ShopBanner';
 import { greeting } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { Avatar } from '../../../src/components/common/Avatar';
-import { formatPrice } from '../../../src/utils/common/format';
 import { Icon } from '../../../src/components/common/Icon';
-import type { ArtistCard } from '../../../src/types/directory/directory';
 import { usePullToRefresh } from '../../../src/hooks/common/use-pull-to-refresh';
 
 // The design's Home carousel photos (docs/design/atelier/README.md), re-encoded as webp.
@@ -39,27 +41,11 @@ const HERO_SLIDES: HeroSlide[] = [
   { eyebrow: 'MAKEUP & HAIR', title: 'Glam for your big day', categorySlug: 'makeup', image: require('../../../assets/hero/home-makeup.webp') },
 ];
 
-/** The design's "MEHENDI · FROM ₹1,500": the cheapest listed artist in that category, when there is one. */
-function withFromPrice(slides: HeroSlide[], artists: ArtistCard[]): HeroSlide[] {
-  return slides.map((s) => {
-    const prices = artists
-      .filter((a) => a.from_price_paise !== null && a.categories.some((c) => c.name.toLowerCase() === s.categorySlug))
-      .map((a) => a.from_price_paise as number);
-    return prices.length ? { ...s, eyebrow: `${s.eyebrow} · FROM ${formatPrice(Math.min(...prices))}` } : s;
-  });
-}
 const TOP_RATED_COUNT = 3;
 const GRADIENT_HEIGHT = 520;
 
-/** Rated artists only, best first; more reviews break a tie. */
-function topRated(artists: ArtistCard[]): ArtistCard[] {
-  return artists
-    .filter((a) => a.rating !== null && a.review_count > 0)
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.review_count - a.review_count)
-    .slice(0, TOP_RATED_COUNT);
-}
-
-// The design's Home: greeting, cross-fading hero, search, services, "Discover artists", the shop banner and "Top rated".
+// The design's Home: greeting, search, then (once a place is known) the cross-fading hero, services, "Discover artists",
+// "Top rated" and the shop banner. Location is asked for only when the customer taps "Use my location".
 export default function CustomerHome() {
   const theme = useTheme();
   const router = useRouter();
@@ -72,24 +58,29 @@ export default function CustomerHome() {
   const now = useNow();
   const categories = useCategories();
   const { place, setPlace } = useCustomerPlace();
-  const phone = useDetectLocation({ auto: true }); // asks once on landing, unless a searched place is kept
+  const phone = useDetectLocation({ auto: true }); // refreshes a phone-found place without asking; LocationCard asks
   const [picking, setPicking] = useState(false);
   const artists = useArtistList(null, '', place);
   const radiusKm = artists.data?.pages[0]?.radius_km ?? null;
-  const pull = usePullToRefresh(() => Promise.all([artists.refetch(), categories.refetch()]));
+  const topRated = useTopRatedArtists(place, TOP_RATED_COUNT);
+  const unreadChats = useUnreadChatCount('customer');
+  const pull = usePullToRefresh(() => Promise.all([artists.refetch(), categories.refetch(), topRated.refetch()]));
   const saveArtist = useSaveToggle('artist');
   const items = artists.data?.pages.flatMap((p) => p.items) ?? [];
-  const best = topRated(items);
+  // Every slide until artists load (no layout jump), then only categories someone near the place offers.
+  const slides = artists.isSuccess ? liveSlides(HERO_SLIDES, items) : HERO_SLIDES;
   // One entrance per first batch, and only while useEntranceWindow says the window is open: a refetch on
   // resume or a row recycled back into view must not replay the cascade.
   const tilesArmed = useEntranceWindow(items.length > 0);
-  const bestArmed = useEntranceWindow(best.length > 0);
   const prefetchArtist = usePrefetchArtist();
   const openArtist = (id: string) => {
     prefetchArtist(id);
     router.push({ pathname: '/customer/artist/[id]', params: { id } });
   };
   const explore = () => router.navigate('/customer/explore'); // Explore reads the same shared place
+  // `at` makes each tap a new link, so Explore focuses its field / re-sorts even when it is already open.
+  const search = () => router.navigate({ pathname: '/customer/explore', params: { focus: '1', at: String(Date.now()) } });
+  const exploreTopRated = () => router.navigate({ pathname: '/customer/explore', params: { sort: 'rating', at: String(Date.now()) } });
   const openSlide = (slide: HeroSlide) => {
     const category = categories.data?.find((c) => c.slug === slide.categorySlug);
     if (!category) { explore(); return; }
@@ -114,18 +105,21 @@ export default function CustomerHome() {
             <Icon name="chevron-down" size={14} color={theme.colors.brand} />
           </PressableFeedback>
         </View>
-        <PressableFeedback
-          accessibilityRole="button"
-          accessibilityLabel="Messages"
-          onPress={() => router.push('/customer/messages')}
-          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon name="chat" size={22} />
-        </PressableFeedback>
+        <MessagesButton unread={unreadChats} onPress={() => router.push('/customer/messages')} />
         <PressableFeedback accessibilityRole="button" accessibilityLabel="Your profile" onPress={() => router.navigate('/customer/profile')}>
           <Avatar uri={user?.avatar_url ?? null} name={fullName || 'You'} size={44} />
         </PressableFeedback>
       </CollapseOnScroll>
+
+      <PressableFeedback
+        accessibilityRole="search"
+        accessibilityLabel="Search artists and services"
+        onPress={search}
+        style={{ marginTop: 14, marginHorizontal: theme.spacing.md, height: 50, borderRadius: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, ...theme.shadows.sm }}
+      >
+        <Icon name="search" size={18} color={theme.colors.brand} />
+        <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
+      </PressableFeedback>
 
       {place ? null : (
         <View style={{ marginTop: 14, paddingHorizontal: theme.spacing.md }}>
@@ -133,24 +127,21 @@ export default function CustomerHome() {
         </View>
       )}
 
-      <View style={{ marginTop: 14 }}>
-        <HomeHero slides={withFromPrice(HERO_SLIDES, items)} onOpen={openSlide} scrollY={scrollY} />
-      </View>
-
-      <PressableFeedback
-        accessibilityRole="search"
-        accessibilityLabel="Search artists and services"
-        onPress={explore}
-        style={{ marginTop: 14, marginHorizontal: theme.spacing.md, height: 50, borderRadius: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, ...theme.shadows.sm }}
-      >
-        <Icon name="search" size={18} color={theme.colors.brand} />
-        <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
-      </PressableFeedback>
+      {place && slides.length ? (
+        <View style={{ marginTop: 14 }}>
+          <HomeHero slides={slides} onOpen={openSlide} scrollY={scrollY} />
+        </View>
+      ) : null}
 
       {categories.isPending ? (
         <>
           <SectionHeader title="Services" />
           <LoadingView label="Loading services" shape="icons" />
+        </>
+      ) : categories.isError ? (
+        <>
+          <SectionHeader title="Services" />
+          <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={categories.error} onRetry={() => { void categories.refetch(); }} /></View>
         </>
       ) : categories.data?.length ? (
         <>
@@ -165,7 +156,12 @@ export default function CustomerHome() {
       ) : null}
       {artists.isPending ? <LoadingView label="Loading artists near you" shape="tiles" /> : null}
       {artists.isError ? <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={artists.error} onRetry={() => { void artists.refetch(); }} /></View> : null}
-      {artists.isSuccess && !items.length ? <View style={{ paddingHorizontal: theme.spacing.md }}><EmptyView message="No artists yet. Check back soon." /></View> : null}
+      {artists.isSuccess && !items.length ? (
+        <View style={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing.md }}>
+          <EmptyView message={place ? `No artists ${placeLine(place, radiusKm)} yet.` : 'No artists yet. Check back soon.'} />
+          {place ? <AppButton label="Change location" variant="secondary" onPress={() => setPicking(true)} /> : null}
+        </View>
+      ) : null}
       {items.length ? (
         <FlatList
           horizontal
@@ -181,22 +177,11 @@ export default function CustomerHome() {
         />
       ) : null}
 
+      <HomeTopRated artists={topRated.data ?? []} onOpen={openArtist} onSeeAll={exploreTopRated} />
+
       <View style={{ marginTop: 28, paddingHorizontal: theme.spacing.md }}>
         <ShopBanner onPress={() => router.navigate('/customer/shop')} />
       </View>
-
-      {best.length ? (
-        <>
-          <SectionHeader title="Top rated" onSeeAll={explore} seeAllLabel="See all top rated artists" />
-          <View accessibilityLabel="Top rated artists" style={{ paddingHorizontal: theme.spacing.md, gap: 10 }}>
-            {best.map((a, i) => (
-              <MotionEntrance key={a.id} index={i} armed={bestArmed}>
-                <ArtistCompactRow artist={a} onPress={() => openArtist(a.id)} />
-              </MotionEntrance>
-            ))}
-          </View>
-        </>
-      ) : null}
 
       <PlaceSheet
         visible={picking}

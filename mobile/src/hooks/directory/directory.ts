@@ -7,10 +7,14 @@ import type { ArtistCard, ArtistCardPage, CustomerPlace } from '../../types/dire
 
 const PAGE_SIZE = 20;
 
+const placeKey = (place: CustomerPlace | null) =>
+  [place?.city ?? null, place?.coords?.latitude ?? null, place?.coords?.longitude ?? null] as const;
+
 export const directoryKeys = {
   all: ['directory'] as const,
   list: (categoryId: number | null, q: string, place: CustomerPlace | null) =>
-    ['directory', 'list', categoryId, q, place?.city ?? null, place?.coords?.latitude ?? null, place?.coords?.longitude ?? null] as const,
+    ['directory', 'list', categoryId, q, ...placeKey(place)] as const,
+  topRated: (place: CustomerPlace | null) => ['directory', 'top-rated', ...placeKey(place)] as const,
   search: (filter: ExploreSearch) => ['directory', 'search', filter] as const,
   artist: (id: string) => ['directory', 'artist', id] as const,
   availability: (artistId: string, date: string, serviceId: string) => ['directory', 'availability', artistId, date, serviceId] as const,
@@ -35,6 +39,24 @@ export function useArtistList(categoryId: number | null = null, q = '', place: C
     }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Home's "Top rated": the best rated artists around the place, from the server's rating sort (unrated ones last, so
+ *  they are dropped here). Same place rules as useArtistList. */
+export function useTopRatedArtists(place: CustomerPlace | null, count: number) {
+  const point = place?.coords ?? null;
+  return useQuery({
+    queryKey: directoryKeys.topRated(place),
+    queryFn: () => directoryApi.listArtists({
+      city: point ? undefined : place?.city ?? undefined,
+      near_lat: point?.latitude ?? null,
+      near_lng: point?.longitude ?? null,
+      sort: 'rating',
+      limit: count,
+    }),
+    select: (page) => page.items.filter((a) => a.rating !== null && a.review_count > 0),
     placeholderData: keepPreviousData,
   });
 }
