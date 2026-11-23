@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import { useTheme } from '../../core/theme/theme-provider';
 import { useArtistPublic } from '../../hooks/directory/directory';
 import { usePublicReviews } from '../../hooks/reviews/reviews';
 import { ReviewCard } from './ReviewCard';
+import type { Review } from '../../types/reviews/reviews';
 import { ReviewSummaryView } from './ReviewSummaryView';
 
 /** Spec §2.1 artist/[id]/reviews: every public review, page by page, under the summary. */
@@ -18,6 +20,7 @@ export function AllReviews({ artistId }: { artistId: string }) {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const summary = list.data?.pages[0]?.summary;
   const businessName = artist.data?.business_name ?? '';
+  const renderItem = useCallback(({ item }: { item: Review }) => <ReviewCard review={item} businessName={businessName} />, [businessName]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
@@ -29,7 +32,7 @@ export function AllReviews({ artistId }: { artistId: string }) {
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ padding: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.xl, gap: 12 }}
         ListHeaderComponent={summary ? <View style={{ marginBottom: 4 }}><ReviewSummaryView summary={summary} /></View> : null}
-        renderItem={({ item }) => <ReviewCard review={item} businessName={businessName} />}
+        renderItem={renderItem}
         onEndReachedThreshold={0.5}
         onEndReached={() => { if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage(); }}
         ListEmptyComponent={
