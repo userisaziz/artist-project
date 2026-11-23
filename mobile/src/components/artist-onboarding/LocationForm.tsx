@@ -17,6 +17,11 @@ import type { CurrentLocationState } from './CurrentLocationCard';
 import { PinConfirmSheet } from './PinConfirmSheet';
 
 const PINCODE = /^[1-9][0-9]{5}$/; // backend LocationIn.pincode
+// Where "Pick on the map" opens when nothing better is known (no pin, no area, no granted location): Bengaluru, shown
+// whole so the artist can pan to their own city.
+const FALLBACK_CENTER: Coordinates = { latitude: 12.9716, longitude: 77.5946 };
+const CITY_ZOOM = 11;
+const AREA_ZOOM = 14;
 
 interface LocationFormProps {
   /** Onboarding shows its step bar; the approved artist's update screen passes nothing. */
@@ -39,6 +44,7 @@ export function LocationForm({ step, eyebrow, saveLabel, onBack, onSaved }: Loca
 
   const [pin, setPin] = useState<Coordinates | null>(savedPin);
   const [confirming, setConfirming] = useState<Coordinates | null>(null); // the map is open from here
+  const [mapZoom, setMapZoom] = useState<number | undefined>(undefined); // undefined: PinMap's street level
   const [gps, setGps] = useState<CurrentLocationState>(savedPin ? 'set' : 'idle');
   const [chosen, setChosen] = useState<Area | null>(null); // picked from the list; beats the pin's area
   const [pincode, setPincode] = useState(saved?.pincode ?? '');
@@ -57,11 +63,22 @@ export function LocationForm({ step, eyebrow, saveLabel, onBack, onSaved }: Loca
     setError(null);
     setGps('busy');
     try {
-      setConfirming(await currentPosition());
+      const position = await currentPosition();
+      setMapZoom(undefined);
+      setConfirming(position);
     } catch (e) {
       setGps(pin ? 'set' : 'idle');
       setError(locationErrorMessage(e));
     }
+  };
+  /** The map without asking for GPS: from the pin, else the chosen area, else the phone (only if already allowed). */
+  const pickOnMap = async () => {
+    setError(null);
+    if (pin) { setMapZoom(undefined); setConfirming(pin); return; }
+    if (area) { setMapZoom(AREA_ZOOM); setConfirming({ latitude: area.latitude, longitude: area.longitude }); return; }
+    const phone = await currentPosition({ ask: false }).catch(() => null); // not allowed or no fix: the fallback city
+    setMapZoom(phone ? undefined : CITY_ZOOM);
+    setConfirming(phone ?? FALLBACK_CENTER);
   };
   const confirm = async (confirmed: Coordinates) => {
     setConfirming(null);
@@ -113,6 +130,7 @@ export function LocationForm({ step, eyebrow, saveLabel, onBack, onSaved }: Loca
           title={area?.name ?? 'Pin placed'}
           detail={[area?.city ?? saved?.city, pincode].filter(Boolean).join(' ')}
           onDetect={() => { void detect(); }}
+          onPickOnMap={() => { void pickOnMap(); }}
           onChange={forget}
         />
       </View>
@@ -149,7 +167,7 @@ export function LocationForm({ step, eyebrow, saveLabel, onBack, onSaved }: Loca
       </View>
 
       {error ? <AppText variant="caption" style={{ color: theme.colors.error, marginTop: theme.spacing.md }}>{error}</AppText> : null}
-      <PinConfirmSheet start={confirming} onConfirm={(c) => { void confirm(c); }} onClose={cancelMap} />
+      <PinConfirmSheet start={confirming} zoom={mapZoom} onConfirm={(c) => { void confirm(c); }} onClose={cancelMap} />
     </FormScreen>
   );
 }

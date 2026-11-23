@@ -46,7 +46,7 @@ One capability, one kit. Statuses:
 | Gradients | `expo-linear-gradient` | installed | |
 | Styling | Three-layer tokens + `ThemeProvider` (`src/core/theme`) | wrapper | NativeWind / Tamagui / Unistyles / styled-components are all rivals here |
 | Icons | `lucide-react-native` | installed | `react-native-vector-icons` excluded |
-| Maps | `react-native-maps` + `expo-location` | installed | Wrap via `PinMap.tsx`; Google key in env, not source |
+| Maps | `@maplibre/maplibre-react-native` + OpenFreeMap tiles, `expo-location` | installed | Wrap via `PinMap.tsx`; no key, no billing. Rejected: `react-native-maps` (Google Maps on Android needs a billed key and crashes without one) |
 | Open in maps app | `react-native-map-link` | candidate | For "navigate to the studio" |
 | Address autocomplete | `react-native-google-places-autocomplete` | candidate | Only with a Places API budget; `src/core/location` covers the rest |
 | Push/local notifications | `expo-notifications` | installed | Free Expo relay path; `src/core/push` |

@@ -50,3 +50,9 @@ jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
 // package ships an in-memory mock for jest; without it the native module is missing under test.
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+// MapLibre is native; suites that render a map screen without mocking PinMap get inert views.
+jest.mock('@maplibre/maplibre-react-native', () => {
+  const { View } = jest.requireActual('react-native');
+  return { Map: View, Camera: () => null };
+});

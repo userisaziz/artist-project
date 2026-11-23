@@ -19,11 +19,12 @@ const mockPosition = jest.fn();
 const mockPlaceAt = jest.fn();
 jest.mock('../../core/location/location', () => ({
   ...jest.requireActual('../../core/location/location'),
-  currentPosition: () => mockPosition(),
+  currentPosition: (options: unknown) => mockPosition(options),
   placeAt: (coords: unknown) => mockPlaceAt(coords),
 }));
-// Native maps can't render under jest; the sheet confirms wherever the map opened.
-jest.mock('../../components/common/PinMap', () => ({ PinMap: () => null }));
+// Native maps can't render under jest; the sheet confirms wherever the map opened, and the mock records where that was.
+const mockPinMap = jest.fn();
+jest.mock('../../components/common/PinMap', () => ({ PinMap: (props: unknown) => { mockPinMap(props); return null; } }));
 jest.mock('../../context/auth/auth-provider', () => ({
   useAuth: () => ({ user: jest.requireActual('../../mocks/auth/auth').userFixture }),
 }));
@@ -62,6 +63,7 @@ beforeEach(() => {
   mockBack.mockReset();
   mockPosition.mockReset();
   mockPlaceAt.mockReset();
+  mockPinMap.mockReset();
 });
 afterEach(() => client.clear());
 afterAll(() => send.mockRestore());
@@ -124,6 +126,38 @@ it('a pin outside every area asks for one from the list; a refused permission ke
   await fireEvent.press(screen.getByRole('button', { name: 'Change location' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Use my current location' }));
   expect(await screen.findByText(/Allow location access in Settings/)).toBeTruthy();
+});
+
+it('"Pick on the map" opens at the chosen area without asking for location, and saves the pin', async () => {
+  mockPlaceAt.mockResolvedValue({ coords: { latitude: BANER.latitude, longitude: BANER.longitude }, locality: null, pincode: '411045', city: 'Pune' });
+  serve(saved, BANER);
+  await wrap(<LocationStep />);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Choose your area' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Baner' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Pick on the map' }));
+  expect(await screen.findByText('Confirm your studio location')).toBeTruthy();
+  expect(mockPinMap).toHaveBeenLastCalledWith(expect.objectContaining({ start: { latitude: BANER.latitude, longitude: BANER.longitude }, zoom: 14 }));
+  expect(mockPosition).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Confirm location' }));
+
+  await waitFor(() => expect(screen.getByLabelText('Pincode').props.value).toBe('411045'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await waitFor(() => expect(saves()).toHaveLength(1));
+  expect(saves()[0].body).toMatchObject({ area_id: 3, latitude: BANER.latitude, longitude: BANER.longitude });
+});
+
+it('"Pick on the map" with nothing known checks the phone silently, else opens on the whole city', async () => {
+  const { LocationError } = jest.requireActual('../../core/location/location');
+  mockPosition.mockRejectedValue(new LocationError('denied'));
+  serve(saved);
+  await wrap(<LocationStep />);
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Pick on the map' }));
+  expect(await screen.findByText('Confirm your studio location')).toBeTruthy();
+  expect(mockPosition).toHaveBeenCalledWith({ ask: false });
+  expect(mockPinMap).toHaveBeenLastCalledWith(expect.objectContaining({ start: { latitude: 12.9716, longitude: 77.5946 }, zoom: 11 }));
+  expect(screen.queryByText(/Allow location access/)).toBeNull(); // no error: the map simply opened
 });
 
 it('shows the server error and stays on the step when saving fails', async () => {

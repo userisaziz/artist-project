@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { BrushLoader } from '../common/BrushLoader';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
-import { Icon } from '../common/Icon';
+import { Icon, type IconName } from '../common/Icon';
 import { useTheme } from '../../core/theme/theme-provider';
 
 export type CurrentLocationState = 'idle' | 'busy' | 'set';
@@ -13,11 +13,14 @@ interface CurrentLocationCardProps {
   title: string;
   detail: string;
   onDetect: () => void;
+  /** Opens the map without GPS, for an artist who isn't at their studio right now. */
+  onPickOnMap: () => void;
   onChange: () => void;
 }
 
-/** AtelierScreen "onbLocation": the GPS shortcut above the manual fields, as a button, a progress row, or the result. */
-export function CurrentLocationCard({ state, title, detail, onDetect, onChange }: CurrentLocationCardProps) {
+/** AtelierScreen "onbLocation": the GPS shortcut and "Pick on the map" above the manual fields, as buttons, a progress
+ *  row, or the result. */
+export function CurrentLocationCard({ state, title, detail, onDetect, onPickOnMap, onChange }: CurrentLocationCardProps) {
   const theme = useTheme();
   const box = { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: theme.radii.md, borderWidth: 1 } as const;
 
@@ -49,18 +52,28 @@ export function CurrentLocationCard({ state, title, detail, onDetect, onChange }
     );
   }
   return (
+    <View style={{ gap: theme.spacing.sm }}>
+      <OptionRow icon="map-pin" title="Use my current location" detail={'Fastest · uses your phone’s GPS'} onPress={onDetect} />
+      <OptionRow icon="map" title="Pick on the map" detail="Not at your studio? Find it on the map" onPress={onPickOnMap} />
+    </View>
+  );
+}
+
+function OptionRow({ icon, title, detail, onPress }: { icon: IconName; title: string; detail: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
     <PressableFeedback
       accessibilityRole="button"
-      accessibilityLabel="Use my current location"
-      onPress={onDetect}
-      style={{ ...box, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}
     >
       <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name="map-pin" size={18} color={theme.colors.brand} />
+        <Icon name={icon} size={18} color={theme.colors.brand} />
       </View>
       <View style={{ flex: 1 }}>
-        <AppText variant="label" style={{ color: theme.colors.textPrimary }}>Use my current location</AppText>
-        <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>{'Fastest · uses your phone’s GPS'}</AppText>
+        <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{title}</AppText>
+        <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>{detail}</AppText>
       </View>
       <Icon name="chevron-right" size={18} color={theme.colors.brand} />
     </PressableFeedback>

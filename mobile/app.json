@@ -42,6 +42,7 @@
           }
         }
       ],
+      "@maplibre/maplibre-react-native",
       "expo-router",
       "expo-status-bar",
       [

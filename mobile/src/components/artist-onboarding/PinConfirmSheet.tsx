@@ -10,14 +10,16 @@ import { useTheme } from '../../core/theme/theme-provider';
 import type { Coordinates } from '../../core/location/location';
 
 interface PinConfirmSheetProps {
-  /** Where the map opens (the phone's position); null keeps the sheet closed. */
+  /** Where the map opens (the phone's position, the pin or the area); null keeps the sheet closed. */
   start: Coordinates | null;
+  /** How close the map opens; PinMap's street level when unset. */
+  zoom?: number;
   onConfirm: (pin: Coordinates) => void;
   onClose: () => void;
 }
 
 /** Full-screen map: the artist nudges the pin onto their studio, then confirms it. */
-export function PinConfirmSheet({ start, onConfirm, onClose }: PinConfirmSheetProps) {
+export function PinConfirmSheet({ start, zoom, onConfirm, onClose }: PinConfirmSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [center, setCenter] = useState<Coordinates | null>(start);
@@ -38,7 +40,7 @@ export function PinConfirmSheet({ start, onConfirm, onClose }: PinConfirmSheetPr
             <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Move the map so the pin sits on your studio</AppText>
           </View>
         </View>
-        {start ? <PinMap start={start} onMove={setCenter} /> : null}
+        {start ? <PinMap start={start} zoom={zoom} onMove={setCenter} /> : null}
         <View style={{ padding: theme.spacing.md, paddingBottom: insets.bottom + theme.spacing.md }}>
           <AppButton label="Confirm location" onPress={() => { if (center) onConfirm(center); }} disabled={!center} />
         </View>
