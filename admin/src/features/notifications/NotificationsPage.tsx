@@ -28,7 +28,7 @@ export function NotificationsPage() {
       />
       <Panel className="flex flex-col">
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && <GridMessage state="error">Couldn’t load notifications. {list.error.message}</GridMessage>}
+        {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load notifications. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">Nothing yet. New submissions, tickets and reports show up here.</GridMessage>}
         <ul>
           {rows.map((n) => <NotificationRow key={n.id} notification={n} />)}

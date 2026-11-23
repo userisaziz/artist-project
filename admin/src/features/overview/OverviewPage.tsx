@@ -47,7 +47,7 @@ export function OverviewPage({ queuePanel }: OverviewPageProps) {
       )}
       {overview.isError && <p role="alert" className="mt-3 text-[13px] text-destructive">Couldn’t load the overview. {overview.error.message}</p>}
 
-      <Kpis overview={o} />
+      <Kpis overview={o} error={overview.isError} />
 
       <div className="mt-3.5 grid gap-3.5 lg:grid-cols-[1.4fr_1fr]">
         <WeeklyBookingsChart weeks={o?.bookings_by_week} />
@@ -57,15 +57,15 @@ export function OverviewPage({ queuePanel }: OverviewPageProps) {
   )
 }
 
-function Kpis({ overview: o }: { overview: AdminOverview | undefined }) {
+function Kpis({ overview: o, error }: { overview: AdminOverview | undefined; error: boolean }) {
   const gross = o ? trend(o.gross_paise, o.gross_paise_previous) : { tone: 'muted' as const }
   const bookings = o ? trend(o.bookings, o.bookings_previous) : { tone: 'muted' as const }
   return (
     <div className="mt-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-      <KpiTile size="lg" label="Gross bookings" value={o && rupeesShort(o.gross_paise)} title={o && rupees(o.gross_paise)} note={gross.note} tone={gross.tone} />
-      <KpiTile size="lg" label="Bookings" value={o && count.format(o.bookings)} note={bookings.note} tone={bookings.tone} />
-      <KpiTile size="lg" label="New artists" value={o && count.format(o.new_artists)} note={o && `${count.format(o.pending_artists)} pending review`} tone="warn" />
-      <KpiTile size="lg" highlighted label="Awaiting artist" value={o && count.format(o.awaiting_artist)} note="Requests not yet answered" tone="alert" />
+      <KpiTile size="lg" label="Gross bookings" value={o && rupeesShort(o.gross_paise)} title={o && rupees(o.gross_paise)} note={gross.note} tone={gross.tone} error={error} />
+      <KpiTile size="lg" label="Bookings" value={o && count.format(o.bookings)} note={bookings.note} tone={bookings.tone} error={error} />
+      <KpiTile size="lg" label="New artists" value={o && count.format(o.new_artists)} note={o && `${count.format(o.pending_artists)} pending review`} tone="warn" error={error} />
+      <KpiTile size="lg" highlighted label="Awaiting artist" value={o && count.format(o.awaiting_artist)} note="Requests not yet answered" tone="alert" error={error} />
     </div>
   )
 }

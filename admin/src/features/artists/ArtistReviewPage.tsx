@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { InitialsAvatar } from '@/components/console/initials-avatar'
 import { Panel } from '@/components/console/panel'
@@ -40,10 +41,14 @@ export function ArtistReviewPage({ categories }: ArtistReviewPageProps) {
 
   if (artist.isPending) return <Skeleton className="h-96 w-full rounded-2xl" />
   if (artist.isError) {
+    const notFound = artist.error instanceof ApiError && artist.error.code === 'not_found'
     return (
-      <div className="py-20 text-center">
-        <p className="font-medium">{artist.error instanceof ApiError && artist.error.code === 'not_found' ? 'Artist not found' : 'Couldn’t load this artist'}</p>
-        <Button variant="link" render={<Link to={PATHS.artists} />}>Back to Verification</Button>
+      <div role="alert" className="py-20 text-center">
+        <p className="font-medium">{notFound ? 'Artist not found' : 'Couldn’t load this artist'}</p>
+        <div className="mt-3 flex justify-center gap-2">
+          {!notFound && <Button variant="outline" onClick={() => { void artist.refetch() }}><RotateCw aria-hidden /> Retry</Button>}
+          <Button variant="link" render={<Link to={PATHS.artists} />}>Back to Verification</Button>
+        </div>
       </div>
     )
   }

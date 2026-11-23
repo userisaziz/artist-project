@@ -35,8 +35,10 @@ export function SettingsPage() {
   const [params, setParams] = useSearchParams()
   const raw = params.get('tab')
   const tab: SettingsTab = isTab(raw) ? raw : 'policies'
-  const cities = useCities().data
-  const team = useTeam().data
+  const citiesQuery = useCities()
+  const teamQuery = useTeam()
+  const cities = citiesQuery.data
+  const team = teamQuery.data
   const [adding, setAdding] = useState(false)
 
   return (
@@ -47,8 +49,8 @@ export function SettingsPage() {
         action={tab === 'team' && <Button size="page" onClick={() => setAdding(true)}><UserPlus aria-hidden className="size-4" /> Add admin</Button>}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Live cities" value={cities && number.format(cities.filter((c) => c.artists > 0).length)} note={cities && `of ${number.format(cities.length)} open`} />
-        <KpiTile label="Team members" value={team && number.format(team.length)} note="Admins" />
+        <KpiTile label="Live cities" value={cities && number.format(cities.filter((c) => c.artists > 0).length)} note={cities && `of ${number.format(cities.length)} open`} error={citiesQuery.isError} />
+        <KpiTile label="Team members" value={team && number.format(team.length)} note="Admins" error={teamQuery.isError} />
         <KpiTile label="Payments" value="Direct" note="Paid to artists after the service" />
         <KpiTile label="Fees & payouts" value="Phase 2" note="With in-app payments" />
       </div>
@@ -72,7 +74,7 @@ function PoliciesPanel() {
     <>
       <GridHeader columns={POLICY_COLUMNS} labels={['Setting', 'Current value', 'Scope']} />
       {policies.isPending && <GridMessage state="loading" />}
-      {policies.isError && <GridMessage state="error">Couldn’t load the booking rules. {policies.error.message}</GridMessage>}
+      {policies.isError && <GridMessage state="error" onRetry={() => { void policies.refetch() }}>Couldn’t load the booking rules. {policies.error.message}</GridMessage>}
       {policies.data?.map((p) => (
         <GridRow key={p.key} columns={POLICY_COLUMNS}>
           <span className="font-bold">{p.label}</span>
@@ -91,7 +93,7 @@ function CitiesPanel() {
     <>
       <GridHeader columns={CITY_COLUMNS} labels={['City', 'Approved artists', 'Bookings · 30d']} />
       {cities.isPending && <GridMessage state="loading" />}
-      {cities.isError && <GridMessage state="error">Couldn’t load the cities. {cities.error.message}</GridMessage>}
+      {cities.isError && <GridMessage state="error" onRetry={() => { void cities.refetch() }}>Couldn’t load the cities. {cities.error.message}</GridMessage>}
       {cities.data?.map((c) => (
         <GridRow key={c.name} columns={CITY_COLUMNS}>
           <span className="font-bold">{c.name}</span>

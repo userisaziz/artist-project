@@ -65,7 +65,7 @@ export function BookingsPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Booking', 'Artist · service', 'When (IST)', 'City', 'Amount', 'Status', '']} />
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && <GridMessage state="error">Couldn’t load bookings. {list.error.message}</GridMessage>}
+        {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load bookings. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{q ? `No bookings match “${q}”.` : 'No bookings here yet.'}</GridMessage>}
         {rows.map((b) => <BookingRow key={b.id} booking={b} />)}
         {list.isSuccess && rows.length > 0 && (
@@ -85,15 +85,16 @@ export function BookingsPage() {
 }
 
 function BookingKpis() {
-  const o = useBookingKpis().data
+  const kpiQuery = useBookingKpis()
+  const o = kpiQuery.data
   const bookings = o ? trend(o.bookings, o.bookings_previous) : { tone: 'muted' as const }
   const cancelRate = o && o.bookings > 0 ? `${((o.cancelled / o.bookings) * 100).toFixed(1)}%` : o && '0%'
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <KpiTile label="Bookings · 30d" value={o && number.format(o.bookings)} note={bookings.note} tone={bookings.tone} />
-      <KpiTile label="Completed · 30d" value={o && number.format(o.completed)} note={o && `${rupees(o.gross_paise)} gross`} />
-      <KpiTile label="Cancellations" value={cancelRate} note={o && `${number.format(o.cancelled)} in 30 days`} />
-      <KpiTile label="Awaiting artist" value={o && number.format(o.awaiting_artist)} note="Requests not yet answered" tone="warn" />
+      <KpiTile label="Bookings · 30d" value={o && number.format(o.bookings)} note={bookings.note} tone={bookings.tone} error={kpiQuery.isError} />
+      <KpiTile label="Completed · 30d" value={o && number.format(o.completed)} note={o && `${rupees(o.gross_paise)} gross`} error={kpiQuery.isError} />
+      <KpiTile label="Cancellations" value={cancelRate} note={o && `${number.format(o.cancelled)} in 30 days`} error={kpiQuery.isError} />
+      <KpiTile label="Awaiting artist" value={o && number.format(o.awaiting_artist)} note="Requests not yet answered" tone="warn" error={kpiQuery.isError} />
     </div>
   )
 }

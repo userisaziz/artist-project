@@ -29,7 +29,7 @@ export function CustomerDetailPage() {
         {c && <span aria-current="page">/ {c.name}</span>}
       </nav>
       {customer.isPending && <Panel><GridMessage state="loading" /></Panel>}
-      {customer.isError && <Panel><GridMessage state="error">Couldn’t load this customer. {customer.error.message}</GridMessage></Panel>}
+      {customer.isError && <Panel><GridMessage state="error" onRetry={() => { void customer.refetch() }}>Couldn’t load this customer. {customer.error.message}</GridMessage></Panel>}
       {c && <CustomerView customer={c} />}
     </div>
   )

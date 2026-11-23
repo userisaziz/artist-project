@@ -81,7 +81,7 @@ export function ArtistDirectoryPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Artist', 'Category', 'City', 'Rating', 'Value · 30d', 'Status', '']} />
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && <GridMessage state="error">Couldn’t load artists. {list.error.message}</GridMessage>}
+        {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load artists. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{q ? `No artists match “${q}”.` : EMPTY[status]}</GridMessage>}
         {rows.map((a) => <DirectoryArtistRow key={a.id} artist={a} />)}
         {list.isSuccess && rows.length > 0 && (
@@ -101,13 +101,14 @@ export function ArtistDirectoryPage() {
 }
 
 function DirectoryKpis() {
-  const s = useDirectorySummary().data
+  const kpiQuery = useDirectorySummary()
+  const s = kpiQuery.data
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <KpiTile label="Active artists" value={s && number.format(s.active_artists)} note={s && `▲ ${number.format(s.new_this_month)} this month`} tone="up" />
-      <KpiTile label="Avg. rating" value={s && (s.avg_rating?.toFixed(1) ?? '—')} note={s && `Across ${number.format(s.total_reviews)} reviews`} />
-      <KpiTile label="Response time" value={s && (s.median_response_minutes === null ? '—' : `${Math.round(s.median_response_minutes)} min`)} note="Median first answer" />
-      <KpiTile label="At-risk" value={s && number.format(s.at_risk)} note="Decline or cancel rate > 8%" tone="warn" />
+      <KpiTile label="Active artists" value={s && number.format(s.active_artists)} note={s && `▲ ${number.format(s.new_this_month)} this month`} tone="up" error={kpiQuery.isError} />
+      <KpiTile label="Avg. rating" value={s && (s.avg_rating?.toFixed(1) ?? '—')} note={s && `Across ${number.format(s.total_reviews)} reviews`} error={kpiQuery.isError} />
+      <KpiTile label="Response time" value={s && (s.median_response_minutes === null ? '—' : `${Math.round(s.median_response_minutes)} min`)} note="Median first answer" error={kpiQuery.isError} />
+      <KpiTile label="At-risk" value={s && number.format(s.at_risk)} note="Decline or cancel rate > 8%" tone="warn" error={kpiQuery.isError} />
     </div>
   )
 }

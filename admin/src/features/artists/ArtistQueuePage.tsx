@@ -45,7 +45,7 @@ export function ArtistQueuePage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Artist', 'Category', 'City', 'Checks', 'Submitted', 'Status', '']} />
         {queue.isPending && <GridMessage state="loading" />}
-        {queue.isError && <GridMessage state="error">Couldn’t load artists. {queue.error.message}</GridMessage>}
+        {queue.isError && <GridMessage state="error" onRetry={() => { void queue.refetch() }}>Couldn’t load artists. {queue.error.message}</GridMessage>}
         {queue.isSuccess && rows.length === 0 && <GridMessage state="empty">{TABS.find((t) => t.value === status)?.empty}</GridMessage>}
         {rows.map((a) => <QueueRow key={a.id} artist={a} />)}
         {queue.isSuccess && rows.length > 0 && (

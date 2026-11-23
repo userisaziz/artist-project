@@ -56,7 +56,7 @@ export function CustomServicesPage() {
         </PanelToolbar>
         <GridHeader columns={columns} labels={['Artist', 'Category', 'Service', 'Price', 'Duration', 'Submitted', ...(pending ? [''] : [])]} />
         {queue.isPending && <GridMessage state="loading" />}
-        {queue.isError && <GridMessage state="error">Couldn’t load custom services. {queue.error.message}</GridMessage>}
+        {queue.isError && <GridMessage state="error" onRetry={() => { void queue.refetch() }}>Couldn’t load custom services. {queue.error.message}</GridMessage>}
         {queue.isSuccess && rows.length === 0 && <GridMessage state="empty">{TABS.find((t) => t.value === status)?.empty}</GridMessage>}
         {rows.map((s) => (
           <GridRow key={s.id} columns={columns}>

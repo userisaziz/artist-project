@@ -37,7 +37,8 @@ export function ShopOrdersPage() {
   const raw = params.get('view')
   const view = isView(raw) ? raw : 'all'
   const orders = useShopOrders(view)
-  const summary = useOrderSummary().data
+  const summaryQuery = useOrderSummary()
+  const summary = summaryQuery.data
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const rows = orders.data?.pages.flatMap((p) => p.items) ?? []
   const selected = rows.find((o) => o.id === selectedId) ?? null
@@ -48,10 +49,10 @@ export function ShopOrdersPage() {
     <>
       <PageHeader title="Shop orders" subtitle="Fulfilment across all sellers. Customers pay sellers directly in phase 1." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="To pack" value={summary && number.format(summary.counts.to_pack)} tone="warn" />
-        <KpiTile label="Shipped" value={summary && number.format(summary.counts.shipped)} />
-        <KpiTile label="Delivered" value={summary && number.format(summary.counts.delivered)} tone="up" />
-        <KpiTile label="Cancelled" value={summary && number.format(summary.counts.cancelled)} />
+        <KpiTile label="To pack" value={summary && number.format(summary.counts.to_pack)} tone="warn" error={summaryQuery.isError} />
+        <KpiTile label="Shipped" value={summary && number.format(summary.counts.shipped)} error={summaryQuery.isError} />
+        <KpiTile label="Delivered" value={summary && number.format(summary.counts.delivered)} tone="up" error={summaryQuery.isError} />
+        <KpiTile label="Cancelled" value={summary && number.format(summary.counts.cancelled)} error={summaryQuery.isError} />
       </div>
       <div className={selected ? 'grid gap-4 xl:grid-cols-[1fr_400px]' : ''}>
         <Panel className="flex flex-col">
@@ -60,7 +61,7 @@ export function ShopOrdersPage() {
           </PanelToolbar>
           <GridHeader columns={COLUMNS} labels={['Order', 'Items', 'Seller', 'Total', 'Payment', 'Status']} />
           {orders.isPending && <GridMessage state="loading" />}
-          {orders.isError && !orders.data && <GridMessage state="error">Couldn’t load orders. {orders.error.message}</GridMessage>}
+          {orders.isError && !orders.data && <GridMessage state="error" onRetry={() => { void orders.refetch() }}>Couldn’t load orders. {orders.error.message}</GridMessage>}
           {orders.isSuccess && rows.length === 0 && <GridMessage state="empty">No orders here.</GridMessage>}
           {rows.map((o) => (
             <GridRow key={o.id} columns={COLUMNS} onClick={() => setSelectedId(o.id)} selected={o.id === selectedId}>

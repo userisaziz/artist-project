@@ -38,7 +38,8 @@ export function FeedModerationPage() {
   const raw = params.get('view')
   const view = isView(raw) ? raw : 'all'
   const posts = useAdminPosts(view)
-  const summary = useFeedSummary().data
+  const summaryQuery = useFeedSummary()
+  const summary = summaryQuery.data
   const action = usePostAction()
   const [confirming, setConfirming] = useState<{ post: AdminPost; decision: 'hide' | 'remove' } | null>(null)
   const rows = posts.data?.pages.flatMap((p) => p.items) ?? []
@@ -55,10 +56,10 @@ export function FeedModerationPage() {
     <>
       <PageHeader title="Feed" subtitle="Posts and articles from artists. Moderate, and feature what customers see first." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Posts this week" value={summary && number.format(summary.posts_7d)} />
-        <KpiTile label="Reported" value={summary && number.format(summary.counts.reported)} note="Open reports" tone={summary?.counts.reported ? 'alert' : 'muted'} />
-        <KpiTile label="Featured slots" value={summary && `${summary.counts.featured} / ${summary.featured_slots}`} note="Top of For you" />
-        <KpiTile label="Hidden" value={summary && number.format(summary.counts.hidden)} note="Taken down by moderators" />
+        <KpiTile label="Posts this week" value={summary && number.format(summary.posts_7d)} error={summaryQuery.isError} />
+        <KpiTile label="Reported" value={summary && number.format(summary.counts.reported)} note="Open reports" tone={summary?.counts.reported ? 'alert' : 'muted'} error={summaryQuery.isError} />
+        <KpiTile label="Featured slots" value={summary && `${summary.counts.featured} / ${summary.featured_slots}`} note="Top of For you" error={summaryQuery.isError} />
+        <KpiTile label="Hidden" value={summary && number.format(summary.counts.hidden)} note="Taken down by moderators" error={summaryQuery.isError} />
       </div>
       <Panel className="flex flex-col">
         <PanelToolbar>
@@ -66,7 +67,7 @@ export function FeedModerationPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Post', 'Type', 'Likes', 'Reports', 'Status', '']} />
         {posts.isPending && <GridMessage state="loading" />}
-        {posts.isError && !posts.data && <GridMessage state="error">Couldn’t load posts. {posts.error.message}</GridMessage>}
+        {posts.isError && !posts.data && <GridMessage state="error" onRetry={() => { void posts.refetch() }}>Couldn’t load posts. {posts.error.message}</GridMessage>}
         {posts.isSuccess && rows.length === 0 && <GridMessage state="empty">No posts here.</GridMessage>}
         {rows.map((p) => (
           <GridRow key={p.id} columns={COLUMNS}>

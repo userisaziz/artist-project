@@ -33,7 +33,7 @@ export function RequirementsPanel() {
     <>
       <GridHeader columns={COLUMNS} labels={['Requirement', 'Mandatory', 'Grace period', '']} />
       {requirements.isPending && <GridMessage state="loading" />}
-      {requirements.isError && <GridMessage state="error">Couldn’t load the requirements. {requirements.error.message}</GridMessage>}
+      {requirements.isError && <GridMessage state="error" onRetry={() => { void requirements.refetch() }}>Couldn’t load the requirements. {requirements.error.message}</GridMessage>}
       {requirements.data?.map((r) => <RequirementRow key={r.key} requirement={r} />)}
       {requirements.isSuccess && (
         <PanelFooter>

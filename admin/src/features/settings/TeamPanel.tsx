@@ -34,7 +34,7 @@ export function TeamPanel() {
     <>
       <GridHeader columns={COLUMNS} labels={['Member', 'Contact', 'Admin since', '']} />
       {team.isPending && <GridMessage state="loading" />}
-      {team.isError && <GridMessage state="error">Couldn’t load the team. {team.error.message}</GridMessage>}
+      {team.isError && <GridMessage state="error" onRetry={() => { void team.refetch() }}>Couldn’t load the team. {team.error.message}</GridMessage>}
       {team.data?.map((m) => (
         <GridRow key={m.id} columns={COLUMNS}>
           <div className="flex min-w-0 items-center gap-2.5">

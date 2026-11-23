@@ -172,7 +172,7 @@ export function BroadcastsPage() {
 
       <Panel className="flex flex-col">
         {history.isPending && <GridMessage state="loading" />}
-        {history.isError && <GridMessage state="error">Couldn’t load past broadcasts. {history.error.message}</GridMessage>}
+        {history.isError && <GridMessage state="error" onRetry={() => { void history.refetch() }}>Couldn’t load past broadcasts. {history.error.message}</GridMessage>}
         {history.isSuccess && rows.length === 0 && <GridMessage state="empty">No broadcasts sent yet.</GridMessage>}
         {rows.length > 0 && (
           <Table>

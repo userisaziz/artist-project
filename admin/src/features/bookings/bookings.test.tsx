@@ -90,3 +90,33 @@ it('shows an error state when bookings fails to load', async () => {
   // A 500 is retried twice (about 1 s + 2 s, src/lib/query-client.ts) before the error shows.
   expect(await screen.findByText(/Couldn’t load bookings\./, {}, { timeout: 5000 })).toBeInTheDocument()
 })
+
+it('recovers a failed list and its KPI strip with Retry instead of a reload', async () => {
+  db.bookings = [booking()]
+  let listDown = true
+  db.overrides['/admin/bookings'] = () => (listDown ? json(403, { code: 'forbidden', message: 'Try again' }) : json(200, { items: db.bookings, next_cursor: null }))
+  db.overrides['/admin/overview'] = () => json(403, { code: 'forbidden', message: 'Try again' })
+  const user = userEvent.setup()
+  renderSignedIn('/bookings')
+
+  expect(await screen.findByText(/Couldn’t load bookings\./)).toBeInTheDocument()
+  // The KPI strip says it failed rather than shimmering forever.
+  await waitFor(() => expect(screen.getByRole('group', { name: 'Bookings · 30d' })).toHaveTextContent('Couldn’t load'))
+
+  listDown = false
+  await user.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(await screen.findByRole('link', { name: /BK-7F3K2Q/ })).toBeInTheDocument()
+})
+
+it('booking detail offers Retry when it fails to load', async () => {
+  db.bookings = [booking()]
+  let down = true
+  db.overrides['/admin/bookings/b-1'] = () => (down ? json(403, { code: 'forbidden', message: 'Try again' }) : json(200, booking()))
+  const user = userEvent.setup()
+  renderSignedIn('/bookings/b-1')
+
+  expect(await screen.findByText('Couldn’t load this booking')).toBeInTheDocument()
+  down = false
+  await user.click(screen.getByRole('button', { name: 'Retry' }))
+  expect(await screen.findByRole('button', { name: 'Cancel booking' })).toBeInTheDocument()
+})

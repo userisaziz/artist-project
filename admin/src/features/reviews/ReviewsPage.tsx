@@ -48,7 +48,7 @@ export function ReviewsPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Review', 'Excerpt', 'Rating', 'Flag', 'Status', '']} />
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && <GridMessage state="error">Couldn’t load reviews. {list.error.message}</GridMessage>}
+        {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load reviews. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{EMPTY[status]}</GridMessage>}
         {rows.map((r) => (
           <GridRow key={r.id} columns={COLUMNS} onClick={() => setSelected(r)} selected={selected?.id === r.id}>

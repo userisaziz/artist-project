@@ -35,7 +35,8 @@ export function SupportPage() {
   const selected = params.get('ticket')
   const paneRef = useRevealWhenStacked<HTMLDivElement>(selected)
   const queue = useQueue(view)
-  const summary = useSupportSummary().data
+  const summaryQuery = useSupportSummary()
+  const summary = summaryQuery.data
   const [creating, setCreating] = useState(false)
   const rows = queue.data?.pages.flatMap((p) => p.items) ?? []
   const now = queue.dataUpdatedAt // "waiting" is measured from when the queue was last read
@@ -57,10 +58,10 @@ export function SupportPage() {
         action={<Button size="page" onClick={() => setCreating(true)}><Plus aria-hidden className="size-4" /> New ticket</Button>}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Open tickets" value={summary && number.format(summary.counts.open)} note={summary && `${number.format(summary.counts.urgent)} urgent`} tone={summary?.counts.urgent ? 'alert' : 'muted'} />
-        <KpiTile label="First response" value={summary && (summary.first_response_minutes === null ? '—' : `${Math.round(summary.first_response_minutes)} min`)} note="Median · 30 days" />
-        <KpiTile label="Resolved · 7d" value={summary && number.format(summary.resolved_7d)} tone="up" />
-        <KpiTile label="Assigned to me" value={summary && number.format(summary.counts.mine)} note="Still open" />
+        <KpiTile label="Open tickets" value={summary && number.format(summary.counts.open)} note={summary && `${number.format(summary.counts.urgent)} urgent`} tone={summary?.counts.urgent ? 'alert' : 'muted'} error={summaryQuery.isError} />
+        <KpiTile label="First response" value={summary && (summary.first_response_minutes === null ? '—' : `${Math.round(summary.first_response_minutes)} min`)} note="Median · 30 days" error={summaryQuery.isError} />
+        <KpiTile label="Resolved · 7d" value={summary && number.format(summary.resolved_7d)} tone="up" error={summaryQuery.isError} />
+        <KpiTile label="Assigned to me" value={summary && number.format(summary.counts.mine)} note="Still open" error={summaryQuery.isError} />
       </div>
       <div className={selected ? 'grid gap-4 xl:grid-cols-[1fr_420px]' : ''}>
         <Panel className="flex flex-col">
@@ -69,7 +70,7 @@ export function SupportPage() {
           </PanelToolbar>
           <GridHeader columns={COLUMNS} labels={['Ticket', 'Subject', 'Channel', 'Waiting', 'Status', '']} />
           {queue.isPending && <GridMessage state="loading" />}
-          {queue.isError && !queue.data && <GridMessage state="error">Couldn’t load the queue. {queue.error.message}</GridMessage>}
+          {queue.isError && !queue.data && <GridMessage state="error" onRetry={() => { void queue.refetch() }}>Couldn’t load the queue. {queue.error.message}</GridMessage>}
           {queue.isSuccess && rows.length === 0 && <GridMessage state="empty">Nothing here. Nice work.</GridMessage>}
           {rows.map((t) => <TicketRow key={t.id} ticket={t} now={now} selected={t.id === selected} onOpen={() => set('ticket', t.id)} />)}
           {queue.isSuccess && rows.length > 0 && (

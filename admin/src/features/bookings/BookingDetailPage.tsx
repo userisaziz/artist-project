@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { PATHS, artistPath } from '@/lib/paths'
 import { InitialsAvatar } from '@/components/console/initials-avatar'
@@ -27,10 +27,14 @@ export function BookingDetailPage() {
 
   if (booking.isPending) return <Skeleton className="h-96 w-full rounded-2xl" />
   if (booking.isError) {
+    const notFound = booking.error instanceof ApiError && booking.error.code === 'not_found'
     return (
-      <div className="py-20 text-center">
-        <p className="font-medium">{booking.error instanceof ApiError && booking.error.code === 'not_found' ? 'Booking not found' : 'Couldn’t load this booking'}</p>
-        <Button variant="link" render={<Link to={PATHS.bookings} />}>Back to Bookings</Button>
+      <div role="alert" className="py-20 text-center">
+        <p className="font-medium">{notFound ? 'Booking not found' : 'Couldn’t load this booking'}</p>
+        <div className="mt-3 flex justify-center gap-2">
+          {!notFound && <Button variant="outline" onClick={() => { void booking.refetch() }}><RotateCw aria-hidden /> Retry</Button>}
+          <Button variant="link" render={<Link to={PATHS.bookings} />}>Back to Bookings</Button>
+        </div>
       </div>
     )
   }

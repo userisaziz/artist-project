@@ -125,7 +125,7 @@ export function CategoriesPage() {
         action={<Button size="page" onClick={() => setDialog({ category: null, parent: null })}><Plus /> New category</Button>}
       />
 
-      <CatalogKpis categories={categories.data} />
+      <CatalogKpis categories={categories.data} error={categories.isError} />
 
       <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <Panel aria-label="Categories" className="flex flex-col">
@@ -134,7 +134,7 @@ export function CategoriesPage() {
           </PanelToolbar>
           <GridHeader columns={COLUMNS} labels={['Category', 'Artists', 'Listings', 'Status', '']} />
           {categories.isPending && <GridMessage state="loading" />}
-          {categories.isError && <GridMessage state="error">Couldn’t load categories. {categories.error.message}</GridMessage>}
+          {categories.isError && <GridMessage state="error" onRetry={() => { void categories.refetch() }}>Couldn’t load categories. {categories.error.message}</GridMessage>}
           {categories.isSuccess && all.length === 0 && (
             <GridMessage state="empty">
               <p className="font-medium text-foreground">No categories yet</p>

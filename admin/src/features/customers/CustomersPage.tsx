@@ -39,7 +39,8 @@ export function CustomersPage() {
   const search = params.get('q') ?? ''
   const q = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS)
   const list = useCustomers(segment, q)
-  const summary = useCustomerSummary().data
+  const summaryQuery = useCustomerSummary()
+  const summary = summaryQuery.data
   const [exporting, setExporting] = useState(false)
   const rows = list.data?.pages.flatMap((p) => p.items) ?? []
   const chips: Chip<CustomerSegment>[] = SEGMENTS.map((s) => ({
@@ -78,10 +79,10 @@ export function CustomersPage() {
         }
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Customers" value={summary && number.format(summary.counts.all)} note={summary && `${number.format(summary.counts.new)} new this month`} tone="up" />
-        <KpiTile label="Monthly active" value={summary && number.format(summary.monthly_active)} note="Requested a booking · 30d" />
-        <KpiTile label="Repeat rate" value={summary && (summary.repeat_rate === null ? '—' : `${Math.round(summary.repeat_rate * 100)}%`)} note="Of customers who booked" />
-        <KpiTile label="Blocked" value={summary && number.format(summary.counts.blocked)} note="Can’t book until unblocked" tone="warn" />
+        <KpiTile label="Customers" value={summary && number.format(summary.counts.all)} note={summary && `${number.format(summary.counts.new)} new this month`} tone="up" error={summaryQuery.isError} />
+        <KpiTile label="Monthly active" value={summary && number.format(summary.monthly_active)} note="Requested a booking · 30d" error={summaryQuery.isError} />
+        <KpiTile label="Repeat rate" value={summary && (summary.repeat_rate === null ? '—' : `${Math.round(summary.repeat_rate * 100)}%`)} note="Of customers who booked" error={summaryQuery.isError} />
+        <KpiTile label="Blocked" value={summary && number.format(summary.counts.blocked)} note="Can’t book until unblocked" tone="warn" error={summaryQuery.isError} />
       </div>
       <Panel className="flex flex-col">
         <PanelToolbar>
@@ -101,7 +102,7 @@ export function CustomersPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Customer', 'City', 'Bookings', 'Last booking', 'Joined', 'Status', '']} />
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && !list.data && <GridMessage state="error">Couldn’t load customers. {list.error.message}</GridMessage>}
+        {list.isError && !list.data && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load customers. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{q ? `No customers match “${q}”.` : 'No customers here yet.'}</GridMessage>}
         {rows.map((c) => <CustomerGridRow key={c.id} customer={c} />)}
         {list.isSuccess && rows.length > 0 && (

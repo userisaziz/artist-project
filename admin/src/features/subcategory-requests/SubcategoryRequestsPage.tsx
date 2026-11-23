@@ -46,7 +46,8 @@ export function SubcategoryRequestsPage() {
   const [params, setParams] = useSearchParams()
   const status = FILTERS.find((f) => f.value === params.get('status'))?.value ?? 'pending'
   const list = useSubcategoryRequests(status)
-  const summary = useSubcategoryRequestSummary().data
+  const summaryQuery = useSubcategoryRequestSummary()
+  const summary = summaryQuery.data
   const decide = useDecideSubcategoryRequest()
   const [approving, setApproving] = useState<SubcategoryRequest | null>(null)
   const [approveError, setApproveError] = useState<string | null>(null)
@@ -84,10 +85,10 @@ export function SubcategoryRequestsPage() {
         subtitle="Artists suggest subcategories when adding a service. Approved ones join the category for every artist."
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Pending" value={summary && number.format(summary.counts.pending)} note={summary ? age(summary.oldest_pending_at) : undefined} tone="warn" />
-        <KpiTile label="Approved · 30d" value={summary && number.format(summary.approved_30d)} tone="up" />
-        <KpiTile label="Admin defaults" value={summary && number.format(summary.admin_defaults)} note="Active subcategories" />
-        <KpiTile label="Rejected" value={summary && number.format(summary.counts.rejected)} note="All time" />
+        <KpiTile label="Pending" value={summary && number.format(summary.counts.pending)} note={summary ? age(summary.oldest_pending_at) : undefined} tone="warn" error={summaryQuery.isError} />
+        <KpiTile label="Approved · 30d" value={summary && number.format(summary.approved_30d)} tone="up" error={summaryQuery.isError} />
+        <KpiTile label="Admin defaults" value={summary && number.format(summary.admin_defaults)} note="Active subcategories" error={summaryQuery.isError} />
+        <KpiTile label="Rejected" value={summary && number.format(summary.counts.rejected)} note="All time" error={summaryQuery.isError} />
       </div>
       <Panel className="flex flex-col">
         <PanelToolbar>
@@ -95,7 +96,7 @@ export function SubcategoryRequestsPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Subcategory', 'Category', 'Suggested by', 'Services waiting', 'Status', '']} />
         {list.isPending && <GridMessage state="loading" />}
-        {list.isError && <GridMessage state="error">Couldn’t load subcategory requests. {list.error.message}</GridMessage>}
+        {list.isError && <GridMessage state="error" onRetry={() => { void list.refetch() }}>Couldn’t load subcategory requests. {list.error.message}</GridMessage>}
         {list.isSuccess && rows.length === 0 && <GridMessage state="empty">{EMPTY[status]}</GridMessage>}
         {rows.map((r) => (
           <RequestRow

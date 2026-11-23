@@ -25,7 +25,7 @@ export function TicketPanel({ ticketId, onClose }: { ticketId: string; onClose: 
         <Button variant="ghost" size="icon-sm" aria-label="Close ticket panel" onClick={onClose}><X aria-hidden /></Button>
       </div>
       {ticket.isPending && <GridMessage state="loading" />}
-      {ticket.isError && <GridMessage state="error">Couldn’t load this ticket. {ticket.error.message}</GridMessage>}
+      {ticket.isError && <GridMessage state="error" onRetry={() => { void ticket.refetch() }}>Couldn’t load this ticket. {ticket.error.message}</GridMessage>}
       {/* Keyed by id: a reply draft belongs to one ticket and must not follow the admin to the next. */}
       {ticket.data && <TicketBody key={ticket.data.id} ticket={ticket.data} />}
     </Panel>

@@ -59,7 +59,7 @@ export function ServiceTemplatesPane({ category, subcategory }: { category: Admi
       </div>
       <GridHeader columns={COLUMNS} labels={['#', 'Service', 'Artists', 'Active', '']} />
       {templates.isPending && <GridMessage state="loading" />}
-      {templates.isError && <GridMessage state="error">Couldn’t load services. {templates.error.message}</GridMessage>}
+      {templates.isError && <GridMessage state="error" onRetry={() => { void templates.refetch() }}>Couldn’t load services. {templates.error.message}</GridMessage>}
       {templates.data?.length === 0 && (
         <GridMessage state="empty">
           <p className="font-medium text-foreground">No services in {subcategory.name} yet</p>

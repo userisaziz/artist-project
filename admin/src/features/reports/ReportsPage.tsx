@@ -54,10 +54,10 @@ export function ReportsPage() {
       </PanelToolbar>
       {summary.isError && !s && <p role="alert" className="text-[13px] text-destructive">Couldn’t load the figures. {summary.error.message}</p>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Bookings" value={s && number.format(s.bookings)} note={bookings.note} tone={bookings.tone} />
-        <KpiTile label="Completion rate" value={s && percent(s.completion_rate)} note={s && `${number.format(s.completed)} completed`} />
-        <KpiTile label="Top city" value={s && (s.top_city?.name ?? '—')} note={s?.top_city ? `${percent(s.top_city.share)} of bookings` : undefined} />
-        <KpiTile label="Top category" value={s && (s.top_category?.name ?? '—')} note={s?.top_category ? `${percent(s.top_category.share)} of bookings` : undefined} />
+        <KpiTile label="Bookings" value={s && number.format(s.bookings)} note={bookings.note} tone={bookings.tone} error={summary.isError} />
+        <KpiTile label="Completion rate" value={s && percent(s.completion_rate)} note={s && `${number.format(s.completed)} completed`} error={summary.isError} />
+        <KpiTile label="Top city" value={s && (s.top_city?.name ?? '—')} note={s?.top_city ? `${percent(s.top_city.share)} of bookings` : undefined} error={summary.isError} />
+        <KpiTile label="Top category" value={s && (s.top_category?.name ?? '—')} note={s?.top_category ? `${percent(s.top_category.share)} of bookings` : undefined} error={summary.isError} />
       </div>
       <Panel className="flex flex-col">
         <GridHeader columns={COLUMNS} labels={['Report', 'Team', 'Format', '']} />

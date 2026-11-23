@@ -37,7 +37,8 @@ export function ShopProductsPage() {
   const [search, setSearch] = useState('')
   const q = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS)
   const products = useShopProducts(view, q)
-  const summary = useProductSummary().data
+  const summaryQuery = useProductSummary()
+  const summary = summaryQuery.data
   const removal = useSetProductRemoved()
   const [removing, setRemoving] = useState<ShopProduct | null>(null)
   const rows = products.data?.pages.flatMap((p) => p.items) ?? []
@@ -50,10 +51,10 @@ export function ShopProductsPage() {
     <>
       <PageHeader title="Shop products" subtitle="Everything artists sell: henna, makeup kits, accessories and prints." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label="Listings" value={summary && number.format(summary.counts.all)} />
-        <KpiTile label="Live" value={summary && number.format(summary.counts.live)} tone="up" />
-        <KpiTile label="Low stock" value={summary && number.format(summary.counts.low_stock)} note={`${LOW_STOCK} or fewer left`} tone="warn" />
-        <KpiTile label="Removed" value={summary && number.format(summary.counts.removed)} note="Taken down by the team" />
+        <KpiTile label="Listings" value={summary && number.format(summary.counts.all)} error={summaryQuery.isError} />
+        <KpiTile label="Live" value={summary && number.format(summary.counts.live)} tone="up" error={summaryQuery.isError} />
+        <KpiTile label="Low stock" value={summary && number.format(summary.counts.low_stock)} note={`${LOW_STOCK} or fewer left`} tone="warn" error={summaryQuery.isError} />
+        <KpiTile label="Removed" value={summary && number.format(summary.counts.removed)} note="Taken down by the team" error={summaryQuery.isError} />
       </div>
       <Panel className="flex flex-col">
         <PanelToolbar>
@@ -66,7 +67,7 @@ export function ShopProductsPage() {
         </PanelToolbar>
         <GridHeader columns={COLUMNS} labels={['Product', 'Seller', 'Price', 'Stock', 'Sold', 'Status', '']} />
         {products.isPending && <GridMessage state="loading" />}
-        {products.isError && !products.data && <GridMessage state="error">Couldn’t load products. {products.error.message}</GridMessage>}
+        {products.isError && !products.data && <GridMessage state="error" onRetry={() => { void products.refetch() }}>Couldn’t load products. {products.error.message}</GridMessage>}
         {products.isSuccess && rows.length === 0 && <GridMessage state="empty">{q ? `No products match “${q}”.` : 'No products here.'}</GridMessage>}
         {rows.map((p) => (
           <GridRow key={p.id} columns={COLUMNS}>
