@@ -82,6 +82,14 @@ class Booking(Base, TimestampMixin):
 
     __table_args__ = (
         sa.Index("ix_booking_artist_start", "artist_id", "start_at"),
+        # Completed bookings per artist: the admin directory's count and value subqueries.
+        sa.Index(
+            "ix_booking_artist_completed",
+            "artist_id",
+            "completed_at",
+            postgresql_include=["total_paise"],
+            postgresql_where=sa.text("status = 'completed'"),
+        ),
         sa.CheckConstraint(
             "subtotal_paise >= 0 AND platform_fee_paise >= 0 AND total_paise >= 0 "
             "AND deposit_paise >= 0 AND commission_paise >= 0",

@@ -3,7 +3,7 @@ import type { AddressInput } from '../../types/addresses/addresses';
 
 /** Mirrors backend app/user/schemas.py AddressIn (sorted after trimming). */
 export const ADDRESS_LABEL_MAX = 40;
-export const SAVED_ADDRESS_MIN = 5;
+const SAVED_ADDRESS_MIN = 5;
 export const SAVED_ADDRESS_MAX = 300;
 
 /** A new saved address as the profile form holds it. */

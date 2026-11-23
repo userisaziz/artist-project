@@ -6,7 +6,7 @@
 // react/react-dom stay external - the converter maps them to window.React/ReactDOM.
 // Run from admin/: node .design-sync/web-build.mjs
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'

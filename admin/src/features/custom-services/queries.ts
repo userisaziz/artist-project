@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { artistKeys } from '@/features/artists/queries'
 import { api } from '@/lib/api'
+import { queryRoots } from '@/lib/query-keys'
 import type { CustomServiceItem, CustomServicePage, ReviewStatus } from '@/lib/types'
 
 export const customServiceKeys = {
@@ -41,7 +41,7 @@ export function useDecideCustomService() {
     // The artist's detail page lists the service too, with its status.
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: customServiceKeys.all }),
-      queryClient.invalidateQueries({ queryKey: artistKeys.all }),
+      queryClient.invalidateQueries({ queryKey: queryRoots.artists }),
     ]),
   })
 }

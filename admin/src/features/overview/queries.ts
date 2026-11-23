@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { queryRoots } from '@/lib/query-keys'
 import type { AdminOverview } from '@/lib/types'
 import type { OverviewFilters } from './use-overview-filters'
 
 const UNFILTERED: OverviewFilters = { period: '30d', city: null }
 
 export const overviewKeys = {
-  all: ['admin', 'overview'] as const,
+  all: queryRoots.overview,
   filtered: (f: OverviewFilters) => ['admin', 'overview', f.period, f.city ?? 'all'] as const,
 }
 

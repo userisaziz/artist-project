@@ -27,7 +27,7 @@ export function StorefrontActions({ businessName, onBook, onMessage, messaging, 
   const theme = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingTop: 14 }}>
-      <View style={{ flex: 1.4 }}>
+      <View style={{ flex: 1.2 }}>
         <AppButton label="Book now" onPress={onBook} />
       </View>
       <View style={{ flex: 1 }}>

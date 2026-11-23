@@ -1,5 +1,4 @@
 import type { OrderStatus, PaymentMethod, Product, Seller } from '../../types/shop/shop';
-import { rupeesToPaise } from '../common/format';
 
 export { paiseToRupeesText, rupeesToPaise } from '../common/format';
 

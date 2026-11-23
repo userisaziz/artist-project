@@ -4,7 +4,7 @@ import { useAuth } from '../../context/auth/auth-provider';
 import type { Schedule, ScheduleInput } from '../../types/artist-schedule/artist-schedule';
 
 // Keyed by user id, so another account on the device never sees a cached schedule.
-export const scheduleKeys = { mine: (userId: string | undefined) => ['artist-schedule', userId] as const };
+const scheduleKeys = { mine: (userId: string | undefined) => ['artist-schedule', userId] as const };
 
 export function useSchedule() {
   const { user } = useAuth();

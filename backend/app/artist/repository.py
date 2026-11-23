@@ -7,7 +7,7 @@ from typing import NamedTuple
 from sqlalchemy import Select, delete, exists, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, raiseload, selectinload
 
 from app.artist.models import AadhaarReveal, ArtistDayOff, ArtistProfile, ArtistServiceItem, ArtistWorkingHour
 from app.catalog.models import Category
@@ -53,7 +53,14 @@ class ArtistRepository:
     ) -> tuple[list[ArtistProfile], str | None]:
         """Oldest submission first; keyset on (submitted_at, id)."""
         query = keyset(
-            select(ArtistProfile).where(ArtistProfile.status == status),
+            select(ArtistProfile)
+            .where(ArtistProfile.status == status)
+            .options(
+                raiseload("*"),
+                selectinload(ArtistProfile.categories),
+                selectinload(ArtistProfile.services).raiseload("*"),
+                selectinload(ArtistProfile.photos),
+            ),
             ArtistProfile.submitted_at,
             ArtistProfile.id,
             descending=False,

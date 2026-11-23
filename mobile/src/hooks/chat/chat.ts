@@ -115,7 +115,7 @@ export function useMarkRead(side: ChatSide, id: string) {
 }
 
 /** Opens (or reopens) a chat: customers with an artist, artists from one of their bookings. */
-export function useOpenChat(side: ChatSide) {
+function useOpenChat(side: ChatSide) {
   const { user } = useAuth();
   const client = useQueryClient();
   return useMutation({

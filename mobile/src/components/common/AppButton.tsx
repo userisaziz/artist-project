@@ -50,6 +50,7 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
       style={(state) => [
         {
           height: 52,
+          paddingHorizontal: theme.spacing[3],
           borderRadius: theme.radii.pill,
           alignItems: 'center',
           justifyContent: 'center',
@@ -67,7 +68,7 @@ export function AppButton({ label, onPress, variant = 'primary', loading = false
       {loading ? (
         <BrushLoader testID="app-button-spinner" tone={isPrimary ? 'onBrand' : 'brand'} />
       ) : (
-        <AppText variant="button" style={{ color: isPrimary ? theme.colors.textOnBrand : isSecondary ? theme.colors.textPrimary : theme.colors.brand }}>
+        <AppText variant="button" numberOfLines={1} adjustsFontSizeToFit style={{ color: isPrimary ? theme.colors.textOnBrand : isSecondary ? theme.colors.textPrimary : theme.colors.brand }}>
           {label}
         </AppText>
       )}

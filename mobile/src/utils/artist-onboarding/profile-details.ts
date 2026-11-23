@@ -1,7 +1,7 @@
 /** Languages an artist can talk to clients in; the same list and order as the backend's Language enum. */
 export const LANGUAGES = ['English', 'Hindi', 'Kannada', 'Tamil', 'Telugu', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu'] as const;
 
-export const MAX_EXPERIENCE_YEARS = 60; // backend ProfileIn.experience_years
+const MAX_EXPERIENCE_YEARS = 60; // backend ProfileIn.experience_years
 
 export type ExperienceResult = { ok: true; value: number | null } | { ok: false; error: string };
 

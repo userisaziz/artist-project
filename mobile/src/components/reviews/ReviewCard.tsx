@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { AppText } from '../common/AppText';
 import { Avatar } from '../common/Avatar';
 import { Card } from '../common/Card';
@@ -19,7 +19,7 @@ interface ReviewCardProps {
 }
 
 /** Spec §2.1 review card: name, "service · month", stars, text, and the artist's reply indented below. */
-export function ReviewCard({ review, businessName, header, children }: ReviewCardProps) {
+export const ReviewCard = memo(function ReviewCard({ review, businessName, header, children }: ReviewCardProps) {
   const theme = useTheme();
   return (
     <Card style={{ gap: 10 }}>
@@ -42,4 +42,4 @@ export function ReviewCard({ review, businessName, header, children }: ReviewCar
       {children}
     </Card>
   );
-}
+});

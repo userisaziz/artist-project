@@ -92,7 +92,7 @@ export interface Db {
   logoutFails: boolean
   /** When true, every non-auth endpoint answers 401 (the access token was revoked or expired). */
   accessRevoked: boolean
-  /** Ad-hoc handlers by path, checked before the built-in routes. */
+  /** Ad-hoc handlers by path (exact, else without the query string), checked before the built-in routes. */
   overrides: Record<string, () => Response>
 }
 
@@ -287,7 +287,7 @@ export function installFakeBackend(): void {
         if (db.refreshFailure === 'network') throw new TypeError('Failed to fetch')
       }
       if (path === '/auth/logout' && db.logoutFails) throw new TypeError('Failed to fetch')
-      const override = db.overrides[path]
+      const override = db.overrides[path] ?? db.overrides[path.split('?')[0]]
       if (override) return override()
       if (db.accessRevoked && !path.startsWith('/auth/')) return json(401, AUTH_ERROR)
       return authRoute(req) ?? route(method, path, body)

@@ -30,7 +30,7 @@ export function addDays(dateKey: string, days: number): string {
 }
 
 /** IST hour of day, 0–23. */
-export function istHour(t: Instant): number {
+function istHour(t: Instant): number {
   return istClock(t).getUTCHours();
 }
 

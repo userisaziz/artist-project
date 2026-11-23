@@ -4,7 +4,7 @@ import { useAuth } from '../../context/auth/auth-provider';
 import type { AcceptQuoteInput, ArtistEnquiryScope, Enquiry, EnquiryInput, QuoteInput } from '../../types/quotes/quotes';
 
 // Keyed by user id, so another account on the device never sees cached enquiries.
-export const quoteKeys = {
+const quoteKeys = {
   all: ['quotes'] as const,
   customer: (userId: string | undefined) => ['quotes', 'customer', userId] as const,
   customerList: (userId: string | undefined) => ['quotes', 'customer', userId, 'list'] as const,

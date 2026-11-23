@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { overviewKeys } from '@/features/overview/queries'
 import { api } from '@/lib/api'
+import { queryRoots } from '@/lib/query-keys'
 import type { AdminBooking, AdminOverview, BookingPage, BookingStatus } from '@/lib/types'
 
 const PAGE_SIZE = 20
@@ -58,7 +58,7 @@ export function useCancelBooking(id: string) {
       queryClient.setQueryData(bookingKeys.detail(id), booking)
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: bookingKeys.all }),
-        queryClient.invalidateQueries({ queryKey: overviewKeys.all }),
+        queryClient.invalidateQueries({ queryKey: queryRoots.overview }),
       ])
     },
   })

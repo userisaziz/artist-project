@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Mirrors backend app/shop/schemas.py OrderIn.address: 10 characters after trimming, at most 300. */
-export const ORDER_ADDRESS_MIN = 10;
+const ORDER_ADDRESS_MIN = 10;
 export const ORDER_ADDRESS_MAX = 300;
 
 /** The delivery address as the checkout holds it. */

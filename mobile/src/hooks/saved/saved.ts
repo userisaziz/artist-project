@@ -14,7 +14,7 @@ export const savedKeys = {
 
 const EMPTY: SavedIds = { posts: [], artists: [], products: [] };
 
-export function useSavedIds() {
+function useSavedIds() {
   const { user } = useAuth();
   return useQuery({ queryKey: savedKeys.ids(user?.id), queryFn: savedApi.getSavedIds, enabled: !!user });
 }

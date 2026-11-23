@@ -31,7 +31,7 @@ export default function InReviewScreen() {
     setSwitching(true);
     try {
       await chooseRole('customer');
-    } catch (e) {
+    } catch {
       setSwitching(false);
     }
   };

@@ -9,7 +9,6 @@ import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
-import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
 import { ExploreFeaturedCard } from '../../../src/components/directory/ExploreFeaturedCard';
 import { ExploreFilterBar } from '../../../src/components/directory/ExploreFilterBar';
@@ -60,7 +59,6 @@ export default function Explore() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { scrollY, onScroll, scrollEventThrottle } = useScrollLinked();
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), SEARCH_DEBOUNCE_MS);
   const params = useExploreParams();
@@ -113,9 +111,6 @@ export default function Explore() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
       <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
-        <CollapseOnScroll scrollY={scrollY} range={48}>
-          <AppText variant="hero" style={{ color: theme.colors.heading }}>Explore</AppText>
-        </CollapseOnScroll>
         <ExploreSearchField value={query} onChangeText={setQuery} />
       </View>
       <ExploreFilterBar chips={chips} />
@@ -125,8 +120,6 @@ export default function Explore() {
       <FlashList
         refreshing={pull.refreshing}
         onRefresh={pull.onRefresh}
-        onScroll={onScroll}
-        scrollEventThrottle={scrollEventThrottle}
         data={items}
         keyExtractor={(a) => a.id}
         getItemType={(_, index) => (index === 0 ? 'featured' : 'row')} // the mosaic card and the rows recycle apart

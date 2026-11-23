@@ -6,10 +6,10 @@ import { PATHS } from '@/lib/paths'
 const loaders = {
   NotificationsPage: () => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })),
   BroadcastsPage: () => import('@/features/broadcasts/BroadcastsPage').then((m) => ({ default: m.BroadcastsPage })),
-  OverviewPage: () => import('@/features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+  OverviewPage: () => import('@/app/pages/overview-page').then((m) => ({ default: m.OverviewRoute })),
   ArtistQueuePage: () => import('@/features/artists/ArtistQueuePage').then((m) => ({ default: m.ArtistQueuePage })),
   ArtistDirectoryPage: () => import('@/features/artists/ArtistDirectoryPage').then((m) => ({ default: m.ArtistDirectoryPage })),
-  ArtistReviewPage: () => import('@/features/artists/ArtistReviewPage').then((m) => ({ default: m.ArtistReviewPage })),
+  ArtistReviewPage: () => import('@/app/pages/artist-review-page').then((m) => ({ default: m.ArtistReviewRoute })),
   CustomServicesPage: () => import('@/features/custom-services/CustomServicesPage').then((m) => ({ default: m.CustomServicesPage })),
   BookingsPage: () => import('@/features/bookings/BookingsPage').then((m) => ({ default: m.BookingsPage })),
   BookingDetailPage: () => import('@/features/bookings/BookingDetailPage').then((m) => ({ default: m.BookingDetailPage })),

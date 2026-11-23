@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Matches backend artist schedule travel_radius_km 1..100. */
-export const RADIUS_MAX = 100;
+const RADIUS_MAX = 100;
 
 /** The travel radius as the artist typed it — empty means they don't travel. */
 export interface ScheduleDraft {
