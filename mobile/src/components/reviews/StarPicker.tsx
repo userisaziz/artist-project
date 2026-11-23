@@ -1,6 +1,5 @@
 import { View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
-import { AppText } from '../common/AppText';
 import { useTheme } from '../../core/theme/theme-provider';
 import type { StarRating } from '../../types/reviews/reviews';
 import { Icon } from '../common/Icon';
