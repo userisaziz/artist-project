@@ -3,7 +3,6 @@ import { ScrollView, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useIsFocused } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from '../common/AppText';
 import { AppTextField } from '../common/AppTextField';
 import { Chip } from '../common/Chip';
 import { EmptyView, ErrorView, LoadingView } from '../common/StateViews';
@@ -15,7 +14,6 @@ import { useNow } from '../../hooks/common/use-now';
 import { useDebouncedValue } from '../../hooks/common/use-debounced-value';
 import type { FeedTab } from '../../types/feed/feed';
 import type { FeedNavigation } from './navigation';
-import { Icon } from '../common/Icon';
 
 const SEARCH_MAX = 60; // backend feed SEARCH_MAX
 
@@ -25,7 +23,7 @@ const TABS: { key: FeedTab; label: string; empty: string }[] = [
   { key: 'stories', label: 'Stories & guides', empty: 'No stories or guides yet.' },
 ];
 
-/** Prototype Feed: the title, filter chips, then photo posts and article cards, newest first. */
+/** Prototype Feed: search, filter chips, then photo posts and article cards, newest first. */
 export function FeedList({ nav }: { nav: FeedNavigation }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -42,11 +40,7 @@ export function FeedList({ nav }: { nav: FeedNavigation }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
       <View style={{ paddingHorizontal: theme.spacing.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Feed</AppText>
-          <Icon name="sparkles" size={20} color={theme.colors.brand} />
-        </View>
-        <View style={{ marginTop: 10 }}>
+        <View>
           <AppTextField label="Search the feed" hideLabel placeholder="Search looks, guides or artists" value={query} onChangeText={setQuery} maxLength={SEARCH_MAX} autoCorrect={false} returnKeyType="search" />
         </View>
       </View>

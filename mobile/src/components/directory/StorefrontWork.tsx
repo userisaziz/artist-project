@@ -12,6 +12,8 @@ interface StorefrontWorkProps {
 
 const PREVIEW_COUNT = 6;
 const TILE_WIDTH = '32%';
+const TILE_GAP = '2%'; // three tiles + two gaps = 100%
+const PER_ROW = 3;
 const TILE_RATIO = 3 / 4;
 
 /** The portfolio, three across: the first six, with "See all" on the last tile when there are more. */
@@ -21,11 +23,11 @@ export function StorefrontWork({ photos }: StorefrontWorkProps) {
   const shown = expanded ? photos : photos.slice(0, PREVIEW_COUNT);
   const hidden = photos.length - shown.length;
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 6 }}>
       {shown.map((p, i) => {
         const last = !expanded && hidden > 0 && i === shown.length - 1;
         return (
-          <View key={p.id} style={{ width: TILE_WIDTH, aspectRatio: TILE_RATIO, borderRadius: theme.radii.md, overflow: 'hidden' }}>
+          <View key={p.id} style={{ width: TILE_WIDTH, marginRight: i % PER_ROW === PER_ROW - 1 ? 0 : TILE_GAP, aspectRatio: TILE_RATIO, borderRadius: theme.radii.md, overflow: 'hidden' }}>
             <Photo uri={p.thumb_url} label={`Work photo ${i + 1}`} style={{ width: '100%', height: '100%' }} />
             {last ? (
               <PressableFeedback

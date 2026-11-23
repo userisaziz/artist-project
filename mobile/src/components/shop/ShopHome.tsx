@@ -14,7 +14,6 @@ import { useDebouncedValue } from '../../hooks/common/use-debounced-value';
 import { useProducts } from '../../hooks/shop/shop';
 import { cartCount } from '../../utils/shop/cart';
 import type { ShopCategory } from '../../types/shop/shop';
-import { Icon } from '../common/Icon';
 import { usePullToRefresh } from '../../hooks/common/use-pull-to-refresh';
 
 const CATEGORIES: { key: ShopCategory | null; label: string }[] = [
@@ -40,17 +39,13 @@ export function ShopHome({ onOpenProduct, onOpenCart }: { onOpenProduct: (id: st
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.spacing.md }}>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <AppText variant="display" style={{ fontSize: 30, lineHeight: 34, color: theme.colors.heading }}>Shop</AppText>
-          <Icon name="sparkles" size={20} color={theme.colors.brand} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md }}>
+        <View style={{ flex: 1 }}>
+          <AppTextField label="Search the shop" hideLabel placeholder="Search henna, makeup, accessories" value={query} onChangeText={setQuery} autoCorrect={false} />
         </View>
         <PressableFeedback accessibilityRole="button" accessibilityLabel={inCart ? `Cart, ${inCart} items` : 'Cart, empty'} onPress={onOpenCart} hitSlop={8} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator }}>
           <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{`Cart${inCart ? ` · ${inCart}` : ''}`}</AppText>
         </PressableFeedback>
-      </View>
-      <View style={{ paddingHorizontal: theme.spacing.md, marginTop: 12 }}>
-        <AppTextField label="Search the shop" hideLabel placeholder="Search henna, makeup, accessories" value={query} onChangeText={setQuery} autoCorrect={false} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: theme.spacing.md, paddingVertical: 12 }}>
         {CATEGORIES.map((c) => <Chip key={c.label} label={c.label} selected={category === c.key} onPress={() => setCategory(c.key)} />)}
