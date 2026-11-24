@@ -17,6 +17,7 @@ jest.mock('expo-constants', () => ({ expoConfig: { extra: { eas: { projectId: 't
 
 type Opened = (response: unknown) => void;
 let tapListener: Opened | null = null;
+let receiveListener: (() => void) | null = null;
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   setNotificationChannelAsync: jest.fn(),
@@ -25,7 +26,7 @@ jest.mock('expo-notifications', () => ({
   getExpoPushTokenAsync: jest.fn(async () => ({ data: 'ExponentPushToken[abc123]' })),
   getLastNotificationResponse: jest.fn(() => null),
   addNotificationResponseReceivedListener: jest.fn((fn: Opened) => { tapListener = fn; return { remove: jest.fn() }; }),
-  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn((fn: () => void) => { receiveListener = fn; return { remove: jest.fn() }; }),
   AndroidImportance: { HIGH: 4 },
 }));
 const permissions = Notifications.getPermissionsAsync as jest.Mock;
@@ -95,4 +96,16 @@ it('keeps working in a build without the push native module', async () => {
   expect(warn).toHaveBeenCalled();
   unmount();
   warn.mockRestore();
+});
+
+it('refreshes bookings and chats, not just the inbox, when a push arrives in the foreground', async () => {
+  permissions.mockResolvedValue({ status: 'granted' });
+  send.mockResolvedValue({ status: 204, json: null });
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  renderHook(() => usePushNotifications(jest.fn()), { wrapper });
+  await waitFor(() => expect(receiveListener).not.toBeNull());
+
+  receiveListener?.();
+  const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey?.[0]);
+  expect(keys).toEqual(expect.arrayContaining(['notifications', 'bookings', 'chat']));
 });

@@ -41,6 +41,10 @@ export function useArtistBooking(id: string) {
   return useQuery({ queryKey: bookingKeys.detail(user?.id, id), queryFn: () => bookingsApi.getArtistBooking(id), enabled: !!user && !!id });
 }
 
+/** New requests and the dashboard re-check on this beat while on screen, as a fallback for a missed push:
+ *  a request has only a few hours to be answered. */
+const ARTIST_POLL_MS = 60_000;
+
 export function useArtistBookings(scope: ArtistBookingScope) {
   const { user } = useAuth();
   return useInfiniteQuery({
@@ -48,6 +52,7 @@ export function useArtistBookings(scope: ArtistBookingScope) {
     queryFn: ({ pageParam }) => bookingsApi.listArtistBookings({ scope, cursor: pageParam, limit: PAGE_SIZE }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
+    refetchInterval: scope === 'requests' ? ARTIST_POLL_MS : false,
     enabled: !!user,
   });
 }
@@ -79,7 +84,7 @@ export function useArtistEarnings(months: number) {
 
 export function useArtistDashboard() {
   const { user } = useAuth();
-  return useQuery({ queryKey: bookingKeys.dashboard(user?.id), queryFn: bookingsApi.getArtistDashboard, enabled: !!user });
+  return useQuery({ queryKey: bookingKeys.dashboard(user?.id), queryFn: bookingsApi.getArtistDashboard, refetchInterval: ARTIST_POLL_MS, enabled: !!user });
 }
 
 /** Runs a booking write, caches the returned booking, and refreshes every list and the slots it may have changed. */
