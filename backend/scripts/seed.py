@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from sqlalchemy import select
 
 from app.artist.models import ArtistProfile, ArtistServiceAddon, ArtistServiceItem, PortfolioPhoto
+from app.catalog.fields import FieldDef
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.core.database import SessionLocal, engine
 from app.shared.enums import ArtistStatus, CategoryStatus, UserRole
@@ -106,8 +107,13 @@ CATALOG: list[tuple[str, str, list[tuple[str, str, list[tuple[str, str]]]]]] = [
                 [
                     ("Arabic Name Calligraphy Frame", "Hand-inked Arabic name on textured board, framed A4."),
                     ("Nikah Certificate Calligraphy", "Hand-lettered nikah nama on premium paper."),
-                    ("Live Calligraphy at Events", "Guests' names written live on tags or cards, per hour."),
                 ],
+            ),
+            (
+                # Booked into a slot at the event, unlike the made-to-order frames: overrides Art's fulfilment.
+                "Live Event Calligraphy",
+                "live-calligraphy",
+                [("Live Calligraphy at Events", "Guests' names written live on tags or cards, per hour.")],
             ),
             (
                 "Canvas Painting",
@@ -210,6 +216,144 @@ CATALOG: list[tuple[str, str, list[tuple[str, str, list[tuple[str, str]]]]]] = [
         ],
     ),
 ]
+
+
+def _field(key: str, label: str, scope: str, kind: str, **extra) -> dict:
+    """One admin-style field definition (app.catalog.fields.FieldDef), validated when the catalog is seeded."""
+    return {"key": key, "label": label, "scope": scope, "type": kind, **extra}
+
+
+# Category slug → (fulfilment or None to inherit, its own fields). Seeded only onto rows an admin hasn't set up.
+CATEGORY_RULES: dict[str, tuple[str | None, list[dict]]] = {
+    "mehendi": (
+        "appointment",
+        [
+            _field("coverage", "Coverage", "listing", "select", options=["Up to wrists", "Up to elbows", "Full arms"]),
+            _field(
+                "styles",
+                "Design styles",
+                "listing",
+                "multi_select",
+                options=["Arabic", "Indian", "Indo-Arabic", "Minimal"],
+            ),
+            _field(
+                "occasion", "Occasion", "booking", "select", options=["Wedding", "Engagement", "Eid", "Party", "Other"]
+            ),
+        ],
+    ),
+    "bridal-mehendi": (
+        None,
+        [_field("bride_name", "Bride's name", "booking", "text", help="Hidden in the design, if you like")],
+    ),
+    "makeup": (
+        "appointment",
+        [
+            _field("hair_included", "Hairstyling included", "listing", "boolean"),
+            _field("trial", "Trial session available", "listing", "boolean"),
+            _field(
+                "occasion", "Occasion", "booking", "select", options=["Wedding", "Nikah", "Reception", "Party", "Other"]
+            ),
+            _field("skin_type", "Skin type", "booking", "select", options=["Dry", "Oily", "Combination", "Sensitive"]),
+        ],
+    ),
+    "hair": (
+        "appointment",
+        [_field("hair_length", "Hair length", "booking", "select", options=["Short", "Shoulder", "Long"])],
+    ),
+    "art": (
+        "made_to_order",
+        [
+            _field("sizes", "Sizes offered", "listing", "multi_select", options=["A4", "A3", "A2", "16x20 in"]),
+            _field("turnaround_days", "Turnaround", "listing", "number", min=1, max=60, unit="days"),
+            _field("framed", "Comes framed", "listing", "boolean"),
+            _field("text_to_write", "Names or text to write", "booking", "long_text", required=True),
+            _field("size", "Size", "booking", "select", options=["A4", "A3", "A2", "16x20 in"]),
+        ],
+    ),
+    "live-calligraphy": ("appointment", []),
+    "custom-cards": (
+        "made_to_order",
+        [
+            _field("min_order", "Minimum order", "listing", "number", min=1, max=1000, unit="cards"),
+            _field("turnaround_days", "Turnaround", "listing", "number", min=1, max=60, unit="days"),
+            _field("wording", "Wording on the card", "booking", "long_text", required=True),
+            _field("language", "Language", "booking", "select", options=["English", "Urdu", "Hindi", "Arabic"]),
+        ],
+    ),
+    "gift-boxes": (
+        "made_to_order",
+        [
+            _field(
+                "contents",
+                "In each box",
+                "listing",
+                "multi_select",
+                options=["Dates", "Sweets", "Dry fruit", "Attar", "Name card"],
+            ),
+            _field("min_order", "Minimum order", "listing", "number", min=1, max=1000, unit="boxes"),
+            _field("theme", "Colour theme", "booking", "text", help="e.g. pastel blue and gold"),
+        ],
+    ),
+    "aqiqah-boxes": (None, [_field("baby_name", "Baby's name", "booking", "text", required=True)]),
+    "crafts": (
+        "made_to_order",
+        [
+            _field("turnaround_days", "Turnaround", "listing", "number", min=1, max=90, unit="days"),
+            _field("personalise", "Names and dates to include", "booking", "long_text"),
+        ],
+    ),
+    "photography": (
+        "appointment",
+        [
+            _field("edited_photos", "Edited photos", "listing", "number", min=10, max=3000, unit="photos"),
+            _field("album", "Album", "listing", "select", options=["None", "Classic", "Premium"]),
+            _field("delivery_days", "Photos delivered in", "listing", "number", min=1, max=90, unit="days"),
+            _field(
+                "event_type",
+                "Event",
+                "booking",
+                "select",
+                options=["Wedding", "Nikah", "Pre-wedding", "Aqiqah", "Birthday", "Other"],
+            ),
+            _field("venue", "Venue", "booking", "text", required=True),
+        ],
+    ),
+}
+
+# (business, template) → pricing unit and listing details, for seeded services.
+SERVICE_OPTIONS: dict[tuple[str, str], dict] = {
+    ("Henna by Priya", "Bridal Full Hands + Legs"): {
+        "attributes": {"coverage": "Full arms", "styles": ["Indian", "Indo-Arabic"]}
+    },
+    ("Ayesha Arabic Mehendi", "Arabic Full Hands"): {"attributes": {"coverage": "Up to wrists", "styles": ["Arabic"]}},
+    ("Ayesha Arabic Mehendi", "Eid Special Mehendi"): {
+        "pricing_unit": "per_person",
+        "attributes": {"styles": ["Arabic", "Minimal"]},
+    },
+    ("Glam by Sneha", "HD Bridal Makeup"): {"attributes": {"hair_included": False, "trial": True}},
+    ("Glam by Sneha", "Softeye Party Look"): {"pricing_unit": "per_person", "attributes": {"hair_included": False}},
+    ("Bridal Studio by Aisha", "HD Bridal Makeup"): {"attributes": {"hair_included": True, "trial": True}},
+    ("Qalam Calligraphy Studio", "Arabic Name Calligraphy Frame"): {
+        "attributes": {"sizes": ["A4", "A3"], "turnaround_days": 5, "framed": True}
+    },
+    ("Qalam Calligraphy Studio", "Live Calligraphy at Events"): {"pricing_unit": "package"},
+    ("Barakah Aqiqah Boxes", "Aqiqah Sweet Box (per box)"): {
+        "attributes": {"contents": ["Dates", "Sweets", "Name card"], "min_order": 25}
+    },
+    ("Paper Petals Cards", "Handmade Wedding Invite (per 50)"): {
+        "attributes": {"min_order": 50, "turnaround_days": 10}
+    },
+    ("Resin & Bloom Crafts", "Varmala Preservation"): {"attributes": {"turnaround_days": 21}},
+    ("Frames by Rahul", "Full-day Wedding Shoot"): {
+        "attributes": {"edited_photos": 300, "album": "Premium", "delivery_days": 30}
+    },
+    ("Frames by Rahul", "Nikah Ceremony Coverage"): {
+        "attributes": {"edited_photos": 150, "album": "Classic", "delivery_days": 21}
+    },
+    ("Lakshmi Canvas Art", "Custom Portrait Painting"): {
+        "attributes": {"sizes": ["16x20 in"], "turnaround_days": 14, "framed": False}
+    },
+}
 
 # phone, first, last, roles, active_role
 CUSTOMERS = [
@@ -446,7 +590,7 @@ ARTIST_SERVICES: dict[str, list[tuple[str, str, int, int, list[tuple[str, int, b
     "Qalam Calligraphy Studio": [
         ("calligraphy", "Arabic Name Calligraphy Frame", 250000, 120, [("Gold leaf detailing", 80000, False)]),
         ("calligraphy", "Nikah Certificate Calligraphy", 450000, 180, []),
-        ("calligraphy", "Live Calligraphy at Events", 600000, 60, [("Extra hour", 400000, False)]),
+        ("live-calligraphy", "Live Calligraphy at Events", 600000, 60, [("Extra hour", 400000, False)]),
         ("wedding-invitations", "Handmade Wedding Invite (per 50)", 1200000, 480, []),
     ],
     "Barakah Aqiqah Boxes": [
@@ -542,6 +686,15 @@ def seed_images() -> int:
     return uploaded
 
 
+def _apply_rules(category: Category) -> None:
+    """Seed a category's fulfilment and fields, unless an admin has already set either."""
+    if category.slug not in CATEGORY_RULES or category.fulfilment is not None or category.field_schema:
+        return
+    fulfilment, fields = CATEGORY_RULES[category.slug]
+    category.fulfilment = fulfilment
+    category.field_schema = [FieldDef.model_validate(f).model_dump(mode="json") for f in fields]
+
+
 async def seed_catalog(session) -> dict[str, Category]:
     by_slug: dict[str, Category] = {}
     for name, slug, subs in CATALOG:
@@ -551,6 +704,7 @@ async def seed_catalog(session) -> dict[str, Category]:
             session.add(parent)
             await session.flush()
         by_slug[slug] = parent
+        _apply_rules(parent)
         for sub_name, sub_slug, templates in subs:
             sub = (await session.execute(select(Category).where(Category.slug == sub_slug))).scalar_one_or_none()
             if sub is None:
@@ -560,6 +714,7 @@ async def seed_catalog(session) -> dict[str, Category]:
                 session.add(sub)
                 await session.flush()
             by_slug[sub_slug] = sub
+            _apply_rules(sub)
             for order, (t_name, t_desc) in enumerate(templates):
                 exists = (
                     await session.execute(
@@ -667,6 +822,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
                 sort_order=order,
                 photo_key=cover_keys[order % len(cover_keys)] if cover_keys else None,
                 included_items=ARTIST_INCLUDED.get(business, DEFAULT_INCLUDED),
+                **SERVICE_OPTIONS.get((business, t_name), {}),
             )
             session.add(item)
             await session.flush()
