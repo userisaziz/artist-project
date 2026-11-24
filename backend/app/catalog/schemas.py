@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.catalog.fields import MAX_FIELDS, FieldDef, Fulfilment
 from app.shared.enums import CategoryStatus
 from app.shared.schemas import APIModel, ORMModel
 
@@ -21,6 +22,8 @@ class SubcategoryOut(APIModel):
     slug: str
     name: str
     services: list[TemplateOut]
+    fulfilment: Fulfilment  # effective: its own, else its parent's
+    fields: list[FieldDef]  # effective: the parent's first, then its own (listing and booking scopes)
 
 
 class CatalogCategoryOut(APIModel):
@@ -30,6 +33,8 @@ class CatalogCategoryOut(APIModel):
     slug: str
     name: str
     subcategories: list[SubcategoryOut]
+    fulfilment: Fulfilment
+    fields: list[FieldDef]
 
 
 class CategoryIn(APIModel):
@@ -38,6 +43,8 @@ class CategoryIn(APIModel):
     sort_order: int | None = Field(default=None, ge=0)  # appended last among siblings when omitted
     status: CategoryStatus = CategoryStatus.draft  # drafts are admin-only until switched to active
     parent_id: int | None = None  # set → a subcategory of that top-level category
+    fulfilment: Fulfilment | None = None  # None on a subcategory = the parent's; on a category = appointment
+    field_schema: list[FieldDef] = Field(default_factory=list, max_length=MAX_FIELDS)
 
 
 class CategoryPatch(APIModel):
@@ -46,6 +53,8 @@ class CategoryPatch(APIModel):
     sort_order: int | None = Field(default=None, ge=0)
     status: CategoryStatus | None = None
     parent_id: int | None = None  # an explicit null makes a subcategory top-level
+    fulfilment: Fulfilment | None = None  # an explicit null on a subcategory = follow the parent again
+    field_schema: list[FieldDef] | None = Field(default=None, max_length=MAX_FIELDS)  # sent replaces
 
 
 class AdminCategoryOut(ORMModel):
@@ -59,6 +68,8 @@ class AdminCategoryOut(ORMModel):
     service_count: int
     child_count: int
     template_count: int
+    fulfilment: Fulfilment | None  # as set on this row (None = inherited)
+    field_schema: list[FieldDef]  # this row's own fields; a subcategory also gets its parent's
 
 
 class TemplateIn(APIModel):

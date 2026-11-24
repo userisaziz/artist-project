@@ -8,10 +8,10 @@ from typing import NamedTuple
 from sqlalchemy import ColumnElement, Row, Select, and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.artist.models import ArtistProfile
+from app.artist.models import ArtistProfile, ArtistServiceItem
 from app.quote.constants import LIVE, EnquiryStatus
 from app.quote.models import QuoteEnquiry
-from app.shared.enums import ArtistStatus
+from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.pagination import keyset
 from app.user.models import User
 
@@ -78,6 +78,15 @@ class QuoteRepository:
 
     async def artist_of(self, enquiry_id: uuid.UUID, *scope: ColumnElement[bool]) -> uuid.UUID | None:
         return await self.session.scalar(select(QuoteEnquiry.artist_id).where(QuoteEnquiry.id == enquiry_id, *scope))
+
+    async def approved_service(self, service_id: uuid.UUID, artist_id: uuid.UUID) -> ArtistServiceItem | None:
+        return await self.session.scalar(
+            select(ArtistServiceItem).where(
+                ArtistServiceItem.id == service_id,
+                ArtistServiceItem.artist_id == artist_id,
+                ArtistServiceItem.status == ArtistServiceStatus.approved,
+            )
+        )
 
     async def count(self, *where: ColumnElement[bool]) -> int:
         return (await self.session.execute(select(func.count()).select_from(QuoteEnquiry).where(*where))).scalar_one()

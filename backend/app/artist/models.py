@@ -18,7 +18,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.catalog.models import Category, ServiceTemplate
@@ -134,6 +134,10 @@ class ArtistServiceItem(Base, TimestampMixin):
         ARRAY(String(60)), nullable=False, default=list, server_default=sa.text("'{}'")
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # package: price_paise is the whole service; per_person: price_paise per guest, times the booking's quantity.
+    pricing_unit: Mapped[str] = mapped_column(String(20), nullable=False, default="package", server_default="package")
+    # The artist's answers to the subcategory's listing fields (app.catalog.fields), validated on write.
+    attributes: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=sa.text("'{}'"))
     status: Mapped[ArtistServiceStatus] = mapped_column(
         Enum(ArtistServiceStatus, name="artist_service_status", values_callable=lambda e: [m.value for m in e]),
         default=ArtistServiceStatus.approved,
@@ -155,6 +159,7 @@ class ArtistServiceItem(Base, TimestampMixin):
         sa.CheckConstraint("price_paise > 0", name="price_positive"),
         sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
         sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="name_or_template"),
+        sa.CheckConstraint("pricing_unit IN ('package', 'per_person')", name="pricing_unit_known"),
         sa.Index(
             "ix_artist_service_item_name_trgm", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
         ),

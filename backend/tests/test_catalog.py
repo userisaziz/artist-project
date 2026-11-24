@@ -111,8 +111,12 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
                     "slug": "makeup-bridal",
                     "name": "Bridal",
                     "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
+                    "fulfilment": "appointment",
+                    "fields": [],
                 }
             ],
+            "fulfilment": "appointment",
+            "fields": [],
         }
     ]
 
@@ -127,7 +131,14 @@ async def test_public_catalog_is_cached_until_an_admin_edits_it(client, engine):
 
     async with count_statements(engine) as statements:
         assert (await client.get("/api/v1/categories")).json() == [
-            {"id": makeup["id"], "slug": "makeup", "name": "Makeup", "subcategories": []}
+            {
+                "id": makeup["id"],
+                "slug": "makeup",
+                "name": "Makeup",
+                "subcategories": [],
+                "fulfilment": "appointment",
+                "fields": [],
+            }
         ]
     assert statements == [], "a cached catalog costs no database round trip"
 

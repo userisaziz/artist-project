@@ -5,7 +5,7 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, SmallInteger, String
-from sqlalchemy.dialects.postgresql import UUID, ExcludeConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.enums import BookingStatus
@@ -46,6 +46,10 @@ class Booking(Base, TimestampMixin):
     end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     address: Mapped[str] = mapped_column(String(300), nullable=False)
     note: Mapped[str | None] = mapped_column(String(500))
+    # Guests for a per-person service (the price is per guest); 1 for a package.
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    # The customer's answers to the subcategory's booking fields, with their labels as asked (app.catalog.fields).
+    answers: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list, server_default=sa.text("'[]'"))
     status: Mapped[BookingStatus] = mapped_column(
         booking_status_enum,
         default=BookingStatus.requested,
@@ -96,6 +100,7 @@ class Booking(Base, TimestampMixin):
             name="money_non_negative",
         ),
         sa.CheckConstraint("end_at > start_at", name="end_after_start"),
+        sa.CheckConstraint("quantity >= 1", name="quantity_positive"),
         sa.CheckConstraint(RESCHEDULE_ALL_OR_NONE, name="reschedule_all_or_none"),
         # The database itself refuses two slot-holding bookings that overlap for one artist, whatever
         # code path writes them (the service also checks first, under the artist row lock).

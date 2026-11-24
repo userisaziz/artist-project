@@ -2,10 +2,12 @@
 
 import uuid
 from datetime import date, datetime
+from typing import Any
 
 from pydantic import AwareDatetime, Field, field_validator
 
 from app.booking.constants import MAX_ADDON_GUESTS, MAX_BOOKING_ADDONS
+from app.catalog.fields import FieldAnswer
 from app.shared.enums import BookingStatus, ReviewStatus
 from app.shared.schemas import APIModel
 
@@ -30,6 +32,8 @@ class BookingIn(APIModel):
     address: str = Field(min_length=1, max_length=300)
     note: str | None = Field(default=None, max_length=500)
     addons: list[BookingAddonIn] = Field(default_factory=list, max_length=MAX_BOOKING_ADDONS)
+    quantity: int = Field(default=1, ge=1, le=MAX_ADDON_GUESTS)  # guests, for a per-person service
+    answers: dict[str, Any] = Field(default_factory=dict)  # the subcategory's booking fields, by key
 
     @field_validator("address")
     @classmethod
@@ -100,6 +104,8 @@ class BookingOut(APIModel):
     service_id: uuid.UUID | None  # the artist service it was booked for; None once that service is deleted
     service_name: str
     duration_minutes: int
+    quantity: int  # guests for a per-person service, else 1
+    answers: list[FieldAnswer]  # the customer's answers to the booking fields, as asked
     artist: BookingArtist
     customer: BookingCustomer
     subtotal_paise: int

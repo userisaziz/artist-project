@@ -38,6 +38,8 @@ def booking_out(row: BookingRow, storage: ImageStorage, view: View, now: datetim
         "service_id": b.service_id,
         "service_name": b.service_name,
         "duration_minutes": b.duration_minutes,
+        "quantity": b.quantity,
+        "answers": b.answers,
         "artist": {
             "id": b.artist_id,
             "business_name": row.business_name,

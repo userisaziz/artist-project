@@ -32,6 +32,7 @@ from app.artist.schemas import (
     ServiceIn,
     ServicePatch,
 )
+from app.catalog import fields as catalog_fields
 from app.catalog.config import get_catalog_settings
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.catalog.repository import CategoryRepository, TemplateRepository
@@ -49,7 +50,8 @@ EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
 # The menu of listed services and the portfolio aren't part of onboarding: an approved artist fills them in from Me,
 # live, the same way a listed service's price changes without a new review.
 MENU_EDITABLE = EDITABLE | {ArtistStatus.approved}
-APPROVED_SERVICE_FIELDS = {"price_paise", "duration_minutes"}
+# Live once approved, no new review: the artist's own price and terms, and facts about a listed service.
+APPROVED_SERVICE_FIELDS = {"price_paise", "duration_minutes", "pricing_unit", "attributes"}
 DELETED_NAME = "Deleted artist"
 
 
@@ -246,6 +248,8 @@ class ArtistService:
             status=ArtistServiceStatus.approved,
             sort_order=self._next_service_order(profile),
             addons=[],  # set, so reading it after flush never lazy-loads (async)
+            pricing_unit=body.pricing_unit,
+            attributes=await self._listing_attributes(template.subcategory_id, body.attributes),
         )
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
         self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
@@ -265,13 +269,17 @@ class ArtistService:
         changes = body.model_dump(exclude_unset=True)
         profile = await self.get(user)
         if profile.status == ArtistStatus.approved and not changes.keys() <= APPROVED_SERVICE_FIELDS:
-            raise ConflictError("Once approved, only a service's price and duration can change")
+            raise ConflictError("Once approved, only a service's price, duration, pricing and details can change")
         if profile.status not in EDITABLE | {ArtistStatus.approved}:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         item = self._service(profile, service_id)
-        for field in ("price_paise", "duration_minutes"):
+        for field in ("price_paise", "duration_minutes", "pricing_unit"):
             if changes.get(field) is not None:  # required columns: an explicit null means "leave as is"
                 setattr(item, field, changes[field])
+        if changes.get("attributes") is not None:
+            if item.template_id is None and changes["attributes"]:
+                raise ValidationError("Custom services describe themselves in their own words")
+            item.attributes = await self._listing_attributes(item.category_id, changes["attributes"])
         if "description" in changes:
             item.description = changes["description"]
         self._apply_extras(item, changes)
@@ -280,6 +288,11 @@ class ArtistService:
         if replaced:
             await self.storage.delete(replaced)
         return profile
+
+    async def _listing_attributes(self, category_id: int, values: dict) -> dict:
+        """A listed service's answers to its subcategory's listing fields, checked against the admin's schema."""
+        rules = await catalog_fields.rules_for(self.session, category_id)
+        return catalog_fields.validate_values(rules.scoped(catalog_fields.FieldScope.listing), values)
 
     async def delete_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
         profile = await self._editable(user, MENU_EDITABLE)
@@ -339,6 +352,7 @@ class ArtistService:
             status=ArtistServiceStatus.pending,
             sort_order=self._next_service_order(profile),
             addons=[],
+            pricing_unit=body.pricing_unit,
         )
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
         self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
@@ -360,7 +374,7 @@ class ArtistService:
             changes["name"] = changes["name"].strip()
             if not changes["name"]:
                 raise ValidationError("Name is required")
-        for field in ("name", "price_paise", "duration_minutes"):
+        for field in ("name", "price_paise", "duration_minutes", "pricing_unit"):
             if changes.get(field) is not None:
                 setattr(item, field, changes[field])
         if "description" in changes:

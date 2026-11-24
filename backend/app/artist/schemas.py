@@ -3,7 +3,7 @@ from storage keys at response time (see presenters.py); keys go in, URLs come ou
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field, StringConstraints, model_validator
 
@@ -18,6 +18,7 @@ from app.artist.constants import (
     MIN_TRAVEL_RADIUS_KM,
     WEEKDAYS,
     Language,
+    PricingUnit,
 )
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
@@ -95,12 +96,16 @@ class ServiceIn(ServiceExtrasIn):
     price_paise: int = Field(gt=0, le=MAX_PRICE_PAISE)
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
+    pricing_unit: PricingUnit = PricingUnit.package
+    attributes: dict[str, Any] = Field(default_factory=dict)  # the subcategory's listing fields (app.catalog.fields)
 
 
 class ServicePatch(ServiceExtrasIn):
     price_paise: int | None = Field(default=None, gt=0, le=MAX_PRICE_PAISE)
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
+    pricing_unit: PricingUnit | None = None
+    attributes: dict[str, Any] | None = None  # sent replaces all of them
 
 
 class ServiceOut(APIModel):
@@ -111,6 +116,8 @@ class ServiceOut(APIModel):
     name: str
     price_paise: int
     duration_minutes: int
+    pricing_unit: PricingUnit
+    attributes: dict[str, Any]  # answers to the subcategory's listing fields, by field key
     description: str | None = None
     included_items: list[str]
     addons: list[AddonOut]
@@ -130,6 +137,7 @@ class CustomServiceIn(ServiceExtrasIn):
     price_paise: int = Field(gt=0, le=100_000_000)
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
+    pricing_unit: PricingUnit = PricingUnit.package
 
     @model_validator(mode="after")
     def one_place(self) -> "CustomServiceIn":
@@ -144,6 +152,7 @@ class CustomServicePatch(ServiceExtrasIn):
     price_paise: int | None = Field(default=None, gt=0, le=100_000_000)
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
+    pricing_unit: PricingUnit | None = None
 
 
 class PhotoIn(APIModel):

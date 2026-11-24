@@ -9,6 +9,7 @@ from typing import NamedTuple
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.catalog.constants import AREA_SEARCH_LIMIT, NEAREST_AREA_MAX_KM
+from app.catalog.fields import FieldDef, check_schema, parse_schema
 from app.catalog.models import Area, Category, ServiceTemplate
 from app.catalog.repository import (
     AreaRepository,
@@ -87,7 +88,16 @@ class CategoryService:
         sort_order = body.sort_order
         if sort_order is None:
             sort_order = await self.categories.next_sort_order(body.parent_id)
-        category = Category(name=name, slug=slug, sort_order=sort_order, status=body.status, parent_id=body.parent_id)
+        await self._check_fields(body.field_schema, body.parent_id, None)
+        category = Category(
+            name=name,
+            slug=slug,
+            sort_order=sort_order,
+            status=body.status,
+            parent_id=body.parent_id,
+            fulfilment=body.fulfilment,
+            field_schema=[f.model_dump(mode="json") for f in body.field_schema],
+        )
         self.categories.add(category)
         await self.session.flush()
         return CategoryUsage(category, Usage())
@@ -97,6 +107,13 @@ class CategoryService:
         moving = "parent_id" in data and data["parent_id"] != category.parent_id
         if moving:
             await self._move(category, data["parent_id"])
+        if "fulfilment" in data:  # an explicit null is meaningful: follow the parent again
+            category.fulfilment = data.pop("fulfilment")
+        if data.get("field_schema") is not None:
+            schema = body.field_schema or []
+            await self._check_fields(schema, category.parent_id, category)
+            category.field_schema = [f.model_dump(mode="json") for f in schema]
+        data.pop("field_schema", None)
         changes = {k: v for k, v in data.items() if v is not None and k != "parent_id"}
         if "name" in changes:
             changes["name"] = changes["name"].strip()
@@ -112,6 +129,15 @@ class CategoryService:
             setattr(category, field, value)
         await self.session.flush()
         return CategoryUsage(category, await self._usage_of(category))
+
+    async def _check_fields(self, schema: list[FieldDef], parent_id: int | None, category: Category | None) -> None:
+        """Keys unique within the row and against its parent's; a category's keys also can't clash with its
+        subcategories' own (they are merged when a service is filed under one)."""
+        parent = await self.session.get(Category, parent_id) if parent_id is not None else None
+        check_schema(schema, parse_schema(parent.field_schema) if parent else [])
+        if category is not None and category.parent_id is None:
+            for child in await self.categories.children(category.id):
+                check_schema(parse_schema(child.field_schema), schema)
 
     async def delete(self, category: Category) -> None:
         if any(await self._usage_of(category)):

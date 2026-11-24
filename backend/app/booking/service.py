@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.artist import schedule_service as artist_schedule
+from app.artist.constants import PricingUnit
 from app.artist.models import ArtistServiceItem
 from app.booking import notices, rules
 from app.booking.config import BookingSettings
@@ -26,6 +27,7 @@ from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, Bookin
 from app.booking.repository import reschedule_pending as reschedule_pending_clause
 from app.booking.schemas import BookingAddonIn, BookingIn
 from app.booking.utils import clean_reason, ist_month_start, new_code, reschedule_pending, shift_month
+from app.catalog import fields as catalog_fields
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.quote.constants import EnquiryStatus
 from app.quote.models import QuoteEnquiry
@@ -103,8 +105,10 @@ class NewBooking:
     start_at: datetime
     address: str
     note: str | None
-    price_paise: int  # the service plus any add-on lines
+    price_paise: int  # the service (times guests when per person) plus any add-on lines
     addons: tuple[BookingAddon, ...] = ()
+    quantity: int = 1
+    answers: tuple[dict[str, Any], ...] = ()
 
 
 def addon_lines(service: ArtistServiceItem, picks: list[BookingAddonIn]) -> tuple[BookingAddon, ...]:
@@ -149,6 +153,8 @@ def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> B
         end_at=data.start_at + timedelta(minutes=data.duration_minutes),
         address=data.address,
         note=data.note,
+        quantity=data.quantity,
+        answers=list(data.answers),
         status=BookingStatus.requested,
         subtotal_paise=p.subtotal_paise,
         # Phase 1 ("direct"): no in-app payments, so no platform fee and no deposit; the customer pays the
@@ -200,6 +206,9 @@ async def create_from_quote(
     price_paise: int,
     address: str,
     note: str | None,
+    service_id: uuid.UUID | None = None,
+    service_name: str | None = None,
+    answers: tuple[dict[str, Any], ...] = (),
 ) -> Booking:
     """A booking the artist already agreed to (an accepted quote): confirmed at once, with no service behind it,
     for a start inside their hours that is free. Same slot rules, overlap guard, pricing and commission as a
@@ -208,13 +217,14 @@ async def create_from_quote(
     data = NewBooking(
         customer_id=customer_id,
         artist_id=artist_id,
-        service_id=None,
-        service_name=CUSTOM_QUOTE,
+        service_id=service_id,
+        service_name=service_name or CUSTOM_QUOTE,
         duration_minutes=duration_minutes,
         start_at=start_at,
         address=address,
         note=note,
         price_paise=price_paise,
+        answers=answers,
     )
     repo = BookingRepository(session)
     try:
@@ -311,6 +321,16 @@ class BookingService:
         if service is None:
             raise NotFoundError("Service not found")
         addons = addon_lines(service, data.addons)
+        service_rules = await catalog_fields.rules_for(self.session, service.category_id)
+        if service_rules.fulfilment == catalog_fields.Fulfilment.made_to_order:
+            raise ConflictError("This is made to order: ask the artist for a quote instead")
+        per_person = service.pricing_unit == PricingUnit.per_person
+        if data.quantity != 1 and not per_person:
+            raise ValidationError("This service is priced as a package, not per person")
+        booking_fields = service_rules.scoped(catalog_fields.FieldScope.booking)
+        answers = catalog_fields.answer_snapshot(
+            booking_fields, catalog_fields.validate_values(booking_fields, data.answers)
+        )
 
         day = rules.start_day(data.start_at)
         rules.check_bookable_day(day, now)
@@ -334,8 +354,10 @@ class BookingService:
                 start_at=data.start_at,
                 address=data.address,
                 note=data.note,
-                price_paise=service.price_paise + sum(line.line_paise for line in addons),
+                price_paise=service.price_paise * data.quantity + sum(line.line_paise for line in addons),
                 addons=addons,
+                quantity=data.quantity,
+                answers=tuple(answers),
             ),
         )
         await insert(self.session, booking, TAKEN_SLOT)

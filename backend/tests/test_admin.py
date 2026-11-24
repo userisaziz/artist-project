@@ -39,6 +39,8 @@ async def test_create_category_derives_slug_and_order(client, engine):
         "service_count": 0,
         "child_count": 0,
         "template_count": 0,
+        "fulfilment": None,
+        "field_schema": [],
     }
     second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art"})
     assert second.json()["sort_order"] == 1

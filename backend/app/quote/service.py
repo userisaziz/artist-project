@@ -17,6 +17,7 @@ from app.booking import availability as booking_availability
 from app.booking import rules as booking_rules
 from app.booking import service as booking_service
 from app.booking.config import BookingSettings
+from app.catalog import fields as catalog_fields
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.quote import notices
 from app.quote.config import QuoteSettings
@@ -56,6 +57,10 @@ def enquiry_out(row: EnquiryRow, storage: ImageStorage) -> dict[str, Any]:
         "event_date": e.event_date,
         "details": e.details,
         "budget_paise": e.budget_paise,
+        "service_id": e.service_id,
+        "service_name": e.service_name,
+        "quantity": e.quantity,
+        "answers": e.answers,
         "created_at": e.created_at,
         "artist": {
             "id": e.artist_id,
@@ -163,6 +168,7 @@ class QuoteService:
         cap = self.settings.max_open_enquiries_per_customer
         if await self.enquiries.count(mine, live) >= cap:
             raise ConflictError(f"You have {cap} open enquiries. Wait for replies or cancel one first.")
+        service_name, answers = await self._about_service(artist.id, data)
         enquiry = QuoteEnquiry(
             customer_id=customer.id,
             artist_id=artist.id,
@@ -170,6 +176,10 @@ class QuoteService:
             event_date=data.event_date,
             details=data.details,
             budget_paise=data.budget_paise,
+            service_id=data.service_id,
+            service_name=service_name,
+            quantity=data.quantity,
+            answers=answers,
         )
         self.enquiries.add(enquiry)
         try:
@@ -178,6 +188,21 @@ class QuoteService:
             raise ConflictError(DUPLICATE) from exc
         await notices.received(self.session, enquiry, artist.user_id)
         return await self.save(enquiry.id, mine)
+
+    async def _about_service(self, artist_id: uuid.UUID, data: EnquiryIn) -> tuple[str | None, list[dict[str, Any]]]:
+        """The asked-about service's name and the customer's answers to its booking fields (none without one)."""
+        if data.service_id is None:
+            if data.answers:
+                raise ValidationError("Answers belong to a service: pick one")
+            return None, []
+        service = await self.enquiries.approved_service(data.service_id, artist_id)
+        if service is None:
+            raise NotFoundError("Service not found")
+        rules = await catalog_fields.rules_for(self.session, service.category_id)
+        fields = rules.scoped(catalog_fields.FieldScope.booking)
+        return service.display_name, catalog_fields.answer_snapshot(
+            fields, catalog_fields.validate_values(fields, data.answers)
+        )
 
     async def customer_list(self, customer: User, limit: int, cursor: str | None):
         mine = QuoteEnquiry.customer_id == customer.id
@@ -236,6 +261,9 @@ class QuoteService:
             price_paise=price,
             address=data.address,
             note=data.note,
+            service_id=enquiry.service_id,
+            service_name=enquiry.service_name,
+            answers=tuple(enquiry.answers),
         )
         enquiry.status = EnquiryStatus.accepted
         enquiry.booking_id = booking.id

@@ -3,7 +3,9 @@
 import uuid
 from datetime import date, datetime
 
+from app.artist.constants import PricingUnit
 from app.artist.schemas import AddonOut, NamedRef, WorkingHour
+from app.catalog.fields import FieldAnswer, FieldDef, Fulfilment
 from app.shared.schemas import APIModel
 
 
@@ -49,6 +51,10 @@ class PublicService(APIModel):
     photo_url: str | None  # the package's own photo, card size
     included_items: list[str]
     addons: list[AddonOut]  # priced extras a customer can pick when booking
+    pricing_unit: PricingUnit  # per_person: price_paise is per guest
+    fulfilment: Fulfilment  # made_to_order: customers ask for a quote instead of booking a slot
+    details: list[FieldAnswer]  # the artist's answers to the listing fields, labelled, in the schema's order
+    booking_fields: list[FieldDef]  # what the customer answers when booking or asking for a quote
 
 
 class ArtistPublic(ArtistCard):

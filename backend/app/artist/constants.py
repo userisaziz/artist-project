@@ -34,3 +34,10 @@ class Language(StrEnum):
     gujarati = "Gujarati"
     punjabi = "Punjabi"
     urdu = "Urdu"
+
+
+class PricingUnit(StrEnum):
+    """package: the price is the whole service. per_person: the price is per guest (a booking's quantity)."""
+
+    package = "package"
+    per_person = "per_person"

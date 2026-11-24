@@ -6,6 +6,8 @@ from typing import Literal
 
 from app.core.rate_limit import Limit
 
+QUANTITY_MAX = 10_000  # boxes, cards or guests in one enquiry
+
 
 class EnquiryStatus(StrEnum):
     """open (no quote yet) → quoted (re-quotable) → accepted (booked); or declined by the artist, cancelled by the

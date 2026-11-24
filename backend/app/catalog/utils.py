@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 
+from app.catalog.fields import effective
 from app.catalog.models import Area
 from app.catalog.service import Catalog, CategoryUsage
 from app.catalog.template import TemplateUsage
@@ -20,6 +21,8 @@ def category_out(row: CategoryUsage) -> dict:
         service_count=u.services,
         child_count=u.children,
         template_count=u.templates,
+        fulfilment=category.fulfilment,
+        field_schema=category.field_schema,
     )
 
 
@@ -41,15 +44,35 @@ def catalog_tree(catalog: Catalog) -> list[dict]:
     services: dict[int, list] = defaultdict(list)
     for template in catalog.templates:
         services[template.subcategory_id].append(template)
+    parents = {c.id: c for c in catalog.categories if c.parent_id is None}
     subcategories: dict[int, list[dict]] = defaultdict(list)
     for c in catalog.categories:
-        if c.parent_id is not None:
-            subcategories[c.parent_id].append({"id": c.id, "slug": c.slug, "name": c.name, "services": services[c.id]})
-    return [
-        {"id": c.id, "slug": c.slug, "name": c.name, "subcategories": subcategories[c.id]}
-        for c in catalog.categories
-        if c.parent_id is None
-    ]
+        if c.parent_id is not None and c.parent_id in parents:
+            rules = effective(c, parents[c.parent_id])
+            subcategories[c.parent_id].append(
+                {
+                    "id": c.id,
+                    "slug": c.slug,
+                    "name": c.name,
+                    "services": services[c.id],
+                    "fulfilment": rules.fulfilment,
+                    "fields": rules.fields,
+                }
+            )
+    out = []
+    for c in parents.values():
+        rules = effective(c, None)
+        out.append(
+            {
+                "id": c.id,
+                "slug": c.slug,
+                "name": c.name,
+                "subcategories": subcategories[c.id],
+                "fulfilment": rules.fulfilment,
+                "fields": rules.fields,
+            }
+        )
+    return out
 
 
 def area_out(area: Area) -> dict:

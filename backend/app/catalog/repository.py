@@ -48,6 +48,9 @@ class CategoryRepository:
             )
         ).all()
 
+    async def children(self, parent_id: int) -> Sequence[Category]:
+        return (await self.session.scalars(select(Category).where(Category.parent_id == parent_id))).all()
+
     async def top_level_by_ids(self, ids: Iterable[int]) -> Sequence[Category]:
         return (
             await self.session.scalars(select(Category).where(Category.id.in_(ids), Category.parent_id.is_(None)))

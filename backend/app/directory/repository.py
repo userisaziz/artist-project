@@ -236,7 +236,17 @@ class DirectoryRepository:
         category_refs = (
             select(
                 func.json_object_agg(
-                    Category.id, func.json_build_object("name", Category.name, "parent_id", Category.parent_id)
+                    Category.id,
+                    func.json_build_object(
+                        "name",
+                        Category.name,
+                        "parent_id",
+                        Category.parent_id,
+                        "fulfilment",
+                        Category.fulfilment,
+                        "field_schema",
+                        Category.field_schema,
+                    ),
                 )
             )
             .where(

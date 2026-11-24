@@ -140,6 +140,8 @@ async def test_service_crud(client):
         "name": "Party Makeup",
         "price_paise": 300000,
         "duration_minutes": 90,
+        "pricing_unit": "package",
+        "attributes": {},
         "description": None,
         "included_items": [],
         "addons": [],

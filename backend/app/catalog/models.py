@@ -4,6 +4,7 @@ subcategory (migration #6). Admins create them in the admin app. Also the areas 
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums import CategoryStatus
@@ -24,6 +25,18 @@ class Category(Base):
         default=CategoryStatus.draft,
         server_default=sa.text("'draft'"),
         nullable=False,
+    )
+    # How its services are fulfilled (app.catalog.fields.Fulfilment); NULL on a subcategory = the parent's.
+    fulfilment: Mapped[str | None] = mapped_column(String(20))
+    # Admin-defined extra fields (list of app.catalog.fields.FieldDef); a subcategory's come after its parent's.
+    field_schema: Mapped[list[dict]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=sa.text("'[]'")
+    )
+
+    __table_args__ = (
+        sa.CheckConstraint(
+            "fulfilment IS NULL OR fulfilment IN ('appointment', 'made_to_order')", name="fulfilment_known"
+        ),
     )
 
 

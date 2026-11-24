@@ -28,6 +28,8 @@ def service_out(item: ArtistServiceItem, storage: ImageStorage) -> dict:
         name=item.display_name,
         price_paise=item.price_paise,
         duration_minutes=item.duration_minutes,
+        pricing_unit=item.pricing_unit,
+        attributes=dict(item.attributes),
         description=item.description,
         included_items=list(item.included_items),
         addons=addons_out(item),

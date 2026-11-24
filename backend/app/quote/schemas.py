@@ -2,10 +2,11 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import AwareDatetime, Field, StringConstraints, field_validator
 
+from app.catalog.fields import FieldAnswer
 from app.quote.constants import (
     ADDRESS_MAX,
     DETAILS_MAX,
@@ -16,6 +17,7 @@ from app.quote.constants import (
     MAX_PAISE,
     MIN_PAISE,
     NOTE_MAX,
+    QUANTITY_MAX,
     REASON_MAX,
     EnquiryStatus,
 )
@@ -33,6 +35,9 @@ class EnquiryIn(APIModel):
     event_date: date  # today (IST) up to the booking horizon; checked against the clock in the service
     details: Annotated[str, StringConstraints(strip_whitespace=True, min_length=DETAILS_MIN, max_length=DETAILS_MAX)]
     budget_paise: Paise | None = None
+    service_id: uuid.UUID | None = None  # the service asked about, e.g. a made-to-order one
+    quantity: int | None = Field(default=None, ge=1, le=QUANTITY_MAX)  # boxes, cards, guests
+    answers: dict[str, Any] = Field(default_factory=dict)  # that service's booking fields, by key
 
 
 class QuoteIn(APIModel):
@@ -86,6 +91,10 @@ class EnquiryOut(APIModel):
     event_date: date
     details: str
     budget_paise: int | None
+    service_id: uuid.UUID | None
+    service_name: str | None
+    quantity: int | None
+    answers: list[FieldAnswer]
     created_at: datetime
     artist: EnquiryArtist
     customer: EnquiryCustomer
