@@ -7,9 +7,18 @@ export type ChatModeration = 'held' | 'hidden';
 export interface ChatMessage {
   id: string;
   sender: ChatSide;
+  /** "" when the message is only a photo. */
   text: string;
+  /** Full-size photo; null for text only. A message still sending shows the local file here. */
+  photo_url: string | null;
   created_at: string;
   moderation: ChatModeration | null;
+}
+
+/** What the composer sends: text, an uploaded photo (purpose "chat"), or both. */
+export interface OutgoingMessage {
+  text: string;
+  photo?: { key: string; localUri: string };
 }
 
 export interface Counterpart {

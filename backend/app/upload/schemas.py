@@ -8,7 +8,7 @@ from app.shared.schemas import APIModel
 
 
 class UploadRequest(APIModel):
-    purpose: Literal["artist_photo", "portfolio", "aadhaar", "post", "shop", "service"]
+    purpose: Literal["artist_photo", "portfolio", "aadhaar", "post", "shop", "service", "chat"]
 
 
 class UploadOut(APIModel):

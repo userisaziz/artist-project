@@ -27,7 +27,9 @@ from app.upload.config import get_upload_settings
 
 logger = logging.getLogger("art_circle.storage")
 
-Purpose = Literal["artist_photo", "portfolio", "aadhaar", "post", "shop", "service"]
+# "chat" is the one purpose customers may sign too (photos in a conversation). Keys keep the historic "artists/"
+# prefix for every uploader; the owner id in the path is what ownership checks pin.
+Purpose = Literal["artist_photo", "portfolio", "aadhaar", "post", "shop", "service", "chat"]
 PRIVATE_PURPOSES = {"aadhaar"}  # stored without a public URL; viewed through expiring signed links
 Variant = Literal["thumb", "card", "full"]
 ALLOWED_FORMATS = "jpg,jpeg,png,webp,heic"

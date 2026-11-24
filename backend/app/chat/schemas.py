@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import Field, StringConstraints, model_validator
 
 from app.chat.constants import MESSAGE_MAX_LENGTH, ChatSide, MessageModeration
 from app.shared.enums import BookingStatus
@@ -20,13 +20,23 @@ class OpenFromBookingIn(APIModel):
 
 
 class MessageIn(APIModel):
-    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MESSAGE_MAX_LENGTH)]
+    """Text, a photo (an upload with purpose "chat"), or both."""
+
+    text: Annotated[str, StringConstraints(strip_whitespace=True, max_length=MESSAGE_MAX_LENGTH)] = ""
+    photo_key: str | None = Field(default=None, max_length=255)
+
+    @model_validator(mode="after")
+    def text_or_photo(self) -> "MessageIn":
+        if not self.text and not self.photo_key:
+            raise ValueError("Write a message or add a photo")
+        return self
 
 
 class MessageOut(APIModel):
     id: uuid.UUID
     sender: ChatSide
     text: str
+    photo_url: str | None  # full-size; None for a text-only message
     created_at: datetime
     moderation: MessageModeration | None  # only on the sender's own message: held (under review) or hidden
 

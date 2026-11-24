@@ -13,6 +13,7 @@ from tests.support.auth import sign_in
 from tests.support.booking import book, setup
 from tests.support.catalog import seed_categories
 from tests.support.queries import count_statements
+from tests.support.upload import upload_key
 
 NOW = datetime(2026, 10, 9, 9, 0, tzinfo=UTC)
 
@@ -378,3 +379,43 @@ async def test_opening_a_chat_costs_three_database_round_trips(client, engine):
         assert (await client.get(f"/api/v1/conversations/{c['id']}", headers=customer)).status_code == 200
 
     assert len(statements) == 3, [statement.split("\n")[0] for statement in statements]
+
+
+async def test_both_sides_send_photos_and_the_inbox_says_photo(client, engine, travel):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    travel(NOW)
+    key = await upload_key(client, customer, "chat")  # customers may sign chat photos (and only those)
+    photo = await client.post(f"/api/v1/conversations/{c['id']}/messages", headers=customer, json={"photo_key": key})
+    assert photo.status_code == 201, photo.text
+    assert (photo.json()["text"], photo.json()["photo_url"].startswith("https://fake.storage/full/")) == ("", True)
+
+    travel(NOW + timedelta(minutes=1))
+    artist_key = await upload_key(client, artist["headers"], "chat")
+    reply = await client.post(
+        f"/api/v1/artists/me/conversations/{c['id']}/messages",
+        headers=artist["headers"],
+        json={"text": "Like this one?", "photo_key": artist_key},
+    )
+    assert (reply.json()["text"], reply.json()["photo_url"] is not None) == ("Like this one?", True)
+
+    page = (await client.get(f"/api/v1/conversations/{c['id']}/messages", headers=customer)).json()
+    assert [m["photo_url"] is not None for m in page["items"]] == [True, True]
+    travel(NOW + timedelta(minutes=2))
+    await client.post(f"/api/v1/conversations/{c['id']}/messages", headers=customer, json={"photo_key": key})
+    inbox = (await client.get("/api/v1/artists/me/conversations", headers=artist["headers"])).json()
+    assert inbox["items"][0]["last_message"]["text"] == "Photo"
+
+
+async def test_chat_photos_must_be_the_senders_own_upload(client, engine):
+    _, artist, customer = await setup(client, engine)
+    c = (await open_chat(client, customer, artist["id"])).json()
+    theirs = await upload_key(client, artist["headers"], "chat")
+    stolen = await client.post(
+        f"/api/v1/conversations/{c['id']}/messages", headers=customer, json={"photo_key": theirs}
+    )
+    assert stolen.status_code == 422
+    empty = await client.post(f"/api/v1/conversations/{c['id']}/messages", headers=customer, json={"text": "  "})
+    assert empty.status_code == 422
+    portfolio = await client.post("/api/v1/uploads/signature", headers=customer, json={"purpose": "portfolio"})
+    assert portfolio.status_code == 403  # every other upload stays artist-only

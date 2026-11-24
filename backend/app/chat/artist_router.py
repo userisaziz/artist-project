@@ -10,7 +10,9 @@ from app.chat.dependencies import (
 from app.chat.models import Conversation
 from app.chat.schemas import ConversationOut, ConversationPage, MessageIn, MessageOut, MessagePage, OpenFromBookingIn
 from app.chat.service import ChatService, Participant
+from app.core.auth import get_current_user
 from app.shared.responses import errors
+from app.user.models import User
 
 # An approved artist's chats with customers. Draft, pending or rejected profiles get 409.
 router = APIRouter(
@@ -80,8 +82,9 @@ async def send_message(
     conversation: Conversation = Depends(valid_artist_conversation),
     participant: Participant = Depends(artist_participant),
     chats: ChatService = Depends(get_chat_service),
+    user: User = Depends(get_current_user),
 ) -> dict:
-    return await chats.send(participant, conversation, body.text)
+    return await chats.send(participant, conversation, body.text, body.photo_key, user.id)
 
 
 @router.post("/{conversation_id}/read", response_model=ConversationOut, status_code=200, summary="Mark as read")

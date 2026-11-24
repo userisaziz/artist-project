@@ -67,7 +67,8 @@ class Message(Base):
         UUID(as_uuid=True), ForeignKey("chat_conversation.id", ondelete="CASCADE"), nullable=False
     )
     sender: Mapped[ChatSide] = mapped_column(chat_side_enum, nullable=False)
-    text: Mapped[str] = mapped_column(String(MESSAGE_MAX_LENGTH), nullable=False)
+    text: Mapped[str] = mapped_column(String(MESSAGE_MAX_LENGTH), nullable=False)  # "" for a photo on its own
+    photo_key: Mapped[str | None] = mapped_column(String(255))  # an upload with purpose "chat", by the sender
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     # Set only when the contact filter caught the message (see MessageModeration).
     moderation: Mapped[MessageModeration | None] = mapped_column(moderation_enum)

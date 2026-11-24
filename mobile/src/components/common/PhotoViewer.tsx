@@ -17,22 +17,24 @@ interface PhotoViewerProps {
   /** The photo to open on; null keeps the viewer closed. */
   startIndex: number | null;
   onClose: () => void;
+  /** Screen-reader name for each photo: "<label> 3 of 12". */
+  label?: string;
 }
 
 const CLOSE_SIZE = 40;
 
 /** Full-screen photos on the plum backdrop, swiped one at a time, with "3 of 12" and a close button.
  *  The whole photo is shown (contain), never cropped. */
-export function PhotoViewer({ photos, startIndex, onClose }: PhotoViewerProps) {
+export function PhotoViewer({ photos, startIndex, onClose, label = 'Work photo' }: PhotoViewerProps) {
   return (
     <Modal visible={startIndex !== null} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      {startIndex !== null ? <ViewerPager photos={photos} startIndex={startIndex} onClose={onClose} /> : null}
+      {startIndex !== null ? <ViewerPager photos={photos} startIndex={startIndex} onClose={onClose} label={label} /> : null}
     </Modal>
   );
 }
 
 /** The open viewer. Mounted per opening, so it starts on the tapped photo each time. */
-function ViewerPager({ photos, startIndex, onClose }: { photos: ViewerPhoto[]; startIndex: number; onClose: () => void }) {
+function ViewerPager({ photos, startIndex, onClose, label }: { photos: ViewerPhoto[]; startIndex: number; onClose: () => void; label: string }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -50,7 +52,7 @@ function ViewerPager({ photos, startIndex, onClose }: { photos: ViewerPhoto[]; s
         getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         onMomentumScrollEnd={settle}
         renderItem={({ item, index: i }) => (
-          <Photo uri={item.url} fit="contain" label={`Work photo ${i + 1} of ${photos.length}`} style={{ width, height, backgroundColor: theme.colors.photoScrim }} />
+          <Photo uri={item.url} fit="contain" label={`${label} ${i + 1} of ${photos.length}`} style={{ width, height, backgroundColor: theme.colors.photoScrim }} />
         )}
       />
       <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + theme.spacing.sm, left: theme.spacing.md, right: theme.spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

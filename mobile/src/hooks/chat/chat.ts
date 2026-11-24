@@ -6,7 +6,7 @@ import { useAuth } from '../../context/auth/auth-provider';
 import { errorMessage } from '../../core/api/error-message';
 import { toast } from '../../core/toast/toast';
 import type { Page } from '../../core/api/types';
-import type { ChatMessage, ChatSide, Conversation } from '../../types/chat/chat';
+import type { ChatMessage, ChatSide, Conversation, OutgoingMessage } from '../../types/chat/chat';
 
 // Chat is delivered by polling, only while the screen is focused (`poll`): react-query itself only pauses in the background.
 const INBOX_POLL_MS = 15_000;
@@ -84,10 +84,13 @@ export function useSendMessage(side: ChatSide, id: string) {
   const client = useQueryClient();
   const key = chatKeys.messages(user?.id, side, id);
   return useMutation({
-    mutationFn: (text: string) => chatApi.sendMessage(side, id, text),
-    onMutate: async (text) => {
+    mutationFn: ({ text, photo }: OutgoingMessage) => chatApi.sendMessage(side, id, text, photo?.key),
+    onMutate: async ({ text, photo }) => {
       await client.cancelQueries({ queryKey: key });
-      const pending: ChatMessage = { id: `${PENDING_PREFIX}${Date.now()}-${++pendingSeq}`, sender: side, text, created_at: new Date().toISOString(), moderation: null };
+      const pending: ChatMessage = {
+        id: `${PENDING_PREFIX}${Date.now()}-${++pendingSeq}`, sender: side, text, photo_url: photo?.localUri ?? null,
+        created_at: new Date().toISOString(), moderation: null,
+      };
       client.setQueryData<MessagePages>(key, (data) => withFirstPage(data, (items) => [pending, ...items]));
       return { pendingId: pending.id };
     },

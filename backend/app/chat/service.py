@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.chat.constants import REPLY_TIME_MIN_REPLIES, ChatSide, MessageModeration
 from app.chat.models import Conversation, Message
 from app.chat.repository import ChatRepository, ConversationRow, customer_name_matches
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.notification import service as notification_service
 from app.review import filters as review_filters
 from app.shared.clock import Clock
@@ -56,10 +56,18 @@ def customer_name(first: str | None, last: str | None) -> str:
     return " ".join(n for n in (first, last) if n) or CUSTOMER_FALLBACK_NAME
 
 
-def message_out(m: Message) -> dict[str, Any]:
+def message_out(m: Message, storage: ImageStorage) -> dict[str, Any]:
     """`moderation` is shown only while it matters to the sender: held or hidden. Allowed reads as normal."""
     pending = m.moderation if m.moderation in (MessageModeration.held, MessageModeration.hidden) else None
-    return {"id": m.id, "sender": m.sender, "text": m.text, "created_at": m.created_at, "moderation": pending}
+    photo = storage.url(m.photo_key, "full") if m.photo_key else None
+    return {
+        "id": m.id,
+        "sender": m.sender,
+        "text": m.text,
+        "photo_url": photo,
+        "created_at": m.created_at,
+        "moderation": pending,
+    }
 
 
 def conversation_out(row: ConversationRow, side: ChatSide, storage: ImageStorage) -> dict[str, Any]:
@@ -71,7 +79,7 @@ def conversation_out(row: ConversationRow, side: ChatSide, storage: ImageStorage
         name = customer_name(row.first_name, row.last_name)
         counterpart = {"id": c.customer_id, "name": name, "photo_url": row.avatar_url}
     last = (
-        {"sender": row.last_sender, "text": row.last_text, "created_at": row.last_created_at}
+        {"sender": row.last_sender, "text": row.last_text or "Photo", "created_at": row.last_created_at}
         if row.last_sender
         else None
     )
@@ -161,13 +169,22 @@ class ChatService:
     async def messages(self, participant: Participant, conversation: Conversation, limit: int, cursor: str | None):
         rows = await self.chats.message_page(conversation.id, participant.side, limit=limit, cursor=cursor)
         page, next_cursor = split_page(rows, limit, lambda m: (m.created_at, m.id))
-        return [message_out(m) for m in page], next_cursor
+        return [message_out(m, self.storage) for m in page], next_cursor
 
-    async def send(self, participant: Participant, conversation: Conversation, text: str) -> dict[str, Any]:
+    async def send(
+        self,
+        participant: Participant,
+        conversation: Conversation,
+        text: str,
+        photo_key: str | None = None,
+        sender_user_id: uuid.UUID | None = None,
+    ) -> dict[str, Any]:
         """Under the conversation's row lock, so message times strictly increase in commit order and a read
         mark taken after a send always covers it. Writing counts as reading for the sender.
         A message the contact filter catches is saved but held: only the sender sees it until an admin decides."""
-        flag = review_filters.review_flag(text)
+        if photo_key and (sender_user_id is None or not self.storage.owns(photo_key, sender_user_id, "chat")):
+            raise ValidationError("Invalid photo key")
+        flag = review_filters.review_flag(text) if text else None
         if participant.side == ChatSide.customer and not await self.chats.approved_artist_owner(conversation.artist_id):
             raise ConflictError("This artist isn't taking messages right now")
         locked = await self.chats.locked(conversation.id)
@@ -176,17 +193,18 @@ class ChatService:
             conversation_id=locked.id,
             sender=participant.side,
             text=text,
+            photo_key=photo_key,
             created_at=at,
             flag=flag,
             moderation=MessageModeration.held if flag else None,
         )
         self.chats.add(message)
         if not flag:
-            await self._notify(participant, locked, text)
+            await self._notify(participant, locked, text or "Sent a photo")
         locked.last_message_at = at
         self._mark_read(participant, locked, at)
         await self.session.commit()
-        return message_out(message)
+        return message_out(message, self.storage)
 
     async def mark_read(self, participant: Participant, conversation: Conversation) -> dict[str, Any]:
         locked = await self.chats.locked(conversation.id)

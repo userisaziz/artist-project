@@ -79,7 +79,7 @@ export function ChatThread({ side, conversationId }: ChatThreadProps) {
         ) : null}
       </View>
       <View style={{ paddingBottom: keyboardUp ? 0 : insets.bottom, backgroundColor: theme.colors.surface }}>
-        <ChatComposer sending={send.isPending} error={send.isError ? errorMessage(send.error) : null} onSend={(text) => send.mutateAsync(text)} />
+        <ChatComposer sending={send.isPending} error={send.isError ? errorMessage(send.error) : null} onSend={(message) => send.mutateAsync(message)} />
       </View>
     </KeyboardAvoider>
   );

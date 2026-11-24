@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from app.core.auth import current_artist
+from app.core.auth import get_current_user
+from app.core.exceptions import ForbiddenError
+from app.shared.enums import UserRole
 from app.shared.responses import errors
 from app.upload.dependencies import limit_signatures
 from app.upload.schemas import UploadOut, UploadRequest
@@ -19,7 +21,10 @@ router = APIRouter(prefix="/uploads", tags=["uploads"], responses=errors(401, 40
 )
 async def upload_signature(
     body: UploadRequest,
-    user: User = Depends(current_artist),
+    user: User = Depends(get_current_user),
     storage: ImageStorage = Depends(get_storage),
 ) -> dict:
+    """Artists sign every purpose; customers only chat photos."""
+    if body.purpose != "chat" and UserRole.artist not in user.roles:
+        raise ForbiddenError()
     return storage.upload_params(user.id, body.purpose)

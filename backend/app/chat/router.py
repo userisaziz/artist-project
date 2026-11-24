@@ -10,7 +10,9 @@ from app.chat.dependencies import (
 from app.chat.models import Conversation
 from app.chat.schemas import ConversationOut, ConversationPage, MessageIn, MessageOut, MessagePage, OpenWithArtistIn
 from app.chat.service import ChatService, Participant
+from app.core.auth import get_current_user
 from app.shared.responses import errors
+from app.user.models import User
 
 # A customer's chats with artists. Someone else's conversation reads as 404, never 403.
 router = APIRouter(prefix="/conversations", tags=["chat"], responses=errors(401, 403, 404, 409, 422, 429))
@@ -77,8 +79,9 @@ async def send_message(
     conversation: Conversation = Depends(valid_customer_conversation),
     participant: Participant = Depends(customer_participant),
     chats: ChatService = Depends(get_chat_service),
+    user: User = Depends(get_current_user),
 ) -> dict:
-    return await chats.send(participant, conversation, body.text)
+    return await chats.send(participant, conversation, body.text, body.photo_key, user.id)
 
 
 @router.post("/{conversation_id}/read", response_model=ConversationOut, status_code=200, summary="Mark as read")

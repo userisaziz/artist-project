@@ -44,7 +44,7 @@ it('sending posts the text and puts the message at the top of the cached thread'
   send.mockResolvedValue({ status: 201, json: mine });
   const { result } = await renderHook(() => useSendMessage('customer', 'c1'), { wrapper });
 
-  await act(async () => { await result.current.mutateAsync('Can you hide our initials?'); });
+  await act(async () => { await result.current.mutateAsync({ text: 'Can you hide our initials?' }); });
 
   expect(sent()).toMatchObject({ method: 'POST', path: '/conversations/c1/messages', body: { text: 'Can you hide our initials?' } });
   const cached = client.getQueryData<InfiniteData<Page<ChatMessage>>>(chatKeys.messages(userId, 'customer', 'c1'));
@@ -58,7 +58,7 @@ it('shows the message in the thread at once, before the server answers', async (
   send.mockReturnValue(new Promise(() => {}));
   const { result } = await renderHook(() => useSendMessage('customer', 'c1'), { wrapper });
 
-  await act(async () => { result.current.mutate('On my way'); });
+  await act(async () => { result.current.mutate({ text: 'On my way' }); });
 
   const items = client.getQueryData<InfiniteData<Page<ChatMessage>>>(key)?.pages[0].items;
   expect(items?.map((m) => [m.text, isPendingMessage(m)])).toEqual([['On my way', true], [messageFixture().text, false]]);
@@ -71,7 +71,7 @@ it('takes the pending message back out when sending fails', async () => {
   send.mockRejectedValue(new ApiError('network_error', 'Network unreachable.', 0));
   const { result } = await renderHook(() => useSendMessage('customer', 'c1'), { wrapper });
 
-  await act(async () => { await result.current.mutateAsync('On my way').catch(() => {}); });
+  await act(async () => { await result.current.mutateAsync({ text: 'On my way' }).catch(() => {}); });
 
   expect(client.getQueryData<InfiniteData<Page<ChatMessage>>>(key)?.pages[0].items.map((m) => m.id)).toEqual(['m1']);
 });
@@ -96,4 +96,18 @@ it('a failed thread load surfaces the ApiError', async () => {
 
   expect(result.current.error).toBeInstanceOf(ApiError);
   expect(result.current.error).toMatchObject({ code: 'not_found' });
+});
+
+it('sends a photo with its key and shows the local picture while it sends', async () => {
+  const userId = jest.requireActual('../../mocks/auth/auth').userFixture.id;
+  const key = chatKeys.messages(userId, 'customer', 'c1');
+  client.setQueryData(key, { pages: [{ items: [], next_cursor: null }], pageParams: [null] });
+  send.mockReturnValue(new Promise(() => {}));
+  const { result } = await renderHook(() => useSendMessage('customer', 'c1'), { wrapper });
+
+  await act(async () => { result.current.mutate({ text: '', photo: { key: 'artists/u1/chat/abc', localUri: 'file:///design.jpg' } }); });
+
+  expect(sent()).toMatchObject({ method: 'POST', path: '/conversations/c1/messages', body: { text: '', photo_key: 'artists/u1/chat/abc' } });
+  const cached = client.getQueryData<InfiniteData<Page<ChatMessage>>>(key);
+  expect(cached?.pages[0].items[0]).toMatchObject({ photo_url: 'file:///design.jpg', text: '' });
 });

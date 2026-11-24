@@ -22,8 +22,8 @@ export function listConversations(side: ChatSide, cursor?: string | null, q?: st
 export function listMessages(side: ChatSide, conversationId: string, cursor?: string | null) {
   return request<Page<ChatMessage>>(withQuery(`${one(side, conversationId)}/messages`, { cursor }), undefined, { auth: true, method: 'GET' });
 }
-export function sendMessage(side: ChatSide, conversationId: string, text: string) {
-  return request<ChatMessage>(`${one(side, conversationId)}/messages`, { text }, { auth: true });
+export function sendMessage(side: ChatSide, conversationId: string, text: string, photoKey?: string) {
+  return request<ChatMessage>(`${one(side, conversationId)}/messages`, photoKey ? { text, photo_key: photoKey } : { text }, { auth: true });
 }
 export function markRead(side: ChatSide, conversationId: string) {
   return request<Conversation>(`${one(side, conversationId)}/read`, undefined, { auth: true });

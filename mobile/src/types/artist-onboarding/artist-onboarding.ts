@@ -110,7 +110,7 @@ export interface KycInput {
   back_key: string;
 }
 
-export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post' | 'shop' | 'service';
+export type UploadPurpose = 'artist_photo' | 'portfolio' | 'aadhaar' | 'post' | 'shop' | 'service' | 'chat';
 
 /** Send the image to `upload_url`, then send `key` to our API (backend app/upload/schemas.py UploadOut).
  *  POST: multipart form of `fields` plus the image as `file` (Cloudinary). PUT: the raw image with `headers` (R2). */
