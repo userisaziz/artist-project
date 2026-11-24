@@ -7,7 +7,7 @@ import { AppTextField } from '../common/AppTextField';
 import { Avatar } from '../common/Avatar';
 import { useTheme } from '../../core/theme/theme-provider';
 import { customerName } from '../../utils/bookings/status';
-import { formatWhen } from '../../utils/common/time';
+import { formatWhen, timeLeft } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
 import { Countdown } from './Countdown';
 import type { Booking } from '../../types/bookings/bookings';
@@ -30,8 +30,15 @@ interface RequestCardProps {
 /** Spec §3 request card: customer and countdown, Service / When / Where / You earn, the note, Decline, Message and Accept. */
 export function RequestCard({ booking, now, busy, error, onAccept, onDecline, onMessage, onOpen }: RequestCardProps) {
   const theme = useTheme();
-  const [declining, setDeclining] = useState(false);
-  const [reason, setReason] = useState('');
+  // Lists recycle card instances (FlashList), so the decline draft is tied to the booking it was typed for:
+  // a recycled card showing another customer's request starts closed and empty.
+  const [draft, setDraft] = useState<{ bookingId: string; reason: string } | null>(null);
+  const declining = draft?.bookingId === booking.id;
+  const reason = declining ? draft.reason : '';
+  const setReason = (text: string) => setDraft({ bookingId: booking.id, reason: text });
+  const setDeclining = (open: boolean) => setDraft(open ? { bookingId: booking.id, reason: '' } : null);
+  // Past its answer deadline the server refuses Accept and Decline, so the card stops offering them.
+  const expired = timeLeft(booking.expires_at, now).over;
   const name = customerName(booking.customer);
   const cell = (label: string, value: string, tint?: string) => (
     <View style={{ width: '50%', paddingRight: 8, paddingBottom: 10 }}>
@@ -66,7 +73,12 @@ export function RequestCard({ booking, now, busy, error, onAccept, onDecline, on
           <AppText variant="caption" style={{ fontSize: 12.5, color: theme.colors.textSecondary }}>{`“${booking.note}”`}</AppText>
         </View>
       ) : null}
-      {declining ? (
+      {expired ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], padding: theme.spacing[3.5] }}>
+          <AppText variant="caption" accessibilityRole="alert" style={{ flex: 1, color: theme.colors.textMuted }}>This request expired before it was answered. The customer has been told.</AppText>
+          {onMessage ? <AppButton label="Message" accessibilityLabel={`Message ${name}`} variant="secondary" onPress={onMessage} /> : null}
+        </View>
+      ) : declining ? (
         <View style={{ padding: 14, gap: 10 }}>
           <AppTextField label="Reason (optional)" placeholder="Tell the customer why" value={reason} onChangeText={setReason} maxLength={MAX_REASON} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
