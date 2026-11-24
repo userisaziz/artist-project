@@ -15,7 +15,7 @@ interface AddonPickerProps {
 }
 
 const BOX = 22;
-const STEP = 30;
+const GUEST_LABEL = 64; // fits "50 guests" so the steppers do not shift
 
 /** Service detail "Add-ons": tick any; per-person ones get a guest count. Picks keep the service's order. */
 export function AddonPicker({ addons, picks, onChange }: AddonPickerProps) {
@@ -51,8 +51,9 @@ export function AddonPicker({ addons, picks, onChange }: AddonPickerProps) {
             {on && a.per_person ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: BOX + 12 }}>
                 <StepButton icon="minus" label={`Fewer guests for ${a.name}`} enabled={guests > 1} onPress={() => setGuests(a.id, guests - 1)} />
-                <AppText variant="label" style={{ minWidth: 64, textAlign: 'center', color: theme.colors.textPrimary }}>{`${guests} ${guests === 1 ? 'guest' : 'guests'}`}</AppText>
+                <AppText variant="label" accessibilityLiveRegion="polite" style={{ minWidth: GUEST_LABEL, textAlign: 'center', color: theme.colors.textPrimary }}>{`${guests} ${guests === 1 ? 'guest' : 'guests'}`}</AppText>
                 <StepButton icon="plus" label={`More guests for ${a.name}`} enabled={guests < MAX_ADDON_GUESTS} onPress={() => setGuests(a.id, guests + 1)} />
+                <AppText variant="label" style={{ flex: 1, textAlign: 'right', color: theme.colors.textPrimary }}>{formatPrice(a.price_paise * guests)}</AppText>
               </View>
             ) : null}
           </View>
@@ -71,8 +72,8 @@ function StepButton({ icon, label, enabled, onPress }: { icon: 'minus' | 'plus';
       accessibilityState={{ disabled: !enabled }}
       disabled={!enabled}
       onPress={onPress}
-      hitSlop={6}
-      style={{ width: STEP, height: STEP, borderRadius: STEP / 2, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center', opacity: enabled ? 1 : 0.4 }}
+      hitSlop={theme.spacing[1.5]}
+      style={{ width: theme.spacing[8.5], height: theme.spacing[8.5], borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.separator, alignItems: 'center', justifyContent: 'center', opacity: enabled ? 1 : 0.4 }}
     >
       <Icon name={icon} size={14} />
     </PressableFeedback>

@@ -8,6 +8,7 @@ import { AppButton } from '../../../src/components/common/AppButton';
 import { AppTextField } from '../../../src/components/common/AppTextField';
 import { BackHeader } from '../../../src/components/common/BackHeader';
 import { Card } from '../../../src/components/common/Card';
+import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { ErrorView, LoadingView } from '../../../src/components/common/StateViews';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useArtistPublic, directoryKeys } from '../../../src/hooks/directory/directory';
@@ -16,9 +17,11 @@ import { AddressPicker } from '../../../src/components/common/AddressPicker';
 import { useAddressBook } from '../../../src/hooks/addresses/addresses';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
-import { AddonLines } from '../../../src/components/bookings/AddonLines';
-import { addonLines, addonsTotal, decodeAddonPicks } from '../../../src/utils/bookings/addons';
-import { DEPOSIT_PERCENT, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
+import { OrderSummary } from '../../../src/components/bookings/OrderSummary';
+import { AddonPicker } from '../../../src/components/directory/AddonPicker';
+import { addonLines, addonsTotal, decodeAddonPicks, encodeAddonPicks, removePick } from '../../../src/utils/bookings/addons';
+import type { BookingAddonPick } from '../../../src/types/bookings/bookings';
+import { DEPOSIT_PERCENT, FREE_CANCEL_HOURS, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { formatPrice } from '../../../src/utils/common/format';
@@ -52,6 +55,9 @@ export default function ReviewAndPay() {
   const [addressError, setAddressError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  // The add-on "cart": starts as what was picked on Service detail and stays editable until the request is sent.
+  const [editedPicks, setEditedPicks] = useState<BookingAddonPick[] | null>(null);
+  const [editingAddons, setEditingAddons] = useState(false);
   const service = artist.data?.services.find((s) => s.id === serviceId);
 
   if (!artist.data || !service) {
@@ -62,7 +68,8 @@ export default function ReviewAndPay() {
       </View>
     );
   }
-  const picks = decodeAddonPicks(addons, service.addons);
+  const picks = editedPicks ?? decodeAddonPicks(addons, service.addons);
+  const setPicks = (next: BookingAddonPick[]) => { setEditedPicks(next); router.setParams({ addons: encodeAddonPicks(next) }); };
   const lines = addonLines(service.addons, picks);
   const money = priceBreakdown(service.price_paise + addonsTotal(lines), IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
   const start = Date.parse(startAt);
@@ -71,7 +78,7 @@ export default function ReviewAndPay() {
     ? 'Nothing is paid in the app. You can cancel any time before the start.'
     : refundUntil > now
       ? `Free cancellation until ${formatWhen(refundUntil)}`
-      : 'This starts within 72 hours, so the deposit isn’t refundable if you cancel.';
+      : `This starts within ${FREE_CANCEL_HOURS} hours, so the deposit isn’t refundable if you cancel.`;
 
   const pay = async () => {
     if (paying) return;
@@ -87,7 +94,8 @@ export default function ReviewAndPay() {
       if (e instanceof ApiError && e.code === 'conflict') {
         setNotice(e.message || TAKEN);
         await client.invalidateQueries({ queryKey: [...directoryKeys.all, 'availability'] });
-        router.back(); // Date & time shows the notice over freshly fetched slots
+        // Date & time shows the notice over freshly fetched slots, keeping the add-ons as edited here.
+        router.dismissTo({ pathname: '/customer/book/[artistId]', params: { artistId, serviceId, addons: encodeAddonPicks(picks) } });
         return;
       }
       setError(errorMessage(e));
@@ -119,8 +127,27 @@ export default function ReviewAndPay() {
           error={addressError}
         />
         <AppTextField label="Note for the artist (optional)" placeholder="Anything they should know" value={note} onChangeText={setNote} maxLength={MAX_NOTE} />
-        <Card style={{ gap: 6 }}>
-          <AddonLines lines={lines.map((l) => ({ name: l.addon.name, per_person: l.addon.per_person, guests: l.guests, line_paise: l.line_paise }))} />
+        <Card style={{ gap: theme.spacing[1.5] }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>Your booking</AppText>
+            {service.addons.length ? (
+              <PressableFeedback
+                accessibilityRole="button"
+                accessibilityState={{ expanded: editingAddons }}
+                onPress={() => setEditingAddons((v) => !v)}
+                hitSlop={theme.spacing[2]}
+              >
+                <AppText variant="labelLg" style={{ color: theme.colors.brand }}>{editingAddons ? 'Done' : lines.length ? 'Edit add-ons' : 'Add add-ons'}</AppText>
+              </PressableFeedback>
+            ) : null}
+          </View>
+          <OrderSummary
+            serviceName={service.name}
+            servicePaise={service.price_paise}
+            addons={lines.map((l) => ({ id: l.addon.id, name: l.addon.name, per_person: l.addon.per_person, guests: l.guests, line_paise: l.line_paise }))}
+            onRemove={service.addons.length ? (id) => setPicks(removePick(picks, id)) : undefined}
+          />
+          {editingAddons ? <AddonPicker addons={service.addons} picks={picks} onChange={setPicks} /> : null}
           <Breakdown money={money} />
         </Card>
         <View style={{ gap: 4 }}>

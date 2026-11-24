@@ -12,9 +12,9 @@ import { SlotPicker } from '../../../src/components/directory/SlotPicker';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { formatWhen } from '../../../src/utils/common/time';
 import { formatPrice, formatDuration } from '../../../src/utils/common/format';
-import { addonLines, addonsTotal, decodeAddonPicks } from '../../../src/utils/bookings/addons';
+import { addonCountLabel, addonLines, addonsTotal, decodeAddonPicks } from '../../../src/utils/bookings/addons';
 
-// Spec §2 Date & time (step 1 of 2): a 14-day strip and the day's hourly IST slots; taken ones are struck through.
+// Spec §2 Date & time (step 1 of 2): a strip of every bookable day (plus a month calendar) and the day's hourly IST slots; taken ones are struck through.
 export default function DateTimeScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -24,7 +24,9 @@ export default function DateTimeScreen() {
   const { notice, setNotice } = useBookingFlow();
   const artist = useArtistPublic(artistId);
   const service = artist.data?.services.find((s) => s.id === serviceId);
-  const price = service ? service.price_paise + addonsTotal(addonLines(service.addons, decodeAddonPicks(addons, service.addons))) : 0;
+  const lines = service ? addonLines(service.addons, decodeAddonPicks(addons, service.addons)) : [];
+  const price = service ? service.price_paise + addonsTotal(lines) : 0;
+  const extras = addonCountLabel(lines.length);
   // A slot that turned out to be taken (refetch after a conflict) is no longer a choice.
   const chosen = useStillAvailable(artistId, serviceId, startAt);
 
@@ -50,9 +52,14 @@ export default function DateTimeScreen() {
       </ScrollView>
 
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator, gap: 10 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <AppText variant="subtitle" style={{ fontSize: 14.5, color: chosen ? theme.colors.textPrimary : theme.colors.textMuted }}>{chosen ? formatWhen(chosen) : 'Pick a time'}</AppText>
-          {service ? <AppText variant="subtitle" style={{ fontSize: 14.5, color: theme.colors.brand }}>{formatPrice(price)}</AppText> : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <AppText variant="subtitle" style={{ color: chosen ? theme.colors.textPrimary : theme.colors.textMuted }}>{chosen ? formatWhen(chosen) : 'Pick a time'}</AppText>
+          {service ? (
+            <View accessible accessibilityLabel={`Total ${formatPrice(price)}${extras ? `, includes ${extras}` : ''}`} style={{ alignItems: 'flex-end' }}>
+              <AppText variant="subtitle" style={{ color: theme.colors.brand }}>{formatPrice(price)}</AppText>
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{extras ? `incl. ${extras}` : 'Service only'}</AppText>
+            </View>
+          ) : null}
         </View>
         <AppButton
           label="Continue"

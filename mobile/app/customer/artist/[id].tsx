@@ -19,6 +19,7 @@ export default function ArtistStorefrontScreen() {
   const posts = useArtistPosts(id, STOREFRONT_POSTS, true);
   const following = useFollowState(id, true);
   const toggleFollow = useToggleFollow();
+  const openService = (serviceId: string) => router.push({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id, serviceId } });
   const openPost = (postId: string) => router.push({ pathname: '/customer/post/[id]', params: { id: postId } });
   const postsSlot = posts.isError
     ? <ErrorView error={posts.error} onRetry={() => { void posts.refetch(); }} />
@@ -27,8 +28,9 @@ export default function ArtistStorefrontScreen() {
     <Storefront
       artistId={id}
       customer={{
-        onBook: (service) => router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id } }),
-        onOpenService: (service) => router.push({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id, serviceId: service.id } }),
+        // A package with add-ons opens Service detail first, so the extras are seen and picked before the date.
+        onBook: (service) => (service.addons.length ? openService(service.id) : router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id } })),
+        onOpenService: (service) => openService(service.id),
         onSeeAllReviews: () => router.push({ pathname: '/customer/artist/[id]/reviews', params: { id } }),
         onMessage: () => { void chat.open(id); },
         messaging: chat.openingId === id,

@@ -13,9 +13,9 @@ import { ErrorView, LoadingView } from '../../../src/components/common/StateView
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useBooking, useBookingWrite } from '../../../src/hooks/bookings/bookings';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
-import { AddonLines } from '../../../src/components/bookings/AddonLines';
+import { OrderSummary } from '../../../src/components/bookings/OrderSummary';
 import { STATUS_PILL } from '../../../src/utils/bookings/status';
-import { refundDueOnCustomerCancel } from '../../../src/utils/bookings/pricing';
+import { ACCEPT_WINDOW_HOURS, FREE_CANCEL_HOURS, refundDueOnCustomerCancel } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
 import { useNow } from '../../../src/hooks/common/use-now';
 import { formatPrice } from '../../../src/utils/common/format';
@@ -29,7 +29,7 @@ import type { Booking } from '../../../src/types/bookings/bookings';
 function refundLine(b: Booking): string | null {
   if (b.refund_due === null) return null;
   const deposit = formatPrice(b.deposit_paise);
-  return b.refund_due ? `Your ${deposit} deposit is being refunded.` : `The ${deposit} deposit isn’t refunded (cancelled within 72 hours of the start).`;
+  return b.refund_due ? `Your ${deposit} deposit is being refunded.` : `The ${deposit} deposit isn’t refunded (cancelled within ${FREE_CANCEL_HOURS} hours of the start).`;
 }
 
 // Spec §2 booking/[id]: details, "Rate your experience" (Increment 6), the breakdown, and "Cancel booking" with a confirm step that states the refund.
@@ -64,7 +64,7 @@ export default function BookingDetail() {
     ? 'The artist will be told you cancelled.'
     : refundDueOnCustomerCancel(start, now)
       ? `Your ${deposit} deposit will be refunded.`
-      : `It’s less than 72 hours to the start, so the ${deposit} deposit won’t be refunded.`;
+      : `It’s less than ${FREE_CANCEL_HOURS} hours to the start, so the ${deposit} deposit won’t be refunded.`;
   const reason = b.decline_reason ?? b.cancel_reason;
   const movable = b.status === 'confirmed' && now < start && !b.reschedule && !!b.service_id;
   const ended = refundLine(b);
@@ -118,14 +118,14 @@ export default function BookingDetail() {
       ) : null}
       <RateBookingCard booking={b} />
       <Card>
-        <AddonLines lines={b.addons} />
+        <OrderSummary serviceName={b.service_name} servicePaise={b.subtotal_paise - b.addons.reduce((sum, a) => sum + a.line_paise, 0)} addons={b.addons} />
         <Breakdown money={b} paid />
       </Card>
       {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}
       {ended ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{ended}</AppText> : null}
       {b.status === 'requested' ? (
         <View style={{ borderRadius: theme.radii.md, backgroundColor: theme.colors.pendingSoft, padding: 12 }}>
-          <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? 'The artist has 3 hours to confirm. If they don’t, the deposit is refunded.' : 'The artist has 3 hours to confirm. If they don’t, the request expires.'}</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{b.deposit_paise ? `The artist has ${ACCEPT_WINDOW_HOURS} hours to confirm. If they don’t, the deposit is refunded.` : `The artist has ${ACCEPT_WINDOW_HOURS} hours to confirm. If they don’t, the request expires.`}</AppText>
         </View>
       ) : null}
 

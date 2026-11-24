@@ -21,7 +21,7 @@ export function Breakdown({ money, paid = false }: BreakdownProps) {
   }
   return (
     <View>
-      <InfoRow label="Service" value={formatPrice(money.subtotal_paise)} />
+      <InfoRow label="Subtotal" value={formatPrice(money.subtotal_paise)} />
       <InfoRow label="Platform fee" value={money.platform_fee_paise ? formatPrice(money.platform_fee_paise) : 'Waived'} />
       <View style={{ height: 1, backgroundColor: theme.colors.separator, marginVertical: 6 }} />
       <InfoRow label="Total" value={formatPrice(money.total_paise)} strong />

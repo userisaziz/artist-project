@@ -14,8 +14,8 @@ export function AddonLines({ lines }: { lines: Line[] }) {
   return (
     <View>
       <AppText variant="caption" style={{ color: theme.colors.textMuted, marginBottom: 2 }}>Add-ons</AppText>
-      {lines.map((l) => (
-        <InfoRow key={l.name} label={l.per_person ? `${l.name} × ${l.guests}` : l.name} value={formatPrice(l.line_paise)} />
+      {lines.map((l, i) => (
+        <InfoRow key={`${i}:${l.name}`} label={l.per_person ? `${l.name} × ${l.guests}` : l.name} value={formatPrice(l.line_paise)} />
       ))}
     </View>
   );

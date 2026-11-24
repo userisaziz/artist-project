@@ -40,3 +40,19 @@ export function addonLines(offered: ServiceAddon[], picks: BookingAddonPick[]): 
 export function addonsTotal(lines: AddonLine[]): number {
   return lines.reduce((sum, l) => sum + l.line_paise, 0);
 }
+
+/** "2 add-ons" / "1 add-on" / '' — the cart-style count shown next to a running total. */
+export function addonCountLabel(count: number): string {
+  if (!count) return '';
+  return `${count} ${count === 1 ? 'add-on' : 'add-ons'}`;
+}
+
+/** "Guest mehendi × 4 guests" for per-person add-ons; the plain name otherwise. */
+export function addonLineLabel(line: { name: string; per_person: boolean; guests: number }): string {
+  return line.per_person ? `${line.name} × ${line.guests} ${line.guests === 1 ? 'guest' : 'guests'}` : line.name;
+}
+
+/** Drop one pick, as a cart's remove does. */
+export function removePick(picks: BookingAddonPick[], addonId: string): BookingAddonPick[] {
+  return picks.filter((p) => p.addon_id !== addonId);
+}

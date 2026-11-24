@@ -45,8 +45,9 @@ it('shows the service with its price, duration and artist, and opens Date & time
   expect(await screen.findByRole('header', { name: 'Bridal Mehendi' })).toBeTruthy();
   expect(screen.getByText('Mehendi · Bridal')).toBeTruthy();
   expect(screen.getByText('4.9 (86)')).toBeTruthy();
-  expect(screen.getAllByText('₹3,500')).toHaveLength(2); // "Starting at" and the estimate
+  expect(screen.getAllByText('₹3,500')).toHaveLength(2); // "Price" and the running total
   expect(screen.getByText('Hands and feet, a custom design and a consultation call.')).toBeTruthy();
+  expect(screen.getByRole('header', { name: 'Booking & cancellation' })).toBeTruthy(); // the policy before booking
 
   await fireEvent.press(screen.getByText('Check availability'));
   expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), []);
@@ -59,13 +60,15 @@ it('lists what is included, and prices the add-ons the customer picks', async ()
 
   expect(await screen.findByText('Bridal hands')).toBeTruthy();
   expect(screen.getByText('Bridal feet')).toBeTruthy();
-  expect(screen.getByLabelText('Estimate ₹3,500')).toBeTruthy();
+  expect(screen.getByLabelText('Total ₹3,500')).toBeTruthy();
 
   await fireEvent.press(screen.getByRole('checkbox', { name: /Guest mehendi/ }));
   for (let i = 0; i < 3; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'More guests for Guest mehendi' }));
   await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
   expect(screen.getByText('4 guests')).toBeTruthy();
-  expect(screen.getByLabelText('Estimate ₹5,900')).toBeTruthy(); // ₹3,500 + 4 × ₹500 + ₹400
+  expect(screen.getByText('₹2,000')).toBeTruthy(); // the guest line: 4 × ₹500
+  expect(screen.getByLabelText('Total ₹5,900, includes 2 add-ons')).toBeTruthy(); // ₹3,500 + 4 × ₹500 + ₹400
+  expect(screen.getByText('₹3,500 + ₹2,400')).toBeTruthy();
 
   await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
   await fireEvent.press(screen.getByText('Check availability'));

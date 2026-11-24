@@ -1,4 +1,4 @@
-import { addonLines, decodeAddonPicks, encodeAddonPicks } from '../../utils/bookings/addons';
+import { addonCountLabel, addonLineLabel, addonLines, decodeAddonPicks, encodeAddonPicks, removePick } from '../../utils/bookings/addons';
 import type { ServiceAddon } from '../../types/catalog/catalog';
 
 const GUESTS: ServiceAddon = { id: 'a-guests', name: 'Guest mehendi', price_paise: 50000, per_person: true };
@@ -25,4 +25,15 @@ it('prices each pick as unit price times guests', () => {
     ['Guest mehendi', 4, 200000],
     ['Organic henna upgrade', 1, 40000],
   ]);
+});
+
+it('labels and removes picks like cart lines', () => {
+  expect(addonCountLabel(0)).toBe('');
+  expect(addonCountLabel(1)).toBe('1 add-on');
+  expect(addonCountLabel(3)).toBe('3 add-ons');
+  expect(addonLineLabel({ name: 'Guest mehendi', per_person: true, guests: 4 })).toBe('Guest mehendi × 4 guests');
+  expect(addonLineLabel({ name: 'Guest mehendi', per_person: true, guests: 1 })).toBe('Guest mehendi × 1 guest');
+  expect(addonLineLabel({ name: 'Organic henna upgrade', per_person: false, guests: 1 })).toBe('Organic henna upgrade');
+  const picks = [{ addon_id: 'a-guests', guests: 4 }, { addon_id: 'a-upgrade', guests: 1 }];
+  expect(removePick(picks, 'a-guests')).toEqual([{ addon_id: 'a-upgrade', guests: 1 }]);
 });

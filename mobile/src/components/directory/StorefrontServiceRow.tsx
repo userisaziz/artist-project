@@ -22,6 +22,12 @@ export function serviceMeta(service: PublicService): string {
   return [kind, formatDuration(service.duration_minutes)].filter(Boolean).join(' · ');
 }
 
+/** "+2 add-ons available", so the extras are known before the package is opened. */
+function addonsHint(service: PublicService): string | null {
+  const n = service.addons.length;
+  return n ? `+${n} ${n === 1 ? 'add-on' : 'add-ons'} available` : null;
+}
+
 /** A package on the storefront: its photo (or a placeholder tile), "Most booked" on the favourite, name, kind and length,
  *  price and "Book". */
 export function StorefrontServiceRow({ service, mostBooked, onOpen }: StorefrontServiceRowProps) {
@@ -59,6 +65,7 @@ export function StorefrontServiceRow({ service, mostBooked, onOpen }: Storefront
         ) : null}
         <AppText variant="subtitle" numberOfLines={2} style={{ fontSize: 14.5, lineHeight: 20, color: theme.colors.textPrimary }}>{service.name}</AppText>
         <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{serviceMeta(service)}</AppText>
+        {addonsHint(service) ? <AppText variant="caption" style={{ color: theme.colors.brand }}>{addonsHint(service)}</AppText> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <AppText variant="subtitle" style={{ fontSize: 15, lineHeight: 20, color: theme.colors.textPrimary }}>{price}</AppText>
           {onOpen ? (
