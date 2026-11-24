@@ -39,6 +39,14 @@ CATALOG: list[tuple[str, str, list[tuple[str, str, list[tuple[str, str]]]]]] = [
                     ("Guest Mehendi (per person)", "Per-guest design at functions."),
                 ],
             ),
+            (
+                "Arabic Mehendi",
+                "arabic-mehendi",
+                [
+                    ("Arabic Full Hands", "Bold Arabic floral trails, front and back up to the wrist."),
+                    ("Eid Special Mehendi", "Quick festive Arabic design for both hands."),
+                ],
+            ),
         ],
     ),
     (
@@ -51,6 +59,14 @@ CATALOG: list[tuple[str, str, list[tuple[str, str, list[tuple[str, str]]]]]] = [
                 [("HD Bridal Makeup", "HD airbrush bridal look with lashes and touch-up kit.")],
             ),
             ("Party Makeup", "party-makeup", [("Softeye Party Look", "Everyday glam for parties and events.")]),
+            (
+                "Engagement & Nikah Makeup",
+                "nikah-makeup",
+                [
+                    ("Nikah Soft Glam", "Elegant, long-wear look for nikah and engagement ceremonies."),
+                    ("Hijab Styling + Makeup", "Makeup with a draped hijab style pinned to match the outfit."),
+                ],
+            ),
         ],
     ),
     (
@@ -80,12 +96,142 @@ CATALOG: list[tuple[str, str, list[tuple[str, str, list[tuple[str, str]]]]]] = [
             ("Thread & Wax", "thread-wax", [("Full Arms + Legs Waxing", "Rica wax full arms and legs.")]),
         ],
     ),
+    (
+        "Art",
+        "art",
+        [
+            (
+                "Calligraphy",
+                "calligraphy",
+                [
+                    ("Arabic Name Calligraphy Frame", "Hand-inked Arabic name on textured board, framed A4."),
+                    ("Nikah Certificate Calligraphy", "Hand-lettered nikah nama on premium paper."),
+                    ("Live Calligraphy at Events", "Guests' names written live on tags or cards, per hour."),
+                ],
+            ),
+            (
+                "Canvas Painting",
+                "canvas-painting",
+                [
+                    ("Custom Portrait Painting", "Acrylic portrait from your photo on a 16x20 in canvas."),
+                    ("Islamic Wall Art", "Ayat or Asma ul Husna painting on canvas with gold leaf."),
+                ],
+            ),
+        ],
+    ),
+    (
+        "Custom Cards",
+        "custom-cards",
+        [
+            (
+                "Wedding Invitations",
+                "wedding-invitations",
+                [
+                    ("Handmade Wedding Invite (per 50)", "Designed and handmade invites with envelopes, 50 pieces."),
+                    ("Digital Invite + Video", "Animated e-invite and a 30-second invite video for WhatsApp."),
+                ],
+            ),
+            (
+                "Greeting Cards",
+                "greeting-cards",
+                [
+                    ("Eid Card Set (per 10)", "Hand-painted Eid cards with envelopes, 10 pieces."),
+                    ("Personalised Birthday Card", "Pop-up or shaker card personalised with names and photos."),
+                ],
+            ),
+        ],
+    ),
+    (
+        "Gift Boxes",
+        "gift-boxes",
+        [
+            (
+                "Aqiqah Boxes",
+                "aqiqah-boxes",
+                [
+                    ("Aqiqah Sweet Box (per box)", "Dates, sweets and a name card in a printed keepsake box."),
+                    ("Premium Aqiqah Hamper", "Wooden hamper with dates, dry fruit, attar and a custom tag."),
+                ],
+            ),
+            (
+                "Wedding Hampers",
+                "wedding-hampers",
+                [
+                    ("Bridal Trousseau Packing", "Themed packing of up to 11 trousseau trays."),
+                    ("Mehendi Favour Boxes (per 25)", "Mini favour boxes for mehendi guests, 25 pieces."),
+                ],
+            ),
+        ],
+    ),
+    (
+        "Crafts",
+        "crafts",
+        [
+            (
+                "Resin Art",
+                "resin-art",
+                [
+                    ("Varmala Preservation", "Wedding garland flowers preserved in a resin frame."),
+                    ("Resin Name Plate", "Custom resin nameplate for the home, 12x8 in."),
+                ],
+            ),
+            (
+                "Embroidery & Hoop Art",
+                "hoop-art",
+                [("Custom Embroidery Hoop", "Hand-embroidered names and dates in an 8 in hoop.")],
+            ),
+        ],
+    ),
+    (
+        "Photography",
+        "photography",
+        [
+            (
+                "Wedding Photography",
+                "wedding-photography",
+                [
+                    ("Full-day Wedding Shoot", "Candid + traditional coverage, 300 edited photos."),
+                    ("Nikah Ceremony Coverage", "Up to 4 hours of coverage with 150 edited photos."),
+                ],
+            ),
+            (
+                "Pre-wedding Shoot",
+                "pre-wedding-shoot",
+                [("Outdoor Pre-wedding Shoot", "Two locations, outfit changes, 60 edited photos.")],
+            ),
+            (
+                "Event Photography",
+                "event-photography",
+                [
+                    ("Aqiqah / Birthday Coverage", "Up to 3 hours of family event coverage, 100 edited photos."),
+                    ("Maternity & Newborn Shoot", "Studio or home session with props, 40 edited photos."),
+                ],
+            ),
+        ],
+    ),
 ]
 
 # phone, first, last, roles, active_role
 CUSTOMERS = [
     ("+919845000001", "Ananya", "Sharma", [UserRole.customer], UserRole.customer),
     ("+919845000002", "Rohan", "Verma", [UserRole.customer], UserRole.customer),
+    ("+919845000003", "Fatima", "Sheikh", [UserRole.customer], UserRole.customer),
+    ("+919845000004", "Zoya", "Mirza", [UserRole.customer], UserRole.customer),
+    ("+919845000005", "Arjun", "Menon", [UserRole.customer], UserRole.customer),
+    ("+919845000006", "Meera", "Kulkarni", [UserRole.customer], UserRole.customer),
+    ("+919845000007", "Imran", "Qureshi", [UserRole.customer], UserRole.customer),
+    ("+919845000008", "Divya", "Reddy", [UserRole.customer], UserRole.customer),
+]
+# phone, city, address — one saved address per customer
+ADDRESSES = [
+    ("+919845000001", "Flat 101, Prestige Apartments, 12th Main Road, Indiranagar, Bangalore 560038"),
+    ("+919845000002", "House 22, 5th Cross, Koramangala 4th Block, Bangalore 560034"),
+    ("+919845000003", "Flat 4B, Banjara Residency, Road No. 12, Banjara Hills, Hyderabad 500034"),
+    ("+919845000004", "702, Sea Breeze, Carter Road, Bandra West, Mumbai 400050"),
+    ("+919845000005", "Villa 9, Palm Meadows, Whitefield, Bangalore 560066"),
+    ("+919845000006", "B-14, Kumar Park, Koregaon Park, Pune 411001"),
+    ("+919845000007", "Flat 3, Al Noor Heights, Tolichowki, Hyderabad 500008"),
+    ("+919845000008", "12, 3rd Avenue, Anna Nagar, Chennai 600040"),
 ]
 ARTISTS = [
     (
@@ -140,7 +286,222 @@ ARTISTS = [
         6,
         ["English", "Tamil"],
     ),
+    (
+        "+919900000005",
+        "Mariam",
+        "Siddiqui",
+        "Qalam Calligraphy Studio",
+        "Hyderabad",
+        "Banjara Hills",
+        17.4126,
+        78.4392,
+        ArtistStatus.approved,
+        7,
+        ["English", "Urdu", "Hindi"],
+    ),
+    (
+        "+919900000006",
+        "Hiba",
+        "Fathima",
+        "Barakah Aqiqah Boxes",
+        "Hyderabad",
+        "Tolichowki",
+        17.3973,
+        78.4183,
+        ArtistStatus.approved,
+        4,
+        ["English", "Urdu", "Telugu"],
+    ),
+    (
+        "+919900000007",
+        "Nidhi",
+        "Jain",
+        "Paper Petals Cards",
+        "Bangalore",
+        "Jayanagar",
+        12.9299,
+        77.5826,
+        ArtistStatus.approved,
+        6,
+        ["English", "Hindi", "Kannada"],
+    ),
+    (
+        "+919900000008",
+        "Sana",
+        "Patel",
+        "Resin & Bloom Crafts",
+        "Pune",
+        "Koregaon Park",
+        18.5362,
+        73.8939,
+        ArtistStatus.approved,
+        3,
+        ["English", "Hindi", "Marathi", "Gujarati"],
+    ),
+    (
+        "+919900000009",
+        "Rahul",
+        "Desai",
+        "Frames by Rahul",
+        "Mumbai",
+        "Bandra West",
+        19.0596,
+        72.8295,
+        ArtistStatus.approved,
+        9,
+        ["English", "Hindi", "Marathi"],
+    ),
+    (
+        "+919900000010",
+        "Ayesha",
+        "Begum",
+        "Ayesha Arabic Mehendi",
+        "Hyderabad",
+        "Mehdipatnam",
+        17.3950,
+        78.4410,
+        ArtistStatus.approved,
+        11,
+        ["English", "Urdu", "Telugu"],
+    ),
+    (
+        "+919900000011",
+        "Lakshmi",
+        "Pillai",
+        "Lakshmi Canvas Art",
+        "Chennai",
+        "Adyar",
+        13.0012,
+        80.2565,
+        ArtistStatus.approved,
+        12,
+        ["English", "Tamil", "Malayalam"],
+    ),
+    (
+        "+919900000012",
+        "Noor",
+        "Ahmed",
+        "Noor Nikah Glam",
+        "Bangalore",
+        "Frazer Town",
+        12.9986,
+        77.6146,
+        ArtistStatus.pending,
+        2,
+        ["English", "Urdu", "Hindi"],
+    ),
 ]
+
+# business → what every service of theirs includes; artists not listed get the on-site default
+DEFAULT_INCLUDED = ["Travelling kit included", "All products provided"]
+ARTIST_INCLUDED: dict[str, list[str]] = {
+    "Qalam Calligraphy Studio": ["Premium paper and inks", "One round of revisions"],
+    "Barakah Aqiqah Boxes": ["Custom name card", "Doorstep delivery within the city"],
+    "Paper Petals Cards": ["Design proof before printing", "Envelopes included"],
+    "Resin & Bloom Crafts": ["Pickup of flowers", "Gift-ready packaging"],
+    "Frames by Rahul": ["Online gallery", "High-resolution downloads"],
+    "Lakshmi Canvas Art": ["Ready-to-hang frame", "Progress photos"],
+}
+
+# business → parent category slugs
+ARTIST_CATEGORIES: dict[str, list[str]] = {
+    "Henna by Priya": ["mehendi"],
+    "Glam by Sneha": ["makeup"],
+    "Bridal Studio by Aisha": ["makeup", "mehendi"],
+    "Kavitha Hair Studio": ["hair"],
+    "Qalam Calligraphy Studio": ["art", "custom-cards"],
+    "Barakah Aqiqah Boxes": ["gift-boxes"],
+    "Paper Petals Cards": ["custom-cards", "crafts"],
+    "Resin & Bloom Crafts": ["crafts"],
+    "Frames by Rahul": ["photography"],
+    "Ayesha Arabic Mehendi": ["mehendi"],
+    "Lakshmi Canvas Art": ["art"],
+    "Noor Nikah Glam": ["makeup"],
+}
+
+# business → [(subcategory slug, template name, price paise, minutes, [(addon, price paise, per person)])]
+ARTIST_SERVICES: dict[str, list[tuple[str, str, int, int, list[tuple[str, int, bool]]]]] = {
+    "Henna by Priya": [
+        (
+            "bridal-mehendi",
+            "Bridal Full Hands + Legs",
+            1500000,
+            240,
+            [("Guest mehendi + family (5 people)", 250000, True)],
+        ),
+        ("party-mehendi", "Simple Hands", 80000, 40, []),
+    ],
+    "Glam by Sneha": [
+        ("bridal-makeup", "HD Bridal Makeup", 2500000, 180, [("Reception look (second session)", 1200000, False)]),
+        ("party-makeup", "Softeye Party Look", 350000, 60, []),
+    ],
+    "Bridal Studio by Aisha": [
+        ("bridal-makeup", "HD Bridal Makeup", 3500000, 210, [("Hair styling with makeup", 1000000, False)]),
+        ("bridal-mehendi", "Bridal Full Hands + Legs", 1800000, 240, []),
+    ],
+    "Kavitha Hair Studio": [
+        ("hair-styling", "Iron Haman / Blow Dry", 60000, 60, []),
+        ("hair-colour", "Global Colour", 200000, 90, []),
+    ],
+    "Qalam Calligraphy Studio": [
+        ("calligraphy", "Arabic Name Calligraphy Frame", 250000, 120, [("Gold leaf detailing", 80000, False)]),
+        ("calligraphy", "Nikah Certificate Calligraphy", 450000, 180, []),
+        ("calligraphy", "Live Calligraphy at Events", 600000, 60, [("Extra hour", 400000, False)]),
+        ("wedding-invitations", "Handmade Wedding Invite (per 50)", 1200000, 480, []),
+    ],
+    "Barakah Aqiqah Boxes": [
+        ("aqiqah-boxes", "Aqiqah Sweet Box (per box)", 35000, 30, [("Name-printed ribbon", 3000, True)]),
+        ("aqiqah-boxes", "Premium Aqiqah Hamper", 250000, 60, [("Attar bottle", 40000, False)]),
+        ("wedding-hampers", "Mehendi Favour Boxes (per 25)", 300000, 120, []),
+    ],
+    "Paper Petals Cards": [
+        (
+            "wedding-invitations",
+            "Handmade Wedding Invite (per 50)",
+            900000,
+            480,
+            [("Wax seal on envelopes", 150000, False)],
+        ),
+        ("wedding-invitations", "Digital Invite + Video", 350000, 240, []),
+        ("greeting-cards", "Eid Card Set (per 10)", 120000, 120, []),
+        ("greeting-cards", "Personalised Birthday Card", 60000, 60, []),
+    ],
+    "Resin & Bloom Crafts": [
+        ("resin-art", "Varmala Preservation", 650000, 240, [("LED backlight", 120000, False)]),
+        ("resin-art", "Resin Name Plate", 280000, 120, []),
+        ("hoop-art", "Custom Embroidery Hoop", 180000, 180, []),
+    ],
+    "Frames by Rahul": [
+        ("wedding-photography", "Full-day Wedding Shoot", 6500000, 600, [("Drone coverage", 1500000, False)]),
+        ("wedding-photography", "Nikah Ceremony Coverage", 2500000, 240, []),
+        ("pre-wedding-shoot", "Outdoor Pre-wedding Shoot", 3500000, 300, []),
+        ("event-photography", "Aqiqah / Birthday Coverage", 1200000, 180, []),
+        ("event-photography", "Maternity & Newborn Shoot", 1500000, 120, []),
+    ],
+    "Ayesha Arabic Mehendi": [
+        ("arabic-mehendi", "Arabic Full Hands", 150000, 60, []),
+        ("arabic-mehendi", "Eid Special Mehendi", 70000, 30, [("Glitter outline", 20000, False)]),
+        ("bridal-mehendi", "Bridal Full Hands + Legs", 1200000, 240, [("Guest mehendi (per person)", 30000, True)]),
+    ],
+    "Lakshmi Canvas Art": [
+        ("canvas-painting", "Custom Portrait Painting", 800000, 600, []),
+        ("canvas-painting", "Islamic Wall Art", 550000, 480, []),
+    ],
+    "Noor Nikah Glam": [
+        ("nikah-makeup", "Nikah Soft Glam", 1500000, 150, []),
+        ("nikah-makeup", "Hijab Styling + Makeup", 450000, 75, []),
+    ],
+}
+ARTIST_BIOS = {
+    "Qalam Calligraphy Studio": "Arabic and Urdu calligraphy for names, nikah namas and live event lettering.",
+    "Barakah Aqiqah Boxes": "Handpacked aqiqah sweet boxes and hampers, custom-printed with your baby's name.",
+    "Paper Petals Cards": "Handmade wedding invites, Eid cards and keepsake stationery, designed to order.",
+    "Resin & Bloom Crafts": "Varmala preservation, resin nameplates and embroidered keepsakes from Pune.",
+    "Frames by Rahul": "Candid wedding, nikah and family-event photography across Mumbai.",
+    "Ayesha Arabic Mehendi": "Bold Arabic and bridal mehendi in Hyderabad — 11 years, 900+ brides.",
+    "Lakshmi Canvas Art": "Custom portraits and Islamic wall art in acrylic and gold leaf.",
+    "Noor Nikah Glam": "Soft-glam nikah makeup with hijab styling.",
+}
 ADMIN_PHONE = "+919800000000"
 
 ASSETS_DIR = Path(__file__).resolve().parent / "seed-assets"
@@ -162,7 +523,7 @@ def seed_images() -> int:
         raise RuntimeError(f"seed images: no .jpg assets under {ASSETS_DIR} — refusing to seed key-only rows")
     for artist_row in ARTISTS:
         avatar_key, cover_keys = _asset_keys(artist_row[3])
-        for key in [avatar_key, *cover_keys]:
+        for key in [k for k in (avatar_key, *cover_keys) if k]:
             if not (ASSETS_DIR / key).is_file():
                 raise RuntimeError(f"seed images: row key {key} has no asset under {ASSETS_DIR}")
     uploaded = skipped = 0
@@ -226,37 +587,18 @@ async def seed_user(session, phone, first, last, roles, active_role) -> User:
     return user
 
 
-def _asset_keys(business: str) -> tuple[str, list[str]]:
-    """(avatar key, cover keys) in the seed-assets layout — the single source of truth for both uploads and rows."""
-    slug = business.replace(" ", "-").lower()
+def _asset_keys(business: str) -> tuple[str | None, list[str]]:
+    """(avatar key, cover keys) in the seed-assets layout — the single source of truth for both uploads and rows.
+
+    Artists without a folder under seed-assets/seed/ get (None, []): their rows go in without photos rather than
+    borrowing another artist's (a henna photo on a photographer's profile would mislead)."""
+    slug = business.replace(" ", "-").replace("&", "and").lower()
+    if not (ASSETS_DIR / "seed" / slug).is_dir():
+        return None, []
     return f"seed/{slug}/avatar.jpg", [f"seed/{slug}/cover-1.jpg", f"seed/{slug}/cover-2.jpg"]
 
 
 async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, tuple[User, ArtistProfile]]) -> None:
-    services_by_artist: dict[str, list[tuple[str, str, int, int, list[tuple[str, int, bool]]]]] = {
-        "Henna by Priya": [
-            (
-                "bridal-mehendi",
-                "Bridal Full Hands + Legs",
-                1500000,
-                240,
-                [("Guest mehendi + family (5 people)", 250000, True)],
-            ),
-            ("party-mehendi", "Simple Hands", 80000, 40, []),
-        ],
-        "Glam by Sneha": [
-            ("bridal-makeup", "HD Bridal Makeup", 2500000, 180, [("Reception look (second session)", 1200000, False)]),
-            ("party-makeup", "Softeye Party Look", 350000, 60, []),
-        ],
-        "Bridal Studio by Aisha": [
-            ("bridal-makeup", "HD Bridal Makeup", 3500000, 210, [("Hair styling with makeup", 1000000, False)]),
-            ("bridal-mehendi", "Bridal Full Hands + Legs", 1800000, 240, []),
-        ],
-        "Kavitha Hair Studio": [
-            ("hair-styling", "Iron Haman / Blow Dry", 60000, 60, []),
-            ("hair-colour", "Global Colour", 200000, 90, []),
-        ],
-    }
     for phone, _first, _last, business, city, locality, lat, lng, status, years, langs in ARTISTS:
         avatar_key, cover_keys = _asset_keys(business)
         user = (await session.execute(select(User).where(User.phone == phone))).scalar_one()
@@ -278,7 +620,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
                 .all()
             )
             for i, s in enumerate(services):
-                if s.photo_key is None:
+                if s.photo_key is None and cover_keys:
                     s.photo_key = cover_keys[i % len(cover_keys)]
             await session.flush()
             by_phone[phone] = (user, profile)
@@ -294,7 +636,7 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
             locality=locality,
             latitude=lat,
             longitude=lng,
-            bio=f"{business} — {years} yrs of experience in {city}.",
+            bio=ARTIST_BIOS.get(business, f"{business} — {years} yrs of experience in {city}."),
             photo_key=avatar_key,
             status=status,
             experience_years=years,
@@ -303,16 +645,11 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
             submitted_at=None if status is ArtistStatus.draft else _now(),
             reviewed_at=_now() if status is ArtistStatus.approved else None,
         )
-        parent_slugs = {
-            "Henna by Priya": ["mehendi"],
-            "Glam by Sneha": ["makeup"],
-            "Bridal Studio by Aisha": ["makeup", "mehendi"],
-            "Kavitha Hair Studio": ["hair"],
-        }[business]
+        parent_slugs = ARTIST_CATEGORIES[business]
         profile.categories = [cats[s] for s in parent_slugs]
         session.add(profile)
         await session.flush()
-        for order, (sub_slug, t_name, price, dur, addons) in enumerate(services_by_artist[business]):
+        for order, (sub_slug, t_name, price, dur, addons) in enumerate(ARTIST_SERVICES[business]):
             sub = cats[sub_slug]
             template = (
                 await session.execute(
@@ -328,8 +665,8 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
                 price_paise=price,
                 duration_minutes=dur,
                 sort_order=order,
-                photo_key=cover_keys[order % len(cover_keys)],
-                included_items=["Travelling kit included", "All products provided"],
+                photo_key=cover_keys[order % len(cover_keys)] if cover_keys else None,
+                included_items=ARTIST_INCLUDED.get(business, DEFAULT_INCLUDED),
             )
             session.add(item)
             await session.flush()
@@ -339,40 +676,20 @@ async def seed_artists(session, cats: dict[str, Category], by_phone: dict[str, t
                         service_id=item.id, name=a_name, price_paise=a_price, per_person=per_person, sort_order=a_order
                     )
                 )
-        session.add(
-            PortfolioPhoto(
-                artist_id=profile.id,
-                storage_key=cover_keys[0],
-                width=1080,
-                height=1350,
-                sort_order=0,
+        for p_order, key in enumerate(cover_keys):
+            session.add(
+                PortfolioPhoto(artist_id=profile.id, storage_key=key, width=1080, height=1350, sort_order=p_order)
             )
-        )
-        session.add(
-            PortfolioPhoto(
-                artist_id=profile.id,
-                storage_key=cover_keys[1],
-                width=1080,
-                height=1350,
-                sort_order=1,
-            )
-        )
         by_phone[phone] = (user, profile)
     await session.flush()
 
 
-async def seed_addresses(session, by_phone) -> None:
-    for phone in ("+919845000001", "+919845000002"):
+async def seed_addresses(session) -> None:
+    for phone, address in ADDRESSES:
         user = (await session.execute(select(User).where(User.phone == phone))).scalar_one()
         has = (await session.execute(select(UserAddress.id).where(UserAddress.user_id == user.id))).first()
         if has is None:
-            session.add(
-                UserAddress(
-                    user_id=user.id,
-                    label="Home",
-                    address=f"Flat 101, Prestige Apartments, {phone[-2:]} Main Road, Bangalore 560038",
-                )
-            )
+            session.add(UserAddress(user_id=user.id, label="Home", address=address))
     await session.flush()
 
 
@@ -393,12 +710,16 @@ async def main() -> None:
             await seed_user(session, phone, first, last, [UserRole.artist], UserRole.artist)
         by_phone: dict[str, tuple[User, ArtistProfile]] = {}
         await seed_artists(session, cats, by_phone)
-        await seed_addresses(session, by_phone)
+        await seed_addresses(session)
         await session.commit()
     await engine.dispose()
+    subs = sum(len(c[2]) for c in CATALOG)
+    templates = sum(len(t) for c in CATALOG for _n, _s, t in c[2])
+    approved = sum(1 for a in ARTISTS if a[8] is ArtistStatus.approved)
     print(
-        "Seeded: catalog (4 categories, 8 subcategories, 10 service templates), 1 admin, 2 customers, "
-        "4 artists (3 approved, 1 pending) with services/addons/portfolio."
+        f"Seeded: catalog ({len(CATALOG)} categories, {subs} subcategories, {templates} service templates), 1 admin, "
+        f"{len(CUSTOMERS)} customers, {len(ARTISTS)} artists ({approved} approved, {len(ARTISTS) - approved} pending) "
+        "with services/addons/portfolio."
     )
 
 
