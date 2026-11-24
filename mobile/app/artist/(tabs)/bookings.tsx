@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../../src/components/common/AppText';
 import { Segmented } from '../../../src/components/common/Segmented';
@@ -29,7 +28,10 @@ export default function ArtistBookings() {
   const router = useRouter();
   const openBooking = (id: string) => router.push({ pathname: '/artist/booking/[id]', params: { id } });
   const now = useNow();
-  const [scope, setScope] = useState<ArtistBookingScope>('requests');
+  // The list lives in the URL (?scope=upcoming), so Home and notifications can open the right one.
+  const params = useLocalSearchParams<{ scope?: string }>();
+  const scope: ArtistBookingScope = params.scope === 'upcoming' || params.scope === 'past' ? params.scope : 'requests';
+  const setScope = (next: ArtistBookingScope) => router.setParams({ scope: next });
   const requests = useArtistBookings('requests'); // always loaded: it feeds the "Requests · n" count
   const other = useArtistBookings(scope === 'past' ? 'past' : 'upcoming');
   const pull = usePullToRefresh(() => Promise.all([requests.refetch(), other.refetch()]));

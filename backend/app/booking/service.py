@@ -23,11 +23,15 @@ from app.booking.config import BookingSettings
 from app.booking.mapper import View, booking_out
 from app.booking.models import Booking, BookingAddon
 from app.booking.repository import CLEARED_RESCHEDULE, BookingRepository, BookingRow
+from app.booking.repository import reschedule_pending as reschedule_pending_clause
 from app.booking.schemas import BookingAddonIn, BookingIn
 from app.booking.utils import clean_reason, ist_month_start, new_code, reschedule_pending, shift_month
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.quote.constants import EnquiryStatus
+from app.quote.models import QuoteEnquiry
 from app.requirement import constants as requirement_constants
 from app.requirement import service as requirement_service
+from app.review.repository import ReviewRepository
 from app.shared.clock import Clock
 from app.shared.enums import ArtistStatus, BookingStatus
 from app.shared.pagination import split_page
@@ -226,6 +230,11 @@ async def create_from_quote(
     booking.responded_at = now
     await insert(session, booking, TAKEN)
     return booking
+
+
+DASHBOARD_TREND_MONTHS = 6
+DASHBOARD_WEEK_DAYS = 7
+DASHBOARD_EXPIRING_HOURS = 6
 
 
 class BookingService:
@@ -534,21 +543,64 @@ class BookingService:
         }
 
     async def dashboard(self, user: User) -> dict[str, Any]:
-        theirs = Booking.artist_id == await self.artist_id(user)
+        """The artist home: what needs action now, this month against last, a six-month trend and today's agenda."""
+        artist_id = await self.artist_id(user)
+        theirs = Booking.artist_id == artist_id
         await self.expire_overdue(theirs)
         now = self.clock.now()
-        completed_this_month = and_(
-            Booking.status == BookingStatus.completed, Booking.completed_at >= ist_month_start(now)
+        month_start = ist_month_start(now)
+        last_month_start = datetime.combine(shift_month(month_start.date(), -1), time(), tzinfo=rules.IST)
+        completed = Booking.status == BookingStatus.completed
+        completed_this_month = and_(completed, Booking.completed_at >= month_start)
+        completed_last_month = and_(
+            completed, Booking.completed_at >= last_month_start, Booking.completed_at < month_start
         )
-        day_start, day_end = rules.ist_day_bounds(rules.ist_today(now), rules.ist_today(now))
+        today = rules.ist_today(now)
+        day_start, day_end = rules.ist_day_bounds(today, today)
+        _, week_end = rules.ist_day_bounds(today, today + timedelta(days=DASHBOARD_WEEK_DAYS - 1))
         today_rows = await self.bookings.rows_starting_between(
             day_start, day_end, theirs, Booking.status.in_((BookingStatus.confirmed, BookingStatus.completed))
         )
+        firsts = [shift_month(month_start.date(), -i) for i in range(DASHBOARD_TREND_MONTHS)]
+        since = datetime.combine(firsts[-1], time(), tzinfo=rules.IST)
+        totals = await self.bookings.monthly_earnings(since, theirs)
+        ratings = await ReviewRepository(self.session).averages([artist_id])
+        rating, review_count = (round(float(ratings[0][1]), 1), ratings[0][2]) if ratings else (None, 0)
         return {
             "requests": await self.bookings.count(Booking, theirs, Booking.status == BookingStatus.requested),
+            "requests_expiring_soon": await self.bookings.count(
+                Booking,
+                theirs,
+                Booking.status == BookingStatus.requested,
+                Booking.expires_at <= now + timedelta(hours=DASHBOARD_EXPIRING_HOURS),
+            ),
+            "reschedules_pending": await self.bookings.count(Booking, theirs, reschedule_pending_clause(now)),
+            "enquiries_open": await self.bookings.count(
+                QuoteEnquiry, QuoteEnquiry.artist_id == artist_id, QuoteEnquiry.status == EnquiryStatus.open
+            ),
             # same rule as the Upcoming list
             "upcoming": await self.bookings.count(Booking, theirs, Booking.status == BookingStatus.confirmed),
+            "upcoming_this_week": await self.bookings.count(
+                Booking,
+                theirs,
+                Booking.status == BookingStatus.confirmed,
+                Booking.start_at >= now,
+                Booking.start_at < week_end,
+            ),
             "completed_this_month": await self.bookings.count(Booking, theirs, completed_this_month),
             "earnings_this_month_paise": await self.bookings.artist_earnings(theirs, completed_this_month),
+            "completed_last_month": await self.bookings.count(Booking, theirs, completed_last_month),
+            "earnings_last_month_paise": await self.bookings.artist_earnings(theirs, completed_last_month),
+            "rating": rating,
+            "review_count": review_count,
+            # oldest first, so it reads left to right as a chart
+            "trend": [
+                {
+                    "month": m.strftime("%Y-%m"),
+                    "bookings": totals.get(m, (0, 0))[0],
+                    "earnings_paise": totals.get(m, (0, 0))[1],
+                }
+                for m in reversed(firsts)
+            ],
             "today": [self.out(r, "artist") for r in today_rows],
         }

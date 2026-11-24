@@ -140,18 +140,27 @@ class AdminBookingPage(APIModel):
     next_cursor: str | None
 
 
-class ArtistDashboard(APIModel):
-    requests: int
-    upcoming: int
-    completed_this_month: int
-    earnings_this_month_paise: int
-    today: list[BookingOut]
-
-
 class MonthEarnings(APIModel):
     month: str  # "YYYY-MM", IST
     bookings: int
     earnings_paise: int
+
+
+class ArtistDashboard(APIModel):
+    requests: int
+    requests_expiring_soon: int  # requests that lapse within the next few hours
+    reschedules_pending: int  # customers waiting on an answer to a new time
+    enquiries_open: int  # custom-quote enquiries with no quote sent yet
+    upcoming: int
+    upcoming_this_week: int
+    completed_this_month: int
+    earnings_this_month_paise: int
+    completed_last_month: int
+    earnings_last_month_paise: int
+    rating: float | None  # average over public reviews, one decimal; None until the first review
+    review_count: int
+    trend: list[MonthEarnings]  # the last six IST months, oldest first, empty months included
+    today: list[BookingOut]
 
 
 class ArtistEarnings(APIModel):

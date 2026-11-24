@@ -80,9 +80,23 @@ export type ArtistBookingScope = 'requests' | 'upcoming' | 'past';
 /** GET /artists/me/dashboard */
 export interface ArtistDashboard {
   requests: number;
+  /** Requests that lapse within the next few hours unless answered. */
+  requests_expiring_soon: number;
+  /** Customers waiting on an answer to a new time. */
+  reschedules_pending: number;
+  /** Custom-quote enquiries with no quote sent yet. */
+  enquiries_open: number;
   upcoming: number;
+  upcoming_this_week: number;
   completed_this_month: number;
   earnings_this_month_paise: number;
+  completed_last_month: number;
+  earnings_last_month_paise: number;
+  /** Average over public reviews, one decimal; null until the first review. */
+  rating: number | null;
+  review_count: number;
+  /** The last six IST months, oldest first, empty months included. */
+  trend: MonthEarnings[];
   today: Booking[];
 }
 

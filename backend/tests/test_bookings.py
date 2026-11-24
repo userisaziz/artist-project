@@ -523,3 +523,36 @@ def test_months_roll_back_across_the_year():
         date(2026, 1, 1),
         date(2025, 12, 1),
     ]
+
+
+async def test_dashboard_shows_attention_trend_and_rating(client, engine, travel):
+    _, artist, customer = await setup(client, engine)
+    h = artist["headers"]
+    fresh = (await client.get("/api/v1/artists/me/dashboard", headers=h)).json()
+    assert (fresh["rating"], fresh["review_count"], fresh["enquiries_open"], fresh["reschedules_pending"]) == (
+        None,
+        0,
+        0,
+        0,
+    )
+    assert len(fresh["trend"]) == 6
+    assert all(m["earnings_paise"] == 0 for m in fresh["trend"])
+    assert fresh["trend"][0]["month"] < fresh["trend"][-1]["month"]  # oldest first
+
+    b = (await book(client, customer, artist)).json()
+    # the request lapses within 3 h, inside the "expiring soon" window
+    assert (await client.get("/api/v1/artists/me/dashboard", headers=h)).json()["requests_expiring_soon"] == 1
+
+    await client.post(f"/api/v1/artists/me/bookings/{b['id']}/accept", headers=h)
+    travel(at(b["start_at"], 4))
+    await client.post(f"/api/v1/artists/me/bookings/{b['id']}/complete", headers=h)
+    reviewed = await client.post(
+        f"/api/v1/bookings/{b['id']}/review", headers=customer, json={"rating": 4, "text": "Lovely work"}
+    )
+    assert reviewed.status_code == 201
+
+    d = (await client.get("/api/v1/artists/me/dashboard", headers=h)).json()
+    assert (d["rating"], d["review_count"]) == (4.0, 1)
+    assert d["requests_expiring_soon"] == 0
+    assert d["trend"][-1]["earnings_paise"] == d["earnings_this_month_paise"] > 0
+    assert d["trend"][-1]["bookings"] == d["completed_this_month"] == 1
