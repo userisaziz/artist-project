@@ -129,7 +129,11 @@ async def test_per_unit_services_are_priced_by_quantity_from_a_minimum(client, e
     assert (too_few.status_code, too_few.json()["message"]) == (422, "The minimum is 25 boxes")
     made = await book(client, customer, artist, quantity=30)
     assert made.status_code == 201, made.text
-    assert (made.json()["quantity"], made.json()["subtotal_paise"]) == (30, 2_400_000)
+    assert (made.json()["quantity"], made.json()["quantity_unit"], made.json()["subtotal_paise"]) == (
+        30,
+        "box",
+        2_400_000,
+    )
 
     back = await client.patch(url, headers=artist["headers"], json={"pricing_unit": "package"})
     whole = next(x for x in back.json()["services"] if x["id"] == artist["service_id"])

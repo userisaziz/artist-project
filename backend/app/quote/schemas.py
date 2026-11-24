@@ -6,7 +6,7 @@ from typing import Annotated, Any
 
 from pydantic import AwareDatetime, Field, StringConstraints, field_validator
 
-from app.artist.constants import MAX_QUANTITY
+from app.artist.constants import MAX_QUANTITY, QuantityUnit
 from app.booking.constants import MAX_BOOKING_ADDONS
 from app.booking.schemas import BookingAddonIn
 from app.catalog.fields import FieldAnswer
@@ -113,6 +113,7 @@ class EnquiryOut(APIModel):
     service_id: uuid.UUID | None
     service_name: str | None
     quantity: int | None
+    quantity_unit: QuantityUnit | None  # what `quantity` counts, when the service is priced per unit
     answers: list[FieldAnswer]
     addons: list[EnquiryAddon]  # priced as listed when asked; the quote is the price that counts
     also_services: list[EnquiryService]  # more of the artist's services to quote for

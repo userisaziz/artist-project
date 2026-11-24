@@ -48,6 +48,7 @@ class Booking(Base, TimestampMixin):
     note: Mapped[str | None] = mapped_column(String(500))
     # Guests for a per-person service (the price is per guest); 1 for a package.
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    quantity_unit: Mapped[str | None] = mapped_column(String(10))  # the service's unit when booked per unit
     # The customer's answers to the subcategory's booking fields, with their labels as asked (app.catalog.fields).
     answers: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list, server_default=sa.text("'[]'"))
     status: Mapped[BookingStatus] = mapped_column(

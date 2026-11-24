@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import AwareDatetime, Field, field_validator
 
-from app.artist.constants import MAX_QUANTITY
+from app.artist.constants import MAX_QUANTITY, QuantityUnit
 from app.booking.constants import MAX_ADDON_GUESTS, MAX_BOOKING_ADDONS
 from app.catalog.fields import FieldAnswer
 from app.shared.enums import BookingStatus, ReviewStatus
@@ -106,6 +106,7 @@ class BookingOut(APIModel):
     service_name: str
     duration_minutes: int
     quantity: int  # units for a per-unit service (people, pieces…), else 1
+    quantity_unit: QuantityUnit | None  # what `quantity` counts, for a per-unit service
     answers: list[FieldAnswer]  # the customer's answers to the booking fields, as asked
     artist: BookingArtist
     customer: BookingCustomer

@@ -61,6 +61,7 @@ def enquiry_out(row: EnquiryRow, storage: ImageStorage) -> dict[str, Any]:
         "service_id": e.service_id,
         "service_name": e.service_name,
         "quantity": e.quantity,
+        "quantity_unit": e.quantity_unit,
         "answers": e.answers,
         "addons": e.addons,
         "also_services": e.also_services,
@@ -197,7 +198,7 @@ class QuoteService:
         if data.service_id is None:
             if data.answers or data.addons or data.also_service_ids:
                 raise ValidationError("Answers, add-ons and other services belong to a service: pick one")
-            return {"service_name": None, "answers": [], "addons": [], "also_services": []}
+            return {"service_name": None, "quantity_unit": None, "answers": [], "addons": [], "also_services": []}
         service = await self.enquiries.approved_service(data.service_id, artist_id)
         if service is None:
             raise NotFoundError("Service not found")
@@ -225,6 +226,7 @@ class QuoteService:
             also.append({"id": str(other.id), "name": other.display_name})
         return {
             "service_name": service.display_name,
+            "quantity_unit": service.quantity_unit,
             "answers": catalog_fields.answer_snapshot(fields, catalog_fields.validate_values(fields, data.answers)),
             "addons": addons,
             "also_services": also,

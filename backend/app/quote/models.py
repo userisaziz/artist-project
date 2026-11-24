@@ -40,6 +40,7 @@ class QuoteEnquiry(Base, TimestampMixin):
     )
     service_name: Mapped[str | None] = mapped_column(String(120))  # as it was named when asked
     quantity: Mapped[int | None] = mapped_column(Integer)  # how many (boxes, cards, guests), when it matters
+    quantity_unit: Mapped[str | None] = mapped_column(String(10))  # the service's unit when it is priced per unit
     # Answers to the service's booking fields, with their labels as asked (app.catalog.fields).
     answers: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list, server_default=sa.text("'[]'"))
     # Add-ons picked from that service, priced as listed when asked ({name, unit_price_paise, per_person, guests,

@@ -108,6 +108,7 @@ class NewBooking:
     price_paise: int  # the service (times guests when per person) plus any add-on lines
     addons: tuple[BookingAddon, ...] = ()
     quantity: int = 1
+    quantity_unit: str | None = None
     answers: tuple[dict[str, Any], ...] = ()
 
 
@@ -168,6 +169,7 @@ def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> B
         address=data.address,
         note=data.note,
         quantity=data.quantity,
+        quantity_unit=data.quantity_unit,
         answers=list(data.answers),
         status=BookingStatus.requested,
         subtotal_paise=p.subtotal_paise,
@@ -369,6 +371,7 @@ class BookingService:
                 price_paise=service.price_paise * data.quantity + sum(line.line_paise for line in addons),
                 addons=addons,
                 quantity=data.quantity,
+                quantity_unit=service.quantity_unit,
                 answers=tuple(answers),
             ),
         )
