@@ -26,6 +26,7 @@ import type { AdminCategory, CategoryStatus } from '@/lib/types'
 import { CatalogKpis } from './CatalogKpis'
 import { CategoryActions } from './CategoryActions'
 import { CategoryDialog } from './CategoryDialog'
+import { ServiceRulesSheet } from './ServiceRulesSheet'
 import { CategoryRow } from './CategoryRow'
 import { ServiceTemplatesPane } from './ServiceTemplatesPane'
 import { useCategories, useDeleteCategory, useSaveCategory } from './queries'
@@ -63,6 +64,9 @@ export function CategoriesPage() {
   const topLevel = all.filter((c) => c.parent_id === null)
   const childrenOf = (id: number) => all.filter((c) => c.parent_id === id)
   const byId = (id: number | null) => all.find((c) => c.id === id) ?? null
+  // The Service rules panel follows the cached list, so it shows the saved rules after a save.
+  const [rulesId, setRulesId] = useState<number | null>(null)
+  const rulesFor = byId(rulesId)
   const subId = Number(params.get('sub')) || null
   const picked = byId(subId)?.parent_id != null ? byId(subId) : null
   // With nothing picked, open the first subcategory that still needs services (else the first one).
@@ -122,6 +126,7 @@ export function CategoriesPage() {
     <CategoryActions
       category={c}
       onEdit={() => setDialog({ category: c, parent: byId(c.parent_id) })}
+      onRules={() => setRulesId(c.id)}
       onAddSubcategory={c.parent_id === null ? () => { setExpanded((open) => new Set(open).add(c.id)); setDialog({ category: null, parent: c }) } : undefined}
       onServices={c.parent_id === null ? undefined : () => updateParams('sub', String(c.id))}
       onStatus={(s) => setChanging({ category: c, status: s })}
@@ -205,6 +210,7 @@ export function CategoriesPage() {
         )}
       </div>
 
+      <ServiceRulesSheet category={rulesFor} parent={rulesFor ? byId(rulesFor.parent_id) : null} onClose={() => setRulesId(null)} />
       <CategoryDialog open={dialog !== null} category={dialog?.category ?? null} parent={dialog?.parent ?? null} onClose={() => setDialog(null)} />
 
       <ConfirmDialog

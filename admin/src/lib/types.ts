@@ -32,6 +32,30 @@ export interface AdminCategory {
   service_count: number
   child_count: number
   template_count: number
+  /** As set on this row; null on a subcategory = follows its parent. */
+  fulfilment: Fulfilment | null
+  /** This row's own fields; a subcategory also gets its parent's. */
+  field_schema: FieldDef[]
+}
+
+/** appointment: booked into a time slot. made_to_order: made and handed over later, so customers ask for a quote. */
+export type Fulfilment = 'appointment' | 'made_to_order'
+/** listing: the artist states it when offering the service. booking: the customer answers it when booking. */
+export type FieldScope = 'listing' | 'booking'
+export type FieldType = 'text' | 'long_text' | 'number' | 'select' | 'multi_select' | 'boolean' | 'date'
+
+/** One admin-defined service field (backend app/catalog/fields.py FieldDef). `key` is stored with answers: keep it. */
+export interface FieldDef {
+  key: string
+  label: string
+  scope: FieldScope
+  type: FieldType
+  required: boolean
+  options: string[]
+  min: number | null
+  max: number | null
+  unit: string | null
+  help: string | null
 }
 
 export interface CategoryInput {
@@ -40,6 +64,8 @@ export interface CategoryInput {
   sort_order?: number
   status: CategoryStatus
   parent_id?: number // set on create only: makes it a subcategory of that top-level category
+  fulfilment?: Fulfilment | null // null on a subcategory = follow the parent
+  field_schema?: FieldDef[] // sent replaces this row's own fields
 }
 
 /** One entry in a subcategory's service list, which artists pick from during onboarding. */

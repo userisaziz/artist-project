@@ -144,3 +144,54 @@ it('shows an error state when the catalog fails to load', async () => {
   // A 500 is retried twice (about 1 s + 2 s, src/lib/query-client.ts) before the error shows.
   expect(await screen.findByRole('alert', {}, { timeout: 5000 })).toHaveTextContent('Couldn’t load categories.')
 })
+
+it('sets a subcategory’s service rules: made to order, with a required booking field', async () => {
+  const occasion = { key: 'occasion', label: 'Occasion', scope: 'booking' as const, type: 'select' as const, required: false, options: ['Aqiqah', 'Eid'], min: null, max: null, unit: null, help: null }
+  db.categories = [
+    category({ id: 1, name: 'Gift Boxes', child_count: 1, field_schema: [occasion] }),
+    category({ id: 2, name: 'Aqiqah Boxes', parent_id: 1 }),
+  ]
+  const user = userEvent.setup()
+  renderSignedIn('/categories')
+  const giftBoxes = await screen.findByRole('button', { name: 'Gift Boxes' })
+  if (giftBoxes.getAttribute('aria-expanded') !== 'true') await user.click(giftBoxes) // opens on the one needing services
+  await user.click(await screen.findByRole('button', { name: 'Service rules for Aqiqah Boxes' }))
+  const panel = await screen.findByRole('dialog')
+  expect(within(panel).getByText(/Occasion · customer answers it/)).toBeInTheDocument() // inherited, read-only
+
+  await user.selectOptions(within(panel).getByLabelText('Fulfilment'), 'made_to_order')
+  await user.click(within(panel).getByRole('button', { name: /Add field/ }))
+  await user.click(within(panel).getByRole('button', { name: 'Save rules' }))
+  expect(await within(panel).findByText('Label is required')).toBeInTheDocument()
+
+  await user.type(within(panel).getByLabelText('Label'), "Baby's name")
+  expect(within(panel).getByText('babys_name')).toBeInTheDocument() // the key follows the label until saved
+  await user.click(within(panel).getByRole('switch', { name: "Baby's name is required" }))
+  await user.click(within(panel).getByRole('button', { name: 'Save rules' }))
+
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(calls).toContainEqual({
+    method: 'PATCH',
+    path: '/admin/categories/2',
+    body: {
+      fulfilment: 'made_to_order',
+      field_schema: [{ key: 'babys_name', label: "Baby's name", scope: 'booking', type: 'text', required: true, options: [], min: null, max: null, unit: null, help: null }],
+    },
+  })
+})
+
+it('shows choice options only for choice fields and checks them', async () => {
+  db.categories = [category({ id: 1, name: 'Photography' })]
+  const user = userEvent.setup()
+  renderSignedIn('/categories')
+  await user.click(await screen.findByRole('button', { name: 'Service rules for Photography' }))
+  const panel = await screen.findByRole('dialog')
+  await user.click(within(panel).getByRole('button', { name: /Add field/ }))
+  await user.type(within(panel).getByLabelText('Label'), 'Event type')
+  expect(within(panel).queryByLabelText('Options')).not.toBeInTheDocument()
+
+  await user.selectOptions(within(panel).getByLabelText('Type'), 'select')
+  await user.click(within(panel).getByRole('button', { name: 'Save rules' }))
+  expect(await within(panel).findByText('Add at least one option')).toBeInTheDocument()
+  expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
+})
