@@ -118,7 +118,7 @@ it('rating, home visit and price filters and the sort sheet go to the server', a
   await fireEvent.press(await screen.findByRole('button', { name: 'Under ₹5,000' }));
   await waitFor(() => expect(searches().at(-1)?.max_price_paise).toBe('500000'));
 
-  await fireEvent.press(screen.getByRole('button', { name: 'Sort: Recommended' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Sort by: Recommended. Change' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Price: low to high' }));
   await waitFor(() => expect(searches().at(-1)?.sort).toBe('price'));
 });
@@ -178,7 +178,7 @@ it('filters round-trip through the URL: chips write params, and a link with para
   await waitFor(() => expect(searches().at(-1)).toMatchObject({ sort: 'price', max_price_paise: '500000', home_visit: 'true' }));
   expect(searches().at(-1)?.available_on).toBeUndefined();
   expect(searches().at(-1)?.min_rating).toBeUndefined();
-  expect(screen.getByRole('button', { name: 'Sort: Price: low to high' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Sort by: Price: low to high. Change' })).toBeTruthy();
 });
 
 it('saves an artist from a compact row, not only the featured card', async () => {
@@ -234,5 +234,5 @@ it('opens sorted by rating from Home\'s "Top rated → See all"', async () => {
   await wrap(<Explore />);
 
   await waitFor(() => expect(searches().at(-1)?.sort).toBe('rating'));
-  expect(await screen.findByRole('button', { name: 'Sort: Top rated' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Sort by: Top rated. Change' })).toBeTruthy();
 });

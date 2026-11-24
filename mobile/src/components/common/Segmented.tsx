@@ -25,7 +25,7 @@ export function Segmented<K extends string>({ options, value, onChange }: Segmen
             onPress={() => onChange(o.key)}
             style={[{ flex: 1, height: 34, borderRadius: theme.radii.control, alignItems: 'center', justifyContent: 'center' }, selected && { backgroundColor: theme.colors.surface }, selected && theme.shadows.sm]}
           >
-            <AppText variant="labelLg" style={{ color: selected ? theme.colors.textPrimary : theme.colors.textMuted }}>{o.label}</AppText>
+            <AppText variant="label" size="lg" style={{ color: selected ? theme.colors.textPrimary : theme.colors.textMuted }}>{o.label}</AppText>
           </PressableFeedback>
         );
       })}

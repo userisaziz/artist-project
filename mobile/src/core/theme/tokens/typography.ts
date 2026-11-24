@@ -10,7 +10,7 @@ export const fontFamilies = {
 } as const;
 
 export const typographyTokens = {
-  hero: { fontFamily: fontFamilies.headingSemiBold, fontSize: 37.4, lineHeight: 36.7, letterSpacing: -0.94 },
+  hero: { fontFamily: fontFamilies.headingSemiBold, fontSize: 37.4, lineHeight: 39.1, letterSpacing: -0.94 }, // leading is 105% of the size, display's own ratio: 36.7 sat below the 37.4 it was leading, so a two-line hero clipped its descenders
   eyebrow: { fontFamily: fontFamilies.sansBold, fontSize: 11, lineHeight: 14, letterSpacing: 2 },
   display: { fontFamily: fontFamilies.headingSemiBold, fontSize: 32.8, lineHeight: 34.3, letterSpacing: -0.82 },
   accent: { fontFamily: fontFamilies.headingItalic, fontSize: 32.8, lineHeight: 34.3, letterSpacing: -0.82 },
@@ -31,4 +31,11 @@ export const typographyTokens = {
   phone: { fontFamily: fontFamilies.sansSemiBold, fontSize: 17, lineHeight: 24, letterSpacing: 0 }, // phone number entry
   otpDigit: { fontFamily: fontFamilies.sansBold, fontSize: 22, lineHeight: 28, letterSpacing: 0 }, // one-time code boxes
   logo: { fontFamily: fontFamilies.headingSemiBold, fontSize: 26.5, lineHeight: 28, letterSpacing: -0.66 }, // the brand-name wordmark
+} as const;
+
+// Size rungs per role, spelled as the NAMES of the variants above. A rung therefore cannot drift from its own
+// token, and a role the design gives no second size to cannot be asked for one.
+export const typeScale = {
+  label: { xs: 'labelSm', sm: 'label', md: 'labelMd', lg: 'labelLg' },
+  body: { sm: 'bodySm', md: 'body' },
 } as const;

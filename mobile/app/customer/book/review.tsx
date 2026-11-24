@@ -153,7 +153,7 @@ export default function ReviewAndPay() {
                 onPress={() => setEditingAddons((v) => !v)}
                 hitSlop={theme.spacing[2]}
               >
-                <AppText variant="labelLg" style={{ color: theme.colors.brand }}>{editingAddons ? 'Done' : lines.length ? 'Edit add-ons' : 'Add add-ons'}</AppText>
+                <AppText variant="label" size="lg" style={{ color: theme.colors.brand }}>{editingAddons ? 'Done' : lines.length ? 'Edit add-ons' : 'Add add-ons'}</AppText>
               </PressableFeedback>
             ) : null}
           </View>

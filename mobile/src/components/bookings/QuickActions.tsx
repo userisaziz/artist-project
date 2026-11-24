@@ -27,7 +27,7 @@ export function QuickActions({ onAction }: { onAction: (key: QuickActionKey) => 
           style={{ flex: 1, alignItems: 'center', gap: theme.spacing[1.5], paddingVertical: theme.spacing[3], borderRadius: theme.radii.lg, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator }}
         >
           <Icon name={a.icon} size={20} color={theme.colors.brand} />
-          <AppText variant="labelSm" style={{ color: theme.colors.textPrimary }}>{a.label}</AppText>
+          <AppText variant="label" size="xs" style={{ color: theme.colors.textPrimary }}>{a.label}</AppText>
         </PressableFeedback>
       ))}
     </View>

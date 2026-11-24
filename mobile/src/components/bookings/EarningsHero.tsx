@@ -60,7 +60,7 @@ export function EarningsHero({ dashboard: d, onPress }: EarningsHeroProps) {
                   }}
                 />
               </View>
-              <AppText variant="labelSm" style={{ color: onBrand, opacity: current ? 1 : 0.7 }}>{shortMonth(m.month)}</AppText>
+              <AppText variant="label" size="xs" style={{ color: onBrand, opacity: current ? 1 : 0.7 }}>{shortMonth(m.month)}</AppText>
             </View>
           );
         })}

@@ -12,22 +12,24 @@ export const lightTheme: Theme = {
     surface: palette.white,
     textPrimary: palette.ink900,
     textSecondary: palette.ink700,
-    textMuted: palette.ink500,
+    textMuted: palette.ink550, // ink500 cleared 4.5:1 on white alone and failed on all ten tinted surfaces; this is the lightest ink that holds on every one
     textOnBrand: palette.white,
     // Cherry Red kit: cherry 500 fills, cherry 600 when pressed, cherry 100 tint behind secondary actions.
     brand: palette.cherry500,
     brandPressed: palette.cherry600,
     brandSoft: palette.cherry100,
-    brandSoftPressed: palette.blush300,
-    brandSoftBorder: palette.blush250,
+    brandSoftPressed: palette.blush250, // blush300 put the label at 4.43:1 for the whole press; this keeps a visible step and holds 5.29
+    brandSoftBorder: palette.fieldEdge, // blush250 measured 1.41:1 on the page and 1.15:1 on its own fill: the tinted button had no visible boundary
     disabledFill: palette.blush150,
-    disabledInk: palette.rose400,
+    disabledInk: palette.rose500, // rose400 measured 2.91:1 on the disabled fill
     accent: palette.rose400,
     separator: palette.line100,
     inputBackground: palette.white,
     border: palette.line200,
+    fieldEdge: palette.fieldEdge, // the resting edge of a control you type into, toggle or tap: line200 measured 1.43:1 on white
     borderFocus: palette.cherry500,
     error: palette.error500,
+    errorOnSoft: palette.error600, // error500 measured 3.92:1 on errorBackground
     errorBackground: palette.error100,
     success: palette.sage600,
     overlay: palette.scrim,
@@ -46,16 +48,14 @@ export const lightTheme: Theme = {
     roleCard: palette.blush150,
     roleTag: palette.blush250,
     fieldHalo: palette.blush100,
+    brandSelection: palette.cherry500Selection, // the same value the fields used to build by hand as `${brand}55`
     pendingSoft: palette.amber100,
-    pendingInk: palette.amber700,
+    pendingInk: palette.amber800, // amber700 measured 4.40:1 on pendingSoft; amber700 stays as admin's --warning
     pendingDot: palette.amber500,
     confirmedSoft: palette.sage100,
     confirmedInk: palette.sage600,
     neutralSoft: palette.mist100,
     sheen: palette.sheen,
-    sheenMid: palette.sheenMid,
-    sheenRim: palette.sheenRim,
-    sheenClear: palette.sheenClear,
     skeletonBandClear: palette.blush300Clear,
     loaderHandle: palette.plum900,
     loaderFerrule: palette.ink300,

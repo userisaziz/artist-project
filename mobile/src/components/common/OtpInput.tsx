@@ -110,7 +110,7 @@ export function OtpInput({ length = 6, onComplete, onChange, error = false, busy
         <TextInput
           testID={`otp-box-${i}`}
           cursorColor={theme.colors.brand}
-          selectionColor={`${theme.colors.brand}55`}
+          selectionColor={theme.colors.brandSelection}
           selectionHandleColor={theme.colors.brand}
           ref={(el) => { inputs.current[i] = el; }}
           value={d}

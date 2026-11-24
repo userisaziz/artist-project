@@ -15,14 +15,14 @@ export function StatusPill({ label, tone }: StatusPillProps) {
   const palette: Record<PillTone, [string, string]> = {
     pending: [colors.pendingSoft, colors.pendingInk],
     confirmed: [colors.confirmedSoft, colors.confirmedInk],
-    brand: [colors.brandSoft, colors.brand],
+    brand: [colors.brandSoft, colors.brandInk], // brand measured 3.86:1 on its own tint
     neutral: [colors.neutralSoft, colors.textSecondary],
-    danger: [colors.errorBackground, colors.error],
+    danger: [colors.errorBackground, colors.errorOnSoft], // error measured 3.92:1 on errorBackground
   };
   const [bg, fg] = palette[tone];
   return (
     <View style={{ alignSelf: 'flex-start', paddingHorizontal: spacing[2.5], paddingVertical: spacing[1], borderRadius: radii.pill, backgroundColor: bg }}>
-      <AppText variant="labelSm" style={{ color: fg }}>{label}</AppText>
+      <AppText variant="label" size="xs" style={{ color: fg }}>{label}</AppText>
     </View>
   );
 }

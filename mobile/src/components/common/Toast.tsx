@@ -55,7 +55,7 @@ export function ToastHost() {
               }}
             />
             <View style={{ flex: 1, gap: theme.spacing[0.5] }}>
-              <AppText variant="labelLg" style={{ color: theme.colors.textPrimary }}>{message.title}</AppText>
+              <AppText variant="label" size="lg" style={{ color: theme.colors.textPrimary }}>{message.title}</AppText>
               {message.body ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{message.body}</AppText> : null}
             </View>
           </PressableFeedback>

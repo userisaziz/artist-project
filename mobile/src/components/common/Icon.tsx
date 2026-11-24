@@ -1,6 +1,7 @@
 import { View, type ColorValue } from 'react-native';
 import {
   ArrowLeftRight,
+  ArrowUpDown,
   BadgeCheck,
   Bell,
   Bookmark,
@@ -69,6 +70,7 @@ const ICONS = {
   scissors: Scissors,
   search: Search,
   share: Share2,
+  sort: ArrowUpDown,
   sparkles: Sparkles,
   star: Star,
   'trending-down': TrendingDown,

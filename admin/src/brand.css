@@ -24,7 +24,6 @@
     --palette-blush75: #FFF5F8;
     --palette-blush100: #FCEEF3;
     --palette-blush150: #FCE3EC;
-    --palette-blush200: #FFE4EE;
     --palette-blush250: #F7CFDD;
     --palette-blush280: #F5D3E0;
     --palette-blush300: #F5B6D0;
@@ -32,22 +31,23 @@
     --palette-line100: #F0DCE5;
     --palette-line200: #F0CFDD;
     --palette-line300: #EBC3D5;
+    --palette-fieldEdge: #A87A90;
     --palette-rose400: #C76B93;
     --palette-rose500: #B64D75;
-    --palette-rose600: #9F3F64;
-    --palette-rose700: #9A3D62;
     --palette-rose800: #7A2F55;
     --palette-plum900: #4A1B33;
     --palette-plum950: #491F32;
     --palette-ink900: #49313B;
     --palette-ink700: #6E5262;
     --palette-ink500: #896F7D;
+    --palette-ink550: #715765;
     --palette-ink300: #C2B0B9;
     --palette-sage100: #E3F1E7;
     --palette-sage600: #2F6B47;
     --palette-amber100: #FDF0DC;
     --palette-amber500: #D9A04A;
     --palette-amber700: #9A6514;
+    --palette-amber800: #8F5D12;
     --palette-mist100: #F3EEF1;
     --palette-white: #FFFFFF;
     --palette-error500: #C24A4A;
@@ -63,12 +63,10 @@
     --palette-error120: #FBE3E3;
     --palette-mist80: #F2EEF0;
     --palette-sheen: #FFFFFF99;
-    --palette-sheenMid: #FFFFFF2E;
-    --palette-sheenRim: #FFFFFFB3;
-    --palette-sheenClear: #FFFFFF00;
     --palette-blush300Clear: #F5B6D000;
     --palette-cherry100: #FFE1E8;
     --palette-cherry500: #D92D55;
     --palette-cherry600: #BE123C;
     --palette-cherry700: #A8123D;
+    --palette-cherry500Selection: #D92D5555;
 }

@@ -32,6 +32,7 @@ function RequirementStrip({ item, onPress }: { item: PendingRequirement; onPress
     ? `Your profile is hidden. ${item.title} to show up for clients again.`
     : `${item.title} by ${formatDay(istDateKey(item.due_at))} to stay visible to clients.`;
   const ink = item.overdue ? theme.colors.error : theme.colors.pendingInk;
+  const textInk = item.overdue ? theme.colors.errorOnSoft : theme.colors.pendingInk; // the graphics clear 3:1 as error; the caption is text and needs 4.5
   return (
     <PressableFeedback
       accessibilityRole="button"
@@ -45,7 +46,7 @@ function RequirementStrip({ item, onPress }: { item: PendingRequirement; onPress
       <Icon name={item.key === 'location' ? 'map-pin' : 'pen-tool'} size={18} color={ink} />
       <View style={{ flex: 1 }}>
         <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{message}</AppText>
-        <AppText variant="caption" style={{ color: ink, fontWeight: '700', marginTop: 4 }}>Complete now</AppText>
+        <AppText variant="caption" style={{ color: textInk, fontWeight: '700', marginTop: 4 }}>Complete now</AppText>
       </View>
       <Icon name="chevron-right" size={18} color={ink} />
     </PressableFeedback>

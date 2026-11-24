@@ -16,8 +16,9 @@ export function InfoRow({ label, value, strong = false, tint }: InfoRowProps) {
   const text = strong ? theme.typography.subtitle : theme.typography.body;
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing[3], paddingVertical: theme.spacing[1.5] }}>
-      <AppText style={[text, { color: strong ? theme.colors.textPrimary : theme.colors.textSecondary }]}>{label}</AppText>
-      <AppText style={[text, { flexShrink: 1, textAlign: 'right', color: tint ?? theme.colors.textPrimary }]}>{value}</AppText>
+      {/* The label is the flexible half: long names wrap within the row; a price never breaks mid-number. */}
+      <AppText numberOfLines={2} style={[text, { flexShrink: 1, color: strong ? theme.colors.textPrimary : theme.colors.textSecondary }]}>{label}</AppText>
+      <AppText numberOfLines={1} style={[text, { flexShrink: 0, textAlign: 'right', color: tint ?? theme.colors.textPrimary }]}>{value}</AppText>
     </View>
   );
 }

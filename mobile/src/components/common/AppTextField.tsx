@@ -30,7 +30,7 @@ export function AppTextField({ label, error, hideLabel = false, accessory, style
       <TextInput
         accessibilityLabel={label}
         cursorColor={theme.colors.brand}
-        selectionColor={`${theme.colors.brand}55`}
+        selectionColor={theme.colors.brandSelection}
         selectionHandleColor={theme.colors.brand}
         placeholderTextColor={theme.colors.textMuted}
         {...rest}

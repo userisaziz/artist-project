@@ -20,7 +20,7 @@ export function HomeTopRated({ artists, onOpen, onSeeAll }: HomeTopRatedProps) {
   return (
     <>
       <SectionHeader title="Top rated" onSeeAll={onSeeAll} seeAllLabel="See all top rated artists" />
-      <View accessibilityLabel="Top rated artists" style={{ paddingHorizontal: theme.spacing.md, gap: 10 }}>
+      <View accessibilityLabel="Top rated artists" style={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing[3] }}>
         {artists.map((a, i) => (
           <MotionEntrance key={a.id} index={i} armed={armed}>
             <ArtistCompactRow artist={a} onPress={() => onOpen(a.id)} />

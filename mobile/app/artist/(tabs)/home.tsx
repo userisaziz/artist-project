@@ -50,7 +50,7 @@ function SectionTitle({ title, onSeeAll }: { title: string; onSeeAll?: () => voi
       <AppText variant="sectionTitle" style={{ color: theme.colors.heading }}>{title}</AppText>
       {onSeeAll ? (
         <PressableFeedback accessibilityRole="button" accessibilityLabel={`See all ${title.toLowerCase()}`} onPress={onSeeAll} hitSlop={8}>
-          <AppText variant="labelLg" style={{ color: theme.colors.brand }}>See all</AppText>
+          <AppText variant="label" size="lg" style={{ color: theme.colors.brand }}>See all</AppText>
         </PressableFeedback>
       ) : null}
     </View>

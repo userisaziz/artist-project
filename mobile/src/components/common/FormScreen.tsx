@@ -65,7 +65,7 @@ export function FormHeading({ eyebrow, title, accent, subtitle }: { eyebrow: str
         {`${title} `}<Accent light color={theme.colors.brand}>{accent}</Accent>
       </AppText>
       {subtitle ? (
-        <AppText variant="bodySm" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>{subtitle}</AppText>
+        <AppText variant="body" size="sm" style={{ color: theme.colors.textSecondary, marginTop: theme.spacing.sm }}>{subtitle}</AppText>
       ) : null}
     </View>
   );

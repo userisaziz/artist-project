@@ -119,7 +119,7 @@ export default function Explore() {
   const empty = list.isPending ? <LoadingView label="Loading artists" shape="explore" count={4} />
     : list.isError ? <ErrorView error={list.error} onRetry={() => { void list.refetch(); }} />
       : (
-        <View style={{ gap: theme.spacing.md }}>
+        <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing[3] }}>
           <EmptyView message={filtered ? 'No artists match these filters.' : `No artists ${where} yet.`} />
           {filtered ? <AppButton label="Clear filters" variant="secondary" onPress={() => { explore.clear(); setCategoryId(null); }} /> : null}
         </View>
@@ -142,28 +142,34 @@ export default function Explore() {
         keyExtractor={(a) => a.id}
         getItemType={(_, index) => (index === 0 ? 'featured' : 'row')} // the mosaic card and the rows recycle apart
         style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1, pointerEvents: list.isPlaceholderData ? 'none' : 'auto' }} // the previous search, until the new one answers; dimmed rows must not open the wrong artist
-        contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: theme.spacing[3] }}
-        renderItem={({ item, index }) => (index === 0 ? (
-          <MotionEntrance index={index} armed={rowsArmed}>
-            <ExploreFeaturedCard
-              artist={item}
-              availability={availabilityLabel(item.free_on, todayKey)}
-              saved={saveArtist.isSaved(item.id)}
-              onToggleSave={() => saveArtist.toggle(item.id)}
-              onPress={() => openArtist(item.id)}
-            />
-          </MotionEntrance>
-        ) : (
-          <MotionEntrance index={index} armed={rowsArmed}>
-            <ExploreResultRow
-              artist={item}
-              availability={availabilityLabel(item.free_on, todayKey)}
-              saved={saveArtist.isSaved(item.id)}
-              onToggleSave={() => saveArtist.toggle(item.id)}
-              onPress={() => openArtist(item.id)}
-            />
-          </MotionEntrance>
-        ))}
+        contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl }}
+        renderItem={({ item, index }) => (
+          // The gap lives inside each cell, not in the container: FlashList measures cells without the
+          // container's `gap`, so a container gap recycles into uneven spacing.
+          <View style={{ paddingTop: theme.spacing[3] }}>
+            {index === 0 ? (
+              <MotionEntrance index={index} armed={rowsArmed}>
+                <ExploreFeaturedCard
+                  artist={item}
+                  availability={availabilityLabel(item.free_on, todayKey)}
+                  saved={saveArtist.isSaved(item.id)}
+                  onToggleSave={() => saveArtist.toggle(item.id)}
+                  onPress={() => openArtist(item.id)}
+                />
+              </MotionEntrance>
+            ) : (
+              <MotionEntrance index={index} armed={rowsArmed}>
+                <ExploreResultRow
+                  artist={item}
+                  availability={availabilityLabel(item.free_on, todayKey)}
+                  saved={saveArtist.isSaved(item.id)}
+                  onToggleSave={() => saveArtist.toggle(item.id)}
+                  onPress={() => openArtist(item.id)}
+                />
+              </MotionEntrance>
+            )}
+          </View>
+        )}
         onEndReachedThreshold={0.5}
         onEndReached={() => { if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage(); }}
         ListHeaderComponent={
@@ -181,7 +187,7 @@ export default function Explore() {
       <PlaceSheet visible={sheet === 'city'} current={place} phone={explore.phone} onPick={(next) => { setPlace(next); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'date'} title="Free on" choices={dateChoices(todayKey)} selected={filters.availableOn} onPick={(availableOn) => { set({ availableOn }); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'price'} title="Starting price" choices={priceChoices()} selected={filters.maxPricePaise} onPick={(maxPricePaise) => { set({ maxPricePaise }); close(); }} onClose={close} />
-      <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices(explore.hasPoint)} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
+      <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices()} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
     </View>
     </KeyboardAvoider>
   );

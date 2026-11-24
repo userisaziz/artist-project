@@ -63,7 +63,7 @@ export function PhoneInput({ value, onChange, error = false, autoFocus = false }
         <TextInput
           testID="phone-national"
           cursorColor={theme.colors.brand}
-          selectionColor={`${theme.colors.brand}55`}
+          selectionColor={theme.colors.brandSelection}
           selectionHandleColor={theme.colors.brand}
           value={formatNational(country.code, national)}
           onChangeText={(t) => emit(country.code, t.replace(/\D/g, ''))}

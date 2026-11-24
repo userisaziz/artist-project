@@ -17,11 +17,11 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, onSeeAll, seeAllLabel = 'See all' }: SectionHeaderProps) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing[3] }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.md, paddingBottom: theme.spacing[3] }}>
       <AppText variant="sectionTitle" style={{ color: theme.colors.textPrimary }}>{title}</AppText>
       {onSeeAll ? (
         <PressableFeedback accessibilityRole="button" accessibilityLabel={seeAllLabel} onPress={onSeeAll} hitSlop={8}>
-          <AppText variant="labelLg" style={{ color: theme.colors.brand }}>See all</AppText>
+          <AppText variant="label" size="lg" style={{ color: theme.colors.brand }}>See all</AppText>
         </PressableFeedback>
       ) : null}
     </View>

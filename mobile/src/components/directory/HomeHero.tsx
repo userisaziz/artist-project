@@ -24,7 +24,7 @@ interface HomeHeroProps {
   scrollY: ScrollY;
 }
 
-const PHOTO_HEIGHT = 250;
+const PHOTO_HEIGHT = 180;
 const PARALLAX_DISTANCE = 40; // parallax travel budget
 const CARD_OVERLAP = 36;
 const CARD_RADIUS = 18;

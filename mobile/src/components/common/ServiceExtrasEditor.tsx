@@ -72,7 +72,7 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
               onPress={() => setAddon(i, { perPerson: !a.perPerson })}
               style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] }}
             >
-              <View style={{ width: BOX, height: BOX, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', borderWidth: a.perPerson ? 0 : 1.5, borderColor: theme.colors.border, backgroundColor: a.perPerson ? theme.colors.brand : theme.colors.surface }}>
+              <View style={{ width: BOX, height: BOX, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: a.perPerson ? theme.colors.brand : theme.colors.fieldEdge, backgroundColor: a.perPerson ? theme.colors.brand : theme.colors.surface }}>
                 {a.perPerson ? <Icon name="check" size={13} color={theme.colors.textOnBrand} /> : null}
               </View>
               <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Priced per person</AppText>
@@ -87,7 +87,7 @@ export function ServiceExtrasEditor({ value, onChange }: ServiceExtrasEditorProp
         <PressableFeedback
           accessibilityRole="button"
           onPress={() => onChange({ ...value, addons: [...value.addons, { name: '', price: '', perPerson: false }] })}
-          style={{ height: 44, borderRadius: theme.radii.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' }}
+          style={{ height: 44, borderRadius: theme.radii.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.colors.fieldEdge, alignItems: 'center', justifyContent: 'center' }}
         >
           <AppText variant="label" style={{ color: theme.colors.brand }}>+ Add an add-on</AppText>
         </PressableFeedback>

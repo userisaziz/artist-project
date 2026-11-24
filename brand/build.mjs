@@ -25,6 +25,13 @@ export const typographyTokens = {
 ${Object.entries(t.typography).map(([k, v]) =>
   `  ${k}: { fontFamily: fontFamilies.${v.font}, fontSize: ${v.size}, lineHeight: ${v.lineHeight}, letterSpacing: ${v.letterSpacing} },${v.note ? ` // ${v.note}` : ''}`).join('\n')}
 } as const;
+
+// Size rungs per role, spelled as the NAMES of the variants above. A rung therefore cannot drift from its own
+// token, and a role the design gives no second size to cannot be asked for one.
+export const typeScale = {
+${Object.entries(t.typeScale).filter(([role]) => !role.startsWith('_')).map(([role, rungs]) =>
+  `  ${role}: { ${Object.entries(rungs).map(([s, v]) => `${s}: '${v}'`).join(', ')} },`).join('\n')}
+} as const;
 `;
 const spacing = `${HEADER}// 4 px scale: key x 4 = px (Tailwind's numbering, shared with admin): theme.spacing[3] is 12.
 // The named steps are the original scale, kept so existing code keeps working.

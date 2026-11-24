@@ -16,7 +16,7 @@ export function BookingPolicy() {
       {bookingPolicyLines().map((line, i) => (
         <View key={line} style={{ flexDirection: 'row', gap: theme.spacing[2.5], alignItems: 'flex-start' }}>
           <Icon name={ICONS[i] ?? 'check'} size={16} color={theme.colors.brand} />
-          <AppText variant="bodySm" style={{ flex: 1, color: theme.colors.textSecondary }}>{line}</AppText>
+          <AppText variant="body" size="sm" style={{ flex: 1, color: theme.colors.textSecondary }}>{line}</AppText>
         </View>
       ))}
     </View>

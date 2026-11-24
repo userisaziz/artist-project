@@ -14,9 +14,10 @@ export const SORT_LABELS: Record<DirectorySort, string> = {
   recent: 'Newest',
 };
 
-/** "Nearest" only makes sense once "Near me" has a point. */
-export function sortChoices(hasPoint: boolean): Choice<DirectorySort>[] {
-  const order: DirectorySort[] = ['recommended', ...(hasPoint ? (['nearest'] as const) : []), 'rating', 'price', 'recent'];
+/** The sort sheet. "Nearest" is not in it: the "Near me" chip is that sort's only entry point, and the sheet
+ *  owning the rest keeps the two from competing for one control. */
+export function sortChoices(): Choice<DirectorySort>[] {
+  const order: DirectorySort[] = ['recommended', 'rating', 'price', 'recent'];
   return order.map((value) => ({ value, label: SORT_LABELS[value] }));
 }
 

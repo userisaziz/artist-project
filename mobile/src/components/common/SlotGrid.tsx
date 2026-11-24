@@ -47,7 +47,7 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
         <AppText variant="title" style={{ color: theme.colors.heading }}>{formatDay(date)}</AppText>
         <PressableFeedback accessibilityRole="button" accessibilityLabel="Pick a date from the calendar" onPress={() => setCalendarOpen(true)} hitSlop={theme.spacing[2]} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1] }}>
           <Icon name="calendar" size={16} color={theme.colors.brand} />
-          <AppText variant="labelLg" style={{ color: theme.colors.brand }}>Calendar</AppText>
+          <AppText variant="label" size="lg" style={{ color: theme.colors.brand }}>Calendar</AppText>
         </PressableFeedback>
       </View>
       <BottomSheet visible={calendarOpen} title="Pick a date" onClose={() => setCalendarOpen(false)}>
@@ -70,7 +70,7 @@ export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: S
               onPress={() => onChange(s.start_at)}
               style={{ width: '31.5%', height: 44, borderRadius: theme.radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? theme.colors.brand : s.available ? theme.colors.surface : theme.colors.canvas, borderWidth: selected ? 0 : 1, borderColor: theme.colors.separator }}
             >
-              <AppText variant="labelLg" style={{ color: selected ? theme.colors.textOnBrand : s.available ? theme.colors.textPrimary : theme.colors.textMuted, textDecorationLine: s.available ? 'none' : 'line-through' }}>{time}</AppText>
+              <AppText variant="label" size="lg" style={{ color: selected ? theme.colors.textOnBrand : s.available ? theme.colors.textPrimary : theme.colors.textMuted, textDecorationLine: s.available ? 'none' : 'line-through' }}>{time}</AppText>
             </PressableFeedback>
           );
         })}

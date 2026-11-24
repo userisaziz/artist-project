@@ -88,7 +88,7 @@ export default function CustomerHome() {
   };
 
   return (
-    <ScrollContainer onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
+    <ScrollContainer onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.sm, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
       <LinearGradient colors={[theme.colors.brandSoft, theme.colors.washTop, theme.colors.background]} locations={[0, 0.58, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: GRADIENT_HEIGHT }} />
       <CollapseOnScroll scrollY={scrollY} style={{ paddingHorizontal: theme.spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ flex: 1 }}>
@@ -105,9 +105,9 @@ export default function CustomerHome() {
             <Icon name="chevron-down" size={14} color={theme.colors.brand} />
           </PressableFeedback>
         </View>
-        <MessagesButton unread={unreadChats} onPress={() => router.push('/customer/messages')} />
+        <MessagesButton unread={unreadChats} size={40} onPress={() => router.push('/customer/messages')} />
         <PressableFeedback accessibilityRole="button" accessibilityLabel="Your profile" onPress={() => router.navigate('/customer/profile')}>
-          <Avatar uri={user?.avatar_url ?? null} name={fullName || 'You'} size={44} />
+          <Avatar uri={user?.avatar_url ?? null} name={fullName || 'You'} size={40} />
         </PressableFeedback>
       </CollapseOnScroll>
 
@@ -115,30 +115,34 @@ export default function CustomerHome() {
         accessibilityRole="search"
         accessibilityLabel="Search artists and services"
         onPress={search}
-        style={{ marginTop: theme.spacing.lg, marginHorizontal: theme.spacing.md, height: 50, borderRadius: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, ...theme.shadows.sm }}
+        style={{ marginTop: theme.spacing.md, marginHorizontal: theme.spacing.md, height: 50, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, paddingRight: 6, ...theme.shadows.md }}
       >
         <Icon name="search" size={18} color={theme.colors.brand} />
-        <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
+        <AppText variant="body" numberOfLines={1} style={{ flex: 1, color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
+        {/* A visual cue inside this one button, not a second control — buttons can't nest. */}
+        <View style={{ width: 38, height: 38, borderRadius: theme.radii.pill, backgroundColor: theme.colors.brand, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="search" size={18} color={theme.colors.textOnBrand} />
+        </View>
       </PressableFeedback>
 
       {place ? null : (
-        <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}>
+        <View style={{ marginTop: theme.spacing.md, paddingHorizontal: theme.spacing.md }}>
           <LocationCard phone={phone} onSearch={() => setPicking(true)} />
         </View>
       )}
 
       {place && slides.length ? (
-        <View style={{ marginTop: theme.spacing.lg }}>
+        <View style={{ marginTop: theme.spacing.md }}>
           <HomeHero slides={slides} onOpen={openSlide} scrollY={scrollY} />
         </View>
       ) : null}
 
       {categories.isPending ? (
-        <View style={{ marginTop: theme.spacing.lg }}><LoadingView label="Loading services" shape="icons" /></View>
+        <View style={{ marginTop: theme.spacing.md }}><LoadingView label="Loading services" shape="icons" /></View>
       ) : categories.isError ? (
-        <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}><ErrorView error={categories.error} onRetry={() => { void categories.refetch(); }} /></View>
+        <View style={{ marginTop: theme.spacing.md, paddingHorizontal: theme.spacing.md }}><ErrorView error={categories.error} onRetry={() => { void categories.refetch(); }} /></View>
       ) : categories.data?.length ? (
-        <View style={{ marginTop: theme.spacing.lg }}>
+        <View style={{ marginTop: theme.spacing.md }}>
           <CategoryIconRow categories={categories.data} onPick={(c) => router.navigate({ pathname: '/customer/explore', params: { categoryId: String(c.id) } })} />
         </View>
       ) : null}
@@ -158,7 +162,7 @@ export default function CustomerHome() {
           data={items}
           keyExtractor={(a) => a.id}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: theme.spacing.md, gap: 12 }}
+          contentContainerStyle={{ paddingHorizontal: theme.spacing.md, gap: theme.spacing[3] }}
           renderItem={({ item, index }) => (
             <MotionEntrance index={index} armed={tilesArmed}>
               <ArtistTile artist={item} saved={saveArtist.isSaved(item.id)} onPress={() => openArtist(item.id)} onToggleSave={() => saveArtist.toggle(item.id)} />
@@ -169,7 +173,7 @@ export default function CustomerHome() {
 
       <HomeTopRated artists={topRated.data ?? []} onOpen={openArtist} onSeeAll={exploreTopRated} />
 
-      <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}>
+      <View style={{ marginTop: theme.spacing.md, paddingHorizontal: theme.spacing.md }}>
         <ShopBanner onPress={() => router.navigate('/customer/shop')} />
       </View>
 

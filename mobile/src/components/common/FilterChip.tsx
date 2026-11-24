@@ -42,11 +42,11 @@ export function FilterChip({ label, active, onPress, accessibilityLabel, icon, t
       style={{
         height, paddingHorizontal: theme.spacing[3.5], borderRadius: theme.radii.pill, flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1],
         backgroundColor: active ? theme.colors.heading : theme.colors.surface,
-        borderWidth: active ? 0 : 1, borderColor: theme.colors.border,
+        borderWidth: 1, borderColor: active ? theme.colors.heading : theme.colors.fieldEdge,
       }}
     >
       {icon ? <Icon name={icon.name} size={glyph} filled={icon.filled} color={active ? ink : theme.colors.brand} /> : null}
-      <AppText variant="labelMd" style={{ color: ink }}>{label}</AppText>
+      <AppText variant="label" size="md" style={{ color: ink }}>{label}</AppText>
       {trailingIcon ? <Icon name={trailingIcon.name} size={glyph} filled={trailingIcon.filled} color={ink} /> : null}
     </PressableFeedback>
   );
