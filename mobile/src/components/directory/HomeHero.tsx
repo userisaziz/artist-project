@@ -37,23 +37,28 @@ const CHEVRON = 40;
 /** The design's Home hero: full-width photos that cross-fade, under a white card with the slide's title and dots. */
 export function HomeHero({ slides, onOpen, scrollY }: HomeHeroProps) {
   const theme = useTheme();
-  const [index, setIndex] = useState(0);
+  const [picked, setIndex] = useState(0);
   const reduceMotion = useReducedMotion();
+  // Home can drop slides after mount (only categories offered near the place stay), so the picked index may point
+  // past the end: fall back to the first slide rather than read one that's gone.
+  const index = picked < slides.length ? picked : 0;
   const slide = slides[index];
 
   // Auto-advance; a tapped dot restarts the clock. Reduced motion keeps the slide until a dot is tapped.
   useEffect(() => {
     if (reduceMotion || slides.length < 2) return undefined;
-    const id = setTimeout(() => setIndex((i) => (i + 1) % slides.length), SLIDE_MS);
+    const id = setTimeout(() => setIndex((index + 1) % slides.length), SLIDE_MS);
     return () => clearTimeout(id);
   }, [index, reduceMotion, slides.length]);
+
+  if (!slide) return null; // no slides left to show
 
   return (
     <View>
       <Parallax scrollY={scrollY} height={PHOTO_HEIGHT} distance={PARALLAX_DISTANCE}>
       <CrossfadeStack active={index} durationMs={FADE_MS} style={{ height: '100%', backgroundColor: theme.colors.washBottom }}>
         {slides.map((s) => (
-          <Image key={s.eyebrow} source={s.image} contentFit="cover" style={{ width: '100%', height: '100%' }} />
+          <Image key={s.title} source={s.image} contentFit="cover" style={{ width: '100%', height: '100%' }} />
         ))}
       </CrossfadeStack>
       </Parallax>
@@ -72,7 +77,7 @@ export function HomeHero({ slides, onOpen, scrollY }: HomeHeroProps) {
         <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
           {slides.map((s, i) => (
             <PressableFeedback
-              key={s.eyebrow}
+              key={s.title}
               accessibilityRole="button"
               accessibilityLabel={`Slide ${i + 1} of ${slides.length}`}
               accessibilityState={{ selected: i === index }}
