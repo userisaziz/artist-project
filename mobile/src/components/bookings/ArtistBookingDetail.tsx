@@ -20,6 +20,7 @@ import { formatWhen } from '../../utils/common/time';
 import { formatMaybePrice } from '../../utils/common/format';
 import type { Booking } from '../../types/bookings/bookings';
 import { AddonLines } from './AddonLines';
+import { AnswerList } from '../catalog/AnswerList';
 
 const MAX_REASON = 500; // backend ReasonIn
 
@@ -75,12 +76,13 @@ export function ArtistBookingDetail({ bookingId, onMessage, isOpeningChat }: Art
             <AppText variant="subtitle" style={{ flex: 1, color: theme.colors.textPrimary }}>{name}</AppText>
           </View>
           <Card>
-            <InfoRow label="Service" value={b.service_name} />
+            <InfoRow label="Service" value={b.quantity > 1 ? `${b.service_name} × ${b.quantity} guests` : b.service_name} />
             <InfoRow label="When" value={formatWhen(b.start_at)} />
             <InfoRow label="Where" value={b.address} />
             <AddonLines lines={b.addons} />
             <InfoRow label="You earn" value={formatMaybePrice(b.artist_earning_paise)} strong tint={theme.colors.brand} />
           </Card>
+          {b.answers.length ? <Card><AnswerList title="From the customer" answers={b.answers} /></Card> : null}
           {b.note ? (
             <View style={{ borderRadius: theme.radii.md, backgroundColor: theme.colors.washTop, padding: 12 }}>
               <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Customer’s note</AppText>

@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Storefront } from '../../../src/components/directory/Storefront';
+import { needsServicePage } from '../../../src/utils/directory/storefront';
 import { ArtistPostCards } from '../../../src/components/feed/ArtistPostCards';
 import { ErrorView } from '../../../src/components/common/StateViews';
 import { useChatOpener } from '../../../src/hooks/chat/chat';
@@ -28,8 +29,8 @@ export default function ArtistStorefrontScreen() {
     <Storefront
       artistId={id}
       customer={{
-        // A package with add-ons opens Service detail first, so the extras are seen and picked before the date.
-        onBook: (service) => (service.addons.length ? openService(service.id) : router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id } })),
+        // Add-ons, guests or made to order: Service detail first, so those are seen and picked before booking.
+        onBook: (service) => (needsServicePage(service) ? openService(service.id) : router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id } })),
         onOpenService: (service) => openService(service.id),
         onSeeAllReviews: () => router.push({ pathname: '/customer/artist/[id]/reviews', params: { id } }),
         onMessage: () => { void chat.open(id); },

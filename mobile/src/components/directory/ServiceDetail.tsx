@@ -16,6 +16,9 @@ import { addonCountLabel, addonLines, addonsTotal } from '../../utils/bookings/a
 import type { BookingAddonPick } from '../../types/bookings/bookings';
 import type { PublicService } from '../../types/directory/directory';
 import { AddonPicker } from './AddonPicker';
+import { AnswerList } from '../catalog/AnswerList';
+import { CountStepper } from '../common/CountStepper';
+import { MAX_ADDON_GUESTS as MAX_GUESTS } from '../../utils/bookings/addons';
 import { BookingPolicy } from './BookingPolicy';
 
 const HERO_RATIO = 0.62;
@@ -28,17 +31,20 @@ function categoryLabel(service: PublicService): string | null {
 interface ServiceDetailProps {
   artistId: string;
   serviceId: string;
-  onCheckAvailability: (service: PublicService, addons: BookingAddonPick[]) => void;
+  onCheckAvailability: (service: PublicService, addons: BookingAddonPick[], guests: number) => void;
+  /** Made-to-order services are quoted, not booked: opens an enquiry about this service. */
+  onRequestQuote: (service: PublicService) => void;
 }
 
 /** Design "Service detail": a photo of the artist's work, category, name, rating and artist, the starting price
  *  and duration, what's included, add-ons to pick, and "Check availability" under a running estimate. */
-export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: ServiceDetailProps) {
+export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequestQuote }: ServiceDetailProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const artist = useArtistPublic(artistId);
   const [picks, setPicks] = useState<BookingAddonPick[]>([]);
+  const [guests, setGuests] = useState(1);
   const service = artist.data?.services.find((s) => s.id === serviceId);
   const shell = { flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md } as const;
 
@@ -58,7 +64,10 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
   const category = categoryLabel(service);
   const lines = addonLines(service.addons, picks);
   const extrasPaise = addonsTotal(lines);
-  const estimate = service.price_paise + extrasPaise;
+  const perPerson = service.pricing_unit === 'per_person';
+  const quoted = service.fulfilment === 'made_to_order';
+  const base = service.price_paise * (perPerson ? guests : 1);
+  const estimate = base + extrasPaise;
   const extras = addonCountLabel(lines.length);
 
   return (
@@ -77,7 +86,7 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
             <View style={{ flex: 1, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
-              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Price</AppText>
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'From' : perPerson ? 'Per person' : 'Price'}</AppText>
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{formatPrice(service.price_paise)}</AppText>
             </View>
             <View style={{ flex: 1, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
@@ -85,6 +94,19 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{formatDuration(service.duration_minutes)}</AppText>
             </View>
           </View>
+          {quoted ? (
+            <View style={{ borderRadius: theme.radii.md, backgroundColor: theme.colors.brandSoft, padding: theme.spacing[3] }}>
+              <AppText variant="label" style={{ color: theme.colors.textPrimary }}>Made to order</AppText>
+              <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>Tell the artist what you need and when; they send you a price to accept.</AppText>
+            </View>
+          ) : null}
+          {service.details.length ? <View style={{ marginTop: theme.spacing[2] }}><AnswerList title="Details" answers={service.details} /></View> : null}
+          {perPerson && !quoted ? (
+            <View style={{ marginTop: theme.spacing[2], gap: theme.spacing[2] }}>
+              <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>How many people?</AppText>
+              <CountStepper noun={['guest', 'guests']} value={guests} min={1} max={MAX_GUESTS} onChange={setGuests} />
+            </View>
+          ) : null}
           {service.description ? (
             <>
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary, marginTop: 8 }}>About this service</AppText>
@@ -104,7 +126,7 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
               </View>
             </>
           ) : null}
-          {service.addons.length ? (
+          {service.addons.length && !quoted ? (
             <>
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary, marginTop: 8 }}>Add-ons</AppText>
               <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Optional extras. You can still change them before you send the request.</AppText>
@@ -115,13 +137,15 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability }: Serv
         </View>
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>
-        <View accessible accessibilityLabel={`Total ${formatPrice(estimate)}${extras ? `, includes ${extras}` : ''}`}>
-          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{extras ? `Total · ${extras}` : 'Total'}</AppText>
+        <View accessible accessibilityLabel={quoted ? `From ${formatPrice(service.price_paise)}` : `Total ${formatPrice(estimate)}${extras ? `, includes ${extras}` : ''}`}>
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'From' : extras ? `Total · ${extras}` : perPerson ? `Total · ${guests} ${guests === 1 ? 'guest' : 'guests'}` : 'Total'}</AppText>
           <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{formatPrice(estimate)}</AppText>
-          {extras ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${formatPrice(service.price_paise)} + ${formatPrice(extrasPaise)}`}</AppText> : null}
+          {extras ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${formatPrice(base)} + ${formatPrice(extrasPaise)}`}</AppText> : null}
         </View>
         <View style={{ flex: 1 }}>
-          <AppButton label="Check availability" onPress={() => onCheckAvailability(service, picks)} />
+          {quoted
+            ? <AppButton label="Request a quote" onPress={() => onRequestQuote(service)} />
+            : <AppButton label="Check availability" onPress={() => onCheckAvailability(service, picks, perPerson ? guests : 1)} />}
         </View>
       </View>
     </View>

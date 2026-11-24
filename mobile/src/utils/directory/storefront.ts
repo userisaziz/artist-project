@@ -23,3 +23,15 @@ export function splitName(name: string): [string, string] {
 export function packageCountLabel(count: number): string {
   return count === 1 ? '1 package' : `${count} packages`;
 }
+
+/** "Book" goes through Service detail first when there's something to pick or learn there: add-ons, a guest count,
+ *  questions for the customer, or a made-to-order service (quoted, not booked). */
+export function needsServicePage(s: Pick<PublicService, 'addons' | 'pricing_unit' | 'booking_fields' | 'fulfilment'>): boolean {
+  return s.addons.length > 0 || s.pricing_unit === 'per_person' || s.booking_fields.length > 0 || s.fulfilment === 'made_to_order';
+}
+
+/** The price as a package row shows it: "₹800 / person", "From ₹12,000" (made to order) or "₹4,500". */
+export function servicePriceLabel(s: Pick<PublicService, 'price_paise' | 'pricing_unit' | 'fulfilment'>, format: (paise: number) => string): string {
+  if (s.fulfilment === 'made_to_order') return `From ${format(s.price_paise)}`;
+  return s.pricing_unit === 'per_person' ? `${format(s.price_paise)} / person` : format(s.price_paise);
+}

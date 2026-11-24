@@ -14,6 +14,7 @@ import { useTheme } from '../../../src/core/theme/theme-provider';
 import { useBooking, useBookingWrite } from '../../../src/hooks/bookings/bookings';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
 import { OrderSummary } from '../../../src/components/bookings/OrderSummary';
+import { AnswerList } from '../../../src/components/catalog/AnswerList';
 import { STATUS_PILL } from '../../../src/utils/bookings/status';
 import { ACCEPT_WINDOW_HOURS, FREE_CANCEL_HOURS, refundDueOnCustomerCancel } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
@@ -116,9 +117,10 @@ export default function BookingDetail() {
           <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{b.note}</AppText>
         </View>
       ) : null}
+      {b.answers.length ? <Card><AnswerList title="Your details for the artist" answers={b.answers} /></Card> : null}
       <RateBookingCard booking={b} />
       <Card>
-        <OrderSummary serviceName={b.service_name} servicePaise={b.subtotal_paise - b.addons.reduce((sum, a) => sum + a.line_paise, 0)} addons={b.addons} />
+        <OrderSummary serviceName={b.service_name} servicePaise={b.subtotal_paise - b.addons.reduce((sum, a) => sum + a.line_paise, 0)} quantity={b.quantity > 1 ? b.quantity : undefined} addons={b.addons} />
         <Breakdown money={b} paid />
       </Card>
       {reason ? <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{`Reason: ${reason}`}</AppText> : null}

@@ -18,8 +18,10 @@ import { useAddressBook } from '../../../src/hooks/addresses/addresses';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
 import { OrderSummary } from '../../../src/components/bookings/OrderSummary';
+import { DetailFieldsForm } from '../../../src/components/catalog/DetailFieldsForm';
+import { checkAnswers, type FieldValues } from '../../../src/utils/catalog/fields';
 import { AddonPicker } from '../../../src/components/directory/AddonPicker';
-import { addonLines, addonsTotal, decodeAddonPicks, encodeAddonPicks, removePick } from '../../../src/utils/bookings/addons';
+import { addonLines, addonsTotal, decodeAddonPicks, encodeAddonPicks, parseGuests, removePick } from '../../../src/utils/bookings/addons';
 import type { BookingAddonPick } from '../../../src/types/bookings/bookings';
 import { DEPOSIT_PERCENT, FREE_CANCEL_HOURS, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
@@ -44,7 +46,7 @@ export default function ReviewAndPay() {
   const client = useQueryClient();
   const write = useBookingWrite();
   const { setNotice } = useBookingFlow();
-  const { artistId = '', serviceId = '', startAt = '', addons = '' } = useLocalSearchParams<{ artistId: string; serviceId: string; startAt: string; addons?: string }>();
+  const { artistId = '', serviceId = '', startAt = '', addons = '', guests: guestsParam } = useLocalSearchParams<{ artistId: string; serviceId: string; startAt: string; addons?: string; guests?: string }>();
   const artist = useArtistPublic(artistId);
   const now = useNow();
   const [address, setAddress] = useState('');
@@ -52,6 +54,9 @@ export default function ReviewAndPay() {
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [remember, setRemember] = useState(true);
   const [note, setNote] = useState('');
+  // Answers to the service's booking fields ("Bride's name", "Occasion"): what the artist needs to know.
+  const [answers, setAnswers] = useState<FieldValues>({});
+  const [answersError, setAnswersError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -71,7 +76,8 @@ export default function ReviewAndPay() {
   const picks = editedPicks ?? decodeAddonPicks(addons, service.addons);
   const setPicks = (next: BookingAddonPick[]) => { setEditedPicks(next); router.setParams({ addons: encodeAddonPicks(next) }); };
   const lines = addonLines(service.addons, picks);
-  const money = priceBreakdown(service.price_paise + addonsTotal(lines), IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
+  const guests = service.pricing_unit === 'per_person' ? parseGuests(guestsParam) : 1;
+  const money = priceBreakdown(service.price_paise * guests + addonsTotal(lines), IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
   const start = Date.parse(startAt);
   const refundUntil = freeCancelUntil(start);
   const cancelLine = !IN_APP_PAYMENTS
@@ -83,10 +89,13 @@ export default function ReviewAndPay() {
   const pay = async () => {
     if (paying) return;
     if (!address.trim()) { setAddressError('Add the address where the artist should come.'); return; }
+    const asked = checkAnswers(service.booking_fields, answers);
+    setAnswersError(asked.error);
+    if (asked.error) return;
     setPaying(true);
     setError(null);
     try {
-      const booking = await write(() => createBooking({ artist_id: artistId, service_id: serviceId, start_at: startAt, address: address.trim(), note: note.trim() || null, addons: picks }));
+      const booking = await write(() => createBooking({ artist_id: artistId, service_id: serviceId, start_at: startAt, address: address.trim(), note: note.trim() || null, addons: picks, quantity: guests, answers: asked.answers }));
       book.afterUse(address, pickedId, remember);
       router.replace({ pathname: '/customer/book/done', params: { id: booking.id } });
     } catch (e) {
@@ -126,6 +135,13 @@ export default function ReviewAndPay() {
           maxLength={MAX_ADDRESS}
           error={addressError}
         />
+        {service.booking_fields.length ? (
+          <View style={{ gap: theme.spacing[2] }}>
+            <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>For the artist</AppText>
+            <DetailFieldsForm fields={service.booking_fields} values={answers} onChange={(v) => { setAnswers(v); setAnswersError(null); }} />
+            {answersError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{answersError}</AppText> : null}
+          </View>
+        ) : null}
         <AppTextField label="Note for the artist (optional)" placeholder="Anything they should know" value={note} onChangeText={setNote} maxLength={MAX_NOTE} />
         <Card style={{ gap: theme.spacing[1.5] }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -143,7 +159,8 @@ export default function ReviewAndPay() {
           </View>
           <OrderSummary
             serviceName={service.name}
-            servicePaise={service.price_paise}
+            servicePaise={service.price_paise * guests}
+            quantity={service.pricing_unit === 'per_person' ? guests : undefined}
             addons={lines.map((l) => ({ id: l.addon.id, name: l.addon.name, per_person: l.addon.per_person, guests: l.guests, line_paise: l.line_paise }))}
             onRemove={service.addons.length ? (id) => setPicks(removePick(picks, id)) : undefined}
           />

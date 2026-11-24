@@ -19,18 +19,20 @@ export interface SummaryAddon {
 interface OrderSummaryProps {
   serviceName: string;
   servicePaise: number;
+  /** Guests for a per-person service: the package line reads "× 4 guests". */
+  quantity?: number;
   addons: SummaryAddon[];
   /** Shows a remove control on each add-on line, like a cart. */
   onRemove?: (addonId: string) => void;
 }
 
 /** What is being booked, line by line: the package, each add-on (× guests) and the total of the two. */
-export function OrderSummary({ serviceName, servicePaise, addons, onRemove }: OrderSummaryProps) {
+export function OrderSummary({ serviceName, servicePaise, quantity, addons, onRemove }: OrderSummaryProps) {
   const theme = useTheme();
   const total = servicePaise + addons.reduce((sum, a) => sum + a.line_paise, 0);
   return (
     <View accessibilityLabel="Your booking" style={{ gap: theme.spacing[0.5] }}>
-      <InfoRow label={serviceName} value={formatPrice(servicePaise)} />
+      <InfoRow label={quantity ? `${serviceName} × ${quantity} ${quantity === 1 ? 'guest' : 'guests'}` : serviceName} value={formatPrice(servicePaise)} />
       {addons.map((a) => {
         const label = addonLineLabel(a);
         return (

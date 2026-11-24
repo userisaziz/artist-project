@@ -56,3 +56,10 @@ export function addonLineLabel(line: { name: string; per_person: boolean; guests
 export function removePick(picks: BookingAddonPick[], addonId: string): BookingAddonPick[] {
   return picks.filter((p) => p.addon_id !== addonId);
 }
+
+/** The guest count from a route param: a whole number within 1..MAX_ADDON_GUESTS, else 1. Only per-person services
+ *  use it. */
+export function parseGuests(raw: string | undefined): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_ADDON_GUESTS ? n : 1;
+}

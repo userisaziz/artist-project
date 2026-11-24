@@ -6,6 +6,7 @@ import { Photo } from '../common/Photo';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatDuration, formatPrice } from '../../utils/common/format';
 import type { PublicService } from '../../types/directory/directory';
+import { servicePriceLabel } from '../../utils/directory/storefront';
 
 interface StorefrontServiceRowProps {
   service: PublicService;
@@ -24,6 +25,7 @@ export function serviceMeta(service: PublicService): string {
 
 /** "+2 add-ons available", so the extras are known before the package is opened. */
 function addonsHint(service: PublicService): string | null {
+  if (service.fulfilment === 'made_to_order') return 'Made to order · request a quote';
   const n = service.addons.length;
   return n ? `+${n} ${n === 1 ? 'add-on' : 'add-ons'} available` : null;
 }
@@ -32,7 +34,7 @@ function addonsHint(service: PublicService): string | null {
  *  price and "Book". */
 export function StorefrontServiceRow({ service, mostBooked, onOpen }: StorefrontServiceRowProps) {
   const theme = useTheme();
-  const price = formatPrice(service.price_paise);
+  const price = servicePriceLabel(service, formatPrice);
   return (
     <PressableFeedback
       accessibilityRole={onOpen ? 'button' : undefined}
@@ -70,7 +72,7 @@ export function StorefrontServiceRow({ service, mostBooked, onOpen }: Storefront
           <AppText variant="subtitle" style={{ fontSize: 15, lineHeight: 20, color: theme.colors.textPrimary }}>{price}</AppText>
           {onOpen ? (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <AppText variant="label" style={{ color: theme.colors.brand }}>Book</AppText>
+              <AppText variant="label" style={{ color: theme.colors.brand }}>{service.fulfilment === 'made_to_order' ? 'Quote' : 'Book'}</AppText>
               <Icon name="chevron-right" size={14} color={theme.colors.brand} />
             </View>
           ) : null}

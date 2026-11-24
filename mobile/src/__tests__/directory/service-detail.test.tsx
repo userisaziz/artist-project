@@ -19,12 +19,13 @@ const artist: ArtistPublic = {
     price_paise: 350000, duration_minutes: 210, category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
     booking_count: 0,
     included_items: ['Bridal hands', 'Bridal feet'],
+    pricing_unit: 'package' as const, fulfilment: 'appointment' as const, details: [], booking_fields: [],
     addons: [
       { id: 'ad1', name: 'Guest mehendi', price_paise: 50000, per_person: true },
       { id: 'ad2', name: 'Organic henna upgrade', price_paise: 40000, per_person: false },
     ],
   }],
-} as ArtistPublic;
+} as unknown as ArtistPublic;
 
 const send = jest.spyOn(transport, 'request');
 let client: QueryClient;
@@ -40,7 +41,7 @@ afterAll(() => send.mockRestore());
 it('shows the service with its price, duration and artist, and opens Date & time', async () => {
   send.mockResolvedValue({ status: 200, json: artist });
   const onCheck = jest.fn();
-  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} />);
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} onRequestQuote={jest.fn()} />);
 
   expect(await screen.findByRole('header', { name: 'Bridal Mehendi' })).toBeTruthy();
   expect(screen.getByText('Mehendi · Bridal')).toBeTruthy();
@@ -50,13 +51,13 @@ it('shows the service with its price, duration and artist, and opens Date & time
   expect(screen.getByRole('header', { name: 'Booking & cancellation' })).toBeTruthy(); // the policy before booking
 
   await fireEvent.press(screen.getByText('Check availability'));
-  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), []);
+  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [], 1);
 });
 
 it('lists what is included, and prices the add-ons the customer picks', async () => {
   send.mockResolvedValue({ status: 200, json: artist });
   const onCheck = jest.fn();
-  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} />);
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} onRequestQuote={jest.fn()} />);
 
   expect(await screen.findByText('Bridal hands')).toBeTruthy();
   expect(screen.getByText('Bridal feet')).toBeTruthy();
@@ -72,19 +73,49 @@ it('lists what is included, and prices the add-ons the customer picks', async ()
 
   await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
   await fireEvent.press(screen.getByText('Check availability'));
-  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [{ addon_id: 'ad1', guests: 4 }]);
+  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [{ addon_id: 'ad1', guests: 4 }], 1);
 });
 
 it('says so when the service is no longer offered', async () => {
   send.mockResolvedValue({ status: 200, json: { ...artist, services: [] } });
-  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={jest.fn()} />);
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={jest.fn()} onRequestQuote={jest.fn()} />);
 
   expect(await screen.findByText('This service is no longer offered.')).toBeTruthy();
 });
 
 it('shows an error with a retry when the artist can’t load', async () => {
   send.mockResolvedValue({ status: 503, json: { code: 'service_unavailable', message: 'Service temporarily unavailable. Please try again.' } });
-  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={jest.fn()} />);
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={jest.fn()} onRequestQuote={jest.fn()} />);
 
   expect(await screen.findByText('Service temporarily unavailable. Please try again.')).toBeTruthy();
+});
+
+const withRules = (over: Partial<ArtistPublic['services'][number]>) => ({ ...artist, services: [{ ...artist.services[0], ...over }] });
+
+it('prices a per-person service by the guests picked and shows the listed details', async () => {
+  send.mockResolvedValue({ status: 200, json: withRules({
+    pricing_unit: 'per_person', price_paise: 30000,
+    details: [{ key: 'cones', label: 'Cones used', value: 6, unit: 'cones' }],
+  }) });
+  const onCheck = jest.fn();
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} onRequestQuote={jest.fn()} />);
+
+  expect(await screen.findByText('Per person')).toBeTruthy();
+  expect(screen.getByText('6 cones')).toBeTruthy();
+  for (let i = 0; i < 3; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'More guests' }));
+  expect(screen.getByLabelText('Total ₹1,200')).toBeTruthy(); // 4 × ₹300
+  await fireEvent.press(screen.getByText('Check availability'));
+  expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [], 4);
+});
+
+it('asks for a quote instead of booking a made-to-order service', async () => {
+  send.mockResolvedValue({ status: 200, json: withRules({ fulfilment: 'made_to_order' }) });
+  const onQuote = jest.fn();
+  await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={jest.fn()} onRequestQuote={onQuote} />);
+
+  expect(await screen.findByText('Made to order')).toBeTruthy();
+  expect(screen.queryByText('Check availability')).toBeNull();
+  expect(screen.queryByText('Add-ons')).toBeNull();
+  await fireEvent.press(screen.getByText('Request a quote'));
+  expect(onQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
 });

@@ -88,6 +88,27 @@ describe('sending an enquiry', () => {
     expect(onSent).not.toHaveBeenCalled();
   });
 
+  it('about a made-to-order service, sends how many and that service’s answers', async () => {
+    serve({ 'POST /enquiries': () => ({ status: 201, json: enquiryFixture({ id: 'e-9' }) }) });
+    const onSent = jest.fn();
+    const babyName = { key: 'baby_name', label: "Baby's name", scope: 'booking' as const, type: 'text' as const, required: true, options: [], min: null, max: null, unit: null, help: null };
+    await wrap(<EnquiryForm artistId="a1" service={{ id: 's9', name: 'Aqiqah Sweet Box', booking_fields: [babyName] }} onSent={onSent} />);
+
+    expect(screen.getByText('Aqiqah Sweet Box')).toBeTruthy();
+    const days = screen.getAllByRole('button').filter((b) => /^[A-Z][a-z]{2}, \d+ [A-Z][a-z]{2}$/.test(b.props.accessibilityLabel ?? ''));
+    await fireEvent.press(days[5]);
+    await fireEvent.changeText(screen.getByLabelText('What do you need?'), 'Pastel boxes with dates and a name card');
+    await fireEvent.changeText(screen.getByLabelText('How many? (optional)'), '40');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText("“Baby's name” is required")).toBeTruthy();
+    expect(sent).toHaveLength(0);
+
+    await fireEvent.changeText(screen.getByLabelText("Baby's name"), 'Ayaan');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(onSent).toHaveBeenCalledWith('e-9'));
+    expect(sent[0].body).toMatchObject({ service_id: 's9', quantity: 40, answers: { baby_name: 'Ayaan' } });
+  });
+
   it('asks for a date and enough detail before sending anything', async () => {
     serve({});
     await wrap(<EnquiryForm artistId="a1" onSent={jest.fn()} />);
