@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, type LayoutChangeEvent, type PressableProps, type PressableStateCallbackType } from 'react-native';
+import { Pressable, StyleSheet, type LayoutChangeEvent, type PressableProps, type PressableStateCallbackType, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { haptic, type HapticKind } from '../../core/motion/haptics';
 import { springs, useReducedMotion } from '../../core/motion/motion';
@@ -13,6 +13,13 @@ const PRESSED_SCALE_MIN = 0.96;
 const PRESSED_SCALE_MAX = 0.985;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** True when the surface casts a shadow. Such a surface must not fade: at 0.85 its own shadow shows through
+ *  it, which Android paints as a grey film over the card (and iOS as a tint). It answers with the dip alone. */
+function castsShadow(style: StyleProp<ViewStyle>): boolean {
+  const flat = StyleSheet.flatten(style);
+  return !!flat && (!!flat.elevation || !!flat.shadowOpacity);
+}
 
 /** Scale that moves the element's longer edge inward by PRESSED_TRAVEL on each side. Before the first
  *  layout the size is unknown, so it falls back to the small-control dip. */
@@ -35,7 +42,8 @@ export interface PressableFeedbackProps extends PressableProps {
 
 /** Every tappable thing in the app: it answers the finger at once with a light fade and a spring dip, the
  *  same on iOS and Android, so a tap never feels missed while the work behind it runs. No colour wash:
- *  an overlay reads as a grey box on light surfaces. Reduced motion keeps the fade and drops the dip. */
+ *  an overlay reads as a grey box on light surfaces. A surface that casts a shadow skips the fade (see
+ *  `castsShadow`). Reduced motion keeps the fade and drops the dip. */
 export function PressableFeedback({ feedback = true, scale = feedback, haptic: hapticKind, style, ...rest }: PressableFeedbackProps) {
   const reduced = useReducedMotion();
   const responds = !rest.disabled && !!(rest.onPress || rest.onLongPress);
@@ -56,7 +64,7 @@ export function PressableFeedback({ feedback = true, scale = feedback, haptic: h
     // Plain Pressable when the caller opts out of the dip: same fade, no animated machinery.
     const pressedStyle = (state: PressableStateCallbackType) => {
       const base = typeof style === 'function' ? style(state) : style;
-      return dims && state.pressed ? [base, { opacity: PRESSED_OPACITY }] : base;
+      return dims && state.pressed && !castsShadow(base) ? [base, { opacity: PRESSED_OPACITY }] : base;
     };
     return (
       <Pressable
@@ -73,7 +81,7 @@ export function PressableFeedback({ feedback = true, scale = feedback, haptic: h
   return (
     <AnimatedPressable
       {...rest}
-      style={[userStyle, pressed && dims ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
+      style={[userStyle, pressed && dims && !castsShadow(userStyle) ? { opacity: PRESSED_OPACITY } : null, dipStyle]}
       onLayout={(e: LayoutChangeEvent) => {
         const { width, height } = e.nativeEvent.layout;
         extent.current = Math.max(width, height);
