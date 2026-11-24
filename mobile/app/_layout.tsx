@@ -85,11 +85,16 @@ function Gate() {
 }
 
 // May render outside ThemeProvider; useTheme() then falls back to the light theme via context default.
-export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const theme = useTheme();
   return (
     <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg, padding: theme.spacing.lg, backgroundColor: theme.colors.background }}>
       <AppText variant="title" style={{ color: theme.colors.textPrimary, textAlign: 'center' }}>Something went wrong</AppText>
+      {/* Metro's console is on a desk, not in the hand holding the phone, so in development the reason goes on
+          the screen too and a crash can be read where it happened. Production keeps the generic line. */}
+      {__DEV__ && error?.message ? (
+        <AppText variant="caption" numberOfLines={6} style={{ color: theme.colors.textMuted, textAlign: 'center' }}>{error.message}</AppText>
+      ) : null}
       <AppButton label="Try again" onPress={() => { void retry(); }} />
     </View>
   );
