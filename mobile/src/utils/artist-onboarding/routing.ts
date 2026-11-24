@@ -2,8 +2,7 @@ import type { ArtistProfile } from '../../types/artist-onboarding/artist-onboard
 
 /** Which artist area to show. Drives both the artist layout guards and the `/artist` hub. */
 export type ArtistStage = 'onboarding' | 'review' | 'live';
-export type ResumeStep = 'intro' | 'location' | 'services' | 'portfolio' | 'identity';
-export const MIN_PHOTOS = 6; // backend artist_service.MIN_PHOTOS
+export type ResumeStep = 'intro' | 'location' | 'portfolio' | 'identity';
 export const MAX_PHOTOS = 30; // backend artist_service.MAX_PHOTOS
 
 export function artistStage(profile: ArtistProfile | null, editing: boolean): ArtistStage {
@@ -17,8 +16,9 @@ export function artistStage(profile: ArtistProfile | null, editing: boolean): Ar
 export function resumeStep(profile: ArtistProfile | null): ResumeStep {
   if (!profile) return 'intro'; // the Profile step creates the row, so a saved row always has profile details
   if (profile.area_id === null || !profile.pincode) return 'location'; // an area from the list, not free text
-  if (!profile.services.length) return 'services';
-  if (profile.photos.length < MIN_PHOTOS) return 'portfolio';
+  // Services and portfolio photos are optional (an approved artist adds them from Me). Portfolio is offered once, until
+  // the artist has photos or has moved on to Identity.
+  if (!profile.photos.length && !profile.kyc) return 'portfolio';
   return 'identity'; // with or without kyc on file: Identity is also where the artist submits
 }
 

@@ -97,6 +97,7 @@ export default function ArtistMe() {
           <MenuRow label="Posts & articles" detail="+ New post" onPress={() => router.push('/artist/posts')} />
           <MenuRow label="Followers" detail={followers.data ? String(followers.data.pages[0]?.total ?? 0) : undefined} onPress={() => router.push('/artist/followers')} />
           <MenuRow label="My services" detail={String(profile?.services.length ?? 0)} onPress={() => router.push('/artist/services')} />
+          <MenuRow label="Portfolio" detail={String(profile?.photos.length ?? 0)} onPress={() => router.push('/artist/portfolio')} />
           <EditProfileRow />
           <MenuRow label="Working hours" onPress={() => router.push('/artist/working-hours')} />
           <MenuRow label="Earnings" onPress={() => router.push('/artist/earnings')} />

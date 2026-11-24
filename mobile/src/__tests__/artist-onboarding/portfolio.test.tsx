@@ -85,8 +85,15 @@ it('asks before removing a photo, and Keep backs out', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Remove photo' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Remove photo' })); // the confirm button
   await waitFor(() => expect(deleted).toEqual(['photo-2']));
-  // Five left: below the minimum again, so Continue says how many are missing.
-  expect(await screen.findByRole('button', { name: 'Continue · 5 of 6 photos' })).toBeTruthy();
+  expect(await screen.findAllByLabelText(/^Portfolio photo \d/)).toHaveLength(5);
+});
+
+it('photos are optional: with none, Skip for now opens Identity', async () => {
+  serve({ 'GET /artists/me': { status: 200, json: draft({ photos: [] }) } });
+  await wrap(<PortfolioStep />);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Skip for now' }));
+  expect(mockPush).toHaveBeenCalledWith('/artist/onboarding/identity');
 });
 
 it('keeps a failed upload on the grid with Retry, and retrying adds it', async () => {

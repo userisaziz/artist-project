@@ -6,6 +6,7 @@ import { ThemeProvider } from '../../core/theme/theme-provider';
 import ProfileStep from '../../../app/artist/onboarding/profile';
 
 const mockPickImages = jest.fn();
+const mockSave = jest.fn();
 jest.mock('../../api/artist-onboarding/upload', () => ({ pickImages: (...args: unknown[]) => mockPickImages(...args) }));
 jest.mock('expo-image', () => ({ Image: require('react-native').View }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), dismissTo: jest.fn() }) }));
@@ -18,7 +19,7 @@ jest.mock('../../hooks/catalog/catalog', () => ({
 // No saved profile yet: the row reads "Add profile photo".
 jest.mock('../../hooks/artist-onboarding/artist-onboarding', () => ({
   useArtistProfile: () => ({ data: undefined }),
-  useSaveProfile: () => ({ isPending: false, mutateAsync: jest.fn() }),
+  useSaveProfile: () => ({ isPending: false, mutateAsync: mockSave }),
   useUploadPhoto: () => ({ isPending: false, mutateAsync: jest.fn() }),
 }));
 
@@ -54,4 +55,15 @@ it('still answers a press by opening the picker', async () => {
   await wrap(<ProfileStep />);
   await fireEvent.press(row());
   await waitFor(() => expect(mockPickImages).toHaveBeenCalledWith(1));
+});
+
+it('the photo is optional: Continue saves the profile without one', async () => {
+  await wrap(<ProfileStep />);
+  await fireEvent.changeText(screen.getByLabelText('Business name'), 'Ayesha Mehendi Art');
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Bridal' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'City' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Mumbai' }));
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await waitFor(() => expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ business_name: 'Ayesha Mehendi Art', photo_key: null })));
 });

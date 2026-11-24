@@ -87,7 +87,7 @@ it('picks the area from the city’s list, then saves it with the pincode and st
   await fireEvent.changeText(screen.getByLabelText('Studio / house no. (optional)'), '2nd floor, 14');
   await fireEvent.press(cont);
 
-  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/artist/onboarding/services'));
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/artist/onboarding/portfolio'));
   expect(saves()[0].body).toEqual({ area_id: 3, pincode: '411045', address_line: '2nd floor, 14', latitude: null, longitude: null });
 });
 

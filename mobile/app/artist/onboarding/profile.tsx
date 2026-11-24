@@ -32,7 +32,7 @@ function CatalogRetry({ message, isError, onRetry }: { message: string; isError:
   );
 }
 
-// Atelier hi-fi "onbProfile" (step 1 of 5): photo, business name, categories and city. Continue saves the draft.
+// Atelier hi-fi "onbProfile" (step 1 of 4): an optional photo, business name, categories and city. Continue saves the draft.
 export default function ProfileStep() {
   const theme = useTheme();
   const router = useRouter();
@@ -69,7 +69,7 @@ export default function ProfileStep() {
     setPicked((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : ids.length < MAX_CATEGORIES ? [...ids, id] : ids));
 
   const uploading = uploadPhoto.isPending;
-  const ready = !!photoKey && !!name.trim() && picked.length > 0 && !!city && !uploading;
+  const ready = !!name.trim() && picked.length > 0 && !!city && !uploading; // the photo is optional
   const save = async () => {
     if (!ready || !city) return;
     const years = parseExperience(experience);
@@ -91,7 +91,7 @@ export default function ProfileStep() {
       // Editing a rejection starts here, so there is no Intro behind it.
       onBack={editing ? undefined : () => router.dismissTo('/artist/onboarding/intro')}
       step={1}
-      steps={5}
+      steps={4}
       footer={<AppButton label="Continue" onPress={() => { void save(); }} loading={saveProfile.isPending} disabled={!ready} />}
     >
       <FormHeading eyebrow="STEP 1 · PROFILE" title="Tell clients" accent="who you are" />
@@ -113,7 +113,7 @@ export default function ProfileStep() {
           </View>
         </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="label" style={{ fontSize: 14, color: theme.colors.textPrimary }}>Profile photo</AppText>
+          <AppText variant="label" style={{ fontSize: 14, color: theme.colors.textPrimary }}>Profile photo (optional)</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 2 }}>A clear, smiling photo builds trust</AppText>
         </View>
       </PressableFeedback>
