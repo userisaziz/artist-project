@@ -19,7 +19,7 @@ const artist: ArtistPublic = {
     price_paise: 350000, duration_minutes: 210, category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
     booking_count: 0,
     included_items: ['Bridal hands', 'Bridal feet'],
-    pricing_unit: 'package' as const, fulfilment: 'appointment' as const, details: [], booking_fields: [],
+    pricing_unit: 'package' as const, quantity_unit: null, min_quantity: 1, fulfilment: 'appointment' as const, details: [], booking_fields: [],
     addons: [
       { id: 'ad1', name: 'Guest mehendi', price_paise: 50000, per_person: true },
       { id: 'ad2', name: 'Organic henna upgrade', price_paise: 40000, per_person: false },
@@ -92,18 +92,23 @@ it('shows an error with a retry when the artist can’t load', async () => {
 
 const withRules = (over: Partial<ArtistPublic['services'][number]>) => ({ ...artist, services: [{ ...artist.services[0], ...over }] });
 
-it('prices a per-person service by the guests picked and shows the listed details', async () => {
+it('prices a per-unit service by the quantity picked, from its minimum, and shows the listed details', async () => {
   send.mockResolvedValue({ status: 200, json: withRules({
-    pricing_unit: 'per_person', price_paise: 30000,
+    pricing_unit: 'per_unit', quantity_unit: 'piece', min_quantity: 2, price_paise: 30000,
     details: [{ key: 'cones', label: 'Cones used', value: 6, unit: 'cones' }],
   }) });
   const onCheck = jest.fn();
   await wrap(<ServiceDetail artistId="a1" serviceId="s1" onCheckAvailability={onCheck} onRequestQuote={jest.fn()} />);
 
-  expect(await screen.findByText('Per person')).toBeTruthy();
+  expect(await screen.findByText('Price · per piece')).toBeTruthy();
   expect(screen.getByText('6 cones')).toBeTruthy();
-  for (let i = 0; i < 3; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'More guests' }));
+  expect(screen.getByText('Minimum 2 pieces.')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Fewer pieces' })).toBeDisabled(); // starts at the minimum
+  for (let i = 0; i < 2; i += 1) await fireEvent.press(screen.getByRole('button', { name: 'More pieces' }));
   expect(screen.getByLabelText('Total ₹1,200')).toBeTruthy(); // 4 × ₹300
+  await fireEvent.changeText(screen.getByLabelText('How many pieces'), '40');
+  expect(screen.getByLabelText('Total ₹12,000')).toBeTruthy(); // typed, not tapped forty times
+  await fireEvent.changeText(screen.getByLabelText('How many pieces'), '4');
   await fireEvent.press(screen.getByText('Check availability'));
   expect(onCheck).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [], 4);
 });
@@ -115,7 +120,8 @@ it('asks for a quote instead of booking a made-to-order service', async () => {
 
   expect(await screen.findByText('Made to order')).toBeTruthy();
   expect(screen.queryByText('Check availability')).toBeNull();
-  expect(screen.queryByText('Add-ons')).toBeNull();
+  expect(screen.getByText('Optional extras for the artist to include in their price.')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('checkbox', { name: /Organic henna upgrade/ }));
   await fireEvent.press(screen.getByText('Request a quote'));
-  expect(onQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+  expect(onQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), [{ addon_id: 'ad2', guests: 1 }], 1);
 });

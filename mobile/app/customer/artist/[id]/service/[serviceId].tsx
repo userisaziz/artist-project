@@ -11,9 +11,10 @@ export default function ServiceScreen() {
     <ServiceDetail
       artistId={id}
       serviceId={serviceId}
-      onCheckAvailability={(service, addons, guests) =>
-        router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id, addons: encodeAddonPicks(addons), guests: String(guests) } })}
-      onRequestQuote={(service) => router.push({ pathname: '/customer/enquiry/new/[artistId]', params: { artistId: id, serviceId: service.id } })}
+      onCheckAvailability={(service, addons, quantity) =>
+        router.push({ pathname: '/customer/book/[artistId]', params: { artistId: id, serviceId: service.id, addons: encodeAddonPicks(addons), qty: String(quantity) } })}
+      onRequestQuote={(service, addons, quantity) =>
+        router.push({ pathname: '/customer/enquiry/new/[artistId]', params: { artistId: id, serviceId: service.id, qty: String(quantity), addons: encodeAddonPicks(addons) } })}
     />
   );
 }

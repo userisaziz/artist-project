@@ -9,11 +9,12 @@ import type { FieldDef } from '../../types/catalog/catalog';
 import ReviewAndPay from '../../../app/customer/book/review';
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockDismissTo = jest.fn();
 const mockParams: Record<string, string> = { artistId: 'a1', serviceId: 's1', startAt: '2026-12-05T05:30:00Z', addons: 'ad1:4,ad2:1' };
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: jest.fn(), push: jest.fn(), replace: mockReplace, setParams: mockSetParams, dismissTo: mockDismissTo }),
+  useRouter: () => ({ back: jest.fn(), push: mockPush, replace: mockReplace, setParams: mockSetParams, dismissTo: mockDismissTo }),
   useLocalSearchParams: () => mockParams,
 }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
@@ -38,7 +39,7 @@ const artist = {
       { id: 'ad1', name: 'Guest mehendi', price_paise: 50000, per_person: true },
       { id: 'ad2', name: 'Organic henna upgrade', price_paise: 40000, per_person: false },
     ],
-    pricing_unit: 'package', fulfilment: 'appointment', details: [], booking_fields: [],
+    pricing_unit: 'package', quantity_unit: null, min_quantity: 1, fulfilment: 'appointment', details: [], booking_fields: [],
   }],
 } as unknown as ArtistPublic;
 
@@ -55,7 +56,7 @@ beforeEach(() => {
   mockSetParams.mockReset();
   service = {};
   mockParams.addons = 'ad1:4,ad2:1';
-  delete mockParams.guests;
+  delete mockParams.qty;
   send.mockImplementation(async (req: TransportRequest) => {
     const path = req.path.split('?')[0];
     if (req.method === 'GET' && path === '/artists/a1') return { status: 200, json: artistWith(service) };
@@ -97,14 +98,17 @@ it('adds an add-on from the review step', async () => {
   expect(mockSetParams).toHaveBeenLastCalledWith({ addons: 'ad2:1' });
 });
 
-it('asks the service’s booking questions and sends the answers with the guests', async () => {
-  service = { pricing_unit: 'per_person', price_paise: 30000, booking_fields: [BRIDE] };
+it('asks the service’s booking questions and sends the answers with the quantity, which stays editable', async () => {
+  service = { pricing_unit: 'per_unit', quantity_unit: 'person', min_quantity: 2, price_paise: 30000, booking_fields: [BRIDE] };
   mockParams.addons = '';
-  mockParams.guests = '3';
+  mockParams.qty = '3';
   await wrap(<ReviewAndPay />);
   const summary = await screen.findByLabelText('Your booking');
-  expect(within(summary).getByText('Bridal Mehendi × 3 guests')).toBeTruthy();
+  expect(within(summary).getByText('Bridal Mehendi × 3 people')).toBeTruthy();
   expect(within(summary).getAllByText('₹900').length).toBeGreaterThan(0); // 3 × ₹300
+  await fireEvent.press(screen.getByRole('button', { name: 'More people' }));
+  expect(within(summary).getByText('Bridal Mehendi × 4 people')).toBeTruthy();
+  expect(mockSetParams).toHaveBeenLastCalledWith({ qty: '4' });
 
   await fireEvent.changeText(screen.getByPlaceholderText('House, street and area'), '12 MG Road, Bangalore');
   await fireEvent.press(screen.getByRole('button', { name: 'Request booking' }));
@@ -113,5 +117,18 @@ it('asks the service’s booking questions and sends the answers with the guests
 
   await fireEvent.changeText(screen.getByLabelText("Bride's name"), 'Sara');
   await fireEvent.press(screen.getByRole('button', { name: 'Request booking' }));
-  await waitFor(() => expect(bodies[0]).toMatchObject({ quantity: 3, answers: { bride_name: 'Sara' } }));
+  await waitFor(() => expect(bodies[0]).toMatchObject({ quantity: 4, answers: { bride_name: 'Sara' } }));
+});
+
+it('suggests the artist’s other services, opening one on tap', async () => {
+  const other = { ...artist.services[0], id: 's2', name: 'Arabic Mehendi', price_paise: 150000, addons: [] };
+  send.mockImplementation(async (req: TransportRequest) => {
+    if (req.path.split('?')[0] === '/artists/a1') return { status: 200, json: { ...artist, services: [artist.services[0], other] } };
+    if (req.path === '/users/me/addresses') return { status: 200, json: [] };
+    return { status: 200, json: {} };
+  });
+  await wrap(<ReviewAndPay />);
+  expect(await screen.findByRole('header', { name: 'Goes well with' })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Arabic Mehendi, ₹1,500' }));
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id: 'a1', serviceId: 's2' } });
 });

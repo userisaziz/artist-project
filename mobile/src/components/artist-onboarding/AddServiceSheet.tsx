@@ -14,8 +14,8 @@ import { errorMessage } from '../../core/api/error-message';
 import { EMPTY_EXTRAS, extrasDraftSchema } from '../../utils/common/service-extras';
 import { pricingDraftSchema } from '../../utils/artist-services/service-pricing';
 import type { ServiceInput } from '../../types/artist-onboarding/artist-onboarding';
-import type { CatalogCategory, PricingUnit } from '../../types/catalog/catalog';
-import { Segmented } from '../common/Segmented';
+import type { CatalogCategory } from '../../types/catalog/catalog';
+import { PricingChooser, pricingDraftFrom, pricingPayload, type UnitPricingDraft } from '../catalog/PricingChooser';
 import { DetailFieldsForm } from '../catalog/DetailFieldsForm';
 import { checkAnswers, type FieldValues } from '../../utils/catalog/fields';
 
@@ -41,7 +41,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
   const [note, setNote] = useState('');
   const [extras, setExtras] = useState(EMPTY_EXTRAS);
   const [photo, setPhoto] = useState<ServicePhotoDraft>({ url: null });
-  const [pricingUnit, setPricingUnit] = useState<PricingUnit>('package');
+  const [pricing, setPricing] = useState<UnitPricingDraft>(pricingDraftFrom('package', null, 1, null));
   const [details, setDetails] = useState<FieldValues>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,7 +54,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     setCategoryId(only?.id ?? null);
     setSubId(only?.subcategories.length === 1 ? only.subcategories[0].id : null);
     setTemplateId(null); setPrice(''); setMinutes(''); setNote(''); setExtras(EMPTY_EXTRAS); setPhoto({ url: null }); setError(null);
-    setPricingUnit('package'); setDetails({});
+    setPricing(pricingDraftFrom('package', null, 1, null)); setDetails({});
   }, [visible, categories]);
 
   const category = categories.find((c) => c.id === categoryId) ?? null;
@@ -67,7 +67,11 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     setSubId(next?.subcategories.length === 1 ? next.subcategories[0].id : null);
     setTemplateId(null);
   };
-  const pickSub = (id: number) => { setSubId(id); setTemplateId(null); setDetails({}); };
+  const pickSub = (id: number) => {
+    setSubId(id); setTemplateId(null); setDetails({});
+    const unit = category?.subcategories.find((s) => s.id === id)?.default_unit ?? null;
+    setPricing(pricingDraftFrom('package', null, 1, unit));
+  };
   // What the admin asks artists to state about services in this subcategory ("Edited photos", "Sizes").
   const listingFields = (sub?.fields ?? []).filter((f) => f.scope === 'listing');
 
@@ -79,12 +83,14 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
     if (!extra.success) { setError(extra.error.issues[0].message); return; }
     const stated = checkAnswers(listingFields, details);
     if (stated.error) { setError(stated.error); return; }
+    const unitPricing = pricingPayload(pricing);
+    if (!unitPricing.value) { setError(unitPricing.error ?? null); return; }
     setSaving(true);
     setError(null);
     try {
       await onSubmit({
         template_id: templateId, ...priced.data,
-        pricing_unit: pricingUnit,
+        ...unitPricing.value,
         attributes: stated.answers,
         ...(note.trim() ? { description: note.trim() } : {}),
         ...extra.data,
@@ -159,14 +165,7 @@ export function AddServiceSheet({ visible, categories, addedIds, onClose, onSubm
                         <AppTextField label="Duration (minutes)" value={minutes} onChangeText={setMinutes} keyboardType="number-pad" placeholder="120" />
                       </View>
                     </View>
-                    <Segmented
-                      options={[{ key: 'package', label: 'Whole service' }, { key: 'per_person', label: 'Per person' }]}
-                      value={pricingUnit}
-                      onChange={setPricingUnit}
-                    />
-                    {pricingUnit === 'per_person' ? (
-                      <AppText variant="caption" style={{ color: theme.colors.textMuted }}>The price is for one person; customers pick how many when booking.</AppText>
-                    ) : null}
+                    <PricingChooser value={pricing} onChange={setPricing} />
                     {listingFields.length ? <DetailFieldsForm fields={listingFields} values={details} onChange={setDetails} /> : null}
                     <AppTextField label="Note (optional)" value={note} onChangeText={setNote} maxLength={1000} placeholder="e.g. Includes a trial session" />
                     <ServicePhotoField value={photo} onChange={setPhoto} />

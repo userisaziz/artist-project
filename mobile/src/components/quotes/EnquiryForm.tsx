@@ -11,7 +11,12 @@ import { FormField } from '../common/FormField';
 import { AppTextField } from '../common/AppTextField';
 import { DetailFieldsForm } from '../catalog/DetailFieldsForm';
 import { checkAnswers, type FieldValues } from '../../utils/catalog/fields';
-import type { FieldDef } from '../../types/catalog/catalog';
+import type { PublicService } from '../../types/directory/directory';
+import type { BookingAddonPick } from '../../types/bookings/bookings';
+import { QuantityPicker } from '../common/QuantityPicker';
+import { AddonPicker } from '../directory/AddonPicker';
+import { SuggestedServices } from '../directory/SuggestedServices';
+import { MAX_QUANTITY, countLabel, unitWord } from '../../utils/catalog/units';
 import { useTheme } from '../../core/theme/theme-provider';
 import { useCreateEnquiry } from '../../hooks/quotes/quotes';
 import { useNow } from '../../hooks/common/use-now';
@@ -27,16 +32,22 @@ interface EnquiryFormProps {
   artistId: string;
   /** Shown in the intro once the artist has loaded. */
   artistName?: string;
-  /** The service asked about (a made-to-order one): its name, and the questions its category asks customers. */
-  service?: { id: string; name: string; booking_fields: FieldDef[] };
+  /** The service asked about (a made-to-order one): its name, unit and minimum, add-ons and the questions its
+   *  category asks customers. */
+  service?: QuotedService;
+  /** More of the artist's services the customer can tick to be quoted together. */
+  suggestions?: PublicService[];
+  /** What was already picked on Service detail. */
+  initial?: { quantity?: number; addons?: BookingAddonPick[] };
   onSent: (enquiryId: string) => void;
 }
 
-const QUANTITY_MAX = 10_000; // backend app/quote/constants.py
+type QuotedService = Pick<PublicService, 'id' | 'name' | 'booking_fields' | 'pricing_unit' | 'quantity_unit' | 'min_quantity' | 'addons'>;
 
 /** Ask an artist for a custom quote: the event date, what's needed and an optional budget. About one service, it
- *  also asks how many and that service's questions ("Baby's name"). */
-export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFormProps) {
+ *  also asks how many (in its unit, from its minimum), its add-ons, its questions ("Baby's name"), and which of the
+ *  artist's other services to price in the same quote. */
+export function EnquiryForm({ artistId, artistName, service, suggestions = [], initial, onSent }: EnquiryFormProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const today = istDateKey(useNow());
@@ -49,7 +60,12 @@ export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFo
   // Only the counter subscribes, and only to the details field: watch() would re-render on every keystroke
   // in the budget too.
   const details = useWatch({ control, name: 'details' }) ?? '';
+  const perUnit = service?.pricing_unit === 'per_unit';
+  // Per unit: a count from the minimum. Otherwise how many is optional free entry ("40 cards").
+  const [unitCount, setUnitCount] = useState(Math.max(initial?.quantity ?? 0, service?.min_quantity ?? 1));
   const [quantity, setQuantity] = useState('');
+  const [picks, setPicks] = useState<BookingAddonPick[]>(initial?.addons ?? []);
+  const [also, setAlso] = useState<string[]>([]);
   const [answers, setAnswers] = useState<FieldValues>({});
   const [extraError, setExtraError] = useState<string | null>(null);
 
@@ -57,9 +73,9 @@ export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFo
   // the field is empty). Everything it does know — the messages, the trim, the send-gate — is the schema's.
   const send = handleSubmit((draft) => {
     if (create.isPending) return;
-    const count = quantity.trim() ? Number(quantity) : null;
-    if (count !== null && (!Number.isInteger(count) || count < 1 || count > QUANTITY_MAX)) {
-      setExtraError(`Enter how many as a whole number up to ${QUANTITY_MAX.toLocaleString('en-IN')}`);
+    const count = perUnit ? unitCount : quantity.trim() ? Number(quantity) : null;
+    if (count !== null && (!Number.isInteger(count) || count < 1 || count > MAX_QUANTITY)) {
+      setExtraError(`Enter how many as a whole number up to ${MAX_QUANTITY.toLocaleString('en-IN')}`);
       return;
     }
     const asked = checkAnswers(service?.booking_fields ?? [], answers);
@@ -69,7 +85,7 @@ export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFo
     create.mutate(
       {
         artist_id: artistId, event_date: draft.eventDate, details: draft.details, budget_paise: rupeesToPaise(draft.budget),
-        ...(service ? { service_id: service.id, quantity: count, answers: asked.answers } : {}),
+        ...(service ? { service_id: service.id, quantity: count, answers: asked.answers, addons: picks, also_service_ids: also } : {}),
       },
       { onSuccess: (enquiry) => onSent(enquiry.id) },
     );
@@ -100,7 +116,21 @@ export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFo
               <AppText variant="caption" style={{ color: theme.colors.textMuted }}>About</AppText>
               <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{service.name}</AppText>
             </View>
-            <AppTextField label="How many? (optional)" placeholder="e.g. 40 boxes" value={quantity} onChangeText={(t) => { setQuantity(t.replace(/[^0-9]/g, '')); setExtraError(null); }} keyboardType="number-pad" />
+            {perUnit ? (
+              <View style={{ gap: theme.spacing[2] }}>
+                <AppText variant="label" style={{ color: theme.colors.textSecondary }}>{`How many ${unitWord(service.quantity_unit, 2)}?`}</AppText>
+                <QuantityPicker value={unitCount} min={service.min_quantity} max={MAX_QUANTITY} noun={(n) => unitWord(service.quantity_unit, n)} onChange={setUnitCount} />
+                {service.min_quantity > 1 ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`Minimum ${countLabel(service.min_quantity, service.quantity_unit)}.`}</AppText> : null}
+              </View>
+            ) : (
+              <AppTextField label="How many? (optional)" placeholder="e.g. 40" value={quantity} onChangeText={(t) => { setQuantity(t.replace(/[^0-9]/g, '')); setExtraError(null); }} keyboardType="number-pad" />
+            )}
+            {service.addons.length ? (
+              <View style={{ gap: theme.spacing[2] }}>
+                <AppText variant="label" style={{ color: theme.colors.textSecondary }}>Add-ons</AppText>
+                <AddonPicker addons={service.addons} picks={picks} onChange={setPicks} />
+              </View>
+            ) : null}
             {service.booking_fields.length ? <DetailFieldsForm fields={service.booking_fields} values={answers} onChange={(v) => { setAnswers(v); setExtraError(null); }} /> : null}
           </View>
         ) : null}
@@ -123,6 +153,13 @@ export function EnquiryForm({ artistId, artistName, service, onSent }: EnquiryFo
           placeholder="e.g. 10000"
           keyboardType="numeric"
         />
+        {service ? (
+          <SuggestedServices
+            services={suggestions}
+            picked={also}
+            onToggle={(s) => setAlso((now) => (now.includes(s.id) ? now.filter((id) => id !== s.id) : [...now, s.id]))}
+          />
+        ) : null}
         {extraError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{extraError}</AppText> : null}
         {create.error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(create.error)}</AppText> : null}
       </ScrollView>

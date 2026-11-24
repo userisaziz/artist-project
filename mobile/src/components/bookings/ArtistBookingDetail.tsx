@@ -21,6 +21,7 @@ import { formatMaybePrice } from '../../utils/common/format';
 import type { Booking } from '../../types/bookings/bookings';
 import { AddonLines } from './AddonLines';
 import { AnswerList } from '../catalog/AnswerList';
+import { countLabel } from '../../utils/catalog/units';
 
 const MAX_REASON = 500; // backend ReasonIn
 
@@ -76,7 +77,7 @@ export function ArtistBookingDetail({ bookingId, onMessage, isOpeningChat }: Art
             <AppText variant="subtitle" style={{ flex: 1, color: theme.colors.textPrimary }}>{name}</AppText>
           </View>
           <Card>
-            <InfoRow label="Service" value={b.quantity > 1 ? `${b.service_name} × ${b.quantity} guests` : b.service_name} />
+            <InfoRow label="Service" value={b.quantity_unit ? `${b.service_name} × ${countLabel(b.quantity, b.quantity_unit)}` : b.service_name} />
             <InfoRow label="When" value={formatWhen(b.start_at)} />
             <InfoRow label="Where" value={b.address} />
             <AddonLines lines={b.addons} />

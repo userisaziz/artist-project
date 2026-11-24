@@ -14,7 +14,7 @@ const ALBUM: FieldDef = { key: 'album', label: 'Album', scope: 'listing', type: 
 async function renderSheet(onSubmit: jest.Mock = jest.fn(async () => {}), onClose = jest.fn(), fields: FieldDef[] = []) {
   await render(
     <SafeAreaProvider initialMetrics={METRICS}>
-      <ThemeProvider><ServicePriceSheet service={templateServiceFixture} fields={fields} onClose={onClose} onSubmit={onSubmit} /></ThemeProvider>
+      <ThemeProvider><ServicePriceSheet service={templateServiceFixture} fields={fields} categoryUnit={null} onClose={onClose} onSubmit={onSubmit} /></ThemeProvider>
     </SafeAreaProvider>,
   );
   return { onSubmit, onClose };
@@ -28,7 +28,7 @@ it('saves a new price and duration at once, with no review', async () => {
   await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '150');
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
-  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ price_paise: 600000, duration_minutes: 150, pricing_unit: 'package' }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ price_paise: 600000, duration_minutes: 150, pricing_unit: 'package', quantity_unit: null, min_quantity: 1 }));
   expect(onClose).toHaveBeenCalled();
 });
 
@@ -52,12 +52,14 @@ it('shows the server error and stays open when saving fails', async () => {
   expect(onClose).not.toHaveBeenCalled();
 });
 
-it('switches to per-person pricing and states the subcategory’s details', async () => {
+it('switches to per-unit pricing with a unit and minimum, and states the subcategory’s details', async () => {
   const onSubmit = jest.fn(async () => {});
   await renderSheet(onSubmit, jest.fn(), [PHOTOS, ALBUM]);
 
-  await fireEvent.press(screen.getByRole('tab', { name: 'Per person' }));
+  await fireEvent.press(screen.getByRole('tab', { name: 'Per unit' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Person' }));
   expect(screen.getByLabelText('Price per person (₹)')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Minimum people'), '2');
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
   expect(await screen.findByText('“Edited photos” is required')).toBeTruthy();
 
@@ -65,7 +67,9 @@ it('switches to per-person pricing and states the subcategory’s details', asyn
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Premium' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-    pricing_unit: 'per_person',
+    pricing_unit: 'per_unit',
+    quantity_unit: 'person',
+    min_quantity: 2,
     attributes: { edited_photos: 300, album: 'Premium' },
   })));
 });

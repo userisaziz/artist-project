@@ -92,13 +92,22 @@ describe('sending an enquiry', () => {
     serve({ 'POST /enquiries': () => ({ status: 201, json: enquiryFixture({ id: 'e-9' }) }) });
     const onSent = jest.fn();
     const babyName = { key: 'baby_name', label: "Baby's name", scope: 'booking' as const, type: 'text' as const, required: true, options: [], min: null, max: null, unit: null, help: null };
-    await wrap(<EnquiryForm artistId="a1" service={{ id: 's9', name: 'Aqiqah Sweet Box', booking_fields: [babyName] }} onSent={onSent} />);
+    const service = {
+      id: 's9', name: 'Aqiqah Sweet Box', booking_fields: [babyName], pricing_unit: 'per_unit' as const, quantity_unit: 'box' as const, min_quantity: 25,
+      addons: [{ id: 'ad1', name: 'Name ribbon', price_paise: 3000, per_person: true }],
+    };
+    const cards = { ...service, id: 's10', name: 'Thank-you Cards', price_paise: 2000, fulfilment: 'made_to_order' as const, details: [], included_items: [], booking_count: 0, photo_url: null, category: null, subcategory: null, description: null, duration_minutes: 60 };
+    await wrap(<EnquiryForm artistId="a1" service={service} suggestions={[cards]} initial={{ quantity: 30 }} onSent={onSent} />);
 
     expect(screen.getByText('Aqiqah Sweet Box')).toBeTruthy();
     const days = screen.getAllByRole('button').filter((b) => /^[A-Z][a-z]{2}, \d+ [A-Z][a-z]{2}$/.test(b.props.accessibilityLabel ?? ''));
     await fireEvent.press(days[5]);
     await fireEvent.changeText(screen.getByLabelText('What do you need?'), 'Pastel boxes with dates and a name card');
-    await fireEvent.changeText(screen.getByLabelText('How many? (optional)'), '40');
+    expect(screen.getByDisplayValue('30')).toBeTruthy(); // what was picked on Service detail
+    expect(screen.getByText('Minimum 25 boxes.')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('How many boxes'), '40');
+    await fireEvent.press(screen.getByRole('checkbox', { name: /Name ribbon/ }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: /Ask about Thank-you Cards too/ }));
     await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
     expect(await screen.findByText("“Baby's name” is required")).toBeTruthy();
     expect(sent).toHaveLength(0);
@@ -106,7 +115,10 @@ describe('sending an enquiry', () => {
     await fireEvent.changeText(screen.getByLabelText("Baby's name"), 'Ayaan');
     await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(onSent).toHaveBeenCalledWith('e-9'));
-    expect(sent[0].body).toMatchObject({ service_id: 's9', quantity: 40, answers: { baby_name: 'Ayaan' } });
+    expect(sent[0].body).toMatchObject({
+      service_id: 's9', quantity: 40, answers: { baby_name: 'Ayaan' },
+      addons: [{ addon_id: 'ad1', guests: 1 }], also_service_ids: ['s10'],
+    });
   });
 
   it('asks for a date and enough detail before sending anything', async () => {

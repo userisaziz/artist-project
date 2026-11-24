@@ -3,10 +3,10 @@ import type { ServiceItem } from '../../types/artist-onboarding/artist-onboardin
 import type { CatalogCategory } from '../../types/catalog/catalog';
 
 const tree: CatalogCategory[] = [
-  { id: 1, slug: 'mehendi', name: 'Mehendi', subcategories: [{ id: 101, slug: 'mehendi-bridal', name: 'Bridal', services: [], fulfilment: 'appointment' as const, fields: [] }, { id: 102, slug: 'mehendi-arabic', name: 'Arabic', services: [], fulfilment: 'appointment' as const, fields: [] }], fulfilment: 'appointment' as const, fields: [] },
+  { id: 1, slug: 'mehendi', name: 'Mehendi', subcategories: [{ id: 101, slug: 'mehendi-bridal', name: 'Bridal', services: [], fulfilment: 'appointment' as const, default_unit: null, fields: [] }, { id: 102, slug: 'mehendi-arabic', name: 'Arabic', services: [], fulfilment: 'appointment' as const, default_unit: null, fields: [] }], fulfilment: 'appointment' as const, default_unit: null, fields: [] },
 ];
 const svc = (id: string, subcategory_id: number): ServiceItem => ({
-  id, category_id: subcategory_id, subcategory_id, template_id: null, name: id, price_paise: 100, pricing_unit: 'package', attributes: {}, duration_minutes: 60,
+  id, category_id: subcategory_id, subcategory_id, template_id: null, name: id, price_paise: 100, pricing_unit: 'package', quantity_unit: null, min_quantity: 1, attributes: {}, duration_minutes: 60,
   description: null, status: 'pending', rejection_reason: null, included_items: [], addons: [], photo_url: null,
 });
 

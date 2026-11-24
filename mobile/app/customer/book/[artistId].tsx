@@ -12,21 +12,21 @@ import { SlotPicker } from '../../../src/components/directory/SlotPicker';
 import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { formatWhen } from '../../../src/utils/common/time';
 import { formatPrice, formatDuration } from '../../../src/utils/common/format';
-import { addonCountLabel, addonLines, addonsTotal, decodeAddonPicks, parseGuests } from '../../../src/utils/bookings/addons';
+import { addonCountLabel, addonLines, addonsTotal, decodeAddonPicks, parseQuantity } from '../../../src/utils/bookings/addons';
 
 // Spec §2 Date & time (step 1 of 2): a strip of every bookable day (plus a month calendar) and the day's hourly IST slots; taken ones are struck through.
 export default function DateTimeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { artistId = '', serviceId = '', addons = '', guests: guestsParam } = useLocalSearchParams<{ artistId: string; serviceId: string; addons?: string; guests?: string }>();
+  const { artistId = '', serviceId = '', addons = '', qty } = useLocalSearchParams<{ artistId: string; serviceId: string; addons?: string; qty?: string }>();
   const [startAt, setStartAt] = useState<string | null>(null);
   const { notice, setNotice } = useBookingFlow();
   const artist = useArtistPublic(artistId);
   const service = artist.data?.services.find((s) => s.id === serviceId);
   const lines = service ? addonLines(service.addons, decodeAddonPicks(addons, service.addons)) : [];
-  const guests = service?.pricing_unit === 'per_person' ? parseGuests(guestsParam) : 1;
-  const price = service ? service.price_paise * guests + addonsTotal(lines) : 0;
+  const quantity = service?.pricing_unit === 'per_unit' ? parseQuantity(qty, service.min_quantity) : 1;
+  const price = service ? service.price_paise * quantity + addonsTotal(lines) : 0;
   const extras = addonCountLabel(lines.length);
   // A slot that turned out to be taken (refetch after a conflict) is no longer a choice.
   const chosen = useStillAvailable(artistId, serviceId, startAt);
@@ -65,7 +65,7 @@ export default function DateTimeScreen() {
         <AppButton
           label="Continue"
           disabled={!chosen || !service}
-          onPress={() => { if (chosen) router.push({ pathname: '/customer/book/review', params: { artistId, serviceId, startAt: chosen, addons, guests: String(guests) } }); }}
+          onPress={() => { if (chosen) router.push({ pathname: '/customer/book/review', params: { artistId, serviceId, startAt: chosen, addons, qty: String(quantity) } }); }}
         />
       </View>
     </View>

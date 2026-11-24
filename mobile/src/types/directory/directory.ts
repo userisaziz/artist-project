@@ -1,6 +1,6 @@
 import type { WeeklyHour } from '../../utils/common/weekly-hours';
 import type { NamedRef } from '../../core/api/types';
-import type { FieldAnswer, FieldDef, Fulfilment, PricingUnit, ServiceAddon } from '../catalog/catalog';
+import type { FieldAnswer, FieldDef, Fulfilment, PricingUnit, QuantityUnit, ServiceAddon } from '../catalog/catalog';
 
 /** GET /artists list item: approved artists only. */
 export interface ArtistCard {
@@ -83,8 +83,10 @@ export interface PublicService {
   included_items: string[];
   /** Priced extras the customer can pick when booking. */
   addons: ServiceAddon[];
-  /** per_person: price_paise is per guest. */
+  /** per_unit: price_paise is per `quantity_unit`, from `min_quantity`. */
   pricing_unit: PricingUnit;
+  quantity_unit: QuantityUnit | null;
+  min_quantity: number;
   /** made_to_order: customers ask for a quote instead of booking a slot. */
   fulfilment: Fulfilment;
   /** The artist's answers to the listing fields, labelled. */

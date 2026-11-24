@@ -11,6 +11,8 @@ export const templateServiceFixture: ServiceItem = {
   price_paise: 1_500_000,
   duration_minutes: 120,
   pricing_unit: 'package',
+  quantity_unit: null,
+  min_quantity: 1,
   attributes: {},
   description: null,
   status: 'approved',

@@ -1,4 +1,5 @@
 import type { BookingAddonPick } from '../../types/bookings/bookings';
+import { MAX_QUANTITY } from '../catalog/units';
 import type { ServiceAddon } from '../../types/catalog/catalog';
 
 export const MAX_ADDON_GUESTS = 50; // backend app.booking.constants.MAX_ADDON_GUESTS
@@ -57,9 +58,9 @@ export function removePick(picks: BookingAddonPick[], addonId: string): BookingA
   return picks.filter((p) => p.addon_id !== addonId);
 }
 
-/** The guest count from a route param: a whole number within 1..MAX_ADDON_GUESTS, else 1. Only per-person services
- *  use it. */
-export function parseGuests(raw: string | undefined): number {
+/** A per-unit quantity from a route param: a whole number from the service's minimum up to MAX_QUANTITY, else
+ *  the minimum. */
+export function parseQuantity(raw: string | undefined, min: number): number {
   const n = Number(raw);
-  return Number.isInteger(n) && n >= 1 && n <= MAX_ADDON_GUESTS ? n : 1;
+  return Number.isInteger(n) && n >= min && n <= MAX_QUANTITY ? n : min;
 }

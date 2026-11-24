@@ -1,5 +1,6 @@
 import type { Page } from '../../core/api/types';
-import type { FieldAnswer, FieldValue } from '../catalog/catalog';
+import type { FieldAnswer, FieldValue, QuantityUnit } from '../catalog/catalog';
+import type { BookingAddonPick } from '../bookings/bookings';
 
 export type EnquiryStatus = 'open' | 'quoted' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 
@@ -27,7 +28,12 @@ export interface Enquiry {
   service_id: string | null;
   service_name: string | null;
   quantity: number | null;
+  quantity_unit: QuantityUnit | null;
   answers: FieldAnswer[];
+  /** Add-ons picked from that service, priced as listed when asked; the quote is the price that counts. */
+  addons: { name: string; unit_price_paise: number; per_person: boolean; guests: number; line_paise: number }[];
+  /** More of the artist's services to quote for. */
+  also_services: { id: string; name: string }[];
   created_at: string;
   artist: { id: string; business_name: string; photo_url: string | null; city: string };
   customer: { first_name: string | null; last_name: string | null };
@@ -46,6 +52,8 @@ export interface EnquiryInput {
   service_id?: string | null;
   quantity?: number | null;
   answers?: Record<string, FieldValue>;
+  addons?: BookingAddonPick[];
+  also_service_ids?: string[];
 }
 
 export interface AcceptQuoteInput {

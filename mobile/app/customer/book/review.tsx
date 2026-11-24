@@ -19,9 +19,13 @@ import { useBookingFlow } from '../../../src/context/bookings/flow-context';
 import { Breakdown } from '../../../src/components/bookings/Breakdown';
 import { OrderSummary } from '../../../src/components/bookings/OrderSummary';
 import { DetailFieldsForm } from '../../../src/components/catalog/DetailFieldsForm';
+import { QuantityPicker } from '../../../src/components/common/QuantityPicker';
+import { SuggestedServices } from '../../../src/components/directory/SuggestedServices';
+import { suggestServices } from '../../../src/utils/directory/storefront';
+import { MAX_QUANTITY, countLabel, unitWord } from '../../../src/utils/catalog/units';
 import { checkAnswers, type FieldValues } from '../../../src/utils/catalog/fields';
 import { AddonPicker } from '../../../src/components/directory/AddonPicker';
-import { addonLines, addonsTotal, decodeAddonPicks, encodeAddonPicks, parseGuests, removePick } from '../../../src/utils/bookings/addons';
+import { addonLines, addonsTotal, decodeAddonPicks, encodeAddonPicks, parseQuantity, removePick } from '../../../src/utils/bookings/addons';
 import type { BookingAddonPick } from '../../../src/types/bookings/bookings';
 import { DEPOSIT_PERCENT, FREE_CANCEL_HOURS, IN_APP_PAYMENTS, freeCancelUntil, priceBreakdown } from '../../../src/utils/bookings/pricing';
 import { formatWhen } from '../../../src/utils/common/time';
@@ -46,7 +50,7 @@ export default function ReviewAndPay() {
   const client = useQueryClient();
   const write = useBookingWrite();
   const { setNotice } = useBookingFlow();
-  const { artistId = '', serviceId = '', startAt = '', addons = '', guests: guestsParam } = useLocalSearchParams<{ artistId: string; serviceId: string; startAt: string; addons?: string; guests?: string }>();
+  const { artistId = '', serviceId = '', startAt = '', addons = '', qty } = useLocalSearchParams<{ artistId: string; serviceId: string; startAt: string; addons?: string; qty?: string }>();
   const artist = useArtistPublic(artistId);
   const now = useNow();
   const [address, setAddress] = useState('');
@@ -57,6 +61,8 @@ export default function ReviewAndPay() {
   // Answers to the service's booking fields ("Bride's name", "Occasion"): what the artist needs to know.
   const [answers, setAnswers] = useState<FieldValues>({});
   const [answersError, setAnswersError] = useState<string | null>(null);
+  // The quantity stays editable here, like the add-ons; it follows the URL so a slot conflict keeps it.
+  const [editedQty, setEditedQty] = useState<number | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -76,8 +82,11 @@ export default function ReviewAndPay() {
   const picks = editedPicks ?? decodeAddonPicks(addons, service.addons);
   const setPicks = (next: BookingAddonPick[]) => { setEditedPicks(next); router.setParams({ addons: encodeAddonPicks(next) }); };
   const lines = addonLines(service.addons, picks);
-  const guests = service.pricing_unit === 'per_person' ? parseGuests(guestsParam) : 1;
-  const money = priceBreakdown(service.price_paise * guests + addonsTotal(lines), IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
+  const perUnit = service.pricing_unit === 'per_unit';
+  const quantity = perUnit ? Math.max(editedQty ?? parseQuantity(qty, service.min_quantity), service.min_quantity) : 1;
+  const setQuantity = (n: number) => { setEditedQty(n); router.setParams({ qty: String(n) }); };
+  const suggestions = suggestServices(artist.data.services, service);
+  const money = priceBreakdown(service.price_paise * quantity + addonsTotal(lines), IN_APP_PAYMENTS ? DEPOSIT_PERCENT : 0, IN_APP_PAYMENTS);
   const start = Date.parse(startAt);
   const refundUntil = freeCancelUntil(start);
   const cancelLine = !IN_APP_PAYMENTS
@@ -95,7 +104,7 @@ export default function ReviewAndPay() {
     setPaying(true);
     setError(null);
     try {
-      const booking = await write(() => createBooking({ artist_id: artistId, service_id: serviceId, start_at: startAt, address: address.trim(), note: note.trim() || null, addons: picks, quantity: guests, answers: asked.answers }));
+      const booking = await write(() => createBooking({ artist_id: artistId, service_id: serviceId, start_at: startAt, address: address.trim(), note: note.trim() || null, addons: picks, quantity, answers: asked.answers }));
       book.afterUse(address, pickedId, remember);
       router.replace({ pathname: '/customer/book/done', params: { id: booking.id } });
     } catch (e) {
@@ -159,14 +168,21 @@ export default function ReviewAndPay() {
           </View>
           <OrderSummary
             serviceName={service.name}
-            servicePaise={service.price_paise * guests}
-            quantity={service.pricing_unit === 'per_person' ? guests : undefined}
+            servicePaise={service.price_paise * quantity}
+            quantityLabel={perUnit ? countLabel(quantity, service.quantity_unit) : undefined}
             addons={lines.map((l) => ({ id: l.addon.id, name: l.addon.name, per_person: l.addon.per_person, guests: l.guests, line_paise: l.line_paise }))}
             onRemove={service.addons.length ? (id) => setPicks(removePick(picks, id)) : undefined}
           />
+          {perUnit ? (
+            <QuantityPicker value={quantity} min={service.min_quantity} max={MAX_QUANTITY} noun={(n) => unitWord(service.quantity_unit, n)} onChange={setQuantity} />
+          ) : null}
           {editingAddons ? <AddonPicker addons={service.addons} picks={picks} onChange={setPicks} /> : null}
           <Breakdown money={money} />
         </Card>
+        <SuggestedServices
+          services={suggestions}
+          onOpen={(s) => router.push({ pathname: '/customer/artist/[id]/service/[serviceId]', params: { id: artistId, serviceId: s.id } })}
+        />
         <View style={{ gap: 4 }}>
           <AppText variant="caption" style={{ color: theme.colors.confirmedInk }}>{cancelLine}</AppText>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>

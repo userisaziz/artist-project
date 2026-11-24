@@ -17,8 +17,8 @@ import type { BookingAddonPick } from '../../types/bookings/bookings';
 import type { PublicService } from '../../types/directory/directory';
 import { AddonPicker } from './AddonPicker';
 import { AnswerList } from '../catalog/AnswerList';
-import { CountStepper } from '../common/CountStepper';
-import { MAX_ADDON_GUESTS as MAX_GUESTS } from '../../utils/bookings/addons';
+import { QuantityPicker } from '../common/QuantityPicker';
+import { MAX_QUANTITY, countLabel, unitWord } from '../../utils/catalog/units';
 import { BookingPolicy } from './BookingPolicy';
 
 const HERO_RATIO = 0.62;
@@ -31,9 +31,10 @@ function categoryLabel(service: PublicService): string | null {
 interface ServiceDetailProps {
   artistId: string;
   serviceId: string;
-  onCheckAvailability: (service: PublicService, addons: BookingAddonPick[], guests: number) => void;
-  /** Made-to-order services are quoted, not booked: opens an enquiry about this service. */
-  onRequestQuote: (service: PublicService) => void;
+  /** `quantity` is the units picked for a per-unit service, else 1. */
+  onCheckAvailability: (service: PublicService, addons: BookingAddonPick[], quantity: number) => void;
+  /** Made-to-order services are quoted, not booked: opens an enquiry about this service with what was picked. */
+  onRequestQuote: (service: PublicService, addons: BookingAddonPick[], quantity: number) => void;
 }
 
 /** Design "Service detail": a photo of the artist's work, category, name, rating and artist, the starting price
@@ -44,7 +45,8 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
   const { width } = useWindowDimensions();
   const artist = useArtistPublic(artistId);
   const [picks, setPicks] = useState<BookingAddonPick[]>([]);
-  const [guests, setGuests] = useState(1);
+  // Null until the customer changes it: then the service's own minimum is the starting point.
+  const [picked, setPicked] = useState<number | null>(null);
   const service = artist.data?.services.find((s) => s.id === serviceId);
   const shell = { flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.md } as const;
 
@@ -64,9 +66,11 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
   const category = categoryLabel(service);
   const lines = addonLines(service.addons, picks);
   const extrasPaise = addonsTotal(lines);
-  const perPerson = service.pricing_unit === 'per_person';
+  const perUnit = service.pricing_unit === 'per_unit';
   const quoted = service.fulfilment === 'made_to_order';
-  const base = service.price_paise * (perPerson ? guests : 1);
+  const quantity = perUnit ? Math.max(picked ?? service.min_quantity, service.min_quantity) : 1;
+  const each = unitWord(service.quantity_unit, 1);
+  const base = service.price_paise * quantity;
   const estimate = base + extrasPaise;
   const extras = addonCountLabel(lines.length);
 
@@ -86,7 +90,7 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
             <View style={{ flex: 1, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
-              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'From' : perPerson ? 'Per person' : 'Price'}</AppText>
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${quoted ? 'From' : 'Price'}${perUnit ? ` · per ${each}` : ''}`}</AppText>
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{formatPrice(service.price_paise)}</AppText>
             </View>
             <View style={{ flex: 1, borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: 12 }}>
@@ -101,10 +105,13 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
             </View>
           ) : null}
           {service.details.length ? <View style={{ marginTop: theme.spacing[2] }}><AnswerList title="Details" answers={service.details} /></View> : null}
-          {perPerson && !quoted ? (
+          {perUnit ? (
             <View style={{ marginTop: theme.spacing[2], gap: theme.spacing[2] }}>
-              <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>How many people?</AppText>
-              <CountStepper noun={['guest', 'guests']} value={guests} min={1} max={MAX_GUESTS} onChange={setGuests} />
+              <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{`How many ${unitWord(service.quantity_unit, 2)}?`}</AppText>
+              <QuantityPicker value={quantity} min={service.min_quantity} max={MAX_QUANTITY} noun={(n) => unitWord(service.quantity_unit, n)} onChange={setPicked} />
+              {service.min_quantity > 1 ? (
+                <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`Minimum ${countLabel(service.min_quantity, service.quantity_unit)}.`}</AppText>
+              ) : null}
             </View>
           ) : null}
           {service.description ? (
@@ -126,10 +133,10 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
               </View>
             </>
           ) : null}
-          {service.addons.length && !quoted ? (
+          {service.addons.length ? (
             <>
               <AppText variant="subtitle" style={{ color: theme.colors.textPrimary, marginTop: 8 }}>Add-ons</AppText>
-              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>Optional extras. You can still change them before you send the request.</AppText>
+              <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'Optional extras for the artist to include in their price.' : 'Optional extras. You can still change them before you send the request.'}</AppText>
               <AddonPicker addons={service.addons} picks={picks} onChange={setPicks} />
             </>
           ) : null}
@@ -138,14 +145,14 @@ export function ServiceDetail({ artistId, serviceId, onCheckAvailability, onRequ
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: theme.spacing.md, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.separator }}>
         <View accessible accessibilityLabel={quoted ? `From ${formatPrice(service.price_paise)}` : `Total ${formatPrice(estimate)}${extras ? `, includes ${extras}` : ''}`}>
-          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'From' : extras ? `Total · ${extras}` : perPerson ? `Total · ${guests} ${guests === 1 ? 'guest' : 'guests'}` : 'Total'}</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{quoted ? 'From' : ['Total', perUnit ? countLabel(quantity, service.quantity_unit) : null, extras || null].filter(Boolean).join(' · ')}</AppText>
           <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{formatPrice(estimate)}</AppText>
           {extras ? <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${formatPrice(base)} + ${formatPrice(extrasPaise)}`}</AppText> : null}
         </View>
         <View style={{ flex: 1 }}>
           {quoted
-            ? <AppButton label="Request a quote" onPress={() => onRequestQuote(service)} />
-            : <AppButton label="Check availability" onPress={() => onCheckAvailability(service, picks, perPerson ? guests : 1)} />}
+            ? <AppButton label="Request a quote" onPress={() => onRequestQuote(service, picks, quantity)} />
+            : <AppButton label="Check availability" onPress={() => onCheckAvailability(service, picks, quantity)} />}
         </View>
       </View>
     </View>

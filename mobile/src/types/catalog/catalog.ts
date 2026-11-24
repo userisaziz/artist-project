@@ -34,8 +34,10 @@ export interface FieldDef {
 
 export type FieldValue = string | number | boolean | string[];
 
-/** package: the price is the whole service. per_person: the price is per guest. */
-export type PricingUnit = 'package' | 'per_person';
+/** package: the price is the whole service. per_unit: the price is per `QuantityUnit`, times the quantity. */
+export type PricingUnit = 'package' | 'per_unit';
+/** What a per-unit service is counted in: "₹300 per piece", "min 25 boxes". */
+export type QuantityUnit = 'person' | 'piece' | 'box' | 'card' | 'hour' | 'set';
 
 /** An answered field as shown and stored: the label as it read when answered. */
 export interface FieldAnswer {
@@ -53,6 +55,8 @@ export interface Subcategory {
   services: ServiceTemplate[];
   /** Effective: its own, else its parent's. */
   fulfilment: Fulfilment;
+  /** Effective: what per-unit services here are counted in by default. */
+  default_unit: QuantityUnit | null;
   /** Effective: the parent's fields first, then its own. */
   fields: FieldDef[];
 }
@@ -61,6 +65,7 @@ export interface Subcategory {
 export interface CatalogCategory extends Category {
   subcategories: Subcategory[];
   fulfilment: Fulfilment;
+  default_unit: QuantityUnit | null;
   fields: FieldDef[];
 }
 

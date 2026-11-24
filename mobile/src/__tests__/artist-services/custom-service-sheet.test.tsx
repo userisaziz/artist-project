@@ -5,8 +5,8 @@ import { CustomServiceSheet } from '../../components/artist-services/CustomServi
 import type { CatalogCategory } from '../../types/catalog/catalog';
 
 const tree: CatalogCategory[] = [
-  { id: 1, slug: 'mehendi', name: 'Mehendi', subcategories: [{ id: 101, slug: 'mehendi-bridal', name: 'Bridal', services: [], fulfilment: 'appointment' as const, fields: [] }], fulfilment: 'appointment' as const, fields: [] },
-  { id: 2, slug: 'photography', name: 'Photography', subcategories: [], fulfilment: 'appointment' as const, fields: [] },
+  { id: 1, slug: 'mehendi', name: 'Mehendi', subcategories: [{ id: 101, slug: 'mehendi-bridal', name: 'Bridal', services: [], fulfilment: 'appointment' as const, default_unit: null, fields: [] }], fulfilment: 'appointment' as const, default_unit: null, fields: [] },
+  { id: 2, slug: 'photography', name: 'Photography', subcategories: [], fulfilment: 'appointment' as const, default_unit: null, fields: [] },
 ];
 
 const METRICS = { frame: { x: 0, y: 0, width: 393, height: 852 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
