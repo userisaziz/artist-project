@@ -16,7 +16,7 @@ export function OrderPlaced({ codes, onTrack, onKeepShopping }: { codes: string[
       </AppText>
       <View style={{ gap: 8, marginTop: 12 }}>
         <AppButton label="Track order" onPress={onTrack} />
-        <AppButton label="Keep shopping" variant="ghost" onPress={onKeepShopping} />
+        <AppButton label="Keep shopping" variant="outline" onPress={onKeepShopping} />
       </View>
     </View>
   );

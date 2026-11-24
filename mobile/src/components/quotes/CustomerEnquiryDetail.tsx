@@ -81,7 +81,7 @@ function Withdraw({ enquiry }: { enquiry: Enquiry }) {
           </View>
         </>
       ) : (
-        <AppButton label="Withdraw enquiry" variant="ghost" onPress={() => setConfirming(true)} />
+        <AppButton label="Withdraw enquiry" variant="outline" onPress={() => setConfirming(true)} />
       )}
       {cancel.error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(cancel.error)}</AppText> : null}
     </View>

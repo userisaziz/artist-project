@@ -76,7 +76,7 @@ export default function InReviewScreen() {
         <View style={{ gap: 8 }}>
           {rejected ? <AppButton label="Edit and resubmit" onPress={startEditing} /> : null}
           <AppButton label="Browse as customer" variant="secondary" loading={switching} onPress={() => { void switchToCustomer(); }} />
-          <AppButton label="Sign out" variant="ghost" onPress={() => { void signOut(); }} />
+          <AppButton label="Sign out" variant="outline" onPress={() => { void signOut(); }} />
         </View>
       </View>
     </LinearGradient>

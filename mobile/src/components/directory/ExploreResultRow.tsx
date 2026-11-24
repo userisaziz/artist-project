@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
-import { GlossSheen } from '../common/GlossSheen';
 import { Icon } from '../common/Icon';
 import { Photo } from '../common/Photo';
 import { SaveButton } from '../common/SaveButton';
@@ -41,7 +40,6 @@ export function ExploreResultRow({ artist, availability, saved, onToggleSave, on
         theme.shadows.sm,
       ]}
     >
-      <GlossSheen radius={radius} variant="card" />
       {photo ? <Photo uri={photo} style={photoStyle} /> : <View style={[photoStyle, { backgroundColor: theme.colors.imageFallback }]} />}
       <View style={{ flex: 1, gap: theme.spacing[0.75], justifyContent: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>

@@ -2,7 +2,7 @@
 import { palette } from './palette';
 
 export const shadows = {
-  sm: { shadowColor: palette.rose500, shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  md: { shadowColor: palette.rose500, shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  lg: { shadowColor: palette.rose500, shadowOpacity: 0.25, shadowRadius: 40, shadowOffset: { width: 0, height: 20 }, elevation: 8 },
+  sm: { shadowColor: palette.cherry600, shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  md: { shadowColor: palette.cherry600, shadowOpacity: 0.17, shadowRadius: 25, shadowOffset: { width: 0, height: 12 }, elevation: 4 },
+  lg: { shadowColor: palette.cherry600, shadowOpacity: 0.25, shadowRadius: 40, shadowOffset: { width: 0, height: 20 }, elevation: 8 },
 } as const;

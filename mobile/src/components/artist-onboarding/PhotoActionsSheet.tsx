@@ -48,7 +48,7 @@ export function PhotoActionsSheet({ photo, cover, busy, onMakeCover, onRemove, o
           ) : (
             <AppButton label="Make cover" onPress={onMakeCover} loading={busy} />
           )}
-          <AppButton label="Remove photo" variant="ghost" onPress={() => setConfirming(true)} disabled={busy} />
+          <AppButton label="Remove photo" variant="outline" onPress={() => setConfirming(true)} disabled={busy} />
         </View>
       )}
     </BottomSheet>

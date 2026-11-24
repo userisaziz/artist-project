@@ -133,7 +133,7 @@ export default function BookingDetail() {
         <Card style={{ gap: 8 }}>
           <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>{`You asked to move it to ${formatWhen(b.reschedule.start_at)}`}</AppText>
           <AppText variant="caption" style={{ color: theme.colors.pendingInk }}>{`Waiting for ${b.artist.business_name}. It stays at ${formatWhen(b.start_at)} until they accept.`}</AppText>
-          <AppButton label="Withdraw request" variant="ghost" loading={withdrawing} onPress={() => { void withdraw(); }} />
+          <AppButton label="Withdraw request" variant="outline" loading={withdrawing} onPress={() => { void withdraw(); }} />
         </Card>
       ) : null}
       {!b.reschedule && b.reschedule_declined_reason ? (
@@ -147,7 +147,7 @@ export default function BookingDetail() {
           <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>Cancel this booking?</AppText>
           <AppText variant="body" style={{ color: theme.colors.textSecondary }}>{refundNote}</AppText>
           <AppButton label="Yes, cancel" loading={cancelling} onPress={() => { void cancel(); }} />
-          <AppButton label="Keep booking" variant="ghost" disabled={cancelling} onPress={() => setConfirming(false)} />
+          <AppButton label="Keep booking" variant="outline" disabled={cancelling} onPress={() => setConfirming(false)} />
         </Card>
       ) : null}
       {error ? <AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}

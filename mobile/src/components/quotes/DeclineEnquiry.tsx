@@ -25,7 +25,7 @@ export function DeclineEnquiry({ enquiryId }: { enquiryId: string }) {
           </View>
         </>
       ) : (
-        <AppButton label="Decline" variant="ghost" onPress={() => setOpen(true)} />
+        <AppButton label="Decline" variant="outline" onPress={() => setOpen(true)} />
       )}
       {decline.error ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(decline.error)}</AppText> : null}
     </View>

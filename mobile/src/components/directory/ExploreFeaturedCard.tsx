@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { AppText } from '../common/AppText';
-import { GlossSheen } from '../common/GlossSheen';
 import { Icon } from '../common/Icon';
 import { SaveButton } from '../common/SaveButton';
 import { ExploreAvailability } from './ExploreAvailability';
@@ -41,7 +40,6 @@ export function ExploreFeaturedCard({ artist, availability, saved, onToggleSave,
       onPress={onPress}
       style={[{ borderRadius: radius, borderWidth: 1, borderColor: theme.colors.separator, backgroundColor: theme.colors.surface }, theme.shadows.sm]}
     >
-      <GlossSheen radius={radius} variant="card" />
       {/* Clipping lives on an inner view: on iOS `overflow: hidden` on the lifted surface would cut its shadow off. */}
       <View style={{ borderRadius: radius, overflow: 'hidden' }}>
         <View style={{ height: MOSAIC_ROW * 2 + seam, flexDirection: 'row', gap: seam }}>

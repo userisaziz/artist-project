@@ -7,11 +7,12 @@ it('assigns every semantic color role', () => {
   for (const role of roles) expect(lightTheme.colors[role as keyof typeof lightTheme.colors]).toMatch(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/); // 8-digit = with alpha
 });
 
-it('maps brand to Atelier rose and text to plum-brown ink (Coquette identity)', () => {
-  expect(lightTheme.colors.brand).toBe(palette.rose500);
-  expect(lightTheme.colors.brand).toBe('#B64D75');
+it('maps brand to cherry and text to plum-brown ink (Cherry Red kit)', () => {
+  expect(lightTheme.colors.brand).toBe(palette.cherry500);
+  expect(lightTheme.colors.brand).toBe('#D92D55'); // Cherry Red kit
   expect(lightTheme.colors.textPrimary).toBe(palette.ink900);
-  expect(lightTheme.colors.brandSoft).toBe(palette.blush200);
+  expect(lightTheme.colors.brandPressed).toBe(palette.cherry600);
+  expect(lightTheme.colors.brandSoft).toBe(palette.cherry100);
 });
 
 it('has an italic accent face for emphasised words', () => {

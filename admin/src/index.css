@@ -75,18 +75,18 @@
     --card-foreground: var(--palette-ink900);
     --popover: var(--palette-white);
     --popover-foreground: var(--palette-ink900);
-    --primary: var(--palette-rose500);
+    --primary: var(--palette-cherry500);
     --primary-foreground: var(--palette-white);
     --secondary: var(--palette-blush150);
     --secondary-foreground: var(--palette-plum700);
     --muted: var(--palette-blush120);
     --muted-foreground: var(--palette-ink500);
-    --accent: var(--palette-blush200);
-    --accent-foreground: var(--palette-rose500);
+    --accent: var(--palette-cherry100);
+    --accent-foreground: var(--palette-cherry500);
     --destructive: var(--palette-error600);
     --border: var(--palette-line200);
     --input: var(--palette-line300);
-    --ring: var(--palette-rose500);
+    --ring: var(--palette-cherry500);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -95,12 +95,12 @@
     --radius: 0.75rem;
     --sidebar: var(--palette-white);
     --sidebar-foreground: var(--palette-ink900);
-    --sidebar-primary: var(--palette-rose500);
+    --sidebar-primary: var(--palette-cherry500);
     --sidebar-primary-foreground: var(--palette-white);
-    --sidebar-accent: var(--palette-blush200);
-    --sidebar-accent-foreground: var(--palette-rose500);
+    --sidebar-accent: var(--palette-cherry100);
+    --sidebar-accent-foreground: var(--palette-cherry500);
     --sidebar-border: var(--palette-line200);
-    --sidebar-ring: var(--palette-rose500);
+    --sidebar-ring: var(--palette-cherry500);
     /* Sign-in screen brand tones (Atelier hi-fi "Admin sign in") */
     --blush: var(--palette-blush60);            /* page wash behind the form */
     --plum: var(--palette-rose800);             /* photo scrim, top */
@@ -114,7 +114,7 @@
     --rose: var(--palette-blush300);             /* highlight border, recent chart bars */
     --faint: var(--palette-ink450);            /* chart axis, search placeholder */
     --row-hover: var(--palette-blush50);
-    --primary-hover: var(--palette-rose600);
+    --primary-hover: var(--palette-cherry600);
     --success: var(--palette-sage600);
     --success-soft: var(--palette-sage100);
     --warning: var(--palette-amber700);

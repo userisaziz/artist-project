@@ -45,7 +45,7 @@ export function ShopOrderCard({ order: o }: { order: Order }) {
       {open ? (
         <AppButton
           label="Cancel order"
-          variant="ghost"
+          variant="outline"
           disabled={step.isPending}
           onPress={() => Alert.alert('Cancel this order?', 'The customer is told, and the stock comes back.', [
             { text: 'Keep', style: 'cancel' },

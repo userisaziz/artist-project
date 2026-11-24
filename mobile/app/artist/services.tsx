@@ -169,7 +169,7 @@ function ServiceRow({ service, confirming, deleting, onEdit, onAskDelete, onCanc
         <View style={{ gap: 8, marginTop: 4 }}>
           <AppText variant="body" style={{ color: theme.colors.textSecondary }}>Delete this service? Customers won’t see it any more.</AppText>
           <AppButton label="Yes, delete" loading={deleting} onPress={onDelete} />
-          <AppButton label="Keep it" variant="ghost" disabled={deleting} onPress={onCancelDelete} />
+          <AppButton label="Keep it" variant="outline" disabled={deleting} onPress={onCancelDelete} />
         </View>
       ) : null}
     </Card>

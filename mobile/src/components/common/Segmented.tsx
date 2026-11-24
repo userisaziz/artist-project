@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
-import { GlossSheen } from './GlossSheen';
 import { useTheme } from '../../core/theme/theme-provider';
 
 interface SegmentedProps<K extends string> {
@@ -26,7 +25,6 @@ export function Segmented<K extends string>({ options, value, onChange }: Segmen
             onPress={() => onChange(o.key)}
             style={[{ flex: 1, height: 34, borderRadius: theme.radii.control, alignItems: 'center', justifyContent: 'center' }, selected && { backgroundColor: theme.colors.surface }, selected && theme.shadows.sm]}
           >
-            {selected ? <GlossSheen radius={theme.radii.control} variant="card" /> : null}
             <AppText variant="labelLg" style={{ color: selected ? theme.colors.textPrimary : theme.colors.textMuted }}>{o.label}</AppText>
           </PressableFeedback>
         );

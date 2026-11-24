@@ -24,7 +24,7 @@ export function TopBar({ elevated = false }: { elevated?: boolean }) {
   }
 
   return (
-    <header className={cn('relative z-10 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-card px-3 transition-shadow md:gap-3.5 md:px-7 duration-(--motion-base) ease-snappy', elevated && 'shadow-[0_8px_20px_-14px_var(--palette-rose500)]')}>
+    <header className={cn('relative z-10 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-card px-3 transition-shadow md:gap-3.5 md:px-7 duration-(--motion-base) ease-snappy', elevated && 'shadow-[0_8px_20px_-14px_var(--palette-cherry600)]')}>
       <MobileNav />
       <form role="search" onSubmit={search} className="flex h-[38px] min-w-0 flex-1 items-center md:w-[360px] md:flex-none gap-2 rounded-xl border border-line bg-halo px-3 focus-within:ring-[3px] focus-within:ring-accent">
         <Search aria-hidden className="size-3.5 text-primary" strokeWidth={2.5} />

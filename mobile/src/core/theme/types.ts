@@ -10,6 +10,8 @@ export interface ThemeColors {
   background: string; surface: string;
   textPrimary: string; textSecondary: string; textMuted: string; textOnBrand: string;
   brand: string; brandPressed: string; brandSoft: string;
+  brandSoftPressed: string; brandSoftBorder: string; // the secondary button's pressed fill and hairline
+  disabledFill: string; disabledInk: string; // a disabled primary button: blush fill, rose label
   accent: string; separator: string;
   inputBackground: string; border: string; borderFocus: string;
   error: string; errorBackground: string; success: string;

@@ -57,7 +57,7 @@ export default function BookingRequested() {
       <View style={{ flex: 1 }} />
       <View style={{ gap: 8 }}>
         <AppButton label="View booking" disabled={!booking.data} onPress={() => { home(); router.push({ pathname: '/customer/booking/[id]', params: { id } }); }} />
-        <AppButton label="Back to home" variant="ghost" onPress={home} />
+        <AppButton label="Back to home" variant="outline" onPress={home} />
       </View>
     </View>
   );

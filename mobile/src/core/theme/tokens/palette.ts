@@ -48,4 +48,8 @@ export const palette = {
   sheenRim: '#FFFFFFB3',
   sheenClear: '#FFFFFF00',
   blush300Clear: '#F5B6D000',
+  cherry100: '#FFE1E8',
+  cherry500: '#D92D55',
+  cherry600: '#BE123C',
+  cherry700: '#A8123D',
 } as const;
