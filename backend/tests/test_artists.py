@@ -6,7 +6,7 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.upload.service import FakeStorage
-from tests.support.artist import approved_artist, complete_profile
+from tests.support.artist import add_kyc, approved_artist, complete_profile
 from tests.support.auth import admin_headers, sign_in
 from tests.support.catalog import area_id, categories, seed_categories, templates
 from tests.support.upload import upload_key
@@ -259,8 +259,26 @@ async def test_submit_lists_what_is_missing(client):
     response = await client.post("/api/v1/artists/me/submit", headers=headers)
     assert response.status_code == 422
     assert response.json()["code"] == "validation_error"
-    assert response.json()["missing"] == ["photo", "location", "services", "portfolio", "kyc"]
-    assert response.json()["min_photos"] == 6
+    assert response.json()["missing"] == ["location", "kyc"]  # photo, services and portfolio are optional
+
+
+async def test_submit_needs_no_profile_photo_services_or_portfolio(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    cats = await categories(client)
+    await client.put(
+        "/api/v1/artists/me/profile",
+        headers=headers,
+        json={"business_name": "A", "city": "Bangalore", "category_ids": [cats["mehendi"]]},
+    )
+    koramangala = await area_id(client, "Bangalore", "Koramangala")
+    await client.put("/api/v1/artists/me/location", headers=headers, json={"area_id": koramangala, "pincode": "560095"})
+    await add_kyc(client, headers)
+
+    submitted = await client.post("/api/v1/artists/me/submit", headers=headers)
+
+    assert submitted.status_code == 200, submitted.text
+    body = submitted.json()
+    assert (body["status"], body["photo_key"], body["services"], body["photos"]) == ("pending", None, [], [])
 
 
 async def test_location_step_saves_area_pincode_and_optional_address(client):
@@ -428,6 +446,54 @@ async def test_approved_artists_update_experience_and_languages_without_a_new_re
     assert (spoken["experience_years"], spoken["languages"]) == (8, ["Kannada"])  # one field at a time; repeats dropped
     assert (await client.patch(url, headers=artist["headers"], json={"experience_years": 61})).status_code == 422
     assert (await client.patch(url, headers=artist["headers"], json={"languages": ["Klingon"]})).status_code == 422
+
+
+async def test_approved_artists_fill_in_listed_services_and_portfolio_live(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, ARTIST_PHONE, admin)
+    headers = artist["headers"]
+    tpl = await templates(client)
+
+    added = await client.post(
+        "/api/v1/artists/me/services",
+        headers=headers,
+        json={"template_id": tpl["Bridal Full Arms"], "price_paise": 700000, "duration_minutes": 240},
+    )
+    assert added.status_code == 201, added.text
+    assert added.json()["status"] == "approved"  # no new review
+    listed = (await client.get(f"/api/v1/artists/{artist['id']}")).json()
+    assert {s["name"] for s in listed["services"]} == {"Bridal Classic", "Bridal Full Arms"}  # customers see it at once
+
+    removed = await client.delete(f"/api/v1/artists/me/services/{artist['service_id']}", headers=headers)
+    assert [s["name"] for s in removed.json()["services"]] == ["Bridal Full Arms"]
+
+    key = await upload_key(client, headers, "portfolio")
+    photo = await client.post(
+        "/api/v1/artists/me/photos", headers=headers, json={"key": key, "width": 1200, "height": 1500}
+    )
+    assert photo.status_code == 201, photo.text
+    ids = [p["id"] for p in photo.json()["photos"]]
+    reordered = await client.put("/api/v1/artists/me/photos/order", headers=headers, json={"photo_ids": ids[::-1]})
+    assert [p["id"] for p in reordered.json()["photos"]] == ids[::-1]
+    gone = await client.delete(f"/api/v1/artists/me/photos/{ids[-1]}", headers=headers)
+    assert len(gone.json()["photos"]) == len(ids) - 1
+
+
+async def test_a_pending_artist_cannot_change_services_or_photos(client):
+    headers = await sign_in(client, ARTIST_PHONE)
+    await complete_profile(client, headers)
+    assert (await client.post("/api/v1/artists/me/submit", headers=headers)).status_code == 200
+    tpl = await templates(client)
+
+    service = await client.post(
+        "/api/v1/artists/me/services",
+        headers=headers,
+        json={"template_id": tpl["Bridal Full Arms"], "price_paise": 700000, "duration_minutes": 240},
+    )
+    key = await upload_key(client, headers, "portfolio")
+    photo = await client.post("/api/v1/artists/me/photos", headers=headers, json={"key": key, "width": 1, "height": 1})
+
+    assert (service.status_code, photo.status_code) == (409, 409)
 
 
 async def test_approved_artists_change_a_service_price_and_duration_without_a_new_review(client, engine):

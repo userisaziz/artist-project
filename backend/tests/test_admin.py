@@ -261,10 +261,8 @@ async def test_reject_then_edit_and_resubmit(client, engine):
     assert (
         await client.delete(f"/api/v1/artists/me/photos/{photo_id}", headers=artist)
     ).status_code == 200  # editable again
-    assert (await client.post("/api/v1/artists/me/submit", headers=artist)).status_code == 422  # now 5 photos
 
-    await complete_profile(client, artist, photos=1)
-    resubmitted = (await client.post("/api/v1/artists/me/submit", headers=artist)).json()
+    resubmitted = (await client.post("/api/v1/artists/me/submit", headers=artist)).json()  # 5 photos: no minimum
     assert resubmitted["status"] == "pending"
     assert resubmitted["rejection_reason"] is None
 

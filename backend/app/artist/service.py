@@ -44,9 +44,11 @@ from app.subcategory_request import service as subcategory_request_service
 from app.upload.service import ImageStorage
 from app.user.models import User
 
-MIN_PHOTOS = 6
 MAX_PHOTOS = 30
 EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
+# The menu of listed services and the portfolio aren't part of onboarding: an approved artist fills them in from Me,
+# live, the same way a listed service's price changes without a new review.
+MENU_EDITABLE = EDITABLE | {ArtistStatus.approved}
 APPROVED_SERVICE_FIELDS = {"price_paise", "duration_minutes"}
 DELETED_NAME = "Deleted artist"
 
@@ -99,9 +101,9 @@ class ArtistService:
         await self.session.flush()
         return ErasedArtist(artist_id=profile.id, public_keys=public, private_keys=private)
 
-    async def _editable(self, user: User) -> ArtistProfile:
+    async def _editable(self, user: User, allowed: set[ArtistStatus] = EDITABLE) -> ArtistProfile:
         profile = await self.get(user)
-        if profile.status not in EDITABLE:
+        if profile.status not in allowed:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         return profile
 
@@ -149,7 +151,7 @@ class ArtistService:
     async def save_location(self, user: User, body: LocationIn) -> ArtistProfile:
         """Editable while onboarding and, without a new review, once approved (a profile requirement may ask for it)."""
         profile = await self.get(user)
-        if profile.status not in EDITABLE | {ArtistStatus.approved}:
+        if profile.status not in MENU_EDITABLE:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         area = await self.session.get(Area, body.area_id)
         if area is None or not area.is_active:
@@ -231,7 +233,7 @@ class ArtistService:
         return old if old and old != new else None
 
     async def add_service(self, user: User, body: ServiceIn) -> ArtistProfile:
-        profile = await self._editable(user)
+        profile = await self._editable(user, MENU_EDITABLE)
         template = await self._template(profile, body.template_id)
         if any(s.template_id == template.id for s in profile.services):
             raise ConflictError("You've already added this service")
@@ -280,7 +282,7 @@ class ArtistService:
         return profile
 
     async def delete_service(self, user: User, service_id: uuid.UUID) -> ArtistProfile:
-        profile = await self._editable(user)
+        profile = await self._editable(user, MENU_EDITABLE)
         item = self._service(profile, service_id)
         photo = item.photo_key
         profile.services.remove(item)
@@ -391,7 +393,7 @@ class ArtistService:
         return profile
 
     async def add_photo(self, user: User, body: PhotoIn) -> ArtistProfile:
-        profile = await self._editable(user)
+        profile = await self._editable(user, MENU_EDITABLE)
         if not self.storage.owns(body.key, user.id, "portfolio"):
             raise ValidationError("Invalid photo key")
         if any(p.storage_key == body.key for p in profile.photos):
@@ -410,7 +412,7 @@ class ArtistService:
         return profile
 
     async def delete_photo(self, user: User, photo_id: uuid.UUID) -> ArtistProfile:
-        profile = await self._editable(user)
+        profile = await self._editable(user, MENU_EDITABLE)
         photo = next((p for p in profile.photos if p.id == photo_id), None)
         if photo is None:
             raise NotFoundError("Photo not found")
@@ -420,7 +422,7 @@ class ArtistService:
         return profile
 
     async def reorder_photos(self, user: User, photo_ids: list[uuid.UUID]) -> ArtistProfile:
-        profile = await self._editable(user)
+        profile = await self._editable(user, MENU_EDITABLE)
         by_id = {p.id: p for p in profile.photos}
         if len(photo_ids) != len(by_id) or set(photo_ids) != set(by_id):
             raise ValidationError("photo_ids must list every portfolio photo exactly once")
@@ -472,21 +474,16 @@ class ArtistService:
 
     async def submit(self, user: User) -> ArtistProfile:
         profile = await self._editable(user)
+        # A profile photo, services and portfolio photos are optional: an approved artist adds them from Me.
         missing = []
-        if not profile.photo_key:
-            missing.append("photo")
         if not profile.categories:
             missing.append("categories")
         if profile.area_id is None or not profile.pincode:
             missing.append("location")
-        if not profile.services:
-            missing.append("services")
-        if len(profile.photos) < MIN_PHOTOS:
-            missing.append("portfolio")
         if profile.kyc is None:
             missing.append("kyc")
         if missing:
-            raise ValidationError("Profile is incomplete", missing=missing, min_photos=MIN_PHOTOS)
+            raise ValidationError("Profile is incomplete", missing=missing)
         profile.status = ArtistStatus.pending
         profile.submitted_at = self.clock.now()
         profile.rejection_reason = None
