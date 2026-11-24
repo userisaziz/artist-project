@@ -50,7 +50,6 @@ export function ProductDetail({ productId, onOpenCart, onCheckout, save }: Produ
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Avatar uri={p.seller.photo_url} name={p.seller.business_name} size={28} />
             <AppText variant="label" style={{ color: theme.colors.textPrimary }}>{p.seller.business_name}</AppText>
-            <Icon name="verified" size={16} color={theme.colors.brand} label="Verified artist" />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <AppText variant="display" style={{ flex: 1, fontSize: 26, lineHeight: 30, color: theme.colors.heading }}>{p.name}</AppText>

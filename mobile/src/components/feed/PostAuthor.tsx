@@ -16,7 +16,7 @@ interface PostAuthorProps {
   onOpenArtist: (artistId: string) => void;
 }
 
-/** Prototype post header: avatar, name with the verified tick, "City · 2h", and Follow / Following. */
+/** Prototype post header: avatar, name, "City · 2h", and Follow / Following. */
 export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
   const theme = useTheme();
   const follow = useToggleFollow();
@@ -33,7 +33,6 @@ export function PostAuthor({ post, now, onOpenArtist }: PostAuthorProps) {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <AppText variant="subtitle" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14.5, color: theme.colors.textPrimary }}>{artist.business_name}</AppText>
-            <Icon name="verified" size={14} color={theme.colors.brand} label="Verified artist" />
           </View>
           <AppText variant="caption" style={{ color: theme.colors.textMuted }}>{`${artist.city} · ${shortAgo(post.created_at, now)}`}</AppText>
         </View>

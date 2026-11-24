@@ -6,6 +6,7 @@ import { Photo } from '../common/Photo';
 import { SaveButton } from '../common/SaveButton';
 import { ExploreAvailability } from './ExploreAvailability';
 import { ExploreRating } from './ExploreRating';
+import { VerifiedBadge } from './VerifiedBadge';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
 import { ratingLong, ratingShort } from '../../utils/reviews/format';
@@ -45,7 +46,7 @@ export function ExploreResultRow({ artist, availability, saved, onToggleSave, on
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, flex: 1 }}>
             <AppText variant="body" numberOfLines={1} style={{ fontWeight: '700', color: theme.colors.textPrimary, flexShrink: 1 }}>{artist.business_name}</AppText>
-            <Icon name="verified" size={theme.typography.body.fontSize} color={theme.colors.brand} label="Verified" />
+            <VerifiedBadge verified={artist.id_verified} size={theme.typography.body.fontSize} />
           </View>
           <SaveButton name={artist.business_name} saved={saved} onPress={onToggleSave} />
         </View>

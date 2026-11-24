@@ -73,6 +73,8 @@ class DirectoryService:
             "photo_urls": [self.storage.url(p.storage_key, "card") for p in profile.photos[:CARD_PHOTOS]],
             "distance_km": round(distance_km, 1) if distance_km is not None else None,
             "free_on": free_on,
+            # Approval alone isn't verification: only an ID on file earns the badge.
+            "id_verified": profile.has_kyc,
         }
 
     async def cards(self, artist_ids: list[uuid.UUID]) -> list[dict]:

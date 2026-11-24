@@ -26,7 +26,7 @@ const wrap = (ui: ReactElement) => render(
 );
 const card = (id: string, name: string, city: string) => ({
   id, business_name: name, city, locality: null, photo_url: null, cover_url: null, photo_urls: [], categories: [], rating: null, review_count: 0,
-  from_price_paise: null, distance_km: null, free_on: null,
+  from_price_paise: null, distance_km: null, free_on: null, id_verified: true,
 });
 const artistCalls = () => send.mock.calls.map(([r]) => parseQuery(r.path)).filter((q) => q.path === '/artists');
 

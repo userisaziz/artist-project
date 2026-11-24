@@ -28,7 +28,7 @@ const SAVE_BUTTON = 40;
 export const STATS_OVERLAP = 34;
 const NAME_BOTTOM = STATS_OVERLAP + 24;
 
-/** Spec §2 storefront hero: the signature photo full-bleed, with the avatar, "Verified artist", name and line over it. */
+/** Spec §2 storefront hero: the signature photo full-bleed, with the avatar, "ID verified" (when an ID is on file), name and line over it. */
 export function StorefrontHero({ artist, save }: StorefrontHeroProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -53,10 +53,12 @@ export function StorefrontHero({ artist, save }: StorefrontHeroProps) {
           <View style={{ borderRadius: (AVATAR + AVATAR_RING * 2) / 2, borderWidth: AVATAR_RING, borderColor: onPhoto }}>
             <Avatar uri={artist.photo_url} name={artist.business_name} size={AVATAR} />
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, paddingHorizontal: 10, paddingVertical: theme.spacing.xs, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface }}>
-            <Icon name="verified" size={14} color={theme.colors.brand} />
-            <AppText variant="label" style={{ color: theme.colors.brand }}>Verified artist</AppText>
-          </View>
+          {artist.id_verified ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, paddingHorizontal: theme.spacing[2.5], paddingVertical: theme.spacing.xs, borderRadius: theme.radii.pill, backgroundColor: theme.colors.surface }}>
+              <Icon name="verified" size={14} color={theme.colors.brand} />
+              <AppText variant="label" style={{ color: theme.colors.brand }}>ID verified</AppText>
+            </View>
+          ) : null}
         </View>
         <AppText variant="display" accessibilityRole="header" style={{ color: onPhoto, marginTop: 10 }}>
           {rest ? `${first} ` : first}

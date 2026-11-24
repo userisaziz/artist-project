@@ -47,6 +47,7 @@ async def test_directory_lists_only_approved_artists(client, engine):
         "review_count",
         "distance_km",
         "free_on",
+        "id_verified",
     }
     assert (card["rating"], card["review_count"]) == (None, 0)
     assert body["next_cursor"] is None
@@ -258,3 +259,16 @@ async def test_storefront_reply_time_is_the_median_once_there_are_enough_replies
 
     assert too_few is None  # four replies are not a pattern yet
     assert enough == 30  # median of 10, 20, 30, 40, 50
+
+
+async def test_only_artists_with_an_id_on_file_are_shown_as_verified(client, engine):
+    admin = await admin_headers(client, engine)
+    artist = await approved_artist(client, engine, "+919845033331", admin)
+    card = (await client.get("/api/v1/artists")).json()["items"][0]
+    assert card["id_verified"] is True
+    assert (await client.get(f"/api/v1/artists/{artist['id']}")).json()["id_verified"] is True
+
+    async with engine.begin() as conn:  # approved without an ID (an older profile, or an admin override)
+        await conn.execute(text("DELETE FROM artist_kyc WHERE artist_id = :a"), {"a": artist["id"]})
+    assert (await client.get("/api/v1/artists")).json()["items"][0]["id_verified"] is False
+    assert (await client.get(f"/api/v1/artists/{artist['id']}")).json()["id_verified"] is False

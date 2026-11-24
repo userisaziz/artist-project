@@ -21,6 +21,7 @@ class ArtistCard(APIModel):
     review_count: int
     distance_km: float | None  # from the search point (near_lat/near_lng), one decimal; None without one
     free_on: date | None  # the searched available_on day, when the artist has an open slot then
+    id_verified: bool  # an ID (Aadhaar) is on file and was seen by our team at approval; drives the "ID verified" badge
 
 
 class ArtistCardPage(APIModel):

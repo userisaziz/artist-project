@@ -3,6 +3,7 @@ import { PressableFeedback } from '../common/PressableFeedback';
 import { Image } from 'expo-image';
 import { AppText } from '../common/AppText';
 import { Icon } from '../common/Icon';
+import { VerifiedBadge } from './VerifiedBadge';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
 import type { ArtistCard } from '../../types/directory/directory';
@@ -38,7 +39,7 @@ export function ArtistTile({ artist, saved, onPress, onToggleSave }: ArtistTileP
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 9 }}>
           <AppText variant="subtitle" numberOfLines={1} style={{ flexShrink: 1, fontFamily: bold, fontSize: 14, lineHeight: 19, color: theme.colors.textPrimary }}>{artist.business_name}</AppText>
-          <Icon name="check" size={14} color={theme.colors.brand} label="Verified" />
+          <VerifiedBadge verified={artist.id_verified} />
         </View>
         <AppText variant="caption" numberOfLines={1} style={{ marginTop: 3, color: theme.colors.textMuted }}>
           <AppText variant="caption" style={{ fontFamily: bold, color: theme.colors.brand }}>{rated ? `★ ${(artist.rating ?? 0).toFixed(1)}` : 'New'}</AppText>

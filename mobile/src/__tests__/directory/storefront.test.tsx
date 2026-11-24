@@ -30,7 +30,7 @@ const service = (id: string, name: string, booking_count: number, price_paise: n
 // Mirrors backend GET /artists/{id} (app/directory/schemas.py).
 const artist = (overrides: Partial<ArtistPublic> = {}): ArtistPublic => ({
   id: 'a1', business_name: 'Ayesha Mehendi Art', city: 'Bangalore', locality: null, photo_url: null, cover_url: null,
-  photo_urls: [], distance_km: null, free_on: null, categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 550000,
+  photo_urls: [], distance_km: null, free_on: null, id_verified: true, categories: [{ id: 1, name: 'Mehendi' }], from_price_paise: 550000,
   rating: 4.9, review_count: 128, bio: 'Bridal mehendi for twelve years.', photos: [], member_since: '2026-01-10T00:00:00Z',
   completed_bookings: 640, hours: [], travel_radius_km: 15, experience_years: 8, languages: ['Hindi', 'English', 'Kannada'], next_free_date: '2026-10-23', reply_minutes: 10,
   services: [service('s1', 'Bridal Classic', 3, 550000), service('s2', 'Bridal Signature', 9, 900000)],
@@ -74,7 +74,7 @@ it('shows the artist, their numbers, availability, the most booked package and t
   serve(customerRoutes());
   await wrap(<ArtistStorefrontScreen />);
 
-  expect(await screen.findByText('Verified artist')).toBeTruthy();
+  expect(await screen.findByText('ID verified')).toBeTruthy();
   expect(screen.getByText('640')).toBeTruthy();
   expect(screen.getByText('10m')).toBeTruthy();
   expect(screen.getByText('Replies in')).toBeTruthy();
@@ -161,8 +161,15 @@ it('the artist’s own preview has no booking and reads nothing from the custome
   serve({ 'GET /artists/a1': artist() });
   await wrap(<Storefront artistId="a1" />);
 
-  expect(await screen.findByText('Verified artist')).toBeTruthy();
+  expect(await screen.findByText('ID verified')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Book now' })).toBeNull();
   expect(screen.queryByText('Check availability')).toBeNull();
   expect(send.mock.calls.some(([req]) => req.path.startsWith('/feed'))).toBe(false);
+});
+
+it('shows "ID verified" only when the artist has an ID on file', async () => {
+  serve({ 'GET /artists/a1': artist({ id_verified: false }) });
+  await wrap(<Storefront artistId="a1" />);
+  expect(await screen.findByText('Ayesha Mehendi Art')).toBeTruthy();
+  expect(screen.queryByText('ID verified')).toBeNull();
 });

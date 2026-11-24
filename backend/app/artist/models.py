@@ -19,7 +19,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.catalog.models import Category, ServiceTemplate
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
@@ -264,3 +264,8 @@ class ArtistDayOff(Base):
         UUID(as_uuid=True), ForeignKey("artist_profile.id", ondelete="CASCADE"), primary_key=True
     )
     day_date: Mapped[date] = mapped_column(Date, primary_key=True)
+
+
+# Whether an ID is on file, without ever loading the encrypted record (kyc is raiseloaded on public reads):
+# a primary-key EXISTS alongside each profile row. Drives the directory's "ID verified" badge.
+ArtistProfile.has_kyc = column_property(sa.exists().where(ArtistKyc.artist_id == ArtistProfile.id))

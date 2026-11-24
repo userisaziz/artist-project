@@ -6,6 +6,7 @@ import { SaveButton } from '../common/SaveButton';
 import { ExploreAvailability } from './ExploreAvailability';
 import { ExploreMosaicTile } from './ExploreMosaicTile';
 import { ExploreRating } from './ExploreRating';
+import { VerifiedBadge } from './VerifiedBadge';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatPrice } from '../../utils/common/format';
 import { ratingLong, ratingShort } from '../../utils/reviews/format';
@@ -57,7 +58,7 @@ export function ExploreFeaturedCard({ artist, availability, saved, onToggleSave,
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, flex: 1 }}>
               <AppText variant="subtitle" numberOfLines={1} style={{ fontWeight: '700', color: theme.colors.textPrimary, flexShrink: 1 }}>{artist.business_name}</AppText>
-              <Icon name="verified" size={nameSize} color={theme.colors.brand} label="Verified" />
+              <VerifiedBadge verified={artist.id_verified} size={nameSize} />
             </View>
             <SaveButton name={artist.business_name} saved={saved} onPress={onToggleSave} />
           </View>

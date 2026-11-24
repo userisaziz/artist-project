@@ -22,6 +22,8 @@ export interface ArtistCard {
   distance_km: number | null;
   /** The searched free date (YYYY-MM-DD) when the artist has an open slot then. */
   free_on: string | null;
+  /** An ID (Aadhaar) is on file and was checked at approval: the only thing the "ID verified" badge claims. */
+  id_verified: boolean;
 }
 
 /** GET /artists: one page plus every match across pages (null when not counted, e.g. a free-date search). */
