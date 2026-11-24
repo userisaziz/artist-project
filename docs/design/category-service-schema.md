@@ -66,8 +66,12 @@ So three things vary by category, not one:
    sends an enquiry naming the service, a quantity and their answers to its booking fields, and accepting the quote
    carries those answers onto the booking.
 2. **Admins build the fields** per category/subcategory (JSONB schema; no release for a new category).
-3. **Pricing units: package (existing) and per person.** Per-hour, per-unit/minimum quantity and price-on-request
-   are not in this cut.
+3. **Pricing: whole service, or per unit.** Per unit counts in person, piece, box, card, hour or set, from a
+   minimum quantity ("₹350 per box, min 25"); a category names a default unit its services start from. Bookings and
+   enquiries keep the unit with the quantity. Per-hour is a unit; price-on-request is still not in this cut.
+5. **Review and request show add-ons and suggestions.** Quote requests carry picked add-ons and can tick up to five
+   more of the artist's services ("Goes well with", closest first: same subcategory, then category). The booking
+   review suggests the same services, opening one on tap; a booking stays one service and one slot.
 4. **Custom services stay free-form**: no listing attributes (customers still answer their subcategory's booking
    fields), no promote-to-catalog.
 
