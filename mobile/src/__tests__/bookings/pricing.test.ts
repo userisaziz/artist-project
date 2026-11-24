@@ -95,3 +95,10 @@ describe('without in-app payments (phase 1)', () => {
     expect([b.platform_fee_paise, b.total_paise, b.deposit_paise, b.balance_paise]).toEqual([0, 450_000, 0, 450_000]);
   });
 });
+
+it('words the booking policy from the rules, not hand-typed numbers', () => {
+  const { bookingPolicyLines, ACCEPT_WINDOW_HOURS } = jest.requireActual('../../utils/bookings/pricing');
+  const lines: string[] = bookingPolicyLines();
+  expect(lines[0]).toContain(`${ACCEPT_WINDOW_HOURS} hours`);
+  expect(lines[1]).toBe('Free cancellation any time before the start. Nothing is paid in the app.'); // phase 1
+});

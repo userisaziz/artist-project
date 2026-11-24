@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { SlotGrid } from '../common/SlotGrid';
-import { useAvailability } from '../../hooks/directory/directory';
+import { useArtistPublic, useAvailability } from '../../hooks/directory/directory';
 import { useNow } from '../../hooks/common/use-now';
 import { addDays, istDateKey } from '../../utils/common/time';
-
-const STRIP_DAYS = 14;
+import { BOOKABLE_DAYS } from '../../utils/bookings/pricing';
 
 interface SlotPickerProps {
   artistId: string;
@@ -14,12 +13,15 @@ interface SlotPickerProps {
   onChange: (startAt: string | null) => void;
 }
 
-/** A 14-day strip and the day's hourly IST slots for one service; taken ones are struck through. Booking and
- *  rescheduling both use it. Changing the day clears the pick. */
+/** Every bookable day (today + BOOKABLE_DAYS, with a month calendar for the far ones) and the day's hourly IST
+ *  slots for one service; taken ones are struck through. Opens on the artist's next free day rather than a
+ *  fully booked today. Booking and rescheduling both use it. Changing the day clears the pick. */
 export function SlotPicker({ artistId, serviceId, value, onChange }: SlotPickerProps) {
   const today = istDateKey(useNow());
-  const [date, setDate] = useState(today);
+  const days = Array.from({ length: BOOKABLE_DAYS + 1 }, (_, i) => addDays(today, i));
+  const nextFree = useArtistPublic(artistId).data?.next_free_date;
+  const [picked, setPicked] = useState<string | null>(null);
+  const date = picked ?? (nextFree && days.includes(nextFree) ? nextFree : today);
   const slots = useAvailability(artistId, date, serviceId);
-  const days = Array.from({ length: STRIP_DAYS }, (_, i) => addDays(today, i));
-  return <SlotGrid days={days} date={date} onDateChange={setDate} slots={slots} value={value} onChange={onChange} />;
+  return <SlotGrid days={days} date={date} onDateChange={setPicked} slots={slots} value={value} onChange={onChange} />;
 }

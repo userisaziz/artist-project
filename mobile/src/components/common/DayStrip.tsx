@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { ScrollView } from 'react-native';
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
@@ -17,8 +18,14 @@ interface DayStripProps {
 /** A horizontal strip of days (weekday over day number); each reads as "Fri, 9 Oct". */
 export function DayStrip({ days, value, onChange }: DayStripProps) {
   const theme = useTheme();
+  const scroller = useRef<ScrollView>(null);
+  const index = value ? days.indexOf(value) : -1;
+  // A day picked elsewhere (the month calendar, a jump to the next free day) scrolls into view, a day before it showing.
+  useEffect(() => {
+    if (index > 0) scroller.current?.scrollTo({ x: (index - 1) * (DAY_WIDTH + theme.spacing[2]), animated: true });
+  }, [index, theme.spacing]);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing[2], paddingVertical: theme.spacing[4] }}>
+    <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: theme.spacing[2], paddingVertical: theme.spacing[4] }}>
       {days.map((d) => {
         const selected = d === value;
         const { weekday, day } = dayParts(d);

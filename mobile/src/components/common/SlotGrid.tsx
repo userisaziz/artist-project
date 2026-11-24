@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { PressableFeedback } from './PressableFeedback';
 import { AppText } from './AppText';
+import { BottomSheet } from './BottomSheet';
 import { DayStrip } from './DayStrip';
+import { Icon } from './Icon';
+import { MonthPicker } from './MonthPicker';
 import { EmptyView, ErrorView, LoadingView } from './StateViews';
 import { useTheme } from '../../core/theme/theme-provider';
 import { formatDay, formatTime } from '../../utils/common/time';
@@ -33,11 +37,22 @@ interface SlotGridProps {
 /** A day strip over that day's slots; taken ones are struck through. Changing the day clears the pick. */
 export function SlotGrid({ days, date, onDateChange, slots, value, onChange }: SlotGridProps) {
   const theme = useTheme();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const pickDay = (d: string) => { onDateChange(d); onChange(null); };
   return (
     <View>
-      <DayStrip days={days} value={date} onChange={(d) => { onDateChange(d); onChange(null); }} />
+      <DayStrip days={days} value={date} onChange={pickDay} />
 
-      <AppText variant="title" style={{ color: theme.colors.heading }}>{formatDay(date)}</AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <AppText variant="title" style={{ color: theme.colors.heading }}>{formatDay(date)}</AppText>
+        <PressableFeedback accessibilityRole="button" accessibilityLabel="Pick a date from the calendar" onPress={() => setCalendarOpen(true)} hitSlop={theme.spacing[2]} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1] }}>
+          <Icon name="calendar" size={16} color={theme.colors.brand} />
+          <AppText variant="labelLg" style={{ color: theme.colors.brand }}>Calendar</AppText>
+        </PressableFeedback>
+      </View>
+      <BottomSheet visible={calendarOpen} title="Pick a date" onClose={() => setCalendarOpen(false)}>
+        <MonthPicker min={days[0]} max={days[days.length - 1]} value={date} onChange={(d) => { pickDay(d); setCalendarOpen(false); }} />
+      </BottomSheet>
       {slots.isPending ? <LoadingView /> : null}
       {slots.isError ? <ErrorView error={slots.error} onRetry={() => { void slots.refetch(); }} /> : null}
       {slots.data && !slots.data.slots.some((s) => s.available) ? <View style={{ marginTop: theme.spacing[2.5] }}><EmptyView message="No open times this day. Try another date." /></View> : null}

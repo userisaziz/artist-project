@@ -10,11 +10,11 @@ export const DEPOSIT_PERCENT = 30;
 export const IN_APP_PAYMENTS = false;
 const COMMISSION_PERCENT = 10;
 export const ACCEPT_WINDOW_HOURS = 3;
-const FREE_CANCEL_HOURS = 72;
+export const FREE_CANCEL_HOURS = 72;
 const SLOT_LEAD_HOURS = 2;
 const SLOT_FIRST_HOUR = 9;
 const SLOT_LAST_HOUR = 17;
-const BOOKABLE_DAYS = 60;
+export const BOOKABLE_DAYS = 60;
 
 const HOUR_MS = 3600_000;
 const RUPEE = 100;
@@ -84,4 +84,16 @@ export function refundDueOnCustomerCancel(start: number, now: number): boolean {
 /** The last moment a customer can cancel and still be refunded. */
 export function freeCancelUntil(start: number): number {
   return start - FREE_CANCEL_HOURS * HOUR_MS;
+}
+
+/** The booking policy in plain words, for the storefront, service detail and the review step. Built from the
+ *  constants above, so the copy follows the rules instead of repeating numbers by hand. */
+export function bookingPolicyLines(): string[] {
+  return [
+    `The artist answers your request within ${ACCEPT_WINDOW_HOURS} hours, or it lapses and nothing is owed.`,
+    IN_APP_PAYMENTS
+      ? `Free cancellation up to ${FREE_CANCEL_HOURS} hours before the start; after that the ${DEPOSIT_PERCENT}% deposit isn’t refunded.`
+      : 'Free cancellation any time before the start. Nothing is paid in the app.',
+    IN_APP_PAYMENTS ? 'The balance is paid to the artist after the service.' : 'You pay the artist directly after the service.',
+  ];
 }
