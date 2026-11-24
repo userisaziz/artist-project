@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '../common/AppButton';
 import { AppText } from '../common/AppText';
+import { AppTextField } from '../common/AppTextField';
 import { BackHeader } from '../common/BackHeader';
 import { InfoRow } from '../common/InfoRow';
 import { StatusPill } from '../common/StatusPill';
@@ -16,6 +18,7 @@ import type { OrderStatus } from '../../types/shop/shop';
 import { brand } from '../../core/brand/brand';
 
 const STEPS: OrderStatus[] = ['placed', 'confirmed', 'shipped', 'delivered'];
+const MAX_REASON = 300;
 
 /** Design "Track order": the steps so far, items, payment, address, tracking, and Cancel before it ships. */
 export function OrderDetail({ orderId }: { orderId: string }) {
@@ -23,6 +26,9 @@ export function OrderDetail({ orderId }: { orderId: string }) {
   const insets = useSafeAreaInsets();
   const order = useMyOrder(orderId);
   const cancel = useCancelOrder(orderId);
+  // Cancelling can't be undone, so it asks first and lets the customer tell the artist why.
+  const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState('');
   const o = order.data;
 
   if (!o) {
@@ -64,8 +70,19 @@ export function OrderDetail({ orderId }: { orderId: string }) {
       </View>
       <InfoRow label="Payment" value={`${METHOD_LABEL[o.payment_method].title}${o.paid_at ? ' · paid' : ''}`} />
       <InfoRow label="Deliver to" value={o.address} />
-      {cancellable ? (
-        <AppButton label="Cancel order" variant="secondary" loading={cancel.isPending} onPress={() => cancel.mutate(null)} />
+      {cancellable && !confirming ? (
+        <AppButton label="Cancel order" variant="secondary" onPress={() => setConfirming(true)} />
+      ) : null}
+      {cancellable && confirming ? (
+        <View accessibilityLabel="Cancel this order?" style={{ gap: theme.spacing[2.5], borderRadius: theme.radii.card, borderWidth: 1, borderColor: theme.colors.separator, padding: theme.spacing[3.5] }}>
+          <AppText variant="subtitle" style={{ color: theme.colors.textPrimary }}>Cancel this order?</AppText>
+          <AppText variant="caption" style={{ color: theme.colors.textSecondary }}>{`${o.seller.business_name} is told straight away. This can’t be undone.`}</AppText>
+          <AppTextField label="Reason (optional)" placeholder="Tell the seller why" value={reason} onChangeText={setReason} maxLength={MAX_REASON} />
+          <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+            <View style={{ flex: 1 }}><AppButton label="Keep order" variant="secondary" disabled={cancel.isPending} onPress={() => setConfirming(false)} /></View>
+            <View style={{ flex: 1 }}><AppButton label="Yes, cancel" loading={cancel.isPending} onPress={() => cancel.mutate(reason.trim() || null)} /></View>
+          </View>
+        </View>
       ) : null}
       {cancel.isError ? <AppText variant="caption" accessibilityRole="alert" style={{ color: theme.colors.error }}>{errorMessage(cancel.error)}</AppText> : null}
     </ScrollView>
