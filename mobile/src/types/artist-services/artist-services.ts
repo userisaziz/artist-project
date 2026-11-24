@@ -1,4 +1,4 @@
-import type { ServiceExtrasInput } from '../catalog/catalog';
+import type { FieldValue, PricingUnit, ServiceExtrasInput } from '../catalog/catalog';
 
 /** A subcategory the artist suggests while adding a service; only they see it until an admin approves it. */
 export interface SuggestedSubcategoryInput {
@@ -27,4 +27,7 @@ export type CustomServicePatch = Partial<CustomServiceInput>;
 export interface ServicePricePatch {
   price_paise: number;
   duration_minutes: number;
+  pricing_unit?: PricingUnit;
+  /** Sent replaces all of a listed service's details. */
+  attributes?: Record<string, FieldValue>;
 }

@@ -12,17 +12,56 @@ export interface ServiceTemplate {
   description: string | null;
 }
 
+/** appointment: booked into a time slot. made_to_order: made and handed over later, so customers ask for a quote. */
+export type Fulfilment = 'appointment' | 'made_to_order';
+/** listing: the artist states it when offering a service. booking: the customer answers it when booking. */
+export type FieldScope = 'listing' | 'booking';
+export type FieldType = 'text' | 'long_text' | 'number' | 'select' | 'multi_select' | 'boolean' | 'date';
+
+/** An admin-defined service field (backend app/catalog/fields.py FieldDef). Answers are stored by `key`. */
+export interface FieldDef {
+  key: string;
+  label: string;
+  scope: FieldScope;
+  type: FieldType;
+  required: boolean;
+  options: string[];
+  min: number | null;
+  max: number | null;
+  unit: string | null;
+  help: string | null;
+}
+
+export type FieldValue = string | number | boolean | string[];
+
+/** package: the price is the whole service. per_person: the price is per guest. */
+export type PricingUnit = 'package' | 'per_person';
+
+/** An answered field as shown and stored: the label as it read when answered. */
+export interface FieldAnswer {
+  key: string;
+  label: string;
+  value: FieldValue;
+  unit: string | null;
+}
+
 /** Slug is `parent-child`, e.g. `makeup-bridal`. */
 export interface Subcategory {
   id: number;
   slug: string;
   name: string;
   services: ServiceTemplate[];
+  /** Effective: its own, else its parent's. */
+  fulfilment: Fulfilment;
+  /** Effective: the parent's fields first, then its own. */
+  fields: FieldDef[];
 }
 
 /** GET /categories: the public tree, active items only (backend CatalogCategoryOut). */
 export interface CatalogCategory extends Category {
   subcategories: Subcategory[];
+  fulfilment: Fulfilment;
+  fields: FieldDef[];
 }
 
 /** A priced extra on an artist's service ("Guest mehendi +₹500 / person"); backend AddonOut. */

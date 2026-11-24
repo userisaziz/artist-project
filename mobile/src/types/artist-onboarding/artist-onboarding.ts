@@ -1,4 +1,4 @@
-import type { Category, ServiceAddon, ServiceExtrasInput } from '../catalog/catalog';
+import type { Category, FieldValue, PricingUnit, ServiceAddon, ServiceExtrasInput } from '../catalog/catalog';
 
 export type ArtistStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended';
 
@@ -14,6 +14,10 @@ export interface ServiceItem {
   name: string;
   price_paise: number;
   duration_minutes: number;
+  /** per_person: price_paise is per guest. */
+  pricing_unit: PricingUnit;
+  /** The artist's answers to the subcategory's listing fields, by key. */
+  attributes: Record<string, FieldValue>;
   description: string | null;
   /** "What's included" lines, in order. */
   included_items: string[];
@@ -95,6 +99,8 @@ export interface ServiceInput extends ServiceExtrasInput {
   price_paise: number;
   duration_minutes: number;
   description?: string | null;
+  pricing_unit?: PricingUnit;
+  attributes?: Record<string, FieldValue>;
 }
 
 export interface PhotoInput {

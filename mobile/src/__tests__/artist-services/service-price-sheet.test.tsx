@@ -4,13 +4,17 @@ import { ThemeProvider } from '../../core/theme/theme-provider';
 import { ApiError } from '../../core/api/types';
 import { ServicePriceSheet } from '../../components/artist-services/ServicePriceSheet';
 import { templateServiceFixture } from '../../mocks/artist-onboarding/artist-onboarding';
+import type { FieldDef } from '../../types/catalog/catalog';
 
 const METRICS = { frame: { x: 0, y: 0, width: 393, height: 852 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
-async function renderSheet(onSubmit: jest.Mock = jest.fn(async () => {}), onClose = jest.fn()) {
+const PHOTOS: FieldDef = { key: 'edited_photos', label: 'Edited photos', scope: 'listing', type: 'number', required: true, options: [], min: 10, max: 2000, unit: 'photos', help: null };
+const ALBUM: FieldDef = { key: 'album', label: 'Album', scope: 'listing', type: 'select', required: false, options: ['None', 'Classic', 'Premium'], min: null, max: null, unit: null, help: null };
+
+async function renderSheet(onSubmit: jest.Mock = jest.fn(async () => {}), onClose = jest.fn(), fields: FieldDef[] = []) {
   await render(
     <SafeAreaProvider initialMetrics={METRICS}>
-      <ThemeProvider><ServicePriceSheet service={templateServiceFixture} onClose={onClose} onSubmit={onSubmit} /></ThemeProvider>
+      <ThemeProvider><ServicePriceSheet service={templateServiceFixture} fields={fields} onClose={onClose} onSubmit={onSubmit} /></ThemeProvider>
     </SafeAreaProvider>,
   );
   return { onSubmit, onClose };
@@ -24,7 +28,7 @@ it('saves a new price and duration at once, with no review', async () => {
   await fireEvent.changeText(screen.getByLabelText('Duration (minutes)'), '150');
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
 
-  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ price_paise: 600000, duration_minutes: 150 }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ price_paise: 600000, duration_minutes: 150, pricing_unit: 'package' }));
   expect(onClose).toHaveBeenCalled();
 });
 
@@ -46,4 +50,22 @@ it('shows the server error and stays open when saving fails', async () => {
 
   expect(await screen.findByText(/only a service’s price and duration can change/)).toBeTruthy();
   expect(onClose).not.toHaveBeenCalled();
+});
+
+it('switches to per-person pricing and states the subcategory’s details', async () => {
+  const onSubmit = jest.fn(async () => {});
+  await renderSheet(onSubmit, jest.fn(), [PHOTOS, ALBUM]);
+
+  await fireEvent.press(screen.getByRole('tab', { name: 'Per person' }));
+  expect(screen.getByLabelText('Price per person (₹)')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+  expect(await screen.findByText('“Edited photos” is required')).toBeTruthy();
+
+  await fireEvent.changeText(screen.getByLabelText('Edited photos · photos'), '300');
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Premium' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    pricing_unit: 'per_person',
+    attributes: { edited_photos: 300, album: 'Premium' },
+  })));
 });

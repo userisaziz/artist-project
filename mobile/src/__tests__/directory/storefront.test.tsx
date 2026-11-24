@@ -23,7 +23,7 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 const NO_REVIEWS = { items: [], next_cursor: null, summary: { average: null, count: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } } };
 
 const service = (id: string, name: string, booking_count: number, price_paise: number): PublicService => ({
-  id, name, description: null, price_paise, duration_minutes: 180, booking_count, included_items: [], addons: [], photo_url: null,
+  id, name, description: null, price_paise, duration_minutes: 180, booking_count, included_items: [], addons: [], photo_url: null, pricing_unit: 'package' as const, fulfilment: 'appointment' as const, details: [], booking_fields: [],
   category: { id: 1, name: 'Mehendi' }, subcategory: { id: 2, name: 'Bridal' },
 });
 

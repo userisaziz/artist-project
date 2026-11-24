@@ -13,6 +13,8 @@ export function bookingFixture(overrides: Partial<Booking> = {}): Booking {
     service_name: 'Bridal Classic',
     service_id: 's1',
     duration_minutes: 180,
+    quantity: 1,
+    answers: [],
     artist: { id: 'a1', business_name: 'Ayesha Mehendi Art', photo_url: null, city: 'Bangalore' },
     customer: { id: 'c1', first_name: 'Priya', last_name: 'Sharma' },
     subtotal_paise: 550000,

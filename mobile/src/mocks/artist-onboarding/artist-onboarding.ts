@@ -10,6 +10,8 @@ export const templateServiceFixture: ServiceItem = {
   name: 'Bridal makeup',
   price_paise: 1_500_000,
   duration_minutes: 120,
+  pricing_unit: 'package',
+  attributes: {},
   description: null,
   status: 'approved',
   rejection_reason: null,

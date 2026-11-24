@@ -1,4 +1,5 @@
 import type { BookingReview } from '../reviews/reviews';
+import type { FieldAnswer, FieldValue } from '../catalog/catalog';
 
 export type BookingStatus = 'requested' | 'confirmed' | 'declined' | 'expired' | 'cancelled' | 'completed';
 
@@ -17,6 +18,10 @@ export interface BookingInput {
   address: string;
   note?: string | null;
   addons?: BookingAddonPick[];
+  /** Guests, for a per-person service. */
+  quantity?: number;
+  /** Answers to the service's booking fields, by key. */
+  answers?: Record<string, FieldValue>;
 }
 
 /** An add-on copied onto the booking when it was requested; its line is already inside subtotal_paise. */
@@ -41,6 +46,10 @@ export interface Booking {
   /** The artist's service it was booked for; null once that service no longer exists. */
   service_id: string | null;
   duration_minutes: number;
+  /** Guests for a per-person service, else 1. */
+  quantity: number;
+  /** The customer's answers to the booking fields, as asked. */
+  answers: FieldAnswer[];
   artist: { id: string; business_name: string; photo_url: string | null; city: string };
   customer: { id: string; first_name: string | null; last_name: string | null };
   subtotal_paise: number;

@@ -11,18 +11,27 @@ import { errorMessage } from '../../core/api/error-message';
 import { pricingDraftSchema, type PricingDraft } from '../../utils/artist-services/service-pricing';
 import type { ServiceItem } from '../../types/artist-onboarding/artist-onboarding';
 import type { ServicePricePatch } from '../../types/artist-services/artist-services';
+import type { FieldDef, PricingUnit } from '../../types/catalog/catalog';
+import { Segmented } from '../common/Segmented';
+import { DetailFieldsForm } from '../catalog/DetailFieldsForm';
+import { checkAnswers, valuesFor, type FieldValues } from '../../utils/catalog/fields';
 
 interface ServicePriceSheetProps {
   /** A service from the admin's list. Mount with a `key` per service so the fields start from it. */
   service: ServiceItem;
+  /** The listing fields of the service's subcategory (what the admin asks artists to state). */
+  fields: FieldDef[];
   onClose: () => void;
   onSubmit: (input: ServicePricePatch) => Promise<void>;
 }
 
-/** An approved artist's price and duration for a service from the admin's list: live at once, no review. */
-export function ServicePriceSheet({ service, onClose, onSubmit }: ServicePriceSheetProps) {
+/** An approved artist's price, duration, pricing unit and details for a service from the admin's list: live at
+ *  once, no review. */
+export function ServicePriceSheet({ service, fields, onClose, onSubmit }: ServicePriceSheetProps) {
   const theme = useTheme();
   const [error, setError] = useState<string | null>(null);
+  const [pricingUnit, setPricingUnit] = useState<PricingUnit>(service.pricing_unit);
+  const [details, setDetails] = useState<FieldValues>(() => valuesFor(fields, service.attributes));
   const { control, handleSubmit, formState } = useForm<PricingDraft, unknown, ServicePricePatch>({
     resolver: zodResolver(pricingDraftSchema),
     defaultValues: { price: String(Math.round(service.price_paise / 100)), minutes: String(service.duration_minutes) },
@@ -31,8 +40,10 @@ export function ServicePriceSheet({ service, onClose, onSubmit }: ServicePriceSh
   // The schema has already turned the two fields into the patch by the time this runs.
   const save = handleSubmit(async (pricing) => {
     setError(null);
+    const stated = checkAnswers(fields, details);
+    if (stated.error) { setError(stated.error); return; }
     try {
-      await onSubmit(pricing);
+      await onSubmit({ ...pricing, pricing_unit: pricingUnit, ...(fields.length ? { attributes: stated.answers } : {}) });
       onClose();
     } catch (e) {
       setError(errorMessage(e));
@@ -51,12 +62,18 @@ export function ServicePriceSheet({ service, onClose, onSubmit }: ServicePriceSh
       </AppText>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={{ flex: 1 }}>
-          <FormField control={control} name="price" label="Price (₹)" keyboardType="number-pad" placeholder="2500" />
+          <FormField control={control} name="price" label={pricingUnit === 'per_person' ? 'Price per person (₹)' : 'Price (₹)'} keyboardType="number-pad" placeholder="2500" />
         </View>
         <View style={{ flex: 1 }}>
           <FormField control={control} name="minutes" label="Duration (minutes)" keyboardType="number-pad" placeholder="60" />
         </View>
       </View>
+      <Segmented
+        options={[{ key: 'package', label: 'Whole service' }, { key: 'per_person', label: 'Per person' }]}
+        value={pricingUnit}
+        onChange={setPricingUnit}
+      />
+      {fields.length ? <DetailFieldsForm fields={fields} values={details} onChange={setDetails} /> : null}
       {error ? <AppText variant="caption" style={{ color: theme.colors.error }}>{error}</AppText> : null}
     </BottomSheet>
   );

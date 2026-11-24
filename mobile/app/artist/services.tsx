@@ -42,6 +42,8 @@ export default function MyServices() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tree = categories.data ?? [];
+  const listingFieldsOf = (subcategoryId: number) =>
+    tree.flatMap((c) => c.subcategories).find((sub) => sub.id === subcategoryId)?.fields.filter((f) => f.scope === 'listing') ?? [];
   // Group titles and the add sheet need the catalog; without it the list would wrongly read "No services yet".
   const failed = profileQuery.isError ? profileQuery : categories.isError ? categories : null;
   const ready = !!profile && !!categories.data;
@@ -111,6 +113,7 @@ export default function MyServices() {
         <ServicePriceSheet
           key={sheet.service.id}
           service={sheet.service}
+          fields={listingFieldsOf(sheet.service.subcategory_id)}
           onClose={() => setSheet(null)}
           onSubmit={async (input) => { await updatePrice.mutateAsync({ id: sheet.service.id, input }); }}
         />

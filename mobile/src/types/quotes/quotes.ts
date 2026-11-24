@@ -1,4 +1,5 @@
 import type { Page } from '../../core/api/types';
+import type { FieldAnswer, FieldValue } from '../catalog/catalog';
 
 export type EnquiryStatus = 'open' | 'quoted' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 
@@ -22,6 +23,11 @@ export interface Enquiry {
   event_date: string;
   details: string;
   budget_paise: number | null;
+  /** The service asked about (made-to-order ones are quoted), its name as asked, how many, and the answers. */
+  service_id: string | null;
+  service_name: string | null;
+  quantity: number | null;
+  answers: FieldAnswer[];
   created_at: string;
   artist: { id: string; business_name: string; photo_url: string | null; city: string };
   customer: { first_name: string | null; last_name: string | null };
@@ -37,6 +43,9 @@ export interface EnquiryInput {
   event_date: string;
   details: string;
   budget_paise: number | null;
+  service_id?: string | null;
+  quantity?: number | null;
+  answers?: Record<string, FieldValue>;
 }
 
 export interface AcceptQuoteInput {
