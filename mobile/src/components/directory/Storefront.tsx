@@ -11,6 +11,7 @@ import { mostBookedId, packageCountLabel } from '../../utils/directory/storefron
 import type { ArtistPublic, PublicService } from '../../types/directory/directory';
 import { PackagePickerSheet } from './PackagePickerSheet';
 import { StorefrontAbout } from './StorefrontAbout';
+import { BookingPolicy } from './BookingPolicy';
 import { StorefrontActions, type FollowControl } from './StorefrontActions';
 import { StorefrontChips } from './StorefrontChips';
 import { StorefrontFooter } from './StorefrontFooter';
@@ -145,6 +146,12 @@ export function Storefront({ artistId, customer }: StorefrontProps) {
           <StorefrontSection title="About" sectionKey="about" onMeasure={measure}>
             <StorefrontAbout artist={artist} />
           </StorefrontSection>
+        ) : null}
+
+        {customer ? (
+          <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing[6] }}>
+            <BookingPolicy />
+          </View>
         ) : null}
       </ScrollView>
 
