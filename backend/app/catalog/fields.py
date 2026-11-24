@@ -117,29 +117,37 @@ def parse_schema(raw: list[dict] | None) -> list[FieldDef]:
 class ServiceRules:
     fulfilment: Fulfilment
     fields: list[FieldDef]
+    default_unit: str | None = None  # what per-unit services here are counted in, unless the artist says otherwise
 
     def scoped(self, scope: FieldScope) -> list[FieldDef]:
         return [f for f in self.fields if f.scope == scope]
 
 
-def combine(
-    own: tuple[str | None, list[dict] | None] | None, parent: tuple[str | None, list[dict] | None] | None
-) -> ServiceRules:
-    """Rules from (fulfilment, field_schema) pairs: the row's own fulfilment or else its parent's (appointment by
-    default), and fields parent-first. Works on ORM rows and on the JSON the directory builds in SQL alike."""
+def combine(own: dict[str, Any] | None, parent: dict[str, Any] | None) -> ServiceRules:
+    """Rules from `{fulfilment, field_schema, default_unit}` rows: the row's own fulfilment and default unit or
+    else its parent's (appointment by default), and fields parent-first. Works on ORM rows (see `effective`) and on
+    the JSON the directory builds in SQL alike."""
     if own is None:
         return ServiceRules(Fulfilment.appointment, [])
-    fulfilment = own[0] or (parent[0] if parent else None) or Fulfilment.appointment
-    fields = [*parse_schema(parent[1] if parent else None), *parse_schema(own[1])]
-    return ServiceRules(Fulfilment(fulfilment), fields)
+    inherited = parent or {}
+    fulfilment = own.get("fulfilment") or inherited.get("fulfilment") or Fulfilment.appointment
+    fields = [*parse_schema(inherited.get("field_schema")), *parse_schema(own.get("field_schema"))]
+    return ServiceRules(Fulfilment(fulfilment), fields, own.get("default_unit") or inherited.get("default_unit"))
+
+
+def _row(category: Category | None) -> dict[str, Any] | None:
+    if category is None:
+        return None
+    return {
+        "fulfilment": category.fulfilment,
+        "field_schema": category.field_schema,
+        "default_unit": category.default_unit,
+    }
 
 
 def effective(category: Category | None, parent: Category | None) -> ServiceRules:
     """A (sub)category's rules; see `combine`."""
-    return combine(
-        (category.fulfilment, category.field_schema) if category else None,
-        (parent.fulfilment, parent.field_schema) if parent else None,
-    )
+    return combine(_row(category), _row(parent))
 
 
 async def rules_for(session: AsyncSession, category_id: int) -> ServiceRules:

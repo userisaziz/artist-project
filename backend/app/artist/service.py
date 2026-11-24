@@ -13,6 +13,7 @@ from typing import cast
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.artist.aadhaar import is_valid_aadhaar
+from app.artist.constants import PricingUnit, QuantityUnit
 from app.artist.models import (
     ArtistKyc,
     ArtistProfile,
@@ -51,7 +52,15 @@ EDITABLE = {ArtistStatus.draft, ArtistStatus.rejected}
 # live, the same way a listed service's price changes without a new review.
 MENU_EDITABLE = EDITABLE | {ArtistStatus.approved}
 # Live once approved, no new review: the artist's own price and terms, and facts about a listed service.
-APPROVED_SERVICE_FIELDS = {"price_paise", "duration_minutes", "pricing_unit", "attributes"}
+PRICING_FIELDS = {"pricing_unit", "quantity_unit", "min_quantity"}
+APPROVED_SERVICE_FIELDS = {
+    "price_paise",
+    "duration_minutes",
+    "pricing_unit",
+    "quantity_unit",
+    "min_quantity",
+    "attributes",
+}
 DELETED_NAME = "Deleted artist"
 
 
@@ -248,9 +257,9 @@ class ArtistService:
             status=ArtistServiceStatus.approved,
             sort_order=self._next_service_order(profile),
             addons=[],  # set, so reading it after flush never lazy-loads (async)
-            pricing_unit=body.pricing_unit,
             attributes=await self._listing_attributes(template.subcategory_id, body.attributes),
         )
+        await self._set_pricing(item, body.model_dump(include=PRICING_FIELDS))
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
         self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
         profile.services.append(item)
@@ -273,9 +282,11 @@ class ArtistService:
         if profile.status not in EDITABLE | {ArtistStatus.approved}:
             raise ConflictError(f"Profile is {profile.status.value} and can't be edited")
         item = self._service(profile, service_id)
-        for field in ("price_paise", "duration_minutes", "pricing_unit"):
+        for field in ("price_paise", "duration_minutes"):
             if changes.get(field) is not None:  # required columns: an explicit null means "leave as is"
                 setattr(item, field, changes[field])
+        if changes.keys() & PRICING_FIELDS:
+            await self._set_pricing(item, changes)
         if changes.get("attributes") is not None:
             if item.template_id is None and changes["attributes"]:
                 raise ValidationError("Custom services describe themselves in their own words")
@@ -288,6 +299,22 @@ class ArtistService:
         if replaced:
             await self.storage.delete(replaced)
         return profile
+
+    async def _set_pricing(self, item: ArtistServiceItem, changes: dict) -> None:
+        """A whole-service price, or a price per unit: in the unit given, else the one kept, else the category's
+        (a piece when it names none), from a minimum quantity."""
+        pricing = changes.get("pricing_unit") or item.pricing_unit or PricingUnit.package
+        if pricing == PricingUnit.package:
+            item.pricing_unit, item.quantity_unit, item.min_quantity = PricingUnit.package, None, 1
+            return
+        unit = changes.get("quantity_unit") or item.quantity_unit
+        if unit is None:
+            unit = (await catalog_fields.rules_for(self.session, item.category_id)).default_unit or QuantityUnit.piece
+        item.pricing_unit, item.quantity_unit = PricingUnit.per_unit, unit
+        if changes.get("min_quantity") is not None:
+            item.min_quantity = changes["min_quantity"]
+        elif item.min_quantity is None:
+            item.min_quantity = 1
 
     async def _listing_attributes(self, category_id: int, values: dict) -> dict:
         """A listed service's answers to its subcategory's listing fields, checked against the admin's schema."""
@@ -352,8 +379,8 @@ class ArtistService:
             status=ArtistServiceStatus.pending,
             sort_order=self._next_service_order(profile),
             addons=[],
-            pricing_unit=body.pricing_unit,
         )
+        await self._set_pricing(item, body.model_dump(include=PRICING_FIELDS))
         self._apply_extras(item, body.model_dump(include={"included_items", "addons"}))
         self._apply_photo(user, item, body.model_dump(include={"photo_key"}, exclude_none=True))
         profile.services.append(item)
@@ -374,9 +401,11 @@ class ArtistService:
             changes["name"] = changes["name"].strip()
             if not changes["name"]:
                 raise ValidationError("Name is required")
-        for field in ("name", "price_paise", "duration_minutes", "pricing_unit"):
+        for field in ("name", "price_paise", "duration_minutes"):
             if changes.get(field) is not None:
                 setattr(item, field, changes[field])
+        if changes.keys() & PRICING_FIELDS:
+            await self._set_pricing(item, changes)
         if "description" in changes:
             item.description = changes["description"]
         self._apply_extras(item, changes)

@@ -134,8 +134,10 @@ class ArtistServiceItem(Base, TimestampMixin):
         ARRAY(String(60)), nullable=False, default=list, server_default=sa.text("'{}'")
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    # package: price_paise is the whole service; per_person: price_paise per guest, times the booking's quantity.
+    # package: price_paise is the whole service; per_unit: price_paise per `quantity_unit`, times the quantity booked.
     pricing_unit: Mapped[str] = mapped_column(String(20), nullable=False, default="package", server_default="package")
+    quantity_unit: Mapped[str | None] = mapped_column(String(10))  # app.artist.constants.QuantityUnit; per_unit only
+    min_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     # The artist's answers to the subcategory's listing fields (app.catalog.fields), validated on write.
     attributes: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=sa.text("'{}'"))
     status: Mapped[ArtistServiceStatus] = mapped_column(
@@ -159,7 +161,13 @@ class ArtistServiceItem(Base, TimestampMixin):
         sa.CheckConstraint("price_paise > 0", name="price_positive"),
         sa.CheckConstraint("duration_minutes > 0", name="duration_positive"),
         sa.CheckConstraint("template_id IS NOT NULL OR name IS NOT NULL", name="name_or_template"),
-        sa.CheckConstraint("pricing_unit IN ('package', 'per_person')", name="pricing_unit_known"),
+        sa.CheckConstraint("pricing_unit IN ('package', 'per_unit')", name="pricing_unit_known"),
+        sa.CheckConstraint(
+            "(pricing_unit = 'package' AND quantity_unit IS NULL AND min_quantity = 1) OR "
+            "(pricing_unit = 'per_unit' AND quantity_unit IN ('person', 'piece', 'box', 'card', 'hour', 'set') "
+            "AND min_quantity >= 1)",
+            name="quantity_matches_pricing",
+        ),
         sa.Index(
             "ix_artist_service_item_name_trgm", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}
         ),

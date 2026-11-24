@@ -42,6 +42,13 @@ class QuoteEnquiry(Base, TimestampMixin):
     quantity: Mapped[int | None] = mapped_column(Integer)  # how many (boxes, cards, guests), when it matters
     # Answers to the service's booking fields, with their labels as asked (app.catalog.fields).
     answers: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list, server_default=sa.text("'[]'"))
+    # Add-ons picked from that service, priced as listed when asked ({name, unit_price_paise, per_person, guests,
+    # line_paise}); the artist's quote is the price that counts.
+    addons: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list, server_default=sa.text("'[]'"))
+    # More of the artist's services to quote for in the same enquiry ({id, name} as named when asked).
+    also_services: Mapped[list[dict]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=sa.text("'[]'")
+    )
     quote_price_paise: Mapped[int | None] = mapped_column(Integer)
     quote_duration_minutes: Mapped[int | None] = mapped_column(Integer)
     quote_note: Mapped[str | None] = mapped_column(String(NOTE_MAX))

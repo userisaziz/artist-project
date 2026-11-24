@@ -226,6 +226,8 @@ class DirectoryService:
                     "included_items": list(s.included_items),
                     "addons": addons_out(s),
                     "pricing_unit": s.pricing_unit,
+                    "quantity_unit": s.quantity_unit,
+                    "min_quantity": s.min_quantity,
                     **self._rules_fields(s, refs),
                 }
                 for s in services
@@ -245,10 +247,7 @@ class DirectoryService:
         """A service's fulfilment, its labelled listing details and the questions a customer answers."""
         own = refs.get(service.category_id)
         parent = refs.get(own["parent_id"]) if own and own["parent_id"] is not None else None
-        rules = catalog_fields.combine(
-            (own["fulfilment"], own["field_schema"]) if own else None,
-            (parent["fulfilment"], parent["field_schema"]) if parent else None,
-        )
+        rules = catalog_fields.combine(own, parent)
         listing = rules.scoped(catalog_fields.FieldScope.listing)
         # Only keys the schema still has: a field the admin removed simply stops showing.
         known = {k: v for k, v in service.attributes.items() if any(f.key == k for f in listing)}

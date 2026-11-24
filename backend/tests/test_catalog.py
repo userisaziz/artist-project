@@ -112,10 +112,12 @@ async def test_public_catalog_is_a_tree_of_active_items(client, engine):
                     "name": "Bridal",
                     "services": [{"id": hd["id"], "name": "HD Bridal Makeup", "description": "Long-wear HD base"}],
                     "fulfilment": "appointment",
+                    "default_unit": None,
                     "fields": [],
                 }
             ],
             "fulfilment": "appointment",
+            "default_unit": None,
             "fields": [],
         }
     ]
@@ -137,6 +139,7 @@ async def test_public_catalog_is_cached_until_an_admin_edits_it(client, engine):
                 "name": "Makeup",
                 "subcategories": [],
                 "fulfilment": "appointment",
+                "default_unit": None,
                 "fields": [],
             }
         ]

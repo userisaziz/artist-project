@@ -137,6 +137,20 @@ def addon_lines(service: ArtistServiceItem, picks: list[BookingAddonIn]) -> tupl
     return tuple(lines)
 
 
+UNIT_PLURAL = {"person": "people", "piece": "pieces", "box": "boxes", "card": "cards", "hour": "hours", "set": "sets"}
+
+
+def check_quantity(service: ArtistServiceItem, quantity: int) -> None:
+    """A package is booked once; a per-unit service from its minimum quantity (people, pieces, boxes…)."""
+    if service.pricing_unit != PricingUnit.per_unit:
+        if quantity != 1:
+            raise ValidationError("This service is priced as a whole, not per unit")
+        return
+    if quantity < service.min_quantity:
+        unit = UNIT_PLURAL.get(service.quantity_unit or "", "units")
+        raise ValidationError(f"The minimum is {service.min_quantity} {unit}")
+
+
 def new_booking(settings: BookingSettings, now: datetime, data: NewBooking) -> Booking:
     """An unsaved `requested` booking with its money copied in at request time."""
     p = rules.price(data.price_paise)
@@ -324,9 +338,7 @@ class BookingService:
         service_rules = await catalog_fields.rules_for(self.session, service.category_id)
         if service_rules.fulfilment == catalog_fields.Fulfilment.made_to_order:
             raise ConflictError("This is made to order: ask the artist for a quote instead")
-        per_person = service.pricing_unit == PricingUnit.per_person
-        if data.quantity != 1 and not per_person:
-            raise ValidationError("This service is priced as a package, not per person")
+        check_quantity(service, data.quantity)
         booking_fields = service_rules.scoped(catalog_fields.FieldScope.booking)
         answers = catalog_fields.answer_snapshot(
             booking_fields, catalog_fields.validate_values(booking_fields, data.answers)

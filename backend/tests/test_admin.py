@@ -40,6 +40,7 @@ async def test_create_category_derives_slug_and_order(client, engine):
         "child_count": 0,
         "template_count": 0,
         "fulfilment": None,
+        "default_unit": None,
         "field_schema": [],
     }
     second = await client.post("/api/v1/admin/categories", headers=headers, json={"name": "Nail Art"})

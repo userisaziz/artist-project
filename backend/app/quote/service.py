@@ -13,6 +13,7 @@ from sqlalchemy import ColumnElement
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.artist.constants import PricingUnit
 from app.booking import availability as booking_availability
 from app.booking import rules as booking_rules
 from app.booking import service as booking_service
@@ -61,6 +62,8 @@ def enquiry_out(row: EnquiryRow, storage: ImageStorage) -> dict[str, Any]:
         "service_name": e.service_name,
         "quantity": e.quantity,
         "answers": e.answers,
+        "addons": e.addons,
+        "also_services": e.also_services,
         "created_at": e.created_at,
         "artist": {
             "id": e.artist_id,
@@ -168,7 +171,7 @@ class QuoteService:
         cap = self.settings.max_open_enquiries_per_customer
         if await self.enquiries.count(mine, live) >= cap:
             raise ConflictError(f"You have {cap} open enquiries. Wait for replies or cancel one first.")
-        service_name, answers = await self._about_service(artist.id, data)
+        about = await self._about_service(artist.id, data)
         enquiry = QuoteEnquiry(
             customer_id=customer.id,
             artist_id=artist.id,
@@ -177,9 +180,8 @@ class QuoteService:
             details=data.details,
             budget_paise=data.budget_paise,
             service_id=data.service_id,
-            service_name=service_name,
             quantity=data.quantity,
-            answers=answers,
+            **about,
         )
         self.enquiries.add(enquiry)
         try:
@@ -189,20 +191,44 @@ class QuoteService:
         await notices.received(self.session, enquiry, artist.user_id)
         return await self.save(enquiry.id, mine)
 
-    async def _about_service(self, artist_id: uuid.UUID, data: EnquiryIn) -> tuple[str | None, list[dict[str, Any]]]:
-        """The asked-about service's name and the customer's answers to its booking fields (none without one)."""
+    async def _about_service(self, artist_id: uuid.UUID, data: EnquiryIn) -> dict[str, Any]:
+        """What the enquiry says about the artist's services: the one asked about (its name, the customer's answers
+        to its booking fields, the add-ons picked, a quantity from its minimum) and any others to quote for too."""
         if data.service_id is None:
-            if data.answers:
-                raise ValidationError("Answers belong to a service: pick one")
-            return None, []
+            if data.answers or data.addons or data.also_service_ids:
+                raise ValidationError("Answers, add-ons and other services belong to a service: pick one")
+            return {"service_name": None, "answers": [], "addons": [], "also_services": []}
         service = await self.enquiries.approved_service(data.service_id, artist_id)
         if service is None:
             raise NotFoundError("Service not found")
+        if data.quantity is not None and service.pricing_unit == PricingUnit.per_unit:
+            booking_service.check_quantity(service, data.quantity)
         rules = await catalog_fields.rules_for(self.session, service.category_id)
         fields = rules.scoped(catalog_fields.FieldScope.booking)
-        return service.display_name, catalog_fields.answer_snapshot(
-            fields, catalog_fields.validate_values(fields, data.answers)
-        )
+        addons = [
+            {
+                "name": a.name,
+                "unit_price_paise": a.unit_price_paise,
+                "per_person": a.per_person,
+                "guests": a.guests,
+                "line_paise": a.line_paise,
+            }
+            for a in booking_service.addon_lines(service, data.addons)
+        ]
+        also = []
+        for other_id in dict.fromkeys(data.also_service_ids):  # each once, in the order asked
+            if other_id == service.id:
+                continue
+            other = await self.enquiries.approved_service(other_id, artist_id)
+            if other is None:
+                raise NotFoundError("Service not found")
+            also.append({"id": str(other.id), "name": other.display_name})
+        return {
+            "service_name": service.display_name,
+            "answers": catalog_fields.answer_snapshot(fields, catalog_fields.validate_values(fields, data.answers)),
+            "addons": addons,
+            "also_services": also,
+        }
 
     async def customer_list(self, customer: User, limit: int, cursor: str | None):
         mine = QuoteEnquiry.customer_id == customer.id

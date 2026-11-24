@@ -224,6 +224,18 @@ def _field(key: str, label: str, scope: str, kind: str, **extra) -> dict:
 
 
 # Category slug → (fulfilment or None to inherit, its own fields). Seeded only onto rows an admin hasn't set up.
+# What per-unit services in each category are counted in by default.
+CATEGORY_UNITS: dict[str, str] = {
+    "mehendi": "person",
+    "makeup": "person",
+    "hair": "person",
+    "art": "piece",
+    "custom-cards": "card",
+    "gift-boxes": "box",
+    "crafts": "piece",
+    "photography": "hour",
+}
+
 CATEGORY_RULES: dict[str, tuple[str | None, list[dict]]] = {
     "mehendi": (
         "appointment",
@@ -320,25 +332,35 @@ CATEGORY_RULES: dict[str, tuple[str | None, list[dict]]] = {
     ),
 }
 
-# (business, template) → pricing unit and listing details, for seeded services.
+# (business, template) → pricing (package, or per unit with a unit and minimum) and listing details.
 SERVICE_OPTIONS: dict[tuple[str, str], dict] = {
     ("Henna by Priya", "Bridal Full Hands + Legs"): {
         "attributes": {"coverage": "Full arms", "styles": ["Indian", "Indo-Arabic"]}
     },
     ("Ayesha Arabic Mehendi", "Arabic Full Hands"): {"attributes": {"coverage": "Up to wrists", "styles": ["Arabic"]}},
     ("Ayesha Arabic Mehendi", "Eid Special Mehendi"): {
-        "pricing_unit": "per_person",
+        "pricing_unit": "per_unit",
+        "quantity_unit": "person",
         "attributes": {"styles": ["Arabic", "Minimal"]},
     },
     ("Glam by Sneha", "HD Bridal Makeup"): {"attributes": {"hair_included": False, "trial": True}},
-    ("Glam by Sneha", "Softeye Party Look"): {"pricing_unit": "per_person", "attributes": {"hair_included": False}},
+    ("Glam by Sneha", "Softeye Party Look"): {
+        "pricing_unit": "per_unit",
+        "quantity_unit": "person",
+        "attributes": {"hair_included": False},
+    },
     ("Bridal Studio by Aisha", "HD Bridal Makeup"): {"attributes": {"hair_included": True, "trial": True}},
     ("Qalam Calligraphy Studio", "Arabic Name Calligraphy Frame"): {
-        "attributes": {"sizes": ["A4", "A3"], "turnaround_days": 5, "framed": True}
+        "pricing_unit": "per_unit",
+        "quantity_unit": "piece",
+        "attributes": {"sizes": ["A4", "A3"], "turnaround_days": 5, "framed": True},
     },
     ("Qalam Calligraphy Studio", "Live Calligraphy at Events"): {"pricing_unit": "package"},
     ("Barakah Aqiqah Boxes", "Aqiqah Sweet Box (per box)"): {
-        "attributes": {"contents": ["Dates", "Sweets", "Name card"], "min_order": 25}
+        "pricing_unit": "per_unit",
+        "quantity_unit": "box",
+        "min_quantity": 25,
+        "attributes": {"contents": ["Dates", "Sweets", "Name card"], "min_order": 25},
     },
     ("Paper Petals Cards", "Handmade Wedding Invite (per 50)"): {
         "attributes": {"min_order": 50, "turnaround_days": 10}
@@ -692,6 +714,7 @@ def _apply_rules(category: Category) -> None:
         return
     fulfilment, fields = CATEGORY_RULES[category.slug]
     category.fulfilment = fulfilment
+    category.default_unit = CATEGORY_UNITS.get(category.slug)
     category.field_schema = [FieldDef.model_validate(f).model_dump(mode="json") for f in fields]
 
 

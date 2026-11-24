@@ -37,7 +37,22 @@ class Language(StrEnum):
 
 
 class PricingUnit(StrEnum):
-    """package: the price is the whole service. per_person: the price is per guest (a booking's quantity)."""
+    """package: the price is the whole service. per_unit: the price is per `QuantityUnit` (per person, per piece,
+    per box…), times the quantity the customer picks, from the service's minimum."""
 
     package = "package"
-    per_person = "per_person"
+    per_unit = "per_unit"
+
+
+class QuantityUnit(StrEnum):
+    """What a per-unit service is counted in."""
+
+    person = "person"
+    piece = "piece"
+    box = "box"
+    card = "card"
+    hour = "hour"
+    set = "set"
+
+
+MAX_QUANTITY = 1000  # units in one booking or enquiry

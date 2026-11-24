@@ -3,9 +3,10 @@ customers answer the booking fields; made-to-order services are quoted, not book
 per guest."""
 
 import pytest_asyncio
+from sqlalchemy import text
 
 from tests.support.booking import book, setup
-from tests.support.catalog import seed_categories
+from tests.support.catalog import seed_categories, templates
 from tests.support.directory import ist_day
 
 CATEGORIES = "/api/v1/admin/categories"
@@ -106,15 +107,72 @@ async def test_bookings_keep_the_answers_as_asked(client, engine):
     assert shown["answers"][0]["label"] == "Bride's name"  # history keeps the question as it was asked
 
 
-async def test_per_person_services_are_priced_per_guest(client, engine):
-    _, artist, customer = await setup(client, engine)
+async def test_per_unit_services_are_priced_by_quantity_from_a_minimum(client, engine):
+    admin, artist, customer = await setup(client, engine)
+    parent, _ = await ids(client)
     url = f"/api/v1/artists/me/services/{artist['service_id']}"
-    assert (await book(client, customer, artist, quantity=3)).status_code == 422  # a package has no guests
+    assert (await book(client, customer, artist, quantity=3)).status_code == 422  # a whole service is booked once
 
-    await client.patch(url, headers=artist["headers"], json={"pricing_unit": "per_person", "price_paise": 80000})
-    made = await book(client, customer, artist, quantity=4)
+    await client.patch(f"{CATEGORIES}/{parent}", headers=admin, json={"default_unit": "person"})
+    per_unit = await client.patch(
+        url, headers=artist["headers"], json={"pricing_unit": "per_unit", "price_paise": 80000}
+    )
+    service = next(x for x in per_unit.json()["services"] if x["id"] == artist["service_id"])
+    assert (service["quantity_unit"], service["min_quantity"]) == ("person", 1)  # the category's unit by default
+
+    boxes = await client.patch(url, headers=artist["headers"], json={"quantity_unit": "box", "min_quantity": 25})
+    assert boxes.status_code == 200, boxes.text
+    public = (await client.get(f"/api/v1/artists/{artist['id']}")).json()["services"][0]
+    assert (public["pricing_unit"], public["quantity_unit"], public["min_quantity"]) == ("per_unit", "box", 25)
+
+    too_few = await book(client, customer, artist, quantity=10)
+    assert (too_few.status_code, too_few.json()["message"]) == (422, "The minimum is 25 boxes")
+    made = await book(client, customer, artist, quantity=30)
     assert made.status_code == 201, made.text
-    assert (made.json()["quantity"], made.json()["subtotal_paise"]) == (4, 320000)
+    assert (made.json()["quantity"], made.json()["subtotal_paise"]) == (30, 2_400_000)
+
+    back = await client.patch(url, headers=artist["headers"], json={"pricing_unit": "package"})
+    whole = next(x for x in back.json()["services"] if x["id"] == artist["service_id"])
+    assert (whole["quantity_unit"], whole["min_quantity"]) == (None, 1)
+
+
+async def test_enquiries_carry_add_ons_and_other_services_to_quote(client, engine):
+    _, artist, customer = await setup(client, engine)
+    async with engine.begin() as conn:
+        addon = (
+            await conn.execute(
+                text(
+                    "INSERT INTO artist_service_addon (service_id, name, price_paise, per_person, sort_order) "
+                    "VALUES (:s, 'Name tag', 5000, true, 0) RETURNING id"
+                ),
+                {"s": artist["service_id"]},
+            )
+        ).scalar_one()
+    template = (await templates(client))["Bridal Full Arms"]
+    added = await client.post(
+        "/api/v1/artists/me/services",
+        headers=artist["headers"],
+        json={"template_id": template, "price_paise": 300000, "duration_minutes": 120},
+    )
+    other = next(x["id"] for x in added.json()["services"] if x["id"] != artist["service_id"])
+
+    body = {
+        "artist_id": artist["id"],
+        "event_date": ist_day(10).isoformat(),
+        "details": "Bridal set for the wedding, plus arms for my sister.",
+        "service_id": artist["service_id"],
+        "addons": [{"addon_id": str(addon), "guests": 6}],
+        "also_service_ids": [other, artist["service_id"], other],
+    }
+    loose = {**body, "service_id": None}  # add-ons and other services belong to a service
+    assert (await client.post("/api/v1/enquiries", headers=customer, json=loose)).status_code == 422
+    asked = await client.post("/api/v1/enquiries", headers=customer, json=body)
+    assert asked.status_code == 201, asked.text
+    e = asked.json()
+    assert e["addons"] == [
+        {"name": "Name tag", "unit_price_paise": 5000, "per_person": True, "guests": 6, "line_paise": 30000}
+    ]
+    assert e["also_services"] == [{"id": other, "name": "Bridal Full Arms"}]  # once, and never the main one
 
 
 async def test_made_to_order_services_are_quoted_not_booked(client, engine):

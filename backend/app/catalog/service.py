@@ -96,6 +96,7 @@ class CategoryService:
             status=body.status,
             parent_id=body.parent_id,
             fulfilment=body.fulfilment,
+            default_unit=body.default_unit,
             field_schema=[f.model_dump(mode="json") for f in body.field_schema],
         )
         self.categories.add(category)
@@ -109,6 +110,8 @@ class CategoryService:
             await self._move(category, data["parent_id"])
         if "fulfilment" in data:  # an explicit null is meaningful: follow the parent again
             category.fulfilment = data.pop("fulfilment")
+        if "default_unit" in data:
+            category.default_unit = data.pop("default_unit")
         if data.get("field_schema") is not None:
             schema = body.field_schema or []
             await self._check_fields(schema, category.parent_id, category)

@@ -246,6 +246,8 @@ class DirectoryRepository:
                         Category.fulfilment,
                         "field_schema",
                         Category.field_schema,
+                        "default_unit",
+                        Category.default_unit,
                     ),
                 )
             )

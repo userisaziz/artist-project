@@ -32,10 +32,16 @@ class Category(Base):
     field_schema: Mapped[list[dict]] = mapped_column(
         JSONB, nullable=False, default=list, server_default=sa.text("'[]'")
     )
+    # What per-unit services here are usually counted in (app.artist.constants.QuantityUnit); NULL = the parent's.
+    default_unit: Mapped[str | None] = mapped_column(String(10))
 
     __table_args__ = (
         sa.CheckConstraint(
             "fulfilment IS NULL OR fulfilment IN ('appointment', 'made_to_order')", name="fulfilment_known"
+        ),
+        sa.CheckConstraint(
+            "default_unit IS NULL OR default_unit IN ('person', 'piece', 'box', 'card', 'hour', 'set')",
+            name="default_unit_known",
         ),
     )
 

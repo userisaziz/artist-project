@@ -22,6 +22,7 @@ def category_out(row: CategoryUsage) -> dict:
         child_count=u.children,
         template_count=u.templates,
         fulfilment=category.fulfilment,
+        default_unit=category.default_unit,
         field_schema=category.field_schema,
     )
 
@@ -56,6 +57,7 @@ def catalog_tree(catalog: Catalog) -> list[dict]:
                     "name": c.name,
                     "services": services[c.id],
                     "fulfilment": rules.fulfilment,
+                    "default_unit": rules.default_unit,
                     "fields": rules.fields,
                 }
             )
@@ -69,6 +71,7 @@ def catalog_tree(catalog: Catalog) -> list[dict]:
                 "name": c.name,
                 "subcategories": subcategories[c.id],
                 "fulfilment": rules.fulfilment,
+                "default_unit": rules.default_unit,
                 "fields": rules.fields,
             }
         )

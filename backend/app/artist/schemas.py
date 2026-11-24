@@ -14,11 +14,13 @@ from app.artist.constants import (
     MAX_EXPERIENCE_YEARS,
     MAX_INCLUDED_ITEMS,
     MAX_PRICE_PAISE,
+    MAX_QUANTITY,
     MAX_TRAVEL_RADIUS_KM,
     MIN_TRAVEL_RADIUS_KM,
     WEEKDAYS,
     Language,
     PricingUnit,
+    QuantityUnit,
 )
 from app.shared.enums import ArtistServiceStatus, ArtistStatus
 from app.shared.schemas import APIModel, ORMModel
@@ -97,6 +99,8 @@ class ServiceIn(ServiceExtrasIn):
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
     pricing_unit: PricingUnit = PricingUnit.package
+    quantity_unit: QuantityUnit | None = None  # per_unit: defaults to the category's unit
+    min_quantity: int = Field(default=1, ge=1, le=MAX_QUANTITY)
     attributes: dict[str, Any] = Field(default_factory=dict)  # the subcategory's listing fields (app.catalog.fields)
 
 
@@ -105,6 +109,8 @@ class ServicePatch(ServiceExtrasIn):
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
     pricing_unit: PricingUnit | None = None
+    quantity_unit: QuantityUnit | None = None
+    min_quantity: int | None = Field(default=None, ge=1, le=MAX_QUANTITY)
     attributes: dict[str, Any] | None = None  # sent replaces all of them
 
 
@@ -117,6 +123,8 @@ class ServiceOut(APIModel):
     price_paise: int
     duration_minutes: int
     pricing_unit: PricingUnit
+    quantity_unit: QuantityUnit | None
+    min_quantity: int
     attributes: dict[str, Any]  # answers to the subcategory's listing fields, by field key
     description: str | None = None
     included_items: list[str]
@@ -138,6 +146,8 @@ class CustomServiceIn(ServiceExtrasIn):
     duration_minutes: int = Field(gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
     pricing_unit: PricingUnit = PricingUnit.package
+    quantity_unit: QuantityUnit | None = None
+    min_quantity: int = Field(default=1, ge=1, le=MAX_QUANTITY)
 
     @model_validator(mode="after")
     def one_place(self) -> "CustomServiceIn":
@@ -153,6 +163,8 @@ class CustomServicePatch(ServiceExtrasIn):
     duration_minutes: int | None = Field(default=None, gt=0, le=1440)
     description: str | None = Field(default=None, max_length=1000)
     pricing_unit: PricingUnit | None = None
+    quantity_unit: QuantityUnit | None = None
+    min_quantity: int | None = Field(default=None, ge=1, le=MAX_QUANTITY)
 
 
 class PhotoIn(APIModel):

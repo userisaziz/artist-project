@@ -6,6 +6,9 @@ from typing import Annotated, Any
 
 from pydantic import AwareDatetime, Field, StringConstraints, field_validator
 
+from app.artist.constants import MAX_QUANTITY
+from app.booking.constants import MAX_BOOKING_ADDONS
+from app.booking.schemas import BookingAddonIn
 from app.catalog.fields import FieldAnswer
 from app.quote.constants import (
     ADDRESS_MAX,
@@ -17,11 +20,12 @@ from app.quote.constants import (
     MAX_PAISE,
     MIN_PAISE,
     NOTE_MAX,
-    QUANTITY_MAX,
     REASON_MAX,
     EnquiryStatus,
 )
 from app.shared.schemas import APIModel
+
+MAX_ALSO_SERVICES = 5  # more services quoted in one enquiry
 
 Paise = Annotated[int, Field(ge=MIN_PAISE, le=MAX_PAISE)]
 
@@ -36,8 +40,10 @@ class EnquiryIn(APIModel):
     details: Annotated[str, StringConstraints(strip_whitespace=True, min_length=DETAILS_MIN, max_length=DETAILS_MAX)]
     budget_paise: Paise | None = None
     service_id: uuid.UUID | None = None  # the service asked about, e.g. a made-to-order one
-    quantity: int | None = Field(default=None, ge=1, le=QUANTITY_MAX)  # boxes, cards, guests
+    quantity: int | None = Field(default=None, ge=1, le=MAX_QUANTITY)  # in the service's unit (boxes, cards…)
     answers: dict[str, Any] = Field(default_factory=dict)  # that service's booking fields, by key
+    addons: list[BookingAddonIn] = Field(default_factory=list, max_length=MAX_BOOKING_ADDONS)  # from that service
+    also_service_ids: list[uuid.UUID] = Field(default_factory=list, max_length=MAX_ALSO_SERVICES)
 
 
 class QuoteIn(APIModel):
@@ -85,6 +91,19 @@ class QuoteOut(APIModel):
     quoted_at: datetime
 
 
+class EnquiryAddon(APIModel):
+    name: str
+    unit_price_paise: int
+    per_person: bool
+    guests: int
+    line_paise: int
+
+
+class EnquiryService(APIModel):
+    id: uuid.UUID
+    name: str
+
+
 class EnquiryOut(APIModel):
     id: uuid.UUID
     status: EnquiryStatus
@@ -95,6 +114,8 @@ class EnquiryOut(APIModel):
     service_name: str | None
     quantity: int | None
     answers: list[FieldAnswer]
+    addons: list[EnquiryAddon]  # priced as listed when asked; the quote is the price that counts
+    also_services: list[EnquiryService]  # more of the artist's services to quote for
     created_at: datetime
     artist: EnquiryArtist
     customer: EnquiryCustomer
