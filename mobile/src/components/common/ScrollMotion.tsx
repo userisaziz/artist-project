@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { View, type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
+import type { ComponentProps, ReactNode } from 'react';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -10,16 +10,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useReducedMotion } from '../../core/motion/motion';
 
-/** The scroll-linked vocabulary. Screens call `useScrollLinked`, hand `onScroll` to their scroller and
- *  pass `scrollY` to the motion components below; only this primitive touches reanimated. */
+/** The scroll-linked vocabulary. Screens call `useScrollLinked`, render their content inside
+ *  `ScrollContainer` and pass `scrollY` to the motion components below; only this primitive touches
+ *  reanimated. */
 
 export type ScrollY = SharedValue<number>;
+
+/** `useAnimatedScrollHandler` returns a native animated event, typed callable but an object at
+ *  runtime — only a Reanimated scroller knows what to do with it. */
+type ScrollHandler = ReturnType<typeof useAnimatedScrollHandler>;
 
 interface ScrollLinked {
   /** Live scroll offset, updated on the UI thread every frame — never setState here. */
   scrollY: ScrollY;
-  /** Animated event handler for the scroller's `onScroll`; works on ScrollView and FlashList alike. */
-  onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onScroll: ScrollHandler;
   /** Fire the handler every ~16ms instead of once per gesture — the price of frame-rate motion. */
   scrollEventThrottle: 16;
 }
@@ -30,6 +34,28 @@ export function useScrollLinked(): ScrollLinked {
     scrollY.set(e.contentOffset.y);
   });
   return { scrollY, onScroll: handler, scrollEventThrottle: 16 };
+}
+
+interface ScrollContainerProps extends Pick<ComponentProps<typeof Animated.ScrollView>, 'style' | 'contentContainerStyle' | 'refreshControl'> {
+  onScroll: ScrollHandler;
+  scrollEventThrottle: number;
+  children: ReactNode;
+}
+
+/** The scroller that takes `useScrollLinked`'s handler. react-native's own ScrollView invokes
+ *  `onScroll` as a function, which throws on a Reanimated event object, so screens scroll here. */
+export function ScrollContainer({ onScroll, scrollEventThrottle, style, contentContainerStyle, refreshControl, children }: ScrollContainerProps) {
+  return (
+    <Animated.ScrollView
+      onScroll={onScroll}
+      scrollEventThrottle={scrollEventThrottle}
+      style={style}
+      contentContainerStyle={contentContainerStyle}
+      refreshControl={refreshControl}
+    >
+      {children}
+    </Animated.ScrollView>
+  );
 }
 
 interface CollapseOnScrollProps {

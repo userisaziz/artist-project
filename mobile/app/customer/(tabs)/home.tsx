@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, ScrollView, View, RefreshControl } from 'react-native';
+import { FlatList, View, RefreshControl } from 'react-native';
 import { PressableFeedback } from '../../../src/components/common/PressableFeedback';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -26,7 +26,7 @@ import { MessagesButton } from '../../../src/components/chat/MessagesButton';
 import { useUnreadChatCount } from '../../../src/hooks/chat/chat';
 import { liveSlides } from '../../../src/utils/directory/home-hero';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
-import { CollapseOnScroll, useScrollLinked } from '../../../src/components/common/ScrollMotion';
+import { CollapseOnScroll, ScrollContainer, useScrollLinked } from '../../../src/components/common/ScrollMotion';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { ShopBanner } from '../../../src/components/shop/ShopBanner';
 import { greeting } from '../../../src/utils/common/time';
@@ -88,7 +88,7 @@ export default function CustomerHome() {
   };
 
   return (
-    <ScrollView onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
+    <ScrollContainer onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.xl }} refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={theme.colors.brand} colors={[theme.colors.brand]} />}>
       <LinearGradient colors={[theme.colors.brandSoft, theme.colors.washTop, theme.colors.background]} locations={[0, 0.58, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: GRADIENT_HEIGHT }} />
       <CollapseOnScroll scrollY={scrollY} style={{ paddingHorizontal: theme.spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ flex: 1 }}>
@@ -101,7 +101,7 @@ export default function CustomerHome() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
           >
             <Icon name="map-pin" size={14} color={theme.colors.brand} />
-            <AppText variant="label" style={{ fontSize: 14, color: theme.colors.textPrimary }}>{place?.label ?? (phone.locating ? 'Finding you…' : 'Set your location')}</AppText>
+            <AppText variant="label" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: theme.colors.textPrimary }}>{place?.label ?? (phone.locating ? 'Finding you…' : 'Set your location')}</AppText>
             <Icon name="chevron-down" size={14} color={theme.colors.brand} />
           </PressableFeedback>
         </View>
@@ -115,45 +115,35 @@ export default function CustomerHome() {
         accessibilityRole="search"
         accessibilityLabel="Search artists and services"
         onPress={search}
-        style={{ marginTop: 14, marginHorizontal: theme.spacing.md, height: 50, borderRadius: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, ...theme.shadows.sm }}
+        style={{ marginTop: theme.spacing.lg, marginHorizontal: theme.spacing.md, height: 50, borderRadius: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.separator, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, ...theme.shadows.sm }}
       >
         <Icon name="search" size={18} color={theme.colors.brand} />
         <AppText variant="body" style={{ color: theme.colors.textMuted }}>Search artists, services or styles</AppText>
       </PressableFeedback>
 
       {place ? null : (
-        <View style={{ marginTop: 14, paddingHorizontal: theme.spacing.md }}>
+        <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}>
           <LocationCard phone={phone} onSearch={() => setPicking(true)} />
         </View>
       )}
 
       {place && slides.length ? (
-        <View style={{ marginTop: 14 }}>
+        <View style={{ marginTop: theme.spacing.lg }}>
           <HomeHero slides={slides} onOpen={openSlide} scrollY={scrollY} />
         </View>
       ) : null}
 
       {categories.isPending ? (
-        <>
-          <SectionHeader title="Services" />
-          <LoadingView label="Loading services" shape="icons" />
-        </>
+        <View style={{ marginTop: theme.spacing.lg }}><LoadingView label="Loading services" shape="icons" /></View>
       ) : categories.isError ? (
-        <>
-          <SectionHeader title="Services" />
-          <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={categories.error} onRetry={() => { void categories.refetch(); }} /></View>
-        </>
+        <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}><ErrorView error={categories.error} onRetry={() => { void categories.refetch(); }} /></View>
       ) : categories.data?.length ? (
-        <>
-          <SectionHeader title="Services" />
+        <View style={{ marginTop: theme.spacing.lg }}>
           <CategoryIconRow categories={categories.data} onPick={(c) => router.navigate({ pathname: '/customer/explore', params: { categoryId: String(c.id) } })} />
-        </>
+        </View>
       ) : null}
 
       <SectionHeader title="Discover artists near you" onSeeAll={explore} seeAllLabel="See all artists" />
-      {place && artists.isSuccess ? (
-        <AppText variant="caption" style={{ paddingHorizontal: theme.spacing.md, marginTop: -6, marginBottom: 10, color: theme.colors.textMuted }}>{`Artists ${placeLine(place, radiusKm)}`}</AppText>
-      ) : null}
       {artists.isPending ? <LoadingView label="Loading artists near you" shape="tiles" /> : null}
       {artists.isError ? <View style={{ paddingHorizontal: theme.spacing.md }}><ErrorView error={artists.error} onRetry={() => { void artists.refetch(); }} /></View> : null}
       {artists.isSuccess && !items.length ? (
@@ -179,7 +169,7 @@ export default function CustomerHome() {
 
       <HomeTopRated artists={topRated.data ?? []} onOpen={openArtist} onSeeAll={exploreTopRated} />
 
-      <View style={{ marginTop: 28, paddingHorizontal: theme.spacing.md }}>
+      <View style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.md }}>
         <ShopBanner onPress={() => router.navigate('/customer/shop')} />
       </View>
 
@@ -190,6 +180,6 @@ export default function CustomerHome() {
         onPick={(next) => { setPlace(next); setPicking(false); }}
         onClose={() => setPicking(false)}
       />
-    </ScrollView>
+    </ScrollContainer>
   );
 }

@@ -87,7 +87,6 @@ it('shows services, nearby artists and top rated artists, best rated first', asy
   serve();
   await wrap(<CustomerHome />);
 
-  expect(await screen.findByText('Services')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Photography artists' }));
   expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/customer/explore', params: { categoryId: '2' } });
 
@@ -132,7 +131,6 @@ it('shows a retry when services cannot load', async () => {
   serve({ categoriesStatus: 500 });
   await wrap(<CustomerHome />);
 
-  expect(await screen.findByText('Services')).toBeTruthy();
   expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
 });
 
@@ -172,7 +170,6 @@ it('"Use my location" finds the customer and lists artists within the radius aro
 
   await fireEvent.press(await screen.findByRole('button', { name: 'Use my location' }));
   expect(await screen.findByRole('button', { name: 'Location: BTM Layout, Bangalore. Change' })).toBeTruthy();
-  expect(await screen.findByText('Artists within 5 km of BTM Layout, Bangalore')).toBeTruthy();
   const nearby = paths.filter((p) => p.startsWith('/artists') && p.includes('near_lat=12.917'));
   expect(nearby.length).toBeGreaterThan(0);
   expect(nearby[0]).toContain('sort=nearest');
