@@ -7,13 +7,15 @@ import type { Coordinates } from '../../core/location/location';
 
 interface PinMapProps {
   start: Coordinates;
+  /** Matches the native props; the web stand-in has no zoom. */
+  zoom?: number;
   /** The point under the pin, each time the map settles. */
   onMove: (center: Coordinates) => void;
 }
 
 const HEIGHT = 220;
 
-/** Web stand-in for PinMap: react-native-maps has no web build, so the dev web preview shows the pin's coordinates
+/** Web stand-in for PinMap: the native MapLibre map has no web build, so the dev web preview shows the pin's coordinates
  * and keeps the starting point (the native app drags a real map). */
 export function PinMap({ start, onMove }: PinMapProps) {
   const theme = useTheme();

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, type TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,10 +47,24 @@ function useParamSelection<T>(fromParam: T): [T, (value: T) => void] {
   return [selected, setSelected];
 }
 
-/** Home's category circles open Explore with `?categoryId=`; any screen can open it with `?city=`. */
-function useExploreParams(): { categoryId: number | null; city: string | null } {
-  const { categoryId, city } = useLocalSearchParams<{ categoryId?: string; city?: string }>();
-  return { categoryId: categoryId && /^\d+$/.test(categoryId) ? Number(categoryId) : null, city: city || null };
+interface ExploreParams {
+  categoryId: number | null;
+  city: string | null;
+  focus: boolean;
+  /** A fresh token per link, so the same link (e.g. Home's search bar) acts again on a second tap. */
+  at: string | null;
+}
+
+/** Home's category circles open Explore with `?categoryId=` and its search bar with `?focus=1`; any screen can open it
+ *  with `?city=`. Filters and sort (`?sort=rating` from Home's "Top rated → See all") are read by useExploreFilters. */
+function useExploreParams(): ExploreParams {
+  const { categoryId, city, focus, at } = useLocalSearchParams<{ categoryId?: string; city?: string; focus?: string; at?: string }>();
+  return {
+    categoryId: categoryId && /^\d+$/.test(categoryId) ? Number(categoryId) : null,
+    city: city || null,
+    focus: focus === '1',
+    at: at || null,
+  };
 }
 
 // AtelierScreen "explore": search, filter chips (Near me, Date, Price, 4.8+, Home visit), "N artists in City" with a
@@ -69,6 +83,8 @@ export default function Explore() {
   const categories = useCategories();
   const explore = useExploreFilters({ place, categoryId, q });
   const { filters, set } = explore;
+  const searchInput = useRef<TextInput>(null);
+  useEffect(() => { if (params.focus) searchInput.current?.focus(); }, [params.focus, params.at]);
   const list = useArtistSearch(explore.search);
   const pull = usePullToRefresh(list.refetch);
   const saveArtist = useSaveToggle('artist');
@@ -111,7 +127,7 @@ export default function Explore() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
       <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
-        <ExploreSearchField value={query} onChangeText={setQuery} />
+        <ExploreSearchField ref={searchInput} value={query} onChangeText={setQuery} />
       </View>
       <ExploreFilterBar chips={chips} />
       {explore.locationError ? (

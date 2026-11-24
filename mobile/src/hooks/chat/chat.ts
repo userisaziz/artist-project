@@ -33,6 +33,12 @@ export function useConversations(side: ChatSide, q = '', poll = true) {
   });
 }
 
+/** Unread messages across the newest page of the inbox, for a badge; no polling of its own. */
+export function useUnreadChatCount(side: ChatSide): number {
+  const inbox = useConversations(side, '', false);
+  return inbox.data?.pages[0]?.items.reduce((sum, c) => sum + c.unread_count, 0) ?? 0;
+}
+
 export function useConversation(side: ChatSide, id: string) {
   const { user } = useAuth();
   return useQuery({

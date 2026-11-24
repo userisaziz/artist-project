@@ -227,3 +227,12 @@ it('a featured artist with fewer than three photos gets one full-width photo, no
   // The lone photo's cell is the whole mosaic (flex 1), not the tall left cell of a three-up grid (flex 2).
   expect(photos[0].parent?.props.style).toMatchObject({ flex: 1 });
 });
+
+it('opens sorted by rating from Home\'s "Top rated → See all"', async () => {
+  mockUrl.params = { sort: 'rating', at: '1' };
+  serve(() => page([AYESHA, NOOR]));
+  await wrap(<Explore />);
+
+  await waitFor(() => expect(searches().at(-1)?.sort).toBe('rating'));
+  expect(await screen.findByRole('button', { name: 'Sort: Top rated' })).toBeTruthy();
+});

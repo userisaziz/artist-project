@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import { TextInput, View } from 'react-native';
 import { PressableFeedback } from '../common/PressableFeedback';
 import { Icon } from '../common/Icon';
@@ -6,13 +7,15 @@ import { useTheme } from '../../core/theme/theme-provider';
 interface ExploreSearchFieldProps {
   value: string;
   onChangeText: (text: string) => void;
+  /** Lets the screen focus the field, e.g. when Home's search bar opens Explore. */
+  ref?: Ref<TextInput>;
 }
 
 // The platform's minimum touch target, for the clear button's hitSlop.
 const MIN_TOUCH = 44;
 
 /** Explore's search box: a magnifier, the input, and a clear button once there is text. */
-export function ExploreSearchField({ value, onChangeText }: ExploreSearchFieldProps) {
+export function ExploreSearchField({ value, onChangeText, ref }: ExploreSearchFieldProps) {
   const theme = useTheme();
   const glyph = theme.typography.subtitle.fontSize;
   const slop = Math.max(0, (MIN_TOUCH - glyph) / 2);
@@ -25,6 +28,7 @@ export function ExploreSearchField({ value, onChangeText }: ExploreSearchFieldPr
     >
       <Icon name="search" size={glyph} color={theme.colors.brand} />
       <TextInput
+        ref={ref}
         accessibilityLabel="Search artists"
         placeholder="Search artists or services"
         placeholderTextColor={theme.colors.textMuted}
