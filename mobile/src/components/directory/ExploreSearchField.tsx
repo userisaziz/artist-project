@@ -7,6 +7,8 @@ import { useTheme } from '../../core/theme/theme-provider';
 interface ExploreSearchFieldProps {
   value: string;
   onChangeText: (text: string) => void;
+  /** Lets the screen act on the keyboard's Search key, e.g. dismiss it to show the results. */
+  onSubmitEditing?: () => void;
   /** Lets the screen focus the field, e.g. when Home's search bar opens Explore. */
   ref?: Ref<TextInput>;
 }
@@ -15,7 +17,7 @@ interface ExploreSearchFieldProps {
 const MIN_TOUCH = 44;
 
 /** Explore's search box: a magnifier, the input, and a clear button once there is text. */
-export function ExploreSearchField({ value, onChangeText, ref }: ExploreSearchFieldProps) {
+export function ExploreSearchField({ value, onChangeText, onSubmitEditing, ref }: ExploreSearchFieldProps) {
   const theme = useTheme();
   const glyph = theme.typography.subtitle.fontSize;
   const slop = Math.max(0, (MIN_TOUCH - glyph) / 2);
@@ -36,6 +38,7 @@ export function ExploreSearchField({ value, onChangeText, ref }: ExploreSearchFi
         onChangeText={onChangeText}
         autoCorrect={false}
         returnKeyType="search"
+        onSubmitEditing={onSubmitEditing}
         cursorColor={theme.colors.brand}
         style={{ flex: 1, alignSelf: 'stretch', color: theme.colors.textPrimary, fontFamily: theme.typography.body.fontFamily, fontSize: theme.typography.body.fontSize }}
       />

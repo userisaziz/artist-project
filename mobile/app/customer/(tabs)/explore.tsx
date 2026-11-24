@@ -7,6 +7,7 @@ import { AppText } from '../../../src/components/common/AppText';
 import { AppButton } from '../../../src/components/common/AppButton';
 import { ChoiceSheet } from '../../../src/components/common/ChoiceSheet';
 import { EmptyView, ErrorView, LoadingView } from '../../../src/components/common/StateViews';
+import { KeyboardAvoider } from '../../../src/components/common/KeyboardAvoider';
 import { MotionEntrance } from '../../../src/components/common/MotionEntrance';
 import { useEntranceWindow } from '../../../src/core/motion/motion';
 import { PlaceSheet } from '../../../src/components/directory/PlaceSheet';
@@ -125,9 +126,10 @@ export default function Explore() {
       );
 
   return (
+    <KeyboardAvoider style={{ backgroundColor: theme.colors.background }}>
     <View style={{ flex: 1, backgroundColor: theme.colors.background, paddingTop: insets.top + theme.spacing.md }}>
       <View style={{ paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm }}>
-        <ExploreSearchField ref={searchInput} value={query} onChangeText={setQuery} />
+        <ExploreSearchField ref={searchInput} value={query} onChangeText={setQuery} onSubmitEditing={() => searchInput.current?.blur()} />
       </View>
       <ExploreFilterBar chips={chips} />
       {explore.locationError ? (
@@ -139,7 +141,7 @@ export default function Explore() {
         data={items}
         keyExtractor={(a) => a.id}
         getItemType={(_, index) => (index === 0 ? 'featured' : 'row')} // the mosaic card and the rows recycle apart
-        style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1 }} // the previous search, until the new one answers
+        style={{ opacity: list.isPlaceholderData ? PLACEHOLDER_OPACITY : 1, pointerEvents: list.isPlaceholderData ? 'none' : 'auto' }} // the previous search, until the new one answers; dimmed rows must not open the wrong artist
         contentContainerStyle={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.xl, gap: theme.spacing[3] }}
         renderItem={({ item, index }) => (index === 0 ? (
           <MotionEntrance index={index} armed={rowsArmed}>
@@ -181,5 +183,6 @@ export default function Explore() {
       <ChoiceSheet visible={sheet === 'price'} title="Starting price" choices={priceChoices()} selected={filters.maxPricePaise} onPick={(maxPricePaise) => { set({ maxPricePaise }); close(); }} onClose={close} />
       <ChoiceSheet visible={sheet === 'sort'} title="Sort by" choices={sortChoices(explore.hasPoint)} selected={filters.sort} onPick={(sort) => { set({ sort }); close(); }} onClose={close} />
     </View>
+    </KeyboardAvoider>
   );
 }

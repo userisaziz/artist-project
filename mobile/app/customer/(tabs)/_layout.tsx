@@ -1,3 +1,4 @@
+import { Pressable } from 'react-native';
 import { Tabs } from 'expo-router/js-tabs';
 import { useTheme } from '../../../src/core/theme/theme-provider';
 import { TabIcon } from '../../../src/components/common/TabIcon';
@@ -23,6 +24,7 @@ export default function CustomerTabs() {
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.separator },
         tabBarLabelStyle: { fontFamily: theme.typography.label.fontFamily, fontSize: 10.5 },
+        tabBarButton: ({ href, ...props }) => <Pressable {...props} accessibilityRole="button" />,
         sceneStyle: { backgroundColor: theme.colors.background },
       }}
     >
