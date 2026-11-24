@@ -34,7 +34,7 @@ export function artist(overrides: Partial<ArtistDetail> = {}): ArtistDetail {
 
 export const category = (overrides: Partial<AdminCategory> & Pick<AdminCategory, 'id' | 'name'>): AdminCategory => ({
   slug: overrides.name.toLowerCase(), sort_order: 0, status: 'active', parent_id: null,
-  artist_count: 0, service_count: 0, child_count: 0, template_count: 0, fulfilment: null, field_schema: [], ...overrides,
+  artist_count: 0, service_count: 0, child_count: 0, template_count: 0, fulfilment: null, default_unit: null, field_schema: [], ...overrides,
 })
 
 export function customService(overrides: Partial<CustomServiceItem> = {}): CustomServiceItem {
@@ -134,7 +134,7 @@ function route(method: string, path: string, body: any): Response {
   if (method === 'GET' && path === '/users/me') return json(200, db.me)
   if (method === 'GET' && path === '/admin/categories') return json(200, db.categories)
   if (method === 'POST' && path === '/admin/categories') {
-    const created: AdminCategory = { id: db.categories.length + 1, slug: body.name.toLowerCase(), name: body.name, sort_order: db.categories.length, status: body.status, parent_id: body.parent_id ?? null, artist_count: 0, service_count: 0, child_count: 0, template_count: 0, fulfilment: body.fulfilment ?? null, field_schema: body.field_schema ?? [] }
+    const created: AdminCategory = { id: db.categories.length + 1, slug: body.name.toLowerCase(), name: body.name, sort_order: db.categories.length, status: body.status, parent_id: body.parent_id ?? null, artist_count: 0, service_count: 0, child_count: 0, template_count: 0, fulfilment: body.fulfilment ?? null, default_unit: body.default_unit ?? null, field_schema: body.field_schema ?? [] }
     db.categories = db.categories.map((c) => (c.id === created.parent_id ? { ...c, child_count: c.child_count + 1 } : c))
     db.categories.push(created)
     return json(201, created)

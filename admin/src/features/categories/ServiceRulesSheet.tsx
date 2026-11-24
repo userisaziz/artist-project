@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { toastError } from '@/lib/notify'
 import type { AdminCategory, Fulfilment } from '@/lib/types'
 import { FieldEditor } from './FieldEditor'
-import { SCOPE_LABEL, newField, rulesFormSchema, toApi, toForm, type RulesForm } from './field-schema'
+import { SCOPE_LABEL, UNIT_LABEL, newField, rulesFormSchema, toApi, toForm, type RulesForm } from './field-schema'
 import { RuleSelect } from './RuleSelect'
 import { useSaveCategory } from './queries'
 
@@ -30,14 +30,16 @@ interface ServiceRulesSheetProps {
  *  answer. A subcategory inherits its parent's fulfilment (unless it sets its own) and fields (shown read-only). */
 export function ServiceRulesSheet({ category, parent, onClose }: ServiceRulesSheetProps) {
   const save = useSaveCategory()
-  const form = useForm<RulesForm>({ resolver: zodResolver(rulesFormSchema), defaultValues: { fulfilment: 'appointment', fields: [] } })
+  const form = useForm<RulesForm>({ resolver: zodResolver(rulesFormSchema), defaultValues: { fulfilment: 'appointment', defaultUnit: 'none', fields: [] } })
   const fields = useFieldArray({ control: form.control, name: 'fields' })
   const fulfilment = useWatch({ control: form.control, name: 'fulfilment' })
+  const defaultUnit = useWatch({ control: form.control, name: 'defaultUnit' })
 
   useEffect(() => {
     if (!category) return
     form.reset({
       fulfilment: category.fulfilment ?? (parent ? 'inherit' : 'appointment'),
+      defaultUnit: category.default_unit ?? 'none',
       fields: category.field_schema.map(toForm),
     })
   }, [category, parent, form])
@@ -53,6 +55,7 @@ export function ServiceRulesSheet({ category, parent, onClose }: ServiceRulesShe
         id: category.id,
         input: {
           fulfilment: values.fulfilment === 'inherit' ? null : values.fulfilment,
+          default_unit: values.defaultUnit === 'none' ? null : values.defaultUnit,
           field_schema: values.fields.map(toApi),
         },
       })
@@ -80,6 +83,17 @@ export function ServiceRulesSheet({ category, parent, onClose }: ServiceRulesShe
                 <FieldLabel htmlFor="rules-fulfilment">Fulfilment</FieldLabel>
                 <RuleSelect id="rules-fulfilment" value={fulfilment} onChange={(v) => form.setValue('fulfilment', v as RulesForm['fulfilment'])} options={fulfilmentOptions} />
                 <FieldDescription>Made to order suits cards, aqiqah boxes, calligraphy frames: no time slot, so there is no Book button.</FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="rules-unit">Priced per</FieldLabel>
+                <RuleSelect
+                  id="rules-unit"
+                  value={defaultUnit}
+                  onChange={(v) => form.setValue('defaultUnit', v as RulesForm['defaultUnit'])}
+                  options={parent ? { ...UNIT_LABEL, none: `Same as ${parent.name}${parent.default_unit ? ` (${parent.default_unit})` : ''}` } : UNIT_LABEL}
+                />
+                <FieldDescription>The unit artists here usually charge per: a person for mehendi guests, a piece for frames, a box for aqiqah boxes. Artists can still price a service as a whole.</FieldDescription>
               </Field>
 
               {parent && parent.field_schema.length > 0 && (

@@ -48,9 +48,12 @@ export const fieldFormSchema = z
     if (f.min && f.max && Number(f.min) > Number(f.max)) ctx.addIssue({ code: 'custom', path: ['max'], message: 'Below the minimum' })
   })
 
+export const UNIT_LABEL = { none: 'No default', person: 'Person', piece: 'Piece', box: 'Box', card: 'Card', hour: 'Hour', set: 'Set' }
+
 export const rulesFormSchema = z
   .object({
     fulfilment: z.enum(['inherit', 'appointment', 'made_to_order']),
+    defaultUnit: z.enum(['none', 'person', 'piece', 'box', 'card', 'hour', 'set']),
     fields: z.array(fieldFormSchema).max(20, 'At most 20 fields'),
   })
   .superRefine((v, ctx) => {

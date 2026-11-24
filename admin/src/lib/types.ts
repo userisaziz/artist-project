@@ -34,12 +34,16 @@ export interface AdminCategory {
   template_count: number
   /** As set on this row; null on a subcategory = follows its parent. */
   fulfilment: Fulfilment | null
+  /** What per-unit services here are counted in, as set on this row; null = the parent's (or none). */
+  default_unit: QuantityUnit | null
   /** This row's own fields; a subcategory also gets its parent's. */
   field_schema: FieldDef[]
 }
 
 /** appointment: booked into a time slot. made_to_order: made and handed over later, so customers ask for a quote. */
 export type Fulfilment = 'appointment' | 'made_to_order'
+/** What a per-unit service is counted in: "₹300 per piece". */
+export type QuantityUnit = 'person' | 'piece' | 'box' | 'card' | 'hour' | 'set'
 /** listing: the artist states it when offering the service. booking: the customer answers it when booking. */
 export type FieldScope = 'listing' | 'booking'
 export type FieldType = 'text' | 'long_text' | 'number' | 'select' | 'multi_select' | 'boolean' | 'date'
@@ -65,6 +69,7 @@ export interface CategoryInput {
   status: CategoryStatus
   parent_id?: number // set on create only: makes it a subcategory of that top-level category
   fulfilment?: Fulfilment | null // null on a subcategory = follow the parent
+  default_unit?: QuantityUnit | null // null = follow the parent (or none)
   field_schema?: FieldDef[] // sent replaces this row's own fields
 }
 

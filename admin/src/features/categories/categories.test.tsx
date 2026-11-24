@@ -160,6 +160,7 @@ it('sets a subcategory’s service rules: made to order, with a required booking
   expect(within(panel).getByText(/Occasion · customer answers it/)).toBeInTheDocument() // inherited, read-only
 
   await user.selectOptions(within(panel).getByLabelText('Fulfilment'), 'made_to_order')
+  await user.selectOptions(within(panel).getByLabelText('Priced per'), 'box')
   await user.click(within(panel).getByRole('button', { name: /Add field/ }))
   await user.click(within(panel).getByRole('button', { name: 'Save rules' }))
   expect(await within(panel).findByText('Label is required')).toBeInTheDocument()
@@ -175,6 +176,7 @@ it('sets a subcategory’s service rules: made to order, with a required booking
     path: '/admin/categories/2',
     body: {
       fulfilment: 'made_to_order',
+      default_unit: 'box',
       field_schema: [{ key: 'babys_name', label: "Baby's name", scope: 'booking', type: 'text', required: true, options: [], min: null, max: null, unit: null, help: null }],
     },
   })
